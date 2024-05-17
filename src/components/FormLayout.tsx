@@ -1,0 +1,51 @@
+import { forwardRef, Ref, ReactElement } from "react";
+
+// types
+import { KeyedObject } from "types/root";
+import { Box, Grid } from "@mui/material";
+import useConfig from "hooks/useConfig";
+import ActionButton from "./ActionButton";
+import Loader from "./Loader";
+
+export interface FormLayoutProps extends KeyedObject {
+  inputs: ReactElement[];
+  submitButtonText: string;
+  isSubmitting: boolean;
+}
+
+// ==============================|| FORM LAYOUT - FORMIK ||============================== //
+
+function FormLayout(
+  { inputs, submitButtonText, isSubmitting }: FormLayoutProps,
+  ref: Ref<HTMLDivElement>
+) {
+  console.log("ISSUBMITTING", isSubmitting);
+
+  return (
+    <>
+      <Grid container rowSpacing={"1.5rem"} columnSpacing={"1rem"}>
+        {inputs.map((input, idx) => (
+          <Grid key={idx} item xs={12} md={6} sx={{ width: "100%" }}>
+            {input}
+          </Grid>
+        ))}
+      </Grid>
+      <Box
+        sx={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: "3rem",
+        }}
+      >
+        {isSubmitting ? (
+          <ActionButton text={'loading'} disabled />
+        ) : (
+          <ActionButton text={submitButtonText} type="submit" />
+        )}
+      </Box>
+    </>
+  );
+}
+
+export default forwardRef(FormLayout);
