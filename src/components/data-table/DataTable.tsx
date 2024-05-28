@@ -18,6 +18,7 @@ import Tooltip from "@mui/material/Tooltip";
 import { visuallyHidden } from "@mui/utils";
 import { Filter, Trash } from "iconsax-react";
 import { useDataTable } from "./useDataTable";
+import { FormattedMessage } from "react-intl";
 
 export type Order = "asc" | "desc";
 
@@ -158,7 +159,7 @@ function EnhancedTableToolbar({
           id="tableTitle"
           component="div"
         >
-          {tableTitle}
+          <FormattedMessage id={tableTitle} />
         </Typography>
       )}
       {numSelected > 0 ? (

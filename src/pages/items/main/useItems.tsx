@@ -3,6 +3,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { initialRowsPerPage } from "utils/helpers";
+import ItemsRepository from "utils/repositories/items-repository";
 import WarehousesRepository from "utils/repositories/warehouses-repository";
 
 const headCells: HeadCell[] = [
@@ -13,26 +14,14 @@ const headCells: HeadCell[] = [
     label: "Name",
   },
   {
-    id: "address",
+    id: "description",
     numeric: false,
     disablePadding: true,
-    label: "Address",
-  },
-  {
-    id: "state",
-    numeric: false,
-    disablePadding: true,
-    label: "State",
-  },
-  {
-    id: "post_code",
-    numeric: false,
-    disablePadding: true,
-    label: "Post Code",
+    label: "Description",
   },
 ];
 
-export function useWarehouses() {
+export function useItems() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -44,7 +33,7 @@ export function useWarehouses() {
   const navigate = useNavigate();
 
   function goToCreate() {
-    navigate("/warehouses/new");
+    navigate("/items/new");
   }
 
   function generateTableCells(
@@ -73,13 +62,7 @@ export function useWarehouses() {
         >
           {row.name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.state}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.address}
-        </TableCell>
-        <TableCell>{row.post_code}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.description}</TableCell>
       </React.Fragment>
     );
   }
@@ -91,10 +74,10 @@ export function useWarehouses() {
   async function getData() {
     try {
       setLoading(true);
-      const warehousesRepository = new WarehousesRepository();
+      const itemsRepository = new ItemsRepository();
       const rangeStart = rowsPerPage * page;
       const rangeEnd = rangeStart + rowsPerPage;
-      const warehouses = await warehousesRepository.get(
+      const warehouses = await itemsRepository.get(
         orderBy,
         order === "asc",
         rangeStart,
@@ -102,15 +85,15 @@ export function useWarehouses() {
         rowsPerPage
       );
       if (warehouses) {
-        const { warehousesData, warehousesCount, warehousesError } = warehouses;
-        if (warehousesData && !warehousesError) {
-          setData(warehousesData);
-          setDataCount(warehousesCount ?? 0);
+        const { itemsData, itemsCount, itemsError } = warehouses;
+        if (itemsData && !itemsError) {
+          setData(itemsData);
+          setDataCount(itemsCount ?? 0);
         }
       }
       setLoading(false);
     } catch (e) {
-      console.error("Error fetching warehouses:", e);
+      console.error("Error fetching items:", e);
       setLoading(false);
     }
   }
@@ -136,6 +119,6 @@ export function useWarehouses() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete
+    onDelete,
   };
 }

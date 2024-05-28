@@ -37,7 +37,7 @@ export default function Warehouses() {
         data={data}
         dataCount={dataCount}
         loading={loading}
-        tableTitle="Warehouses"
+        tableTitle="warehouses"
         selected={selected}
         setSelected={setSelected}
         rowsPerPage={rowsPerPage}

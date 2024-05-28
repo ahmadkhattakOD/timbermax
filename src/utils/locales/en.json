@@ -52,5 +52,8 @@
   "submit": "Submit",
   "warehouses": "Warehouses",
   "add-new-warehouse": "Add New Warehouse",
-  "name": "Name"
+  "name": "Name",
+  "add-new-item": "Add New Item",
+  "items": "Items",
+  "description": "Description"
 }

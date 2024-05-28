@@ -1,5 +1,4 @@
 import { openSnackbar } from "api/snackbar";
-import { FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";

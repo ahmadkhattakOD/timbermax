@@ -1,20 +1,18 @@
 import supabase from "utils/supabase";
 
-export interface WarehouseSupabase {
+export interface ItemSupabase {
   name: string;
-  address: string;
-  state: string;
-  post_code: string;
+  description: string;
 }
 
-class WarehousesRepository {
-  private className = "warehouses";
+class ItemsRepository {
+  private className = "items";
 
-  public async create(warehouse: WarehouseSupabase) {
+  public async create(item: ItemSupabase) {
     try {
       const { data, error } = await supabase
         .from(this.className)
-        .insert(warehouse)
+        .insert(item)
         .select();
 
       if (data && data.length > 0 && error === null) {
@@ -22,7 +20,7 @@ class WarehousesRepository {
       }
       return null;
     } catch (error) {
-      console.error("Error creating new warehouse:", error);
+      console.error("Error creating new item:", error);
       return null;
     }
   }
@@ -36,9 +34,9 @@ class WarehousesRepository {
   ) {
     try {
       const {
-        data: warehousesData,
-        count: warehousesCount,
-        error: warehousesError,
+        data: itemsData,
+        count: itemsCount,
+        error: itemsError,
       } = await supabase
         .from(this.className)
         .select("*", { count: "exact" })
@@ -46,34 +44,34 @@ class WarehousesRepository {
         .range(rangeStart, rangeEnd)
         .limit(limit);
 
-      return { warehousesData, warehousesCount, warehousesError };
+      return { itemsData, itemsCount, itemsError };
     } catch (error) {
-      console.error("Error fetching warehouses:", error);
+      console.error("Error fetching items:", error);
       return null;
     }
   }
 
   public async getSingle(id: number) {
     try {
-      const { data: warehouseData, error: warehouseError } = await supabase
+      const { data: itemData, error: itemError } = await supabase
         .from(this.className)
         .select("*")
         .eq("id", id)
         .limit(1)
         .maybeSingle();
 
-      return { warehouseData, warehouseError };
+      return { itemData, itemError };
     } catch (error) {
-      console.error("Error fetching warehouse:", error);
+      console.error("Error fetching item:", error);
       return null;
     }
   }
 
-  public async edit(id: number, warehouse: WarehouseSupabase) {
+  public async edit(id: number, item: ItemSupabase) {
     try {
       const { data, error } = await supabase
         .from(this.className)
-        .update(warehouse)
+        .update(item)
         .eq("id", id)
         .select();
 
@@ -82,9 +80,9 @@ class WarehousesRepository {
       }
       return null;
     } catch (error) {
-      console.error("Error editing warehouse:", error);
+      console.error("Error editing item:", error);
       return null;
     }
   }
 }
-export default WarehousesRepository;
+export default ItemsRepository;
