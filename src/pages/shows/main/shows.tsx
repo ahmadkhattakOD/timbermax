@@ -3,6 +3,7 @@ import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
 import { useShows } from "./useShows";
 import DataTable from "components/data-table/DataTable";
+import ModalDeleteConfirm from "components/ModalConfirmDelete";
 
 
 export default function Shows() {
@@ -23,7 +24,10 @@ export default function Shows() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete
+    onDelete,
+    deleteConfirmModalOpen,
+    openDeleteConfirmModal,
+    closeDeleteConfirmModal
   } = useShows();
 
   return (
@@ -50,6 +54,11 @@ export default function Shows() {
         setOrder={setOrder}
         headCells={headCells}
         generateTableCells={generateTableCells}
+        openDeleteConfirmModal={openDeleteConfirmModal}
+      />
+      <ModalDeleteConfirm
+        open={deleteConfirmModalOpen}
+        onClose={closeDeleteConfirmModal}
         onDelete={onDelete}
       />
     </Box>

@@ -42,7 +42,7 @@ interface EnhancedTableProps {
 interface EnhancedTableToolbarProps {
   numSelected: number;
   tableTitle: string;
-  onDelete: () => void;
+  openDeleteConfirmModal: () => void;
 }
 
 interface DataTableProps {
@@ -66,7 +66,7 @@ interface DataTableProps {
     labelId: string,
     isItemSelected: boolean
   ) => React.ReactElement;
-  onDelete: () => void;
+  openDeleteConfirmModal: () => void;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
@@ -127,7 +127,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 function EnhancedTableToolbar({
   numSelected,
   tableTitle,
-  onDelete,
+  openDeleteConfirmModal,
 }: EnhancedTableToolbarProps) {
   return (
     <Toolbar
@@ -164,7 +164,7 @@ function EnhancedTableToolbar({
       )}
       {numSelected > 0 ? (
         <Tooltip title="Delete">
-          <IconButton onClick={onDelete}>
+          <IconButton onClick={openDeleteConfirmModal}>
             <Trash />
           </IconButton>
         </Tooltip>
@@ -196,7 +196,7 @@ export default function DataTable({
   setOrder,
   headCells,
   generateTableCells,
-  onDelete
+  openDeleteConfirmModal
 }: DataTableProps) {
   const {
     handleRequestSort,
@@ -227,7 +227,7 @@ export default function DataTable({
         <EnhancedTableToolbar
           numSelected={selected.length}
           tableTitle={tableTitle}
-          onDelete={onDelete}
+          openDeleteConfirmModal={openDeleteConfirmModal}
         />
         <TableContainer>
           <Table

@@ -86,5 +86,27 @@ class WarehousesRepository {
       return null;
     }
   }
+
+  public async delete(ids: readonly number[]) {
+    try {
+      let deletedIdsCount = 0;
+      for (let i = 0; i < ids.length; i++) {
+        const { data, error } = await supabase
+          .from(this.className)
+          .delete()
+          .eq("id", ids[i])
+          .select();
+
+        if (data && data.length > 0 && error === null) {
+          deletedIdsCount += 1;
+        }
+      }
+
+      return deletedIdsCount;
+    } catch (error) {
+      console.error("Error deleting warehouses:", error);
+      return 0;
+    }
+  }
 }
 export default WarehousesRepository;

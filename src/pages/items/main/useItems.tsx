@@ -1,7 +1,9 @@
 import { Checkbox, TableCell } from "@mui/material";
+import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
+import { SnackbarProps } from "types/snackbar";
 import { initialRowsPerPage } from "utils/helpers";
 import ItemsRepository from "utils/repositories/items-repository";
 import WarehousesRepository from "utils/repositories/warehouses-repository";
@@ -30,6 +32,7 @@ export function useItems() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
+  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -67,8 +70,38 @@ export function useItems() {
     );
   }
 
-  function onDelete() {
-    console.log(selected);
+  function openDeleteConfirmModal() {
+    setDeleteConfirmModalOpen(true);
+  }
+
+  async function onDelete() {
+    const itemsRepository = new ItemsRepository();
+    const deletedItems = await itemsRepository.delete(selected);
+    if (deletedItems > 0) {
+      openSnackbar({
+        open: true,
+        message: `${deletedItems} item(s) deleted successfully.`,
+        variant: "alert",
+        alert: {
+          color: "success",
+        },
+      } as SnackbarProps);
+      setSelected([]);
+      await getData();
+    } else {
+      openSnackbar({
+        open: true,
+        message: "Item(s) could not be deleted successfully. Please try again.",
+        variant: "alert",
+        alert: {
+          color: "error",
+        },
+      } as SnackbarProps);
+    }
+  }
+
+  function closeDeleteConfirmModal() {
+    setDeleteConfirmModalOpen(false);
   }
 
   async function getData() {
@@ -120,5 +153,8 @@ export function useItems() {
     headCells,
     generateTableCells,
     onDelete,
+    deleteConfirmModalOpen,
+    openDeleteConfirmModal,
+    closeDeleteConfirmModal
   };
 }

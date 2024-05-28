@@ -3,6 +3,7 @@ import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
 import { useSales } from "./useSales";
 import DataTable from "components/data-table/DataTable";
+import ModalDeleteConfirm from "components/ModalConfirmDelete";
 
 export default function Sales() {
   const {
@@ -22,7 +23,10 @@ export default function Sales() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete
+    onDelete,
+    deleteConfirmModalOpen,
+    openDeleteConfirmModal,
+    closeDeleteConfirmModal
   } = useSales();
 
   return (
@@ -49,6 +53,11 @@ export default function Sales() {
         setOrder={setOrder}
         headCells={headCells}
         generateTableCells={generateTableCells}
+        openDeleteConfirmModal={openDeleteConfirmModal}
+      />
+      <ModalDeleteConfirm 
+        open={deleteConfirmModalOpen}
+        onClose={closeDeleteConfirmModal}
         onDelete={onDelete}
       />
     </Box>

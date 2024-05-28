@@ -1,7 +1,9 @@
 import { Checkbox, TableCell } from "@mui/material";
+import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
+import { SnackbarProps } from "types/snackbar";
 import { getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
 import ShowsRepository from "utils/repositories/shows-repository";
 import WarehousesRepository from "utils/repositories/warehouses-repository";
@@ -54,6 +56,7 @@ export function useShows() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
+  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -99,8 +102,38 @@ export function useShows() {
     );
   }
 
-  function onDelete() {
-    console.log(selected);
+  function openDeleteConfirmModal() {
+    setDeleteConfirmModalOpen(true);
+  }
+
+  async function onDelete() {
+    const showsRepository = new ShowsRepository();
+    const deletedShows = await showsRepository.delete(selected);
+    if (deletedShows > 0) {
+      openSnackbar({
+        open: true,
+        message: `${deletedShows} show(s) deleted successfully.`,
+        variant: "alert",
+        alert: {
+          color: "success",
+        },
+      } as SnackbarProps);
+      setSelected([]);
+      await getData();
+    } else {
+      openSnackbar({
+        open: true,
+        message: "Show(s) could not be deleted successfully. Please try again.",
+        variant: "alert",
+        alert: {
+          color: "error",
+        },
+      } as SnackbarProps);
+    }
+  }
+
+  function closeDeleteConfirmModal() {
+    setDeleteConfirmModalOpen(false);
   }
 
   async function getData() {
@@ -152,5 +185,8 @@ export function useShows() {
     headCells,
     generateTableCells,
     onDelete,
+    deleteConfirmModalOpen,
+    openDeleteConfirmModal,
+    closeDeleteConfirmModal
   };
 }

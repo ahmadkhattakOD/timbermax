@@ -71,14 +71,12 @@ class SalesRepository {
 
   public async getSingle(id: number) {
     try {
-      const {
-        data: saleData,
-        error: saleError,
-      } = await supabase
+      const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
           "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date"
-        ).eq('id', id)
+        )
+        .eq("id", id)
         .limit(1)
         .maybeSingle();
 
@@ -94,7 +92,7 @@ class SalesRepository {
       const { data, error } = await supabase
         .from(this.className)
         .update(sale)
-        .eq('id', id)
+        .eq("id", id)
         .select();
 
       if (data && data.length > 0 && error === null) {
@@ -106,5 +104,28 @@ class SalesRepository {
       return null;
     }
   }
+
+  public async delete(ids: readonly number[]) {
+    try {
+      let deletedIdsCount = 0;
+      for (let i = 0; i < ids.length; i++) {
+        const { data, error } = await supabase
+          .from(this.className)
+          .delete()
+          .eq("id", ids[i])
+          .select();
+
+        if (data && data.length > 0 && error === null) {
+          deletedIdsCount += 1;
+        }
+      }
+
+      return deletedIdsCount;
+    } catch (error) {
+      console.error("Error deleting sales:", error);
+      return 0;
+    }
+  }
 }
+
 export default SalesRepository;

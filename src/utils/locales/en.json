@@ -59,5 +59,11 @@
   "shows": "Shows",
   "add-new-show": "Add New Show",
   "start-date": "Start Date",
-  "end-date": "End Date"
+  "end-date": "End Date",
+  "delete-confirmation": "Are you sure you want to proceed?",
+  "delete-confirmation-detail": "Please note that this action would be irreversible, and you would not be able to access the deleted data.",
+  "delete-confirmation-error": "Please enter 'I am sure' in the field above to continue",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "confirmation": "Confirmation"
 }

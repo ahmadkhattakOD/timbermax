@@ -16,19 +16,20 @@ export interface ActionButtonProps extends KeyedObject {
   onClick?: () => void;
   type?: "button" | "reset" | "submit" | undefined;
   disabled?: boolean;
+  color?: "primary" | "inherit" | "secondary" | "success" | "error" | "info" | "warning";
 }
 
 // ==============================|| ACTION BUTTON ||============================== //
 
 function ActionButton(
-  { text, onClick, type, disabled = false }: ActionButtonProps,
+  { text, onClick, type, disabled = false, color = "primary" }: ActionButtonProps,
   ref: Ref<HTMLDivElement>
 ) {
   return (
     <Button
       onClick={disabled ? undefined : onClick}
       variant={disabled ? "outlined" : "contained"}
-      color="primary"
+      color={color}
       sx={{
         maxWidth: { xs: "auto", sm: "250px" },
         width: "100%",

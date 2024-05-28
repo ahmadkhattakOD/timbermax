@@ -58,3 +58,5 @@ export const australianStates = [
   "Australian Capital Territory",
   "Northern Territory",
 ];
+
+export const deleteConfirmationText = "I am sure";

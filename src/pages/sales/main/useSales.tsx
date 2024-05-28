@@ -1,8 +1,10 @@
 import { Checkbox, TableCell } from "@mui/material";
+import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
+import { SnackbarProps } from "types/snackbar";
 import { getDateFormatted, initialRowsPerPage } from "utils/helpers";
 import SalesRepository from "utils/repositories/sales-repository";
 import supabase from "utils/supabase";
@@ -121,6 +123,7 @@ export function useSales() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
+  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -189,8 +192,38 @@ export function useSales() {
     );
   }
 
-  function onDelete() {
-    console.log(selected);
+  function openDeleteConfirmModal() {
+    setDeleteConfirmModalOpen(true);
+  }
+
+  async function onDelete() {
+    const salesRepository = new SalesRepository();
+    const deletedSales = await salesRepository.delete(selected);
+    if (deletedSales > 0) {
+      openSnackbar({
+        open: true,
+        message: `${deletedSales} sale(s) deleted successfully.`,
+        variant: "alert",
+        alert: {
+          color: "success",
+        },
+      } as SnackbarProps);
+      setSelected([]);
+      await getData();
+    } else {
+      openSnackbar({
+        open: true,
+        message: "Sale(s) could not be deleted successfully. Please try again.",
+        variant: "alert",
+        alert: {
+          color: "error",
+        },
+      } as SnackbarProps);
+    }
+  }
+
+  function closeDeleteConfirmModal() {
+    setDeleteConfirmModalOpen(false);
   }
 
   async function getData() {
@@ -241,6 +274,9 @@ export function useSales() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete
+    onDelete,
+    deleteConfirmModalOpen,
+    openDeleteConfirmModal,
+    closeDeleteConfirmModal,
   };
 }
