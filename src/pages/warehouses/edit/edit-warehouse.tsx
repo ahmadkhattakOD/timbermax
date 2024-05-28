@@ -1,0 +1,85 @@
+// project-imports
+import { Box } from "@mui/material";
+import FormLayout from "components/FormLayout";
+import { Form, Formik } from "formik";
+import FormInput from "components/FormInput";
+import FormDropdown from "components/FormDropdown";
+import { useEditWarehouse } from "./useEditWarehouse";
+import CircularLoader from "components/CircularLoader";
+import { australianStates } from "utils/helpers";
+
+// ==============================|| EDIT WAREHOUSE PAGE ||============================== //
+
+export default function EditWarehouse() {
+  const { validate, onSubmit, warehouse, loading } = useEditWarehouse();
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularLoader />
+      </Box>
+    );
+  }
+  return (
+    <Formik
+      enableReinitialize
+      initialValues={{
+        name: warehouse.name ?? "",
+        address: warehouse.address ?? "",
+        state: warehouse.state ?? "",
+        postCode: warehouse.post_code ?? "",
+      }}
+      validate={validate}
+      onSubmit={onSubmit}
+    >
+      {({ handleSubmit, errors, touched, isSubmitting }) => (
+        <Form onSubmit={handleSubmit}>
+          <FormLayout
+            isSubmitting={isSubmitting}
+            submitButtonText={"submit"}
+            inputs={[
+              <FormInput
+                id={"name"}
+                name={"name"}
+                placeholder={"Name"}
+                label={"name"}
+                optional={false}
+                type={"text"}
+                error={touched.name ? errors.name : ""}
+              />,
+              <FormInput
+                id={"address"}
+                name={"address"}
+                placeholder={"Address"}
+                label={"address"}
+                type={"text"}
+              />,
+              <FormDropdown
+                id={"state"}
+                name={"state"}
+                label={"state"}
+                useFormattedStrings={false}
+                options={australianStates}
+              />,
+              <FormInput
+                id={"postCode"}
+                name={"postCode"}
+                placeholder={"Post Code"}
+                label={"post-code"}
+                type={"text"}
+              />,
+            ]}
+          />
+        </Form>
+      )}
+    </Formik>
+  );
+}

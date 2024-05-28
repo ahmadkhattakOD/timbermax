@@ -142,15 +142,6 @@ export default function FooterBlock({ isFull }: showProps) {
       >
         <Container>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={8}>
-              <Typography>
-                © Handcrafted by Team{' '}
-                <Link href="https://1.envato.market/xk3bQd" underline="none">
-                  {' '}
-                  Phoenixcoded
-                </Link>
-              </Typography>
-            </Grid>
             <Grid item xs={12} sm={4}>
               <Grid container spacing={2} alignItems="center" sx={{ justifyContent: 'flex-end' }}>
                 <Grid item>

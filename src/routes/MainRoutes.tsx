@@ -9,6 +9,10 @@ import { SimpleLayoutType } from "config";
 import Dashboard from "pages/dashboard/dashboard";
 import Sales from "pages/sales/main/sales";
 import CreateSale from "pages/sales/create/create-sale";
+import EditSale from "pages/sales/edit/edit-sale";
+import Warehouses from "pages/warehouses/main/warehouses";
+import CreateWarehouse from "pages/warehouses/create/create-warehouse";
+import EditWarehouse from "pages/warehouses/edit/edit-warehouse";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -64,7 +68,46 @@ const MainRoutes = {
         },
       ],
     },
-    
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "sales/:id/edit",
+          element: <EditSale />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "warehouses",
+          element: <Warehouses />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "warehouses/new",
+          element: <CreateWarehouse />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "warehouses/:id/edit",
+          element: <EditWarehouse />,
+        },
+      ],
+    },
 
 
     {

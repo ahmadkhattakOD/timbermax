@@ -1,38 +1,54 @@
 // project-imports
+import { Box } from "@mui/material";
 import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { useCreateSale } from "./useCreateSale";
+import { useEditSale } from "./useEditSale";
+import CircularLoader from "components/CircularLoader";
 import { australianStates, getDateFormatted } from "utils/helpers";
 
-// ==============================|| CREATE SALE PAGE ||============================== //
+// ==============================|| EDIT SALE PAGE ||============================== //
 
-export default function CreateSale() {
-  const { validate, onSubmit } =
-    useCreateSale();
+export default function EditSale() {
+  const { validate, onSubmit, sale, loading } = useEditSale();
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularLoader />
+      </Box>
+    );
+  }
   return (
     <Formik
       enableReinitialize
       initialValues={{
-        contactName: "",
-        opportunityDescription: "",
-        deposit: "",
-        total: "",
-        paymentMethod: "",
-        phone: "",
-        address: "",
-        state: "",
-        postCode: "",
-        emailAddress: "",
-        note: "",
-        salesPerson: "",
-        closer: "",
-        status: "",
-        show: "",
-        followUpNotes: "",
-        saleDate: getDateFormatted(),
+        contactName: sale.contact_name ?? "",
+        opportunityDescription: sale.opportunity_description ?? "",
+        deposit: sale.deposit ?? "",
+        total: sale.total ?? "",
+        paymentMethod: sale.payment_method ?? "",
+        phone: sale.phone ?? "",
+        address: sale.address ?? "",
+        state: sale.state ?? "",
+        postCode: sale.post_code ?? "",
+        emailAddress: sale.email_address ?? "",
+        note: sale.note ?? "",
+        salesPerson: sale.sales_person ?? "",
+        closer: sale.closer ?? "",
+        status: sale.status ?? "",
+        show: sale.show ?? "",
+        followUpNotes: sale.follow_up_notes ?? "",
+        saleDate: getDateFormatted(sale.sale_date) ?? "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -41,7 +57,7 @@ export default function CreateSale() {
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
-            submitButtonText={"add"}
+            submitButtonText={"submit"}
             inputs={[
               <FormInput
                 id={"contactName"}

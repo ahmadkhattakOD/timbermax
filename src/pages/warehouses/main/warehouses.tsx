@@ -1,10 +1,11 @@
 import Box from "@mui/material/Box";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
-import { useSales } from "./useSales";
+import { useWarehouses } from "./useWarehouses";
 import DataTable from "components/data-table/DataTable";
 
-export default function Sales() {
+
+export default function Warehouses() {
   const {
     data,
     dataCount,
@@ -23,20 +24,20 @@ export default function Sales() {
     headCells,
     generateTableCells,
     onDelete
-  } = useSales();
+  } = useWarehouses();
 
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         actionButton={
-          <ActionButton text={"add-new-sale"} onClick={goToCreate} />
+          <ActionButton text={"add-new-warehouse"} onClick={goToCreate} />
         }
       />
       <DataTable
         data={data}
         dataCount={dataCount}
         loading={loading}
-        tableTitle="Sales"
+        tableTitle="Warehouses"
         selected={selected}
         setSelected={setSelected}
         rowsPerPage={rowsPerPage}

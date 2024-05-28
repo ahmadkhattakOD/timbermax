@@ -19,7 +19,6 @@ function FormLayout(
   { inputs, submitButtonText, isSubmitting }: FormLayoutProps,
   ref: Ref<HTMLDivElement>
 ) {
-  console.log("ISSUBMITTING", isSubmitting);
 
   return (
     <>

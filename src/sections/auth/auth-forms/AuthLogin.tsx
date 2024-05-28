@@ -28,6 +28,7 @@ import { fetcher } from 'utils/axios';
 
 // assets
 import { Eye, EyeSlash } from 'iconsax-react';
+import supabase from 'utils/supabase';
 
 // ============================|| JWT - LOGIN ||============================ //
 
@@ -60,6 +61,7 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
         })}
         onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
           try {
+            const {data, error} = await supabase.auth.signInWithPassword({email: 'mohd2000omer@gmail.com', password: 'Abcd.1234!'});
             await login(values.email, values.password);
             if (scriptedRef.current) {
               setStatus({ success: true });

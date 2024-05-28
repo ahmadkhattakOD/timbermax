@@ -1,15 +1,9 @@
-import { FormikHelpers } from "formik";
-
-const australianStates = [
-  "New South Wales",
-  "Victoria",
-  "Queensland",
-  "Western Australia",
-  "South Australia",
-  "Tasmania",
-  "Australian Capital Territory",
-  "Northern Territory",
-];
+import { openSnackbar } from "api/snackbar";
+import { useNavigate } from "react-router";
+import { SnackbarProps } from "types/snackbar";
+import SalesRepository, {
+  SaleSupabase,
+} from "utils/repositories/sales-repository";
 
 export interface ValuesCreateSale {
   contactName: string;
@@ -32,12 +26,7 @@ export interface ValuesCreateSale {
 }
 
 export function useCreateSale() {
-  function getTodaysDateFormatted() {
-    return `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, "0")}-${new Date()
-      .getDate()
-      .toString()
-      .padStart(2, "0")}`;
-  }
+  const navigate = useNavigate();
 
   function validate(values: ValuesCreateSale) {
     const errors = {} as ValuesCreateSale;
@@ -82,18 +71,64 @@ export function useCreateSale() {
     return errors;
   }
 
-  async function onSubmit(
-    values: ValuesCreateSale,
-    helpers: FormikHelpers<ValuesCreateSale>
-  ) {
-    const { setSubmitting } = helpers;
+  async function onSubmit(values: ValuesCreateSale) {
+    try {
+      const newSale: SaleSupabase = {
+        contact_name: values.contactName,
+        opportunity_description: values.opportunityDescription,
+        deposit: parseFloat(values.deposit) ?? 0,
+        total: parseFloat(values.total) ?? 0,
+        payment_method: values.paymentMethod,
+        phone: values.phone,
+        address: values.address,
+        state: values.state,
+        post_code: values.postCode,
+        email_address: values.emailAddress,
+        note: values.note,
+        // sales_person: parseInt(values.salesPerson),
+        // closer: parseInt(values.closer),
+        status: values.status,
+        // show: parseInt(values.show),
+        follow_up_notes: values.followUpNotes,
+        sale_date: new Date(values.saleDate),
+      };
 
-    console.log("YOOOO", values);
+      const salesRepository = new SalesRepository();
+      const createdSale = await salesRepository.create(newSale);
 
-    setSubmitting(true);
+      if (createdSale) {
+        openSnackbar({
+          open: true,
+          message: "Sale added successfully.",
+          variant: "alert",
+          alert: {
+            color: "success",
+          },
+        } as SnackbarProps);
+      } else {
+        openSnackbar({
+          open: true,
+          message: "Sale could not be added successfully. Please try again.",
+          variant: "alert",
+          alert: {
+            color: "error",
+          },
+        } as SnackbarProps);
+      }
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+      navigate("/sales");
+    } catch (e) {
+      openSnackbar({
+        open: true,
+        message: "Sale could not be added successfully. Please try again.",
+        variant: "alert",
+        alert: {
+          color: "error",
+        },
+      } as SnackbarProps);
 
+      navigate("/sales");
+    }
   }
-  return { australianStates, getTodaysDateFormatted, validate, onSubmit };
+  return { validate, onSubmit };
 }

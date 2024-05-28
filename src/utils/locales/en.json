@@ -48,5 +48,9 @@
   "follow-up-notes": "Follow Up Notes",
   "required": "This field is required",
   "required-valid-number": "Please enter a valid amount greater than 0",
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "submit": "Submit",
+  "warehouses": "Warehouses",
+  "add-new-warehouse": "Add New Warehouse",
+  "name": "Name"
 }

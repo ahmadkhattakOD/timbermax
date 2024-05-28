@@ -1,38 +1,39 @@
-import { useEffect, useState, SyntheticEvent } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState, SyntheticEvent } from "react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 // material-ui
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import Button from '@mui/material/Button';
-import FormControl from '@mui/material/FormControl';
-import Stack from '@mui/material/Stack';
-import Link from '@mui/material/Link';
-import InputLabel from '@mui/material/InputLabel';
-import Typography from '@mui/material/Typography';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import InputAdornment from '@mui/material/InputAdornment';
-import FormHelperText from '@mui/material/FormHelperText';
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import Stack from "@mui/material/Stack";
+import Link from "@mui/material/Link";
+import InputLabel from "@mui/material/InputLabel";
+import Typography from "@mui/material/Typography";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import InputAdornment from "@mui/material/InputAdornment";
+import FormHelperText from "@mui/material/FormHelperText";
 
 // third-party
-import * as Yup from 'yup';
-import { Formik } from 'formik';
+import * as Yup from "yup";
+import { Formik } from "formik";
 
 // project-imports
-import useAuth from 'hooks/useAuth';
-import useScriptRef from 'hooks/useScriptRef';
-import IconButton from 'components/@extended/IconButton';
-import AnimateButton from 'components/@extended/AnimateButton';
+import useAuth from "hooks/useAuth";
+import useScriptRef from "hooks/useScriptRef";
+import IconButton from "components/@extended/IconButton";
+import AnimateButton from "components/@extended/AnimateButton";
 
-import { openSnackbar } from 'api/snackbar';
-import { strengthColor, strengthIndicator } from 'utils/password-strength';
+import { openSnackbar } from "api/snackbar";
+import { strengthColor, strengthIndicator } from "utils/password-strength";
 
 // types
-import { SnackbarProps } from 'types/snackbar';
-import { StringColorProps } from 'types/password';
+import { SnackbarProps } from "types/snackbar";
+import { StringColorProps } from "types/password";
 
 // assets
-import { Eye, EyeSlash } from 'iconsax-react';
+import { Eye, EyeSlash } from "iconsax-react";
+import supabase from "utils/supabase";
 
 // ============================|| JWT - REGISTER ||============================ //
 
@@ -57,45 +58,51 @@ export default function AuthRegister() {
   };
 
   useEffect(() => {
-    changePassword('');
+    changePassword("");
   }, []);
 
   return (
     <>
       <Formik
         initialValues={{
-          firstname: '',
-          lastname: '',
-          email: '',
-          company: '',
-          password: '',
-          submit: null
+          firstname: "",
+          lastname: "",
+          email: "",
+          password: "",
+          submit: null,
         }}
         validationSchema={Yup.object().shape({
-          firstname: Yup.string().max(255).required('First Name is required'),
-          lastname: Yup.string().max(255).required('Last Name is required'),
-          email: Yup.string().email('Must be a valid email').max(255).required('Email is required'),
-          password: Yup.string().max(255).required('Password is required')
+          firstname: Yup.string().max(255).required("First Name is required"),
+          lastname: Yup.string().max(255).required("Last Name is required"),
+          email: Yup.string()
+            .email("Must be a valid email")
+            .max(255)
+            .required("Email is required"),
+          password: Yup.string().max(255).required("Password is required"),
         })}
         onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
           try {
-            await register(values.email, values.password, values.firstname, values.lastname);
-            if (scriptedRef.current) {
-              setStatus({ success: true });
-              setSubmitting(false);
-              openSnackbar({
-                open: true,
-                message: 'Your registration has been successfully completed.',
-                variant: 'alert',
-                alert: {
-                  color: 'success'
-                }
-              } as SnackbarProps);
+            // await register(values.email, values.password, values.firstname, values.lastname);
+            // if (scriptedRef.current) {
+            //   setStatus({ success: true });
+            //   setSubmitting(false);
+            //   openSnackbar({
+            //     open: true,
+            //     message: 'Your registration has been successfully completed.',
+            //     variant: 'alert',
+            //     alert: {
+            //       color: 'success'
+            //     }
+            //   } as SnackbarProps);
 
-              setTimeout(() => {
-                navigate('/login', { replace: true });
-              }, 1500);
-            }
+            //   setTimeout(() => {
+            //     navigate('/login', { replace: true });
+            //   }, 1500);
+            // }
+            await supabase.auth.signUp({
+              email: values.email,
+              password: values.password,
+            });
           } catch (err: any) {
             console.error(err);
             if (scriptedRef.current) {
@@ -106,12 +113,22 @@ export default function AuthRegister() {
           }
         }}
       >
-        {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
+        {({
+          errors,
+          handleBlur,
+          handleChange,
+          handleSubmit,
+          isSubmitting,
+          touched,
+          values,
+        }) => (
           <form noValidate onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Stack spacing={1}>
-                  <InputLabel htmlFor="firstname-signup">First Name*</InputLabel>
+                  <InputLabel htmlFor="firstname-signup">
+                    First Name*
+                  </InputLabel>
                   <OutlinedInput
                     id="firstname-login"
                     type="firstname"
@@ -154,27 +171,6 @@ export default function AuthRegister() {
               </Grid>
               <Grid item xs={12}>
                 <Stack spacing={1}>
-                  <InputLabel htmlFor="company-signup">Company</InputLabel>
-                  <OutlinedInput
-                    fullWidth
-                    error={Boolean(touched.company && errors.company)}
-                    id="company-signup"
-                    value={values.company}
-                    name="company"
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    placeholder="Demo Inc."
-                    inputProps={{}}
-                  />
-                </Stack>
-                {touched.company && errors.company && (
-                  <FormHelperText error id="helper-text-company-signup">
-                    {errors.company}
-                  </FormHelperText>
-                )}
-              </Grid>
-              <Grid item xs={12}>
-                <Stack spacing={1}>
                   <InputLabel htmlFor="email-signup">Email Address*</InputLabel>
                   <OutlinedInput
                     fullWidth
@@ -202,7 +198,7 @@ export default function AuthRegister() {
                     fullWidth
                     error={Boolean(touched.password && errors.password)}
                     id="password-signup"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     value={values.password}
                     name="password"
                     onBlur={handleBlur}
@@ -235,7 +231,14 @@ export default function AuthRegister() {
                 <FormControl fullWidth sx={{ mt: 2 }}>
                   <Grid container spacing={2} alignItems="center">
                     <Grid item>
-                      <Box sx={{ bgcolor: level?.color, width: 85, height: 8, borderRadius: '7px' }} />
+                      <Box
+                        sx={{
+                          bgcolor: level?.color,
+                          width: 85,
+                          height: 8,
+                          borderRadius: "7px",
+                        }}
+                      />
                     </Grid>
                     <Grid item>
                       <Typography variant="subtitle1" fontSize="0.75rem">
@@ -264,7 +267,15 @@ export default function AuthRegister() {
               )}
               <Grid item xs={12}>
                 <AnimateButton>
-                  <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="primary">
+                  <Button
+                    disableElevation
+                    disabled={isSubmitting}
+                    fullWidth
+                    size="large"
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                  >
                     Create Account
                   </Button>
                 </AnimateButton>
