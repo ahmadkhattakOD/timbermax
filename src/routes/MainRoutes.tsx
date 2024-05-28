@@ -16,6 +16,9 @@ import EditWarehouse from "pages/warehouses/edit/edit-warehouse";
 import Items from "pages/items/main/items";
 import CreateItem from "pages/items/create/create-item";
 import EditItem from "pages/items/edit/edit-item";
+import Shows from "pages/shows/main/shows";
+import CreateShow from "pages/shows/create/create-show";
+import EditShow from "pages/shows/edit/edit-show";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -138,6 +141,36 @@ const MainRoutes = {
         {
           path: "items/:id/edit",
           element: <EditItem />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "shows",
+          element: <Shows />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "shows/new",
+          element: <CreateShow />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "shows/:id/edit",
+          element: <EditShow />,
         },
       ],
     },

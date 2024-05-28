@@ -2,7 +2,8 @@ import { Checkbox, TableCell } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { initialRowsPerPage } from "utils/helpers";
+import { getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import ShowsRepository from "utils/repositories/shows-repository";
 import WarehousesRepository from "utils/repositories/warehouses-repository";
 
 const headCells: HeadCell[] = [
@@ -11,6 +12,18 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Name",
+  },
+  {
+    id: "start_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Start Date",
+  },
+  {
+    id: "end_date",
+    numeric: false,
+    disablePadding: true,
+    label: "End Date",
   },
   {
     id: "address",
@@ -32,7 +45,7 @@ const headCells: HeadCell[] = [
   },
 ];
 
-export function useWarehouses() {
+export function useShows() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -44,7 +57,7 @@ export function useWarehouses() {
   const navigate = useNavigate();
 
   function goToCreate() {
-    navigate("/warehouses/new");
+    navigate("/shows/new");
   }
 
   function generateTableCells(
@@ -73,6 +86,12 @@ export function useWarehouses() {
         >
           {row.name}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {getDateTimeFormatted(row.start_date, true)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.end_date && getDateTimeFormatted(row.end_date, true)}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
@@ -87,26 +106,26 @@ export function useWarehouses() {
   async function getData() {
     try {
       setLoading(true);
-      const warehousesRepository = new WarehousesRepository();
+      const showsRepository = new ShowsRepository();
       const rangeStart = rowsPerPage * page;
       const rangeEnd = rangeStart + rowsPerPage;
-      const warehouses = await warehousesRepository.get(
+      const shows = await showsRepository.get(
         orderBy,
         order === "asc",
         rangeStart,
         rangeEnd,
         rowsPerPage
       );
-      if (warehouses) {
-        const { warehousesData, warehousesCount, warehousesError } = warehouses;
-        if (warehousesData && !warehousesError) {
-          setData(warehousesData);
-          setDataCount(warehousesCount ?? 0);
+      if (shows) {
+        const { showsData, showsCount, showsError } = shows;
+        if (showsData && !showsError) {
+          setData(showsData);
+          setDataCount(showsCount ?? 0);
         }
       }
       setLoading(false);
     } catch (e) {
-      console.error("Error fetching warehouses:", e);
+      console.error("Error fetching shows:", e);
       setLoading(false);
     }
   }

@@ -3,53 +3,59 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
-import WarehousesRepository, {
-  WarehouseSupabase,
-} from "utils/repositories/warehouses-repository";
+import ShowsRepository, { ShowSupabase } from "utils/repositories/shows-repository";
 
-export interface ValuesEditWarehouse {
+export interface ValuesEditShow {
   name: string;
+  startDate: string;
+  endDate: string;
   address: string;
   state: string;
   postCode: string;
 }
 
-export function useEditWarehouse() {
+export function useEditShow() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [warehouse, setWarehouse] = useState<any>(null);
+  const [show, setShow] = useState<any>(null);
   const { id } = useParams();
 
-  function validate(values: ValuesEditWarehouse) {
-    const errors = {} as ValuesEditWarehouse;
+  function validate(values: ValuesEditShow) {
+    const errors = {} as ValuesEditShow;
 
     if (!values.name.trim()) {
       errors.name = "required";
     }
 
+    if (!values.startDate.trim()) {
+      errors.startDate = "required";
+    }
+
     return errors;
   }
 
-  async function onSubmit(values: ValuesEditWarehouse) {
+  async function onSubmit(values: ValuesEditShow) {
     try {
       if (id && isNumeric(id)) {
-        const updatedWarehouse: WarehouseSupabase = {
+        const updatedShow: ShowSupabase = {
           name: values.name,
+          start_date: values.startDate !== "" ? new Date(values.startDate) : null,
+          end_date: values.endDate !== "" ? new Date(values.endDate) : null,
           address: values.address,
           state: values.state,
           post_code: values.postCode,
         };
 
-        const warehousesRepository = new WarehousesRepository();
-        const editedWarehouse = await warehousesRepository.edit(
+        const showsRepository = new ShowsRepository();
+        const editedShow = await showsRepository.edit(
           parseInt(id),
-          updatedWarehouse
+          updatedShow
         );
 
-        if (editedWarehouse) {
+        if (editedShow) {
           openSnackbar({
             open: true,
-            message: "Warehouse edited successfully.",
+            message: "Show edited successfully.",
             variant: "alert",
             alert: {
               color: "success",
@@ -59,7 +65,7 @@ export function useEditWarehouse() {
           openSnackbar({
             open: true,
             message:
-              "Warehouse could not be edited successfully. Please try again.",
+              "Show could not be edited successfully. Please try again.",
             variant: "alert",
             alert: {
               color: "error",
@@ -67,44 +73,44 @@ export function useEditWarehouse() {
           } as SnackbarProps);
         }
 
-        navigate("/warehouses");
+        navigate("/shows");
       } else {
         openSnackbar({
           open: true,
           message:
-            "Warehouse could not be edited successfully. Please try again.",
+            "Show could not be edited successfully. Please try again.",
           variant: "alert",
           alert: {
             color: "error",
           },
         } as SnackbarProps);
 
-        navigate("/warehouses");
+        navigate("/shows");
       }
     } catch (e) {
       openSnackbar({
         open: true,
         message:
-          "Warehouse could not be edited successfully. Please try again.",
+          "Show could not be edited successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",
         },
       } as SnackbarProps);
 
-      navigate("/warehouses");
+      navigate("/shows");
     }
   }
 
-  async function getWarehouse() {
+  async function getShow() {
     setLoading(true);
     if (id && isNumeric(id)) {
-      const warehousesRepository = new WarehousesRepository();
-      const existingWarehouse = await warehousesRepository.getSingle(parseInt(id));
-      if (existingWarehouse) {
-        const { warehouseData, warehouseError } = existingWarehouse;
-        if (warehouseData && !warehouseError) {
-          setWarehouse(warehouseData);
+      const showsRepository = new ShowsRepository();
+      const existingShow = await showsRepository.getSingle(parseInt(id));
+      if (existingShow) {
+        const { showData, showError } = existingShow;
+        if (showData && !showError) {
+          setShow(showData);
         }
       }
     }
@@ -112,8 +118,8 @@ export function useEditWarehouse() {
   }
 
   useEffect(() => {
-    getWarehouse();
+    getShow();
   }, []);
 
-  return { validate, onSubmit, warehouse, loading };
+  return { validate, onSubmit, show, loading };
 }

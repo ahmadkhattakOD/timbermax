@@ -55,5 +55,9 @@
   "name": "Name",
   "add-new-item": "Add New Item",
   "items": "Items",
-  "description": "Description"
+  "description": "Description",
+  "shows": "Shows",
+  "add-new-show": "Add New Show",
+  "start-date": "Start Date",
+  "end-date": "End Date"
 }

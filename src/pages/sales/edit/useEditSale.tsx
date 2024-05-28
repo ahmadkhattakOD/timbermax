@@ -89,7 +89,7 @@ export function useEditSale() {
           payment_method: values.paymentMethod,
           phone: values.phone,
           address: values.address,
-          state: values.address,
+          state: values.state,
           post_code: values.postCode,
           email_address: values.emailAddress,
           note: values.note,
