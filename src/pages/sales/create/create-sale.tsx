@@ -9,8 +9,7 @@ import { australianStates, getDateFormatted } from "utils/helpers";
 // ==============================|| CREATE SALE PAGE ||============================== //
 
 export default function CreateSale() {
-  const { validate, onSubmit } =
-    useCreateSale();
+  const { validate, onSubmit } = useCreateSale();
 
   return (
     <Formik
@@ -37,7 +36,7 @@ export default function CreateSale() {
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting }) => (
+      {({ handleSubmit, errors, touched, isSubmitting, values }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
@@ -76,6 +75,11 @@ export default function CreateSale() {
                 name={"total"}
                 placeholder={"Total"}
                 label={"total"}
+                secondaryLabel={
+                  values.deposit && values.total
+                    ? `${((parseFloat(values.deposit) / parseFloat(values.total)) * 100).toFixed(2)}% deposit`
+                    : null
+                }
                 optional={false}
                 type={"number"}
                 min={0}

@@ -53,7 +53,7 @@ export default function EditSale() {
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting }) => (
+      {({ handleSubmit, errors, touched, isSubmitting, values }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
@@ -92,6 +92,11 @@ export default function EditSale() {
                 name={"total"}
                 placeholder={"Total"}
                 label={"total"}
+                secondaryLabel={
+                  values.deposit && values.total
+                    ? `${((parseFloat(values.deposit) / parseFloat(values.total)) * 100).toFixed(2)}% deposit`
+                    : null
+                }
                 optional={false}
                 type={"number"}
                 min={0}

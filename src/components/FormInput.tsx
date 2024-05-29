@@ -7,6 +7,7 @@ interface FieldInputProps {
   id: string;
   name: string;
   label?: string;
+  secondaryLabel?: string | null;
   placeholder?: string;
   value?: string;
   optional?: true | false;
@@ -21,6 +22,7 @@ interface FieldInputProps {
 
 const FormInput = ({
   label,
+  secondaryLabel,
   placeholder,
   value,
   name,
@@ -32,9 +34,9 @@ const FormInput = ({
   error,
   defaultValue,
   disabled,
-  isTextArea = false
+  isTextArea = false,
 }: FieldInputProps) => {
-  const [field, __, helpers] = useField(name);
+  const [_, __, helpers] = useField(name);
   const theme = useTheme();
 
   useEffect(() => {
@@ -48,21 +50,36 @@ const FormInput = ({
       <Box
         sx={{
           display: "flex",
-          justifyContent: optional ? "space-between" : "",
+          justifyContent: "space-between",
           gap: "10px",
           mb: label && "0.5rem",
         }}
       >
-        <Typography
-          sx={{ color: theme.palette.secondary.main, fontSize: "16px" }}
+        <Box
+          sx={{
+            display: "flex",
+            gap: "10px",
+          }}
         >
-          <FormattedMessage id={label} />
-        </Typography>
-        {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
+          <Typography
+            sx={{ color: theme.palette.secondary.main, fontSize: "16px" }}
+          >
+            <FormattedMessage id={label} />
+          </Typography>
+          {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
+        </Box>
+        {secondaryLabel && (
+          <Typography
+            sx={{ color: theme.palette.secondary.dark, fontSize: "16px" }}
+          >
+            {secondaryLabel}
+          </Typography>
+        )}
       </Box>
+
       <div className={"group-input"}>
         <Field
-          as={isTextArea ? 'textarea' : 'input'}
+          as={isTextArea ? "textarea" : "input"}
           min={min}
           max={max}
           id={id}
