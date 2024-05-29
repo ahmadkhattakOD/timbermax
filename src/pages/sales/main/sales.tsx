@@ -4,6 +4,7 @@ import ActionButton from "components/ActionButton";
 import { useSales } from "./useSales";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
+import ModalFilters from "components/modal-filters/ModalFilters";
 
 export default function Sales() {
   const {
@@ -26,7 +27,10 @@ export default function Sales() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
+    closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
   } = useSales();
 
   return (
@@ -54,11 +58,18 @@ export default function Sales() {
         headCells={headCells}
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
+        openFilterModal={openFilterModal}
       />
-      <ModalDeleteConfirm 
+      <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
         onClose={closeDeleteConfirmModal}
         onDelete={onDelete}
+      />
+      <ModalFilters
+        title="filter-sales"
+        open={filterModalOpen}
+        onClose={closeFilterModal}
+        onFilter={async () => {}}
       />
     </Box>
   );

@@ -124,6 +124,7 @@ export function useSales() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -226,6 +227,14 @@ export function useSales() {
     setDeleteConfirmModalOpen(false);
   }
 
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
+  }
+
   async function getData() {
     try {
       setLoading(true);
@@ -278,5 +287,8 @@ export function useSales() {
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
     closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal
   };
 }

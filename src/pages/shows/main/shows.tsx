@@ -55,6 +55,7 @@ export default function Shows() {
         headCells={headCells}
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
+        openFilterModal={openDeleteConfirmModal}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}

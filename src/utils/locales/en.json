@@ -65,5 +65,9 @@
   "delete-confirmation-error": "Please enter 'I am sure' in the field above to continue",
   "delete": "Delete",
   "cancel": "Cancel",
-  "confirmation": "Confirmation"
+  "apply": "Apply",
+  "confirmation": "Confirmation",
+  "filter-details": "Select from the filters below and press apply.",
+  "filter-sales": "Filter Sales"
+  
 }

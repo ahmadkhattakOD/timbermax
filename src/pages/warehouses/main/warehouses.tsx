@@ -54,6 +54,7 @@ export default function Warehouses() {
         headCells={headCells}
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
+        openFilterModal={openDeleteConfirmModal}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}

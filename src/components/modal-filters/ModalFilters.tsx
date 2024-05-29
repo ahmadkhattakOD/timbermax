@@ -1,14 +1,15 @@
 import { Box, Modal, Typography, useTheme } from "@mui/material";
 import { Form, Formik, FormikHelpers } from "formik";
 import { deleteConfirmationText } from "utils/helpers";
-import ActionButton from "./ActionButton";
-import FormInput from "./FormInput";
+import ActionButton from "../ActionButton";
+import FormInput from "../FormInput";
 import { FormattedMessage } from "react-intl";
 
 interface ModalDeleteProps {
   open: boolean;
   onClose: () => void;
-  onDelete: () => Promise<void>;  
+  onFilter: () => Promise<void>;
+  title: string;
 }
 
 interface DeleteValues {
@@ -21,7 +22,7 @@ const style = {
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: "80%",
-  maxWidth: "525px",
+  maxWidth: "900px",
   boxShadow: 5,
   p: 4,
   padding: "1.5rem",
@@ -29,7 +30,7 @@ const style = {
   backgroundColor: "white",
 };
 
-const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
+const ModalFilters = ({ open, onClose, onFilter, title }: ModalDeleteProps) => {
   const theme = useTheme();
 
   return (
@@ -40,7 +41,7 @@ const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
           textAlign={"left"}
           color={theme.palette.text.primary}
         >
-          <FormattedMessage id="delete-confirmation" />
+          <FormattedMessage id={title} />
         </Typography>
         <Typography
           marginTop={"15px"}
@@ -48,7 +49,7 @@ const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
           textAlign={"left"}
           color={theme.palette.text.secondary}
         >
-          <FormattedMessage id="delete-confirmation-detail" />
+          <FormattedMessage id="filter-details" />
         </Typography>
         <Box sx={{ paddingTop: "2rem" }}>
           <Formik
@@ -65,13 +66,13 @@ const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
               return errors;
             }}
             onSubmit={async () => {
-              await onDelete();
+              await onFilter();
               onClose();
             }}
           >
             {({ errors, touched, handleSubmit }) => (
               <Form>
-                <Box
+                {/* <Box
                   borderRadius={"20px"}
                   marginBottom={"2px"}
                   width={"100%"}
@@ -88,7 +89,7 @@ const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
                     type="text"
                     error={touched.confirmation ? errors.confirmation : ""}
                   />
-                </Box>
+                </Box> */}
                 <Box
                   display={"flex"}
                   justifyContent={"center"}
@@ -102,8 +103,7 @@ const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
                   />
                   <ActionButton
                     onClick={handleSubmit}
-                    color="error"
-                    text={"delete"}
+                    text={"apply"}
                   />
                 </Box>
               </Form>
@@ -115,4 +115,4 @@ const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
   );
 };
 
-export default ModalDeleteConfirm;
+export default ModalFilters;
