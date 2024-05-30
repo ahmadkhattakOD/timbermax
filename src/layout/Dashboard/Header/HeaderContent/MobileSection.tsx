@@ -54,7 +54,7 @@ export default function MobileSection() {
   return (
     <>
       <Box sx={{ flexShrink: 0, ml: 0.75 }}>
-        <IconButton
+        {/* <IconButton
           aria-label="open more menu"
           ref={anchorRef}
           aria-controls={open ? 'menu-list-grow' : undefined}
@@ -66,9 +66,11 @@ export default function MobileSection() {
           sx={{ color: 'secondary.main', bgcolor: open ? iconBackColorOpen : iconBackColor, p: 1 }}
         >
           <MoreSquare variant="Bulk" style={{ transform: 'rotate(90deg)' }} />
-        </IconButton>
+        </IconButton> */}
+        <Profile />
       </Box>
-      <Popper
+      
+      {/* <Popper
         placement="bottom-end"
         open={open}
         anchorEl={anchorRef.current}
@@ -85,6 +87,7 @@ export default function MobileSection() {
                 <AppBar color="inherit">
                   <Toolbar>
                     <Search />
+                    
                     <Profile />
                   </Toolbar>
                 </AppBar>
@@ -92,7 +95,7 @@ export default function MobileSection() {
             </Paper>
           </Transitions>
         )}
-      </Popper>
+      </Popper> */}
     </>
   );
 }

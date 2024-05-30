@@ -5,6 +5,10 @@ import { useSales } from "./useSales";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
 import ModalFilters from "components/modal-filters/ModalFilters";
+import FormInput from "components/FormInput";
+import { Form, Formik } from "formik";
+import FormLayout from "components/FormLayout";
+import FormDropdown from "components/FormDropdown";
 
 export default function Sales() {
   const {
@@ -69,7 +73,91 @@ export default function Sales() {
         title="filter-sales"
         open={filterModalOpen}
         onClose={closeFilterModal}
-        onFilter={async () => {}}
+        form={
+          <Formik
+            enableReinitialize
+            initialValues={{}}
+            validate={() => {}}
+            onSubmit={() => {}}
+          >
+            {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+              <Form onSubmit={handleSubmit}>
+                <FormLayout
+                  isSubmitting={isSubmitting}
+                  submitButtonText={"apply"}
+                  inputs={[
+                    <FormInput
+                      id={"contactName"}
+                      name={"contactName"}
+                      placeholder={"Contact Name"}
+                      label={"contact-name"}
+                      type={"text"}
+                      // error={touched.contactName ? errors.contactName : ""}
+                    />,
+                    <FormDropdown
+                      id={"salesPerson"}
+                      name={"salesPerson"}
+                      label={"sales-person"}
+                      useFormattedStrings={false}
+                      options={[0, 1, 2, 3]}
+                      // error={touched.salesPerson ? errors.salesPerson : ""}
+                    />,
+                    <FormInput
+                      id={"depositMin"}
+                      name={"depositMin"}
+                      placeholder={"Minimum Deposit"}
+                      label={"minimum-deposit"}
+                      type={"number"}
+                      min={0}
+                      // error={touched.deposit ? errors.deposit : ""}
+                    />,
+                    <FormInput
+                      id={"depositMax"}
+                      name={"depositMax"}
+                      placeholder={"Maximum Deposit"}
+                      label={"maximum-deposit"}
+                      type={"number"}
+                      min={0}
+                      // error={touched.deposit ? errors.deposit : ""}
+                    />,
+                    <FormInput
+                      id={"totalMin"}
+                      name={"totalMin"}
+                      placeholder={"Minimum Total"}
+                      label={"minimum-total"}
+                      type={"number"}
+                      min={0}
+                      // error={touched.deposit ? errors.deposit : ""}
+                    />,
+                    <FormInput
+                      id={"totalMax"}
+                      name={"totalMax"}
+                      placeholder={"Maximum Total"}
+                      label={"maximum-total"}
+                      type={"number"}
+                      min={0}
+                      // error={touched.deposit ? errors.deposit : ""}
+                    />,
+                  ]}
+                  showSubmitButton={false}
+                />
+                <Box
+                  display={"flex"}
+                  justifyContent={"center"}
+                  gap={"15px"}
+                  marginTop={"2rem"}
+                >
+                  <ActionButton
+                    onClick={closeFilterModal}
+                    color={"secondary"}
+                    text={"cancel"}
+                  />
+                  <ActionButton type="submit" text={"apply"} />
+                </Box>
+              </Form>
+            )}
+          </Formik>
+        }
       />
     </Box>
   );

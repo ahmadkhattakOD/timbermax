@@ -1,19 +1,12 @@
 import { Box, Modal, Typography, useTheme } from "@mui/material";
-import { Form, Formik, FormikHelpers } from "formik";
-import { deleteConfirmationText } from "utils/helpers";
-import ActionButton from "../ActionButton";
-import FormInput from "../FormInput";
 import { FormattedMessage } from "react-intl";
+import { ReactElement } from "react";
 
-interface ModalDeleteProps {
+interface ModalFiltersProps {
   open: boolean;
   onClose: () => void;
-  onFilter: () => Promise<void>;
   title: string;
-}
-
-interface DeleteValues {
-  confirmation: string;
+  form: ReactElement;
 }
 
 const style = {
@@ -30,7 +23,7 @@ const style = {
   backgroundColor: "white",
 };
 
-const ModalFilters = ({ open, onClose, onFilter, title }: ModalDeleteProps) => {
+const ModalFilters = ({ open, onClose, title, form }: ModalFiltersProps) => {
   const theme = useTheme();
 
   return (
@@ -52,44 +45,20 @@ const ModalFilters = ({ open, onClose, onFilter, title }: ModalDeleteProps) => {
           <FormattedMessage id="filter-details" />
         </Typography>
         <Box sx={{ paddingTop: "2rem" }}>
-          <Formik
-            initialValues={{
-              confirmation: "",
-            }}
-            validate={(values) => {
-              const errors = {} as DeleteValues;
-
-              if (values.confirmation !== deleteConfirmationText) {
-                errors.confirmation = "delete-confirmation-error";
-              }
-
-              return errors;
-            }}
-            onSubmit={async () => {
-              await onFilter();
-              onClose();
-            }}
+          {/* <Formik
+            enableReinitialize
+            initialValues={initialValues}
+            validate={validate}
+            onSubmit={onSubmit}
           >
-            {({ errors, touched, handleSubmit }) => (
-              <Form>
-                {/* <Box
-                  borderRadius={"20px"}
-                  marginBottom={"2px"}
-                  width={"100%"}
-                  display={"flex"}
-                  flexDirection={"column"}
-                  gap={"1.5rem"}
-                >
-                  <FormInput
-                    optional={false}
-                    label="confirmation"
-                    id="confirmation"
-                    name={"confirmation"}
-                    placeholder="I am sure"
-                    type="text"
-                    error={touched.confirmation ? errors.confirmation : ""}
-                  />
-                </Box> */}
+            {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+              <Form onSubmit={handleSubmit}>
+                <FormLayout
+                  isSubmitting={isSubmitting}
+                  submitButtonText={"apply"}
+                  inputs={inputs}
+                  showSubmitButton={false}
+                />
                 <Box
                   display={"flex"}
                   justifyContent={"center"}
@@ -101,14 +70,12 @@ const ModalFilters = ({ open, onClose, onFilter, title }: ModalDeleteProps) => {
                     color={"secondary"}
                     text={"cancel"}
                   />
-                  <ActionButton
-                    onClick={handleSubmit}
-                    text={"apply"}
-                  />
+                  <ActionButton type='submit' text={"apply"} />
                 </Box>
               </Form>
             )}
-          </Formik>
+          </Formik> */}
+          {form}
         </Box>
       </Box>
     </Modal>

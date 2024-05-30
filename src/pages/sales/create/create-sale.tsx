@@ -65,6 +65,11 @@ export default function CreateSale() {
                 name={"deposit"}
                 placeholder={"Deposit"}
                 label={"deposit"}
+                secondaryLabel={
+                  values.deposit && values.total
+                    ? `${((parseFloat(values.deposit) / parseFloat(values.total)) * 100).toFixed(2)}%`
+                    : null
+                }
                 optional={false}
                 type={"number"}
                 min={0}
@@ -77,7 +82,7 @@ export default function CreateSale() {
                 label={"total"}
                 secondaryLabel={
                   values.deposit && values.total
-                    ? `${((parseFloat(values.deposit) / parseFloat(values.total)) * 100).toFixed(2)}% deposit`
+                    ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
                     : null
                 }
                 optional={false}

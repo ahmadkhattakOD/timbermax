@@ -68,6 +68,9 @@
   "apply": "Apply",
   "confirmation": "Confirmation",
   "filter-details": "Select from the filters below and press apply.",
-  "filter-sales": "Filter Sales"
-  
+  "filter-sales": "Filter Sales",
+  "minimum-deposit": "Minimum Deposit",
+  "maximum-deposit": "Maximum Deposit",
+  "minimum-total": "Minimum Total",
+  "maximum-total": "Maximum Total"
 }

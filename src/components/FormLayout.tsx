@@ -11,12 +11,13 @@ export interface FormLayoutProps extends KeyedObject {
   inputs: ReactElement[];
   submitButtonText: string;
   isSubmitting: boolean;
+  showSubmitButton?: boolean;
 }
 
 // ==============================|| FORM LAYOUT - FORMIK ||============================== //
 
 function FormLayout(
-  { inputs, submitButtonText, isSubmitting }: FormLayoutProps,
+  { inputs, submitButtonText, isSubmitting, showSubmitButton = true }: FormLayoutProps,
   ref: Ref<HTMLDivElement>
 ) {
 
@@ -29,7 +30,7 @@ function FormLayout(
           </Grid>
         ))}
       </Grid>
-      <Box
+      {showSubmitButton && <Box
         sx={{
           width: "100%",
           display: "flex",
@@ -42,7 +43,7 @@ function FormLayout(
         ) : (
           <ActionButton text={submitButtonText} type="submit" />
         )}
-      </Box>
+      </Box>}
     </>
   );
 }
