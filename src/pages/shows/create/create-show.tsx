@@ -46,8 +46,8 @@ export default function CreateShow() {
                 placeholder={"Start Date"}
                 label={"start-date"}
                 optional={false}
-                type={"datetime-local"}
-                min={getDateTimeFormatted()}
+                type={"date"}
+                min={getDateFormatted()}
                 error={touched.startDate ? errors.startDate : ""}
               />,
               <FormInput
@@ -55,11 +55,11 @@ export default function CreateShow() {
                 name={"endDate"}
                 placeholder={"End Date"}
                 label={"end-date"}
-                type={"datetime-local"}
+                type={"date"}
                 min={
                   values.startDate !== ""
                     ? values.startDate
-                    : getDateTimeFormatted()
+                    : getDateFormatted()
                 }
                 max={new Date()}
                 error={touched.endDate ? errors.endDate : ""}

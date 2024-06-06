@@ -1,7 +1,7 @@
 import { openSnackbar } from "api/snackbar";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import ShowsRepository, { ShowSupabase } from "utils/repositories/shows-repository";
+import ShowsRepository, { ShowSupabase } from "utils/repositories/showsRepository";
 
 export interface ValuesCreateShow {
   name: string;

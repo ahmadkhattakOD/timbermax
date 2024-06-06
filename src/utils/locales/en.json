@@ -72,5 +72,10 @@
   "minimum-deposit": "Minimum Deposit",
   "maximum-deposit": "Maximum Deposit",
   "minimum-total": "Minimum Total",
-  "maximum-total": "Maximum Total"
+  "maximum-total": "Maximum Total",
+  "stock": "Stock",
+  "add-new-stock": "Add New Stock",
+  "warehouse": "Warehouse",
+  "item": "Item",
+  "quantity": "Quantity"
 }

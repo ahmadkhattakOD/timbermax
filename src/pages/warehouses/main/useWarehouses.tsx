@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { initialRowsPerPage } from "utils/helpers";
-import WarehousesRepository from "utils/repositories/warehouses-repository";
+import WarehousesRepository from "utils/repositories/warehousesRepository";
 
 const headCells: HeadCell[] = [
   {

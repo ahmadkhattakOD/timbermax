@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import SalesRepository, {
   SaleSupabase,
-} from "utils/repositories/sales-repository";
+} from "utils/repositories/salesRepository";
 
 export interface ValuesCreateSale {
   contactName: string;

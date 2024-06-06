@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
-import ItemsRepository, { ItemSupabase } from "utils/repositories/items-repository";
+import ItemsRepository, { ItemSupabase } from "utils/repositories/itemsRepository";
 
 export interface ValuesEditItem {
   name: string;

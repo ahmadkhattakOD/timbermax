@@ -4,26 +4,38 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { initialRowsPerPage } from "utils/helpers";
-import ItemsRepository from "utils/repositories/itemsRepository";
-import WarehousesRepository from "utils/repositories/warehouses-repository";
+import { getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import StocksRepository from "utils/repositories/stocksRepository";
+import WarehousesRepository from "utils/repositories/warehousesRepository";
 
 const headCells: HeadCell[] = [
   {
-    id: "name",
+    id: "item",
     numeric: false,
     disablePadding: true,
-    label: "Name",
+    label: "Item",
   },
   {
-    id: "description",
+    id: "warehouse",
     numeric: false,
     disablePadding: true,
-    label: "Description",
+    label: "Warehouse",
+  },
+  {
+    id: "quantity",
+    numeric: false,
+    disablePadding: true,
+    label: "Quantity",
+  },
+  {
+    id: "updated_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Updated At",
   },
 ];
 
-export function useItems() {
+export function useStock() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -36,7 +48,7 @@ export function useItems() {
   const navigate = useNavigate();
 
   function goToCreate() {
-    navigate("/items/new");
+    navigate("/stock/new");
   }
 
   function generateTableCells(
@@ -55,17 +67,10 @@ export function useItems() {
             }}
           />
         </TableCell>
-        <TableCell
-          component="th"
-          id={labelId}
-          scope="row"
-          padding="none"
-          width={200}
-          align="left"
-        >
-          {row.name}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.description}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.item.name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.warehouse.name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.quantity}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{getDateTimeFormatted(row.updated_at, true)}</TableCell>
       </React.Fragment>
     );
   }
@@ -75,12 +80,12 @@ export function useItems() {
   }
 
   async function onDelete() {
-    const itemsRepository = new ItemsRepository();
-    const deletedItems = await itemsRepository.delete(selected);
-    if (deletedItems > 0) {
+    const stocksRepository = new StocksRepository();
+    const deletedStocks = await stocksRepository.delete(selected);
+    if (deletedStocks > 0) {
       openSnackbar({
         open: true,
-        message: `${deletedItems} item(s) deleted successfully.`,
+        message: `${deletedStocks} stock(s) deleted successfully.`,
         variant: "alert",
         alert: {
           color: "success",
@@ -91,7 +96,7 @@ export function useItems() {
     } else {
       openSnackbar({
         open: true,
-        message: "Item(s) could not be deleted successfully. Please try again.",
+        message: "Stock(s) could not be deleted successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",
@@ -107,26 +112,26 @@ export function useItems() {
   async function getData() {
     try {
       setLoading(true);
-      const itemsRepository = new ItemsRepository();
+      const stocksRepository = new StocksRepository();
       const rangeStart = rowsPerPage * page;
       const rangeEnd = rangeStart + rowsPerPage;
-      const warehouses = await itemsRepository.get(
+      const stocks = await stocksRepository.get(
         orderBy,
         order === "asc",
         rangeStart,
         rangeEnd,
         rowsPerPage
       );
-      if (warehouses) {
-        const { itemsData, itemsCount, itemsError } = warehouses;
-        if (itemsData && !itemsError) {
-          setData(itemsData);
-          setDataCount(itemsCount ?? 0);
+      if (stocks) {
+        const { stocksData, stocksCount, stocksError } = stocks;
+        if (stocksData && !stocksError) {
+          setData(stocksData);
+          setDataCount(stocksCount ?? 0);
         }
       }
       setLoading(false);
     } catch (e) {
-      console.error("Error fetching items:", e);
+      console.error("Error fetching stocks:", e);
       setLoading(false);
     }
   }

@@ -5,7 +5,7 @@ import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
 import WarehousesRepository, {
   WarehouseSupabase,
-} from "utils/repositories/warehouses-repository";
+} from "utils/repositories/warehousesRepository";
 
 export interface ValuesEditWarehouse {
   name: string;

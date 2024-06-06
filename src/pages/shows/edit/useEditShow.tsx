@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
-import ShowsRepository, { ShowSupabase } from "utils/repositories/shows-repository";
+import ShowsRepository, { ShowSupabase } from "utils/repositories/showsRepository";
 
 export interface ValuesEditShow {
   name: string;

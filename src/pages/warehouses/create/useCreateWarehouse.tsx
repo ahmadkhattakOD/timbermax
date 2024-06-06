@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import WarehousesRepository, {
   WarehouseSupabase,
-} from "utils/repositories/warehouses-repository";
+} from "utils/repositories/warehousesRepository";
 
 export interface ValuesCreateWarehouse {
   name: string;

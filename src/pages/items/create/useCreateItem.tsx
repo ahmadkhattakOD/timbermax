@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import ItemsRepository, {
   ItemSupabase,
-} from "utils/repositories/items-repository";
+} from "utils/repositories/itemsRepository";
 import WarehousesRepository, {
   WarehouseSupabase,
 } from "utils/repositories/warehouses-repository";
