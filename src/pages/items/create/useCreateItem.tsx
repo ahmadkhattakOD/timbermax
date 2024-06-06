@@ -4,9 +4,6 @@ import { SnackbarProps } from "types/snackbar";
 import ItemsRepository, {
   ItemSupabase,
 } from "utils/repositories/itemsRepository";
-import WarehousesRepository, {
-  WarehouseSupabase,
-} from "utils/repositories/warehouses-repository";
 
 export interface ValuesCreateItem {
   name: string;

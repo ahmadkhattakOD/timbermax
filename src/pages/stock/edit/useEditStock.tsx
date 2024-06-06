@@ -4,7 +4,9 @@ import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
 import ItemsRepository from "utils/repositories/itemsRepository";
-import StocksRepository, { StockSupabase } from "utils/repositories/stocksRepository";
+import StocksRepository, {
+  StockSupabase,
+} from "utils/repositories/stocksRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
 
 export interface ValuesEditStock {
@@ -52,7 +54,8 @@ export function useEditStock() {
         const stocksRepository = new StocksRepository();
         const editedStock = await stocksRepository.edit(
           parseInt(id),
-          updatedStock
+          updatedStock,
+          values.item != stock.item.id || values.warehouse != stock.warehouse.id
         );
 
         if (editedStock) {
@@ -80,8 +83,7 @@ export function useEditStock() {
       } else {
         openSnackbar({
           open: true,
-          message:
-            "Stock could not be edited successfully. Please try again.",
+          message: "Stock could not be edited successfully. Please try again.",
           variant: "alert",
           alert: {
             color: "error",
@@ -93,8 +95,7 @@ export function useEditStock() {
     } catch (e) {
       openSnackbar({
         open: true,
-        message:
-          "Stock could not be edited successfully. Please try again.",
+        message: "Stock could not be edited successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",
@@ -109,9 +110,7 @@ export function useEditStock() {
     setLoading(true);
     if (id && isNumeric(id)) {
       const stocksRepository = new StocksRepository();
-      const existingStock = await stocksRepository.getSingle(
-        parseInt(id)
-      );
+      const existingStock = await stocksRepository.getSingle(parseInt(id));
       if (existingStock) {
         const { stockData, stockError } = existingStock;
         if (stockData && !stockError) {

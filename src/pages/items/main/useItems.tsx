@@ -6,7 +6,6 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { initialRowsPerPage } from "utils/helpers";
 import ItemsRepository from "utils/repositories/itemsRepository";
-import WarehousesRepository from "utils/repositories/warehouses-repository";
 
 const headCells: HeadCell[] = [
   {

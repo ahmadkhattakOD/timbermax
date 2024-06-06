@@ -4,9 +4,12 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import {
+  getDateFormatted,
+  getDateTimeFormatted,
+  initialRowsPerPage,
+} from "utils/helpers";
 import ShowsRepository from "utils/repositories/showsRepository";
-import WarehousesRepository from "utils/repositories/warehouses-repository";
 
 const headCells: HeadCell[] = [
   {
@@ -32,6 +35,12 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Address",
+  },
+  {
+    id: "suburb",
+    numeric: false,
+    disablePadding: true,
+    label: "Suburb",
   },
   {
     id: "state",
@@ -79,14 +88,7 @@ export function useShows() {
             }}
           />
         </TableCell>
-        <TableCell
-          component="th"
-          id={labelId}
-          scope="row"
-          padding="none"
-          width={200}
-          align="left"
-        >
+        <TableCell sx={{ minWidth: 200 }}>
           {row.name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
@@ -96,6 +98,7 @@ export function useShows() {
           {row.end_date && getDateFormatted(row.end_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.suburb}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
       </React.Fragment>
@@ -187,6 +190,6 @@ export function useShows() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
+    closeDeleteConfirmModal,
   };
 }

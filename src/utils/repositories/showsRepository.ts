@@ -5,6 +5,7 @@ export interface ShowSupabase {
   start_date?: Date | null;
   end_date?: Date | null;
   address: string;
+  suburb: string;
   state: string;
   post_code: string;
 }

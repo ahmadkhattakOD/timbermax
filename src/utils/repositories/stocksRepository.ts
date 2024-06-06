@@ -12,15 +12,44 @@ class StocksRepository {
 
   public async create(stock: StockSupabase) {
     try {
-      const { data, error } = await supabase
-        .from(this.className)
-        .insert(stock)
-        .select();
+      const { data: existingStockData, error: existingStockError } =
+        await supabase
+          .from(this.className)
+          .select("id, quantity")
+          .eq("item", stock.item)
+          .eq("warehouse", stock.warehouse);
 
-      if (data && data.length > 0 && error === null) {
-        return data[0];
+      if (
+        existingStockData &&
+        existingStockData.length > 0 &&
+        !existingStockError
+      ) {
+        const { data, error } = await supabase
+          .from(this.className)
+          .update({
+            item: stock.item,
+            warehouse: stock.warehouse,
+            quantity: stock.quantity + existingStockData[0].quantity,
+            updated_at: stock.updated_at,
+          })
+          .eq("id", existingStockData[0].id)
+          .select();
+
+        if (data && data.length > 0 && error === null) {
+          return data[0];
+        }
+        return null;
+      } else {
+        const { data, error } = await supabase
+          .from(this.className)
+          .insert(stock)
+          .select();
+
+        if (data && data.length > 0 && error === null) {
+          return data[0];
+        }
+        return null;
       }
-      return null;
     } catch (error) {
       console.error("Error creating new stock:", error);
       return null;
@@ -41,7 +70,10 @@ class StocksRepository {
         error: stocksError,
       } = await supabase
         .from(this.className)
-        .select("id, item (id, name), warehouse (id, name), quantity, updated_at", { count: "exact" })
+        .select(
+          "id, item (id, name), warehouse (id, name), quantity, updated_at",
+          { count: "exact" }
+        )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
@@ -57,7 +89,9 @@ class StocksRepository {
     try {
       const { data: stockData, error: stockError } = await supabase
         .from(this.className)
-        .select("id, item (id, name), warehouse (id, name), quantity, updated_at")
+        .select(
+          "id, item (id, name), warehouse (id, name), quantity, updated_at"
+        )
         .eq("id", id)
         .limit(1)
         .maybeSingle();
@@ -69,18 +103,55 @@ class StocksRepository {
     }
   }
 
-  public async edit(id: number, stock: StockSupabase) {
+  public async edit(
+    id: number,
+    stock: StockSupabase,
+    changedItemWarehouse: boolean
+  ) {
     try {
-      const { data, error } = await supabase
-        .from(this.className)
-        .update(stock)
-        .eq("id", id)
-        .select();
+      if (changedItemWarehouse) {
+        const { data: existingStockData, error: existingStockError } =
+          await supabase
+            .from(this.className)
+            .select("id, quantity")
+            .eq("item", stock.item)
+            .eq("warehouse", stock.warehouse);
 
-      if (data && data.length > 0 && error === null) {
-        return data[0];
+        if (
+          existingStockData &&
+          existingStockData.length > 0 &&
+          !existingStockError
+        ) {
+          const { data, error } = await supabase
+            .from(this.className)
+            .update({
+              item: stock.item,
+              warehouse: stock.warehouse,
+              quantity: stock.quantity + existingStockData[0].quantity,
+              updated_at: stock.updated_at,
+            })
+            .eq("id", existingStockData[0].id)
+            .select();
+
+          if (data && data.length > 0 && error === null) {
+            await supabase.from(this.className).delete().eq("id", id);
+            return data[0];
+          }
+          return null;
+        }
+        return null;
+      } else {
+        const { data, error } = await supabase
+          .from(this.className)
+          .update(stock)
+          .eq("id", id)
+          .select();
+
+        if (data && data.length > 0 && error === null) {
+          return data[0];
+        }
+        return null;
       }
-      return null;
     } catch (error) {
       console.error("Error editing stock:", error);
       return null;
