@@ -202,6 +202,16 @@ const MainRoutes = {
       element: <DashboardLayout />,
       children: [
         {
+          path: "stock/move",
+          element: <EditStock />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
           path: "stock/:id/edit",
           element: <EditStock />,
         },

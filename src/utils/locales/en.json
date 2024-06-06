@@ -77,5 +77,6 @@
   "add-new-stock": "Add New Stock",
   "warehouse": "Warehouse",
   "item": "Item",
-  "quantity": "Quantity"
+  "quantity": "Quantity",
+  "move-stock": "Move Stock"
 }

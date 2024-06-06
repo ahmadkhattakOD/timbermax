@@ -11,6 +11,7 @@ export default function Stock() {
     dataCount,
     loading,
     goToCreate,
+    goToMove,
     order,
     setOrder,
     orderBy,
@@ -35,6 +36,7 @@ export default function Stock() {
         actionButton={
           <ActionButton text={"add-new-stock"} onClick={goToCreate} />
         }
+        filters={<ActionButton text={"move-stock"} onClick={goToMove} />}
       />
       <DataTable
         data={data}

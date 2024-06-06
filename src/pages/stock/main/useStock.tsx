@@ -51,6 +51,10 @@ export function useStock() {
     navigate("/stock/new");
   }
 
+  function goToMove() {
+    navigate("/stock/move");
+  }
+
   function generateTableCells(
     row: any,
     labelId: string,
@@ -145,6 +149,7 @@ export function useStock() {
     dataCount,
     loading,
     goToCreate,
+    goToMove,
     order,
     setOrder,
     orderBy,
