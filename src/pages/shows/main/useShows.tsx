@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
-import ShowsRepository from "utils/repositories/shows-repository";
+import ShowsRepository from "utils/repositories/showsRepository";
 import WarehousesRepository from "utils/repositories/warehouses-repository";
 
 const headCells: HeadCell[] = [
@@ -90,10 +90,10 @@ export function useShows() {
           {row.name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {getDateTimeFormatted(row.start_date, true)}
+          {getDateFormatted(row.start_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.end_date && getDateTimeFormatted(row.end_date, true)}
+          {row.end_date && getDateFormatted(row.end_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>

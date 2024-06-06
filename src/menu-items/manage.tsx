@@ -2,7 +2,7 @@
 import { FormattedMessage } from "react-intl";
 
 // assets
-import { Briefcase, ForwardItem, House2, I24Support, MessageProgramming, Money } from "iconsax-react";
+import { Briefcase, ClipboardTick, ForwardItem, House2, I24Support, MessageProgramming, Money } from "iconsax-react";
 
 // type
 import { NavItemType } from "types/menu";
@@ -13,6 +13,7 @@ const icons = {
   maintenance: MessageProgramming,
   sales: Money,
   items: ForwardItem,
+  stock: ClipboardTick,
   shows: Briefcase,
   warehouses: House2,
   contactus: I24Support,
@@ -47,6 +48,14 @@ const manage: NavItemType = {
       type: "item",
       url: "/items",
       icon: icons.items,
+      target: false,
+    },
+    {
+      id: "stock",
+      title: <FormattedMessage id="stock" />,
+      type: "item",
+      url: "/stock",
+      icon: icons.stock,
       target: false,
     },
     {

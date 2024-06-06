@@ -1,18 +1,20 @@
 import supabase from "utils/supabase";
 
-export interface ItemSupabase {
-  name: string;
-  description: string;
+export interface StockSupabase {
+  item: number;
+  warehouse: number;
+  quantity: number;
+  updated_at: Date;
 }
 
-class ItemsRepository {
-  private className = "items";
+class StocksRepository {
+  private className = "stocks";
 
-  public async create(item: ItemSupabase) {
+  public async create(stock: StockSupabase) {
     try {
       const { data, error } = await supabase
         .from(this.className)
-        .insert(item)
+        .insert(stock)
         .select();
 
       if (data && data.length > 0 && error === null) {
@@ -20,7 +22,7 @@ class ItemsRepository {
       }
       return null;
     } catch (error) {
-      console.error("Error creating new item:", error);
+      console.error("Error creating new stock:", error);
       return null;
     }
   }
@@ -34,44 +36,44 @@ class ItemsRepository {
   ) {
     try {
       const {
-        data: itemsData,
-        count: itemsCount,
-        error: itemsError,
+        data: stocksData,
+        count: stocksCount,
+        error: stocksError,
       } = await supabase
         .from(this.className)
-        .select("*", { count: "exact" })
+        .select("id, item (id, name), warehouse (id, name), quantity, updated_at", { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
 
-      return { itemsData, itemsCount, itemsError };
+      return { stocksData, stocksCount, stocksError };
     } catch (error) {
-      console.error("Error fetching items:", error);
+      console.error("Error fetching stocks:", error);
       return null;
     }
   }
 
   public async getSingle(id: number) {
     try {
-      const { data: itemData, error: itemError } = await supabase
+      const { data: stockData, error: stockError } = await supabase
         .from(this.className)
-        .select("*")
+        .select("id, item (id, name), warehouse (id, name), quantity, updated_at")
         .eq("id", id)
         .limit(1)
         .maybeSingle();
 
-      return { itemData, itemError };
+      return { stockData, stockError };
     } catch (error) {
-      console.error("Error fetching item:", error);
+      console.error("Error fetching stock:", error);
       return null;
     }
   }
 
-  public async edit(id: number, item: ItemSupabase) {
+  public async edit(id: number, stock: StockSupabase) {
     try {
       const { data, error } = await supabase
         .from(this.className)
-        .update(item)
+        .update(stock)
         .eq("id", id)
         .select();
 
@@ -80,7 +82,7 @@ class ItemsRepository {
       }
       return null;
     } catch (error) {
-      console.error("Error editing item:", error);
+      console.error("Error editing stock:", error);
       return null;
     }
   }
@@ -102,9 +104,10 @@ class ItemsRepository {
 
       return deletedIdsCount;
     } catch (error) {
-      console.error("Error deleting items:", error);
+      console.error("Error deleting stocks:", error);
       return 0;
     }
   }
 }
-export default ItemsRepository;
+
+export default StocksRepository;

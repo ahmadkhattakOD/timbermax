@@ -6,7 +6,7 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useEditShow } from "./useEditShow";
 import CircularLoader from "components/CircularLoader";
-import { australianStates, getDateTimeFormatted } from "utils/helpers";
+import { australianStates, getDateFormatted, getDateTimeFormatted } from "utils/helpers";
 
 // ==============================|| EDIT WAREHOUSE PAGE ||============================== //
 
@@ -63,8 +63,8 @@ export default function EditShow() {
                 placeholder={"Start Date"}
                 label={"start-date"}
                 optional={false}
-                type={"datetime-local"}
-                min={getDateTimeFormatted()}
+                type={"date"}
+                min={getDateFormatted()}
                 error={touched.startDate ? errors.startDate : ""}
               />,
               <FormInput
@@ -72,11 +72,11 @@ export default function EditShow() {
                 name={"endDate"}
                 placeholder={"End Date"}
                 label={"end-date"}
-                type={"datetime-local"}
+                type={"date"}
                 min={
                   values.startDate !== ""
                     ? values.startDate
-                    : getDateTimeFormatted()
+                    : getDateFormatted()
                 }
                 max={new Date()}
                 error={touched.endDate ? errors.endDate : ""}

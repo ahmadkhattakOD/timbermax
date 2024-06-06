@@ -6,7 +6,7 @@ import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
 import SalesRepository, {
   SaleSupabase,
-} from "utils/repositories/sales-repository";
+} from "utils/repositories/salesRepository";
 
 export interface ValuesEditSale {
   contactName: string;
