@@ -103,6 +103,22 @@ class StocksRepository {
     }
   }
 
+  public async getByWarehouse(warehouse: number) {
+    try {
+      const { data: stocksData, error: stocksError } = await supabase
+        .from(this.className)
+        .select(
+          "id, item (id, name), warehouse (id, name), quantity, updated_at"
+        )
+        .eq("warehouse", warehouse);
+
+      return { stocksData, stocksError };
+    } catch (error) {
+      console.error("Error fetching stock:", error);
+      return null;
+    }
+  }
+
   public async edit(
     id: number,
     stock: StockSupabase,
@@ -152,6 +168,58 @@ class StocksRepository {
         }
         return null;
       }
+    } catch (error) {
+      console.error("Error editing stock:", error);
+      return null;
+    }
+  }
+
+  public async move(stock: StockSupabase) {
+    try {
+      const { data: existingStockData, error: existingStockError } =
+        await supabase
+          .from(this.className)
+          .select("id, quantity")
+          .eq("item", stock.item)
+          .eq("warehouse", stock.warehouse);
+
+      if (
+        existingStockData &&
+        existingStockData.length > 0 &&
+        !existingStockError
+      ) {
+        if (stock.quantity > existingStockData[0].quantity) {
+          return null;
+        } else if (stock.quantity == existingStockData[0].quantity) {
+          const { data, error } = await supabase
+            .from(this.className)
+            .delete()
+            .eq("id", existingStockData[0].id)
+            .select();
+
+          if (data && data.length > 0 && error === null) {
+            return data[0];
+          }
+          return null;
+        } else {
+          const { data, error } = await supabase
+            .from(this.className)
+            .update({
+              item: stock.item,
+              warehouse: stock.warehouse,
+              quantity: existingStockData[0].quantity - stock.quantity,
+              updated_at: stock.updated_at,
+            })
+            .eq("id", existingStockData[0].id)
+            .select();
+
+          if (data && data.length > 0 && error === null) {
+            return data[0];
+          }
+          return null;
+        }
+      }
+      return null;
     } catch (error) {
       console.error("Error editing stock:", error);
       return null;

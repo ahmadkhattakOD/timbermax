@@ -22,6 +22,7 @@ import EditShow from "pages/shows/edit/edit-show";
 import Stock from "pages/stock/main/stock";
 import CreateStock from "pages/stock/create/create-stock";
 import EditStock from "pages/stock/edit/edit-stock";
+import MoveStock from "pages/stock/move/move-stock";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -203,7 +204,7 @@ const MainRoutes = {
       children: [
         {
           path: "stock/move",
-          element: <EditStock />,
+          element: <MoveStock />,
         },
       ],
     },

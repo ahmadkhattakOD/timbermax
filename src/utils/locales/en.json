@@ -78,5 +78,8 @@
   "warehouse": "Warehouse",
   "item": "Item",
   "quantity": "Quantity",
-  "move-stock": "Move Stock"
+  "move-stock": "Move Stock",
+  "from-warehouse": "From Warehouse",
+  "to-warehouse": "To Warehouse",
+  "required-lesser-than-limit": "Please enter a valid amount up till the available amount"
 }

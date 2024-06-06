@@ -5,14 +5,21 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import CircularLoader from "components/CircularLoader";
-import { australianStates } from "utils/helpers";
 import { useMoveStock } from "./useMoveStock";
 
-// ==============================|| EDIT WAREHOUSE PAGE ||============================== //
+// ==============================|| MOVE STOCK PAGE ||============================== //
 
 export default function MoveStock() {
-  const { validate, onSubmit, stock, loading, items, warehouses } =
-  useMoveStock();
+  const {
+    formikRef,
+    validate,
+    onSubmit,
+    loading,
+    stocks,
+    warehouses,
+    onFormChange,
+    selectedQuantity,
+  } = useMoveStock();
 
   if (loading) {
     return (
@@ -31,39 +38,61 @@ export default function MoveStock() {
   }
   return (
     <Formik
+      innerRef={formikRef}
       enableReinitialize
       initialValues={{
-        item: stock.item.id.toString() ?? "",
-        warehouse: stock.warehouse.id.toString() ?? "",
-        quantity: stock.quantity.toString() ?? "",
+        fromWarehouse: "",
+        item: "",
+        toWarehouse: "",
+        quantity: "",
       }}
       validate={validate}
       onSubmit={onSubmit}
     >
       {({ handleSubmit, errors, touched, isSubmitting }) => (
-        <Form onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit} onChange={onFormChange}>
           <FormLayout
             isSubmitting={isSubmitting}
             submitButtonText={"submit"}
             inputs={[
               <FormDropdown
-                id={"item"}
-                name={"item"}
-                label={"item"}
+                id={"fromWarehouse"}
+                name={"fromWarehouse"}
+                label={"from-warehouse"}
                 useFormattedStrings={false}
                 optional={false}
-                error={touched.item ? errors.item : ""}
-                options={items.map((item) => {
-                  return { label: item.name, value: item.id.toString() };
+                error={touched.fromWarehouse ? errors.fromWarehouse : ""}
+                options={warehouses.map((warehouse) => {
+                  return {
+                    label: warehouse.name,
+                    value: warehouse.id.toString(),
+                  };
                 })}
               />,
               <FormDropdown
-                id={"warehouse"}
-                name={"warehouse"}
-                label={"warehouse"}
+                id={"item"}
+                name={"item"}
+                label={"item"}
+                secondaryLabel={
+                  selectedQuantity > 0 ? `${selectedQuantity} available` : null
+                }
                 useFormattedStrings={false}
                 optional={false}
-                error={touched.warehouse ? errors.warehouse : ""}
+                error={touched.item ? errors.item : ""}
+                options={stocks.map((stock) => {
+                  return {
+                    label: stock.item.name,
+                    value: stock.item.id.toString(),
+                  };
+                })}
+              />,
+              <FormDropdown
+                id={"toWarehouse"}
+                name={"toWarehouse"}
+                label={"to-warehouse"}
+                useFormattedStrings={false}
+                optional={false}
+                error={touched.toWarehouse ? errors.toWarehouse : ""}
                 options={warehouses.map((warehouse) => {
                   return {
                     label: warehouse.name,

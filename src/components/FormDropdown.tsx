@@ -12,6 +12,7 @@ interface FieldInputProps {
   id: string;
   name: string;
   label?: string;
+  secondaryLabel?: string | null;
   value?: string;
   optional?: true | false;
   error?: string;
@@ -23,6 +24,7 @@ interface FieldInputProps {
 
 const FormDropdown = ({
   label,
+  secondaryLabel,
   value,
   name,
   id,
@@ -55,17 +57,31 @@ const FormDropdown = ({
       <Box
         sx={{
           display: "flex",
-          justifyContent: optional ? "space-between" : "",
+          justifyContent: "space-between",
           gap: "10px",
           mb: label && "0.5rem",
         }}
       >
-        <Typography
-          sx={{ color: theme.palette.secondary.main, fontSize: "16px" }}
+        <Box
+          sx={{
+            display: "flex",
+            gap: "10px",
+          }}
         >
-          <FormattedMessage id={label} />
-        </Typography>
-        {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
+          <Typography
+            sx={{ color: theme.palette.secondary.main, fontSize: "16px" }}
+          >
+            <FormattedMessage id={label} />
+          </Typography>
+          {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
+        </Box>
+        {secondaryLabel && (
+          <Typography
+            sx={{ color: theme.palette.secondary.dark, fontSize: "16px" }}
+          >
+            {secondaryLabel}
+          </Typography>
+        )}
       </Box>
       <div className={"group-input"}>
         <Field
