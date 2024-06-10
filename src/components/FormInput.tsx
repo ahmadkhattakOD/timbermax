@@ -89,6 +89,7 @@ const FormInput = ({
           type={type}
           defaultValue={defaultValue}
           disabled={disabled}
+          autoComplete={type === 'password' && 'new-password'}
         />
       </div>
 

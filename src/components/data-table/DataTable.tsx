@@ -51,8 +51,8 @@ interface DataTableProps {
   dataCount: number;
   loading: boolean;
   tableTitle: string;
-  selected: readonly number[];
-  setSelected: React.Dispatch<React.SetStateAction<readonly number[]>>;
+  selected: readonly any[];
+  setSelected: React.Dispatch<React.SetStateAction<readonly any[]>>;
   rowsPerPage: number;
   setRowsPerPage: (value: number) => void;
   page: number;

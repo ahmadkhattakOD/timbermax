@@ -19,6 +19,7 @@ export default function CreateShow() {
         startDate: "",
         endDate: "",
         address: "",
+        suburb: "",
         state: "",
         postCode: "",
       }}
@@ -69,6 +70,13 @@ export default function CreateShow() {
                 name={"address"}
                 placeholder={"Address"}
                 label={"address"}
+                type={"text"}
+              />,
+              <FormInput
+                id={"suburb"}
+                name={"suburb"}
+                placeholder={"Suburb"}
+                label={"suburb"}
                 type={"text"}
               />,
               <FormDropdown

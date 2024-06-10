@@ -5,8 +5,8 @@ import { useNavigate } from "react-router";
 interface UseDataTableProps {
   data: any[];
   dataCount: number;
-  selected: readonly number[];
-  setSelected: Dispatch<SetStateAction<readonly number[]>>;
+  selected: readonly any[];
+  setSelected: Dispatch<SetStateAction<readonly any[]>>;
   rowsPerPage: number;
   setRowsPerPage: (value: number) => void;
   page: number;
@@ -51,7 +51,7 @@ export function useDataTable({
     setSelected([]);
   };
 
-  const handleRowClick = (event: React.MouseEvent<unknown>, id: number) => {
+  const handleRowClick = (event: React.MouseEvent<unknown>, id: any) => {
     const target = event.target as HTMLElement;
 
     if (

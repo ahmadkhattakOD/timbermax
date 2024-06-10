@@ -23,6 +23,9 @@ import Stock from "pages/stock/main/stock";
 import CreateStock from "pages/stock/create/create-stock";
 import EditStock from "pages/stock/edit/edit-stock";
 import MoveStock from "pages/stock/move/move-stock";
+import Users from "pages/users/main/users";
+import CreateUser from "pages/users/create/create-user";
+import EditUser from "pages/users/edit/edit-user";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -218,7 +221,36 @@ const MainRoutes = {
         },
       ],
     },
-
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "users",
+          element: <Users />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "users/new",
+          element: <CreateUser />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "users/:id/edit",
+          element: <EditUser />,
+        },
+      ],
+    },
 
 
 

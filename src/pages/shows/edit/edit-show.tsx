@@ -6,7 +6,11 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useEditShow } from "./useEditShow";
 import CircularLoader from "components/CircularLoader";
-import { australianStates, getDateFormatted, getDateTimeFormatted } from "utils/helpers";
+import {
+  australianStates,
+  getDateFormatted,
+  getDateTimeFormatted,
+} from "utils/helpers";
 
 // ==============================|| EDIT WAREHOUSE PAGE ||============================== //
 
@@ -36,6 +40,7 @@ export default function EditShow() {
         startDate: show.start_date ? getDateTimeFormatted(show.start_date) : "",
         endDate: show.end_date ? getDateTimeFormatted(show.end_date) : "",
         address: show.address ?? "",
+        suburb: show.suburb ?? "",
         state: show.state ?? "",
         postCode: show.post_code ?? "",
       }}
@@ -86,6 +91,13 @@ export default function EditShow() {
                 name={"address"}
                 placeholder={"Address"}
                 label={"address"}
+                type={"text"}
+              />,
+              <FormInput
+                id={"suburb"}
+                name={"suburb"}
+                placeholder={"Suburb"}
+                label={"suburb"}
                 type={"text"}
               />,
               <FormDropdown

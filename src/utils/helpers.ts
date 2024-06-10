@@ -63,4 +63,10 @@ export const australianStates = [
   "Northern Territory",
 ];
 
+export const userRoles = [
+  "Sales Person",
+  "Closer",
+  "Both"
+]
+
 export const deleteConfirmationText = "I am sure";

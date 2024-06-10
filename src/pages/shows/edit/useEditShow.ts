@@ -10,6 +10,7 @@ export interface ValuesEditShow {
   startDate: string;
   endDate: string;
   address: string;
+  suburb: string;
   state: string;
   postCode: string;
 }
@@ -42,6 +43,7 @@ export function useEditShow() {
           start_date: values.startDate !== "" ? new Date(values.startDate) : null,
           end_date: values.endDate !== "" ? new Date(values.endDate) : null,
           address: values.address,
+          suburb: values.suburb,
           state: values.state,
           post_code: values.postCode,
         };
