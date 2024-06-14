@@ -2,6 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
+import { UserRoles } from "utils/helpers";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
@@ -241,14 +242,14 @@ export function useCreateSale() {
         let temp2 = [];
         for (let i = 0; i < profilesData.length; i++) {
           if (
-            profilesData[i].role === "Sales Person" ||
-            profilesData[i].role === "Both"
+            profilesData[i].role === UserRoles.SalesPerson ||
+            profilesData[i].role === UserRoles.Both
           ) {
             temp.push(profilesData[i]);
           }
           if (
-            profilesData[i].role === "Closer" ||
-            profilesData[i].role === "Both"
+            profilesData[i].role === UserRoles.Closer ||
+            profilesData[i].role === UserRoles.Both
           ) {
             temp2.push(profilesData[i]);
           }

@@ -78,8 +78,50 @@ export const australianStates = [
   "Northern Territory",
 ];
 
-export const userRoles = ["Sales Person", "Closer", "Both"];
+export enum UserRoles {
+  SalesPerson = "Sales Person",
+  Closer = "Closer",
+  Both = "Sales Person & Closer",
+  Admin = "Admin",
+}
+
+export const userRoles = [
+  UserRoles.SalesPerson,
+  UserRoles.Closer,
+  UserRoles.Both,
+];
 
 export const deleteConfirmationText = "I am sure";
 
 export const extendedDataLimit = 9999999;
+
+export function isRouteAllowed(
+  role:
+    | UserRoles.Admin
+    | UserRoles.Closer
+    | UserRoles.Both
+    | UserRoles.SalesPerson
+    | ""
+) {
+  if (role === UserRoles.Admin) {
+    return true;
+  } else if (role === UserRoles.Closer || role === UserRoles.Both) {
+    let whiteListedURLs = ["/dashboard", "/sales"];
+    for (let i = 0; i < whiteListedURLs.length; i++) {
+      if (window.location.href.includes(whiteListedURLs[i])) {
+        return true;
+      }
+    }
+    return false;
+  } else if (UserRoles.SalesPerson) {
+    let whiteListedURLs = ["/dashboard"];
+
+    for (let i = 0; i < whiteListedURLs.length; i++) {
+      if (window.location.href.includes(whiteListedURLs[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+  return false;
+}

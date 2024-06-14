@@ -3,7 +3,7 @@ import { FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { isNumeric } from "utils/helpers";
+import { UserRoles, isNumeric } from "utils/helpers";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
   SaleSupabase,
@@ -184,14 +184,14 @@ export function useEditSale() {
         let temp2 = [];
         for (let i = 0; i < profilesData.length; i++) {
           if (
-            profilesData[i].role === "Sales Person" ||
-            profilesData[i].role === "Both"
+            profilesData[i].role === UserRoles.SalesPerson ||
+            profilesData[i].role === UserRoles.Both
           ) {
             temp.push(profilesData[i]);
           }
           if (
-            profilesData[i].role === "Closer" ||
-            profilesData[i].role === "Both"
+            profilesData[i].role === UserRoles.Closer ||
+            profilesData[i].role === UserRoles.Both
           ) {
             temp2.push(profilesData[i]);
           }

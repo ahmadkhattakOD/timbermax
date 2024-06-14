@@ -21,7 +21,7 @@ const icons = {
 
 // ==============================|| MENU ITEMS - PAGES ||============================== //
 
-const manage: NavItemType = {
+const manageAdmin: NavItemType = {
   id: "manage-pages",
   title: <FormattedMessage id="manage" />,
   type: "group",
@@ -69,4 +69,20 @@ const manage: NavItemType = {
   ],
 };
 
-export default manage;
+const manageCloser: NavItemType = {
+  id: "manage-pages",
+  title: <FormattedMessage id="manage" />,
+  type: "group",
+  children: [
+    {
+      id: "sales",
+      title: <FormattedMessage id="sales" />,
+      type: "item",
+      url: "/sales",
+      icon: icons.sales,
+      target: false,
+    },
+  ],
+};
+
+export default { manageAdmin, manageCloser }

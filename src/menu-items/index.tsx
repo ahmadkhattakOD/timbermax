@@ -1,17 +1,22 @@
-// project import
-import samplePage from './sample-page';
-import support from './support';
-import pages from './pages';
-
 // types
 import { NavItemType } from 'types/menu';
-import manage from './manage';
+
 import users from './users';
+import manage from './manage';
+import dashboard from './dashboard';
 
 // ==============================|| MENU ITEMS ||============================== //
 
-const menuItems: { items: NavItemType[] } = {
-  items: [samplePage, manage, users]
+const menuItemsAdmin: { items: NavItemType[] } = {
+  items: [dashboard, manage.manageAdmin, users]
 };
 
-export default menuItems;
+const menuItemsSalesPerson: { items: NavItemType[] } = {
+  items: [dashboard]
+};
+
+const menuItemsCloser: { items: NavItemType[] } = {
+  items: [dashboard, manage.manageCloser]
+};
+
+export default { menuItemsAdmin, menuItemsSalesPerson, menuItemsCloser };

@@ -16,7 +16,7 @@ const icons = {
 
 // ==============================|| MENU ITEMS - SAMPLE PAGE ||============================== //
 
-const samplePage: NavItemType = {
+const dashboard: NavItemType = {
   id: 'dashboard',
   title: <FormattedMessage id="dashboard" />,
   type: 'group',
@@ -24,4 +24,4 @@ const samplePage: NavItemType = {
   icon: icons.samplePage
 };
 
-export default samplePage;
+export default dashboard;

@@ -5,7 +5,6 @@ import { LOGIN, LOGOUT } from "store/reducers/actions";
 import authReducer from "store/reducers/auth";
 
 // project-imports
-import Loader from "components/Loader";
 import { AuthProps, JWTContextType } from "types/auth";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import { Box } from "@mui/material";
@@ -14,6 +13,9 @@ import CircularLoader from "components/CircularLoader";
 // constant
 const initialState: AuthProps = {
   isLoggedIn: false,
+  role: "",
+  fullName: "",
+  isInitialized: false,
 };
 
 // ==============================|| JWT CONTEXT & PROVIDER ||============================== //
@@ -29,12 +31,31 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
         const profilesRepository = new ProfilesRepository();
         const currentUser = await profilesRepository.getCurrentUser();
         if (currentUser) {
-          dispatch({
-            type: LOGIN,
-            payload: {
-              isLoggedIn: true,
-            },
-          });
+          const currentProfile = await profilesRepository.getSingle(
+            currentUser.id
+          );
+          if (currentProfile) {
+            const { profileData, profileError } = currentProfile;
+            if (profileData && !profileError) {
+              dispatch({
+                type: LOGIN,
+                payload: {
+                  role: profileData.role,
+                  fullName: profileData.full_name,
+                  isLoggedIn: true,
+                  isInitialized: true,
+                },
+              });
+            } else {
+              dispatch({
+                type: LOGOUT,
+              });
+            }
+          } else {
+            dispatch({
+              type: LOGOUT,
+            });
+          }
         } else {
           dispatch({
             type: LOGOUT,
@@ -59,13 +80,26 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
         password.trim()
       );
       if (response) {
-        dispatch({
-          type: LOGIN,
-          payload: {
-            isLoggedIn: true,
-          },
-        });
-        return true;
+        const currentProfile = await profilesRepository.getSingle(response.id);
+        if (currentProfile) {
+          const { profileData, profileError } = currentProfile;
+          if (profileData && !profileError) {
+            dispatch({
+              type: LOGIN,
+              payload: {
+                role: profileData.role,
+                fullName: profileData.full_name,
+                isLoggedIn: true,
+                isInitialized: true,
+              },
+            });
+            return true;
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
       }
       return false;
     } catch (error) {
