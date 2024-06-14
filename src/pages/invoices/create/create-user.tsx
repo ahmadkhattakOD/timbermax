@@ -80,11 +80,9 @@ export default function CreateUser() {
               <FormInput
                 id={"commission"}
                 name={"commission"}
-                placeholder={"Commission (%)"}
-                label={"commission-percentage"}
+                placeholder={"Commission"}
+                label={"commission"}
                 type={"number"}
-                optional={false}
-                error={touched.commission ? errors.commission : ""}
               />,
               <FormInput
                 id={"dailyWage"}

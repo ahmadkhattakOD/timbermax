@@ -56,6 +56,20 @@ class ShowsRepository {
     }
   }
 
+  public async getWithoutFilters() {
+    try {
+      const { data: showsData, error: showsError } = await supabase
+        .from(this.className)
+        .select("*")
+        .order('created_at', { ascending: false })
+
+      return { showsData, showsError };
+    } catch (error) {
+      console.error("Error fetching shows:", error);
+      return null;
+    }
+  }
+
   public async getSingle(id: number) {
     try {
       const { data: showData, error: showError } = await supabase

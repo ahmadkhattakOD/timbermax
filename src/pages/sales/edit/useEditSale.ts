@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
+import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
   SaleSupabase,
 } from "utils/repositories/salesRepository";
+import ShowsRepository from "utils/repositories/showsRepository";
 
 export interface ValuesEditSale {
   contactName: string;
@@ -31,6 +33,9 @@ export interface ValuesEditSale {
 export function useEditSale() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [salesPersons, setSalesPersons] = useState<any[]>([]);
+  const [closers, setClosers] = useState<any[]>([]);
+  const [shows, setShows] = useState<any[]>([]);
   const [sale, setSale] = useState<any>(null);
   const { id } = useParams();
 
@@ -93,10 +98,10 @@ export function useEditSale() {
           post_code: values.postCode,
           email_address: values.emailAddress,
           note: values.note,
-          // sales_person: parseInt(values.salesPerson),
-          // closer: parseInt(values.closer),
+          sales_person: values.salesPerson,
+          closer: values.closer,
           status: values.status,
-          // show: parseInt(values.show),
+          show: parseInt(values.show),
           follow_up_notes: values.followUpNotes,
           sale_date: new Date(values.saleDate),
         };
@@ -166,12 +171,50 @@ export function useEditSale() {
         }
       }
     }
+  }
+
+  async function getProfilesShows() {
+    setLoading(true);
+    const profilesRepository = new ProfilesRepository();
+    const allProfiles = await profilesRepository.getWithoutFilters();
+    if (allProfiles) {
+      const { profilesData, profilesError } = allProfiles;
+      if (profilesData && !profilesError) {
+        let temp = [];
+        let temp2 = [];
+        for (let i = 0; i < profilesData.length; i++) {
+          if (
+            profilesData[i].role === "Sales Person" ||
+            profilesData[i].role === "Both"
+          ) {
+            temp.push(profilesData[i]);
+          }
+          if (
+            profilesData[i].role === "Closer" ||
+            profilesData[i].role === "Both"
+          ) {
+            temp2.push(profilesData[i]);
+          }
+        }
+        setSalesPersons(temp);
+        setClosers(temp2);
+      }
+    }
+    const showsRepository = new ShowsRepository();
+    const allShows = await showsRepository.getWithoutFilters();
+    if (allShows) {
+      const { showsData, showsError } = allShows;
+      if (showsData && !showsError) {
+        setShows(showsData);
+      }
+    }
     setLoading(false);
   }
 
   useEffect(() => {
     getSale();
+    getProfilesShows();
   }, []);
 
-  return { validate, onSubmit, sale, loading };
+  return { validate, onSubmit, sale, loading, salesPersons, closers, shows };
 }

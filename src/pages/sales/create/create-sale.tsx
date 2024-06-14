@@ -4,13 +4,31 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateSale } from "./useCreateSale";
-import { australianStates, getDateFormatted } from "utils/helpers";
+import { australianStates, getDateFormatted, getDateFormattedForField } from "utils/helpers";
+import { Box } from "@mui/material";
+import CircularLoader from "components/CircularLoader";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
 
 export default function CreateSale() {
-  const { validate, onSubmit } = useCreateSale();
+  const { validate, onSubmit, salesPersons, closers, shows, loading } =
+    useCreateSale();
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularLoader />
+      </Box>
+    );
+  }
   return (
     <Formik
       enableReinitialize
@@ -31,7 +49,7 @@ export default function CreateSale() {
         status: "",
         show: "",
         followUpNotes: "",
-        saleDate: getDateFormatted(),
+        saleDate: getDateFormattedForField(),
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -56,7 +74,12 @@ export default function CreateSale() {
                 name={"salesPerson"}
                 label={"sales-person"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={salesPersons.map((salesPerson) => {
+                  return {
+                    label: salesPerson.full_name,
+                    value: salesPerson.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.salesPerson ? errors.salesPerson : ""}
               />,
@@ -161,7 +184,12 @@ export default function CreateSale() {
                 name={"closer"}
                 label={"closer"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={closers.map((closer) => {
+                  return {
+                    label: closer.full_name,
+                    value: closer.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.closer ? errors.closer : ""}
               />,
@@ -185,7 +213,12 @@ export default function CreateSale() {
                 name={"show"}
                 label={"show"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={shows.map((show) => {
+                  return {
+                    label: show.name,
+                    value: show.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.show ? errors.show : ""}
               />,
@@ -196,7 +229,7 @@ export default function CreateSale() {
                 label={"sale-date"}
                 optional={false}
                 type={"date"}
-                max={getDateFormatted()}
+                max={getDateFormattedForField()}
                 error={touched.saleDate ? errors.saleDate : ""}
               />,
               <FormInput

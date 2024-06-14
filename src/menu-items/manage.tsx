@@ -16,14 +16,13 @@ const icons = {
   stock: ClipboardTick,
   shows: Briefcase,
   warehouses: House2,
-  users: UserEdit,
   contactus: I24Support,
 };
 
 // ==============================|| MENU ITEMS - PAGES ||============================== //
 
 const manage: NavItemType = {
-  id: "group-pages",
+  id: "manage-pages",
   title: <FormattedMessage id="manage" />,
   type: "group",
   children: [
@@ -65,14 +64,6 @@ const manage: NavItemType = {
       type: "item",
       url: "/warehouses",
       icon: icons.warehouses,
-      target: false,
-    },
-    {
-      id: "users",
-      title: <FormattedMessage id="users" />,
-      type: "item",
-      url: "/users",
-      icon: icons.users,
       target: false,
     },
   ],

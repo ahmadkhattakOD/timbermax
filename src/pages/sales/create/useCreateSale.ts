@@ -1,9 +1,15 @@
 import { openSnackbar } from "api/snackbar";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
+import InvoicesRepository, {
+  InvoiceSupabase,
+} from "utils/repositories/invoicesRepository";
+import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
   SaleSupabase,
 } from "utils/repositories/salesRepository";
+import ShowsRepository from "utils/repositories/showsRepository";
 
 export interface ValuesCreateSale {
   contactName: string;
@@ -27,6 +33,10 @@ export interface ValuesCreateSale {
 
 export function useCreateSale() {
   const navigate = useNavigate();
+  const [salesPersons, setSalesPersons] = useState<any[]>([]);
+  const [closers, setClosers] = useState<any[]>([]);
+  const [shows, setShows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   function validate(values: ValuesCreateSale) {
     const errors = {} as ValuesCreateSale;
@@ -85,10 +95,10 @@ export function useCreateSale() {
         post_code: values.postCode,
         email_address: values.emailAddress,
         note: values.note,
-        // sales_person: parseInt(values.salesPerson),
-        // closer: parseInt(values.closer),
+        sales_person: values.salesPerson,
+        closer: values.closer,
         status: values.status,
-        // show: parseInt(values.show),
+        show: parseInt(values.show),
         follow_up_notes: values.followUpNotes,
         sale_date: new Date(values.saleDate),
       };
@@ -97,14 +107,103 @@ export function useCreateSale() {
       const createdSale = await salesRepository.create(newSale);
 
       if (createdSale) {
-        openSnackbar({
-          open: true,
-          message: "Sale added successfully.",
-          variant: "alert",
-          alert: {
-            color: "success",
-          },
-        } as SnackbarProps);
+        if (parseFloat(values.deposit) / parseFloat(values.total) >= 0.2) {
+          const profilesRepository = new ProfilesRepository();
+          const salesPersonProfile = await profilesRepository.getSingle(
+            values.salesPerson
+          );
+          const closerProfile = await profilesRepository.getSingle(
+            values.closer
+          );
+
+          if (salesPersonProfile && closerProfile) {
+            const {
+              profileData: salesProfileData,
+              profileError: salesProfileError,
+            } = salesPersonProfile;
+            const {
+              profileData: closerProfileData,
+              profileError: closerProfileError,
+            } = closerProfile;
+
+            if (
+              salesProfileData &&
+              closerProfileData &&
+              !salesProfileError &&
+              !closerProfileError
+            ) {
+              const newSalesPersonInvoice: InvoiceSupabase = {
+                sale: createdSale.id,
+                commission:
+                  parseFloat(values.total) *
+                  (salesProfileData.commission
+                    ? salesProfileData.commission / 100
+                    : 10),
+                beneficiary: values.salesPerson,
+              };
+              const newCloserInvoice: InvoiceSupabase = {
+                sale: createdSale.id,
+                commission:
+                  parseFloat(values.total) *
+                  (closerProfileData.commission
+                    ? closerProfileData.commission / 100
+                    : 10),
+                beneficiary: values.closer,
+              };
+
+              const invoicesRepository = new InvoicesRepository();
+              const createdSalesPersonInvoice = await invoicesRepository.create(
+                newSalesPersonInvoice
+              );
+              const createdCloserInvoice =
+                await invoicesRepository.create(newCloserInvoice);
+
+              if (createdSalesPersonInvoice && createdCloserInvoice) {
+                openSnackbar({
+                  open: true,
+                  message: "Sale added and invoice created successfully.",
+                  variant: "alert",
+                  alert: {
+                    color: "success",
+                  },
+                } as SnackbarProps);
+              } else {
+                const idToDelete = [createdSale.id];
+                await salesRepository.delete(idToDelete);
+                openSnackbar({
+                  open: true,
+                  message:
+                    "Sale could not be added successfully. Please try again.",
+                  variant: "alert",
+                  alert: {
+                    color: "error",
+                  },
+                } as SnackbarProps);
+              }
+            }
+          } else {
+            const idToDelete = [createdSale.id];
+            await salesRepository.delete(idToDelete);
+            openSnackbar({
+              open: true,
+              message:
+                "Sale could not be added successfully. Please try again.",
+              variant: "alert",
+              alert: {
+                color: "error",
+              },
+            } as SnackbarProps);
+          }
+        } else {
+          openSnackbar({
+            open: true,
+            message: "Sale added successfully.",
+            variant: "alert",
+            alert: {
+              color: "success",
+            },
+          } as SnackbarProps);
+        }
       } else {
         openSnackbar({
           open: true,
@@ -130,5 +229,48 @@ export function useCreateSale() {
       navigate("/sales");
     }
   }
-  return { validate, onSubmit };
+
+  async function getProfilesShows() {
+    setLoading(true);
+    const profilesRepository = new ProfilesRepository();
+    const allProfiles = await profilesRepository.getWithoutFilters();
+    if (allProfiles) {
+      const { profilesData, profilesError } = allProfiles;
+      if (profilesData && !profilesError) {
+        let temp = [];
+        let temp2 = [];
+        for (let i = 0; i < profilesData.length; i++) {
+          if (
+            profilesData[i].role === "Sales Person" ||
+            profilesData[i].role === "Both"
+          ) {
+            temp.push(profilesData[i]);
+          }
+          if (
+            profilesData[i].role === "Closer" ||
+            profilesData[i].role === "Both"
+          ) {
+            temp2.push(profilesData[i]);
+          }
+        }
+        setSalesPersons(temp);
+        setClosers(temp2);
+      }
+    }
+    const showsRepository = new ShowsRepository();
+    const allShows = await showsRepository.getWithoutFilters();
+    if (allShows) {
+      const { showsData, showsError } = allShows;
+      if (showsData && !showsError) {
+        setShows(showsData);
+      }
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    getProfilesShows();
+  }, []);
+
+  return { validate, onSubmit, salesPersons, closers, shows, loading };
 }

@@ -37,7 +37,7 @@ export function useEditUser() {
       errors.role = "required";
     }
 
-    if (values.commission === "" || parseFloat(values.commission) < 0) {
+    if (values.commission !== "" && parseFloat(values.commission) < 0) {
       errors.commission = "required-valid-number-positive";
     }
 

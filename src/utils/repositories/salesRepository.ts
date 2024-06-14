@@ -12,8 +12,8 @@ export interface SaleSupabase {
   post_code: string;
   email_address: string;
   note: string;
-  sales_person?: number;
-  closer?: number;
+  sales_person?: string;
+  closer?: string;
   status: string;
   show?: number;
   follow_up_notes: string;
@@ -74,7 +74,7 @@ class SalesRepository {
       const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date"
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, follow_up_notes, sale_date"
         )
         .eq("id", id)
         .limit(1)

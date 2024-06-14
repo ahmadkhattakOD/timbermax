@@ -6,12 +6,13 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useEditSale } from "./useEditSale";
 import CircularLoader from "components/CircularLoader";
-import { australianStates, getDateFormatted } from "utils/helpers";
+import { australianStates, getDateFormatted, getDateFormattedForField } from "utils/helpers";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
 export default function EditSale() {
-  const { validate, onSubmit, sale, loading } = useEditSale();
+  const { validate, onSubmit, sale, loading, salesPersons, closers, shows } =
+    useEditSale();
 
   if (loading) {
     return (
@@ -43,12 +44,12 @@ export default function EditSale() {
         postCode: sale.post_code ?? "",
         emailAddress: sale.email_address ?? "",
         note: sale.note ?? "",
-        salesPerson: sale.sales_person ?? "",
-        closer: sale.closer ?? "",
+        salesPerson: sale.sales_person.id ?? "",
+        closer: sale.closer.id ?? "",
         status: sale.status ?? "",
-        show: sale.show ?? "",
+        show: sale.show.id ?? "",
         followUpNotes: sale.follow_up_notes ?? "",
-        saleDate: getDateFormatted(sale.sale_date) ?? "",
+        saleDate: getDateFormattedForField(sale.sale_date) ?? "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -73,7 +74,12 @@ export default function EditSale() {
                 name={"salesPerson"}
                 label={"sales-person"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={salesPersons.map((salesPerson) => {
+                  return {
+                    label: salesPerson.full_name,
+                    value: salesPerson.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.salesPerson ? errors.salesPerson : ""}
               />,
@@ -178,7 +184,12 @@ export default function EditSale() {
                 name={"closer"}
                 label={"closer"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={closers.map((closer) => {
+                  return {
+                    label: closer.full_name,
+                    value: closer.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.closer ? errors.closer : ""}
               />,
@@ -202,7 +213,12 @@ export default function EditSale() {
                 name={"show"}
                 label={"show"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={shows.map((show) => {
+                  return {
+                    label: show.name,
+                    value: show.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.show ? errors.show : ""}
               />,
@@ -213,7 +229,7 @@ export default function EditSale() {
                 label={"sale-date"}
                 optional={false}
                 type={"date"}
-                max={getDateFormatted()}
+                max={getDateFormattedForField()}
                 error={touched.saleDate ? errors.saleDate : ""}
               />,
               <FormInput

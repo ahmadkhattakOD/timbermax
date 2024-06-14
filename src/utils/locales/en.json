@@ -95,5 +95,11 @@
   "confirm-password": "Confirm Password",
   "role": "Role",
   "commission": "Commission",
-  "daily-wage": "Daily Wage"
+  "commission-percentage": "Commission (%)",
+  "daily-wage": "Daily Wage",
+  "invoices": "Invoices",
+  "show-days": "Show Days",
+  "travel-bonus": "Travel Bonus",
+  "other-bonuses": "Other Bonuses",
+  "deductions": "Deductions"
 }

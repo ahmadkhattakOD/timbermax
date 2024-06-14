@@ -1,17 +1,15 @@
 import Box from "@mui/material/Box";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
-import { useUsers } from "./useUsers";
+import { useInvoices } from "./useInvoices";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
 
-
-export default function Users() {
+export default function Invoices() {
   const {
     data,
     dataCount,
     loading,
-    goToCreate,
     order,
     setOrder,
     orderBy,
@@ -27,16 +25,12 @@ export default function Users() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
-  } = useUsers();
+    closeDeleteConfirmModal,
+  } = useInvoices();
 
   return (
     <Box sx={{ width: "100%" }}>
-      <CreateAndFiltersLayout
-        actionButton={
-          <ActionButton text={"add-new-user"} onClick={goToCreate} />
-        }
-      />
+      <CreateAndFiltersLayout />
       <DataTable
         data={data}
         dataCount={dataCount}
@@ -56,6 +50,8 @@ export default function Users() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openDeleteConfirmModal}
+        selectable={false}
+        takeToOnClick="view"
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}

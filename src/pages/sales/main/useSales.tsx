@@ -7,7 +7,6 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { getDateFormatted, initialRowsPerPage } from "utils/helpers";
 import SalesRepository from "utils/repositories/salesRepository";
-import supabase from "utils/supabase";
 
 const headCells: HeadCell[] = [
   {

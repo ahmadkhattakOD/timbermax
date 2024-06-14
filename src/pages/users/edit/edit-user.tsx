@@ -40,8 +40,8 @@ export default function EditUser() {
         fullName: profile.full_name ?? "",
         email: profile.email ?? "",
         role: profile.role ?? "",
-        commission: profile.commission ? profile.commission.toString() : "",
-        dailyWage: profile.daily_wage ? profile.daily_wage.toString() : "",
+        commission: profile.commission !== null ? profile.commission.toString() : "",
+        dailyWage: profile.daily_wage !== null ? profile.daily_wage.toString() : "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -83,9 +83,11 @@ export default function EditUser() {
               <FormInput
                 id={"commission"}
                 name={"commission"}
-                placeholder={"Commission"}
-                label={"commission"}
+                placeholder={"Commission (%)"}
+                label={"commission-percentage"}
                 type={"number"}
+                optional={false}
+                error={touched.commission ? errors.commission : ""}
               />,
               <FormInput
                 id={"dailyWage"}

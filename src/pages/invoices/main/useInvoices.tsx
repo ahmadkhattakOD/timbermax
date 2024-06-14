@@ -46,7 +46,7 @@ const headCells: HeadCell[] = [
   },
 ];
 
-export function useUsers() {
+export function useInvoices() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -58,10 +58,6 @@ export function useUsers() {
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  function goToCreate() {
-    navigate("/users/new");
-  }
-
   function generateTableCells(
     row: any,
     labelId: string,
@@ -69,20 +65,14 @@ export function useUsers() {
   ) {
     return (
       <React.Fragment>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            checked={isItemSelected}
-            inputProps={{
-              "aria-labelledby": labelId,
-            }}
-          />
-        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.full_name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.email}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.role}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.daily_wage}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.commission}{row.commission !== null && '%'}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.commission}
+          {row.commission !== null && "%"}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateTimeFormatted(row.created_at, true)}
         </TableCell>
@@ -94,31 +84,7 @@ export function useUsers() {
     setDeleteConfirmModalOpen(true);
   }
 
-  async function onDelete() {
-    const profilesRepository = new ProfilesRepository();
-    const deletedProfiles = await profilesRepository.delete(selected);
-    if (deletedProfiles > 0) {
-      openSnackbar({
-        open: true,
-        message: `${deletedProfiles} user(s) deleted successfully.`,
-        variant: "alert",
-        alert: {
-          color: "success",
-        },
-      } as SnackbarProps);
-      setSelected([]);
-      await getData();
-    } else {
-      openSnackbar({
-        open: true,
-        message: "User(s) could not be deleted successfully. Please try again.",
-        variant: "alert",
-        alert: {
-          color: "error",
-        },
-      } as SnackbarProps);
-    }
-  }
+  async function onDelete() {}
 
   function closeDeleteConfirmModal() {
     setDeleteConfirmModalOpen(false);
@@ -159,7 +125,6 @@ export function useUsers() {
     data,
     dataCount,
     loading,
-    goToCreate,
     order,
     setOrder,
     orderBy,

@@ -37,6 +37,7 @@ interface EnhancedTableProps {
   orderBy: string;
   rowCount: number;
   headCells: HeadCell[];
+  selectable?: boolean;
 }
 
 interface EnhancedTableToolbarProps {
@@ -69,6 +70,8 @@ interface DataTableProps {
   ) => React.ReactElement;
   openDeleteConfirmModal: () => void;
   openFilterModal: () => void;
+  selectable?: boolean;
+  takeToOnClick?: string;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
@@ -80,6 +83,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
     rowCount,
     onRequestSort,
     headCells,
+    selectable = true,
   } = props;
   const createSortHandler =
     (property: string) => (event: React.MouseEvent<unknown>) => {
@@ -89,17 +93,19 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   return (
     <TableHead>
       <TableRow>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            indeterminate={numSelected > 0 && numSelected < rowCount}
-            checked={rowCount > 0 && numSelected === rowCount}
-            onChange={onSelectAllClick}
-            inputProps={{
-              "aria-label": "select all desserts",
-            }}
-          />
-        </TableCell>
+        {selectable && (
+          <TableCell padding="checkbox">
+            <Checkbox
+              color="primary"
+              indeterminate={numSelected > 0 && numSelected < rowCount}
+              checked={rowCount > 0 && numSelected === rowCount}
+              onChange={onSelectAllClick}
+              inputProps={{
+                "aria-label": "select all desserts",
+              }}
+            />
+          </TableCell>
+        )}
         {headCells.map((headCell) => (
           <TableCell
             key={headCell.id}
@@ -201,6 +207,8 @@ export default function DataTable({
   generateTableCells,
   openDeleteConfirmModal,
   openFilterModal,
+  selectable = true,
+  takeToOnClick = 'edit'
 }: DataTableProps) {
   const {
     handleRequestSort,
@@ -223,6 +231,7 @@ export default function DataTable({
     setOrderBy: setOrderBy,
     order: order,
     setOrder: setOrder,
+    takeToOnClick: takeToOnClick
   });
 
   return (
@@ -248,6 +257,7 @@ export default function DataTable({
               onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
               rowCount={dataCount}
+              selectable={selectable}
             />
             {loading ? (
               <React.Fragment></React.Fragment>

@@ -1,36 +1,56 @@
 // project-imports
+import { Box } from "@mui/material";
 import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { useCreateUser } from "./useCreateUser";
-import { userRoles } from "utils/helpers";
+import { useEditUser } from "./useEditUser";
+import CircularLoader from "components/CircularLoader";
+import {
+  australianStates,
+  getDateFormatted,
+  getDateTimeFormatted,
+  userRoles,
+} from "utils/helpers";
 
-// ==============================|| CREATE USER PAGE ||============================== //
+// ==============================|| EDIT USER PAGE ||============================== //
 
-export default function CreateUser() {
-  const { validate, onSubmit } = useCreateUser();
+export default function EditUser() {
+  const { validate, onSubmit, profile, loading } = useEditUser();
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularLoader />
+      </Box>
+    );
+  }
   return (
     <Formik
       enableReinitialize
       initialValues={{
-        fullName: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        role: "",
-        commission: "",
-        dailyWage: "",
+        fullName: profile.full_name ?? "",
+        email: profile.email ?? "",
+        role: profile.role ?? "",
+        commission: profile.commission ? profile.commission.toString() : "",
+        dailyWage: profile.daily_wage ? profile.daily_wage.toString() : "",
       }}
       validate={validate}
       onSubmit={onSubmit}
     >
       {({ handleSubmit, errors, touched, isSubmitting, values }) => (
-        <Form onSubmit={handleSubmit} autoComplete="off">
+        <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
-            submitButtonText={"add"}
+            submitButtonText={"submit"}
             inputs={[
               <FormInput
                 id={"fullName"}
@@ -48,25 +68,8 @@ export default function CreateUser() {
                 label={"email"}
                 optional={false}
                 type={"email"}
+                disabled
                 error={touched.email ? errors.email : ""}
-              />,
-              <FormInput
-                id={"password"}
-                name={"password"}
-                placeholder={"Password"}
-                label={"password"}
-                optional={false}
-                type={"password"}
-                error={touched.password ? errors.password : ""}
-              />,
-              <FormInput
-                id={"confirmPassword"}
-                name={"confirmPassword"}
-                placeholder={"Confirm Password"}
-                label={"confirm-password"}
-                optional={false}
-                type={"password"}
-                error={touched.confirmPassword ? errors.confirmPassword : ""}
               />,
               <FormDropdown
                 id={"role"}
@@ -80,11 +83,9 @@ export default function CreateUser() {
               <FormInput
                 id={"commission"}
                 name={"commission"}
-                placeholder={"Commission (%)"}
-                label={"commission-percentage"}
+                placeholder={"Commission"}
+                label={"commission"}
                 type={"number"}
-                optional={false}
-                error={touched.commission ? errors.commission : ""}
               />,
               <FormInput
                 id={"dailyWage"}

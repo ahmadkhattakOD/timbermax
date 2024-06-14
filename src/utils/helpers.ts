@@ -2,6 +2,21 @@ export function isNumeric(value: string): boolean {
   return /^\d+$/.test(value);
 }
 
+export function getDateFormattedForField(date?: string | Date) {
+  if (date) {
+    return `${new Date(date).getFullYear()}-${(new Date(date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(
+      date
+    )
+      .getDate()
+      .toString()
+      .padStart(2, "0")}`;
+  }
+  return `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, "0")}-${new Date()
+    .getDate()
+    .toString()
+    .padStart(2, "0")}`;
+}
+
 export function getDateFormatted(date?: string | Date) {
   if (date) {
     return `${new Date(date)
@@ -63,10 +78,8 @@ export const australianStates = [
   "Northern Territory",
 ];
 
-export const userRoles = [
-  "Sales Person",
-  "Closer",
-  "Both"
-]
+export const userRoles = ["Sales Person", "Closer", "Both"];
 
 export const deleteConfirmationText = "I am sure";
+
+export const extendedDataLimit = 9999999;

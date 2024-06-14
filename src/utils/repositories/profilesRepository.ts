@@ -14,6 +14,13 @@ export interface UserSupabase {
   password: string;
 }
 
+export interface InvoiceRulesSupabase {
+  show_days: number;
+  travel_bonus: number;
+  other_bonuses: number;
+  deductions: number;
+}
+
 class ProfilesRepository {
   private className = "profiles";
 
@@ -70,6 +77,20 @@ class ProfilesRepository {
     }
   }
 
+  public async getWithoutFilters() {
+    try {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from(this.className)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      return { profilesData, profilesError };
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return null;
+    }
+  }
+
   public async getSingle(id: string) {
     try {
       const { data: profileData, error: profileError } = await supabase
@@ -104,6 +125,27 @@ class ProfilesRepository {
     }
   }
 
+  public async editInvoiceRules(
+    id: string,
+    invoiceRules: InvoiceRulesSupabase
+  ) {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .update({ invoice_rules: invoiceRules })
+        .eq("id", id)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error editing user:", error);
+      return null;
+    }
+  }
+
   public async delete(ids: readonly string[]) {
     try {
       let deletedIdsCount = 0;
@@ -123,6 +165,23 @@ class ProfilesRepository {
     } catch (error) {
       console.error("Error deleting users:", error);
       return 0;
+    }
+  }
+
+  public async loginUser(email: string, password: string) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (data.user !== null && error === null) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error logging in user:", error);
+      return false;
     }
   }
 }

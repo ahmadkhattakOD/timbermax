@@ -29,42 +29,9 @@ export default function Login() {
         <Grid item xs={12} sx={{ textAlign: 'center' }}>
           <Logo />
         </Grid>
-        {/* <Grid item xs={12}>
-          <Grid container spacing={1}>
-            <Grid item xs={12}>
-              <AuthSocButton>
-                <img src={imgFacebook} alt="Facebook" style={{ margin: '0 10px' }} /> Sign In with Facebook
-              </AuthSocButton>
-            </Grid>
-            <Grid item xs={12}>
-              <AuthSocButton>
-                <img src={imgTwitter} alt="Facebook" style={{ margin: '0 10px' }} /> Sign In with Twitter
-              </AuthSocButton>
-            </Grid>
-            <Grid item xs={12}>
-              <AuthSocButton>
-                <img src={imgGoogle} alt="Facebook" style={{ margin: '0 10px' }} /> Sign In with Google
-              </AuthSocButton>
-            </Grid>
-          </Grid>
-        </Grid>
-        <Grid item xs={12}>
-          <AuthDivider>
-            <Typography variant="body1">OR</Typography>
-          </AuthDivider>
-        </Grid> */}
         <Grid item xs={12}>
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: { xs: -0.5, sm: 0.5 } }}>
             <Typography variant="h3">Login</Typography>
-            {/* <Typography
-              component={Link}
-              to={isLoggedIn ? '/auth/register' : '/register'}
-              variant="body1"
-              sx={{ textDecoration: 'none' }}
-              color="primary"
-            >
-              Don&apos;t have an account?
-            </Typography> */}
           </Stack>
         </Grid>
         <Grid item xs={12}>
