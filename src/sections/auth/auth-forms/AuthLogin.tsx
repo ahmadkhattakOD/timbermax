@@ -1,5 +1,5 @@
-import { useState, SyntheticEvent } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { useState, SyntheticEvent, useReducer } from "react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { preload } from "swr";
 
 // material-ui
@@ -30,6 +30,9 @@ import { fetcher } from "utils/axios";
 import { Eye, EyeSlash } from "iconsax-react";
 import supabase from "utils/supabase";
 import ProfilesRepository from "utils/repositories/profilesRepository";
+import { openSnackbar } from "api/snackbar";
+import { SnackbarProps } from "types/snackbar";
+import auth from "store/reducers/auth";
 
 // ============================|| JWT - LOGIN ||============================ //
 
@@ -38,6 +41,7 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
 
   const { isLoggedIn, login } = useAuth();
   const scriptedRef = useScriptRef();
+  const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => {
@@ -63,41 +67,40 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
             .required("Email is required"),
           password: Yup.string().max(255).required("Password is required"),
         })}
-        onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
+        onSubmit={async (values, { setStatus, setSubmitting }) => {
           try {
-            const profilesRepository = new ProfilesRepository();
-            const supabaseLogin = await profilesRepository.loginUser(
-              values.email.trim(),
-              values.password.trim()
-            );
-            console.log("SUPABASELOGIN", supabaseLogin)
-            if (supabaseLogin) {
-              setStatus({ success: true });
-              setSubmitting(false);
-              preload("api/menu/dashboard", fetcher);
-              // await login(values.email, values.password);
-              // if (scriptedRef.current) {
-              //   setStatus({ success: true });
-              //   setSubmitting(false);
-              //   preload('api/menu/dashboard', fetcher);
-              // }
+            const loggedInUser = await login(values.email, values.password);
+            if (loggedInUser) {
+              if (scriptedRef.current) {
+                setStatus({ success: true });
+                setSubmitting(false);
+                preload("api/menu/dashboard", fetcher);
+              }
             } else {
-              // if (scriptedRef.current) {
-              //   setStatus({ success: false });
-              //   setErrors({
-              //     submit:
-              //       "There was an error logging you in. Please confirm your credentials or try again later.",
-              //   });
-              //   setSubmitting(false);
-              // }
+              setStatus({ success: false });
+              setSubmitting(false);
+              openSnackbar({
+                open: true,
+                message:
+                  "An error occured while logging you in. Please recheck the credentials or try again later.",
+                variant: "alert",
+                alert: {
+                  color: "error",
+                },
+              } as SnackbarProps);
             }
           } catch (err: any) {
-            console.error(err);
-            if (scriptedRef.current) {
-              setStatus({ success: false });
-              setErrors({ submit: err.message });
-              setSubmitting(false);
-            }
+            setStatus({ success: false });
+            setSubmitting(false);
+            openSnackbar({
+              open: true,
+              message:
+                "An error occured while logging you in. Please recheck the credentials or try again later.",
+              variant: "alert",
+              alert: {
+                color: "error",
+              },
+            } as SnackbarProps);
           }
         }}
       >
@@ -199,7 +202,7 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
                   <Link
                     variant="h6"
                     component={RouterLink}
-                    to={isLoggedIn && forgot ? forgot : "/forgot-password"}
+                    to={"/forgot-password"}
                     color="text.primary"
                   >
                     Forgot Password?

@@ -40,11 +40,7 @@ export interface JWTDataProps {
 
 export type JWTContextType = {
   isLoggedIn: boolean;
-  isInitialized?: boolean;
-  user?: UserProfile | null | undefined;
-  logout: () => void;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  logout: () => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
-  updateProfile: VoidFunction;
 };

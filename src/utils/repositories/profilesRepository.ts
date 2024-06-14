@@ -176,12 +176,40 @@ class ProfilesRepository {
       });
 
       if (data.user !== null && error === null) {
+        return data.user;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error logging in user:", error);
+      return null;
+    }
+  }
+
+  public async logoutUser() {
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error === null) {
         return true;
       }
       return false;
     } catch (error) {
-      console.error("Error logging in user:", error);
+      console.error("Error logging out user:", error);
       return false;
+    }
+  }
+
+  public async getCurrentUser() {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (data.user !== null && error === null) {
+        return data.user;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      return null;
     }
   }
 }
