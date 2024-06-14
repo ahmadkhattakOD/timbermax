@@ -45,4 +45,5 @@ export type JWTContextType = {
   logout: () => Promise<boolean>;
   login: (email: string, password: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
+  editProfile: (fullName: string) => Promise<boolean>;
 };

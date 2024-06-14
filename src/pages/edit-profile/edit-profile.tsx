@@ -4,15 +4,16 @@ import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { useEditUser } from "./useEditUser";
+import { useEditProfile } from "./useEditProfile";
 import CircularLoader from "components/CircularLoader";
 import { userRoles } from "utils/helpers";
+
 import ChangePassword from "components/change-password/ChangePassword";
 
 // ==============================|| EDIT USER PAGE ||============================== //
 
-export default function EditUser() {
-  const { validate, onSubmit, profile, loading } = useEditUser();
+export default function EditProfile() {
+  const { validate, onSubmit, profile, loading } = useEditProfile();
 
   if (loading) {
     return (
@@ -68,16 +69,13 @@ export default function EditUser() {
                   optional={false}
                   type={"email"}
                   disabled
-                  error={touched.email ? errors.email : ""}
                 />,
-                <FormDropdown
+                <FormInput
                   id={"role"}
                   name={"role"}
                   label={"role"}
-                  useFormattedStrings={false}
                   optional={false}
-                  options={userRoles}
-                  error={touched.role ? errors.role : ""}
+                  disabled
                 />,
                 <FormInput
                   id={"commission"}
@@ -86,7 +84,7 @@ export default function EditUser() {
                   label={"commission-percentage"}
                   type={"number"}
                   optional={false}
-                  error={touched.commission ? errors.commission : ""}
+                  disabled
                 />,
                 <FormInput
                   id={"dailyWage"}
@@ -94,13 +92,14 @@ export default function EditUser() {
                   placeholder={"Daily Wage"}
                   label={"daily-wage"}
                   type={"number"}
+                  disabled
                 />,
               ]}
             />
           </Form>
         )}
       </Formik>
-      <ChangePassword confirmCurrentPassword={false} />
+      <ChangePassword confirmCurrentPassword={true} />
     </>
   );
 }

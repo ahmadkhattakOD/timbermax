@@ -146,6 +146,24 @@ class ProfilesRepository {
     }
   }
 
+  public async editFullName(id: string, fullName: string) {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .update({ full_name: fullName })
+        .eq("id", id)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error editing user:", error);
+      return null;
+    }
+  }
+
   public async delete(ids: readonly string[]) {
     try {
       let deletedIdsCount = 0;

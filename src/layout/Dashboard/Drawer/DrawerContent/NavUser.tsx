@@ -132,7 +132,7 @@ export default function UserList() {
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <MenuItem component={Link} to="#" onClick={handleClose}>
+        <MenuItem component={Link} to="/profile" onClick={handleClose}>
           Edit Profile
         </MenuItem>
         <MenuItem onClick={handleLogout}>Logout</MenuItem>

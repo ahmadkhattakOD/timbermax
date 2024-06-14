@@ -1,5 +1,5 @@
 // action - state management
-import { LOGIN, LOGOUT } from "./actions";
+import { LOGIN, LOGOUT, UPDATE } from "./actions";
 
 // types
 import { AuthProps, AuthActionProps } from "types/auth";
@@ -23,6 +23,13 @@ const auth = (state = initialState, action: AuthActionProps) => {
         role: role,
         fullName: fullName,
         isInitialized: isInitialized
+      };
+    }
+    case UPDATE: {
+      const { fullName } = action.payload!;
+      return {
+        ...state,
+        fullName: fullName,
       };
     }
     case LOGOUT: {

@@ -20,6 +20,8 @@ import { ArrowRight2, Buildings2, Home3 } from "iconsax-react";
 import { OverrideIcon } from "types/root";
 import { NavItemType } from "types/menu";
 import { Box } from "@mui/material";
+import useAuth from "hooks/useAuth";
+import { UserRoles } from "utils/helpers";
 
 interface BreadcrumbLinkProps {
   title: string;
@@ -70,6 +72,7 @@ export default function Breadcrumbs({
   const location = useLocation();
   const [main, setMain] = useState<NavItemType | undefined>();
   const [item, setItem] = useState<NavItemType>();
+  const { role } = useAuth();
 
   const iconSX = {
     marginRight:
@@ -105,17 +108,46 @@ export default function Breadcrumbs({
   }
 
   useEffect(() => {
-    navigation?.items?.map((menu: NavItemType) => {
-      if (menu.type && menu.type === "group") {
-        if (menu?.url && menu.url === customLocation) {
-          setMain(menu);
-          setItem(menu);
-        } else {
-          getCollapse(menu as { children: NavItemType[]; type?: string });
+    if (role === UserRoles.Admin) {
+      navigation?.menuItemsAdmin.items?.map((menu: NavItemType) => {
+        if (menu.type && menu.type === "group") {
+          if (menu?.url && menu.url === customLocation) {
+            setMain(menu);
+            setItem(menu);
+          } else {
+            getCollapse(menu as { children: NavItemType[]; type?: string });
+          }
         }
-      }
-      return false;
-    });
+        return false;
+      });
+    }
+    else if (role === UserRoles.Closer || UserRoles.Both) {
+      navigation?.menuItemsCloser.items.map((menu: NavItemType) => {
+        if (menu.type && menu.type === "group") {
+          if (menu?.url && menu.url === customLocation) {
+            setMain(menu);
+            setItem(menu);
+          } else {
+            getCollapse(menu as { children: NavItemType[]; type?: string });
+          }
+        }
+        return false;
+      });
+    }
+    else if (role === UserRoles.SalesPerson) {
+      navigation?.menuItemsSalesPerson.items.map((menu: NavItemType) => {
+        if (menu.type && menu.type === "group") {
+          if (menu?.url && menu.url === customLocation) {
+            setMain(menu);
+            setItem(menu);
+          } else {
+            getCollapse(menu as { children: NavItemType[]; type?: string });
+          }
+        }
+        return false;
+      });
+    }
+   
   });
 
   // set active item state

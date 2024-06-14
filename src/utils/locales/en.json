@@ -101,5 +101,9 @@
   "show-days": "Show Days",
   "travel-bonus": "Travel Bonus",
   "other-bonuses": "Other Bonuses",
-  "deductions": "Deductions"
+  "deductions": "Deductions",
+  "current-password": "Current Password",
+  "new-password": "New Password",
+  "confirm-new-password": "Confirm New Password",
+  "profile": "My Profile"
 }

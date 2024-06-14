@@ -28,6 +28,7 @@ import CreateUser from "pages/users/create/create-user";
 import EditUser from "pages/users/edit/edit-user";
 import Invoices from "pages/invoices/main/invoices";
 import ViewInvoices from "pages/invoices/view/view-invoices";
+import EditProfile from "pages/edit-profile/edit-profile";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -270,6 +271,16 @@ const MainRoutes = {
         {
           path: "invoices/users/:id/view",
           element: <ViewInvoices />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "profile",
+          element: <EditProfile />,
         },
       ],
     },

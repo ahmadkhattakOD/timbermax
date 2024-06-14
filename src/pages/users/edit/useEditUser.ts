@@ -113,7 +113,7 @@ export function useEditUser() {
     }
   }
 
-  async function getprofile() {
+  async function getProfile() {
     setLoading(true);
     if (id) {
       const profilesRepository = new ProfilesRepository();
@@ -129,7 +129,7 @@ export function useEditUser() {
   }
 
   useEffect(() => {
-    getprofile();
+    getProfile();
   }, []);
 
   return { validate, onSubmit, profile, loading };

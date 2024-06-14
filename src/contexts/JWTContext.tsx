@@ -1,7 +1,7 @@
 import { createContext, useEffect, useReducer, ReactElement } from "react";
 
 // reducer - state management
-import { LOGIN, LOGOUT } from "store/reducers/actions";
+import { LOGIN, LOGOUT, UPDATE } from "store/reducers/actions";
 import authReducer from "store/reducers/auth";
 
 // project-imports
@@ -103,7 +103,7 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
       }
       return false;
     } catch (error) {
-      console.log("Error logging user in:", error);
+      console.error("Error logging user in:", error);
       return false;
     }
   };
@@ -118,7 +118,7 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
       }
       return false;
     } catch (error) {
-      console.log("Error logging user out:", error);
+      console.error("Error logging user out:", error);
       return false;
     }
   };
@@ -126,6 +126,37 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
   const resetPassword = async (email: string) => {
     console.log("email - ", email);
   };
+
+  const editProfile = async (fullName: string): Promise<boolean> => {
+    try {
+      const profilesRepository = new ProfilesRepository();
+      const currentUser = await profilesRepository.getCurrentUser();
+      if (currentUser) {
+        const editedProfile = await profilesRepository.editFullName(
+          currentUser.id,
+          fullName.trim()
+        );
+        if (editedProfile) {
+          dispatch({
+            type: UPDATE,
+            payload: {
+              isLoggedIn: true,
+              fullName: fullName,
+              role: editedProfile.role,
+              isInitialized: true
+            },
+          });
+          return true;
+        }
+        return false;
+      }
+      return false;
+    }
+    catch (error) {
+      console.error("Error editing user profile:", error);
+      return false;
+    }
+  }
 
   if (state.isInitialized !== undefined && !state.isInitialized) {
     return (
@@ -150,6 +181,7 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
         login,
         logout,
         resetPassword,
+        editProfile
       }}
     >
       {children}

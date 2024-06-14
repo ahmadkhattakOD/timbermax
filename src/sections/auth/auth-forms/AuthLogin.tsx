@@ -199,14 +199,14 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
                     }
                   />
 
-                  <Link
+                  {/* <Link
                     variant="h6"
                     component={RouterLink}
                     to={"/forgot-password"}
                     color="text.primary"
                   >
                     Forgot Password?
-                  </Link>
+                  </Link> */}
                 </Stack>
               </Grid>
               {errors.submit && (
