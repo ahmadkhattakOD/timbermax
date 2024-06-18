@@ -3,16 +3,16 @@ import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { useCreateSale } from "./useCreateSale";
-import { australianStates, getDateFormatted, getDateFormattedForField } from "utils/helpers";
+import { useCreateDelivery } from "./useCreateDelivery";
+import { australianStates, getDateFormattedForField } from "utils/helpers";
 import { Box } from "@mui/material";
 import CircularLoader from "components/CircularLoader";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
 
-export default function CreateSale() {
+export default function CreateDelivery() {
   const { validate, onSubmit, salesPersons, closers, shows, loading } =
-    useCreateSale();
+    useCreateDelivery();
 
   if (loading) {
     return (

@@ -20,6 +20,7 @@ interface FieldInputProps {
   defaultValue?: string;
   options: string[] | number[] | LabelValue[];
   useFormattedStrings?: boolean;
+  disabledValues?: any[];
 }
 
 const FormDropdown = ({
@@ -34,6 +35,7 @@ const FormDropdown = ({
   defaultValue,
   options,
   useFormattedStrings = true,
+  disabledValues
 }: FieldInputProps) => {
   const [field, __, helpers] = useField(name);
   const theme = useTheme();
@@ -69,7 +71,7 @@ const FormDropdown = ({
           }}
         >
           <Typography
-            sx={{ color: theme.palette.secondary.main, fontSize: "16px" }}
+            sx={{ color: disabled ? theme.palette.text.disabled : theme.palette.text.primary, fontSize: "16px" }}
           >
             <FormattedMessage id={label} />
           </Typography>
@@ -96,7 +98,7 @@ const FormDropdown = ({
           </option>
           {isLabelValueArray(options)
             ? options.map((option, idx) => (
-                <option key={idx} value={option.value}>
+                <option key={idx} value={option.value} disabled={disabledValues && disabledValues.includes(option.value)}>
                   {useFormattedStrings ? (
                     <FormattedMessage id={option.label} />
                   ) : (
@@ -105,7 +107,7 @@ const FormDropdown = ({
                 </option>
               ))
             : options.map((option, idx) => (
-                <option key={idx} value={option.toString()}>
+                <option key={idx} value={option.toString()} disabled={disabledValues && disabledValues.includes(option)}>
                   {useFormattedStrings ? (
                     <FormattedMessage id={option.toString()} />
                   ) : (

@@ -1,0 +1,341 @@
+import { openSnackbar } from "api/snackbar";
+import { FormikHelpers } from "formik";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import { SnackbarProps } from "types/snackbar";
+import { UserRoles, isNumeric } from "utils/helpers";
+import InvoicesRepository, {
+  InvoiceSupabase,
+} from "utils/repositories/invoicesRepository";
+import ProfilesRepository from "utils/repositories/profilesRepository";
+import SalesRepository, {
+  SaleSupabase,
+} from "utils/repositories/salesRepository";
+import ShowsRepository from "utils/repositories/showsRepository";
+import WarehousesRepository from "utils/repositories/warehousesRepository";
+
+export interface ValuesDeliverSale {
+  contactName: string;
+  opportunityDescription: string;
+  deposit: string;
+  total: string;
+  paymentMethod: string;
+  phone: string;
+  address: string;
+  state: string;
+  postCode: string;
+  emailAddress: string;
+  note: string;
+  salesPerson: string;
+  closer: string;
+  status: string;
+  show: string;
+  followUpNotes: string;
+  saleDate: string;
+  deliveryDateTime: string;
+  stockFromWarehouse: string;
+}
+
+export function useDeliverSale() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [salesPersons, setSalesPersons] = useState<any[]>([]);
+  const [closers, setClosers] = useState<any[]>([]);
+  const [shows, setShows] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [sale, setSale] = useState<any>(null);
+  const { id } = useParams();
+
+  function validate(values: ValuesDeliverSale) {
+    const errors = {} as ValuesDeliverSale;
+
+    if (!values.contactName.trim()) {
+      errors.contactName = "required";
+    }
+
+    if (!values.salesPerson.trim()) {
+      errors.salesPerson = "required";
+    }
+
+    if (!values.deposit || parseFloat(values.deposit) <= 0) {
+      errors.deposit = "required-valid-number";
+    }
+
+    if (!values.total || parseFloat(values.total) <= 0) {
+      errors.total = "required-valid-number";
+    }
+
+    if (!values.paymentMethod.trim()) {
+      errors.paymentMethod = "required";
+    }
+
+    if (!values.closer.trim()) {
+      errors.closer = "required";
+    }
+
+    if (!values.status.trim()) {
+      errors.status = "required";
+    }
+
+    if (!values.show) {
+      errors.show = "required";
+    }
+
+    if (!values.saleDate.trim()) {
+      errors.saleDate = "required";
+    }
+
+    if (!values.deliveryDateTime.trim()) {
+      errors.deliveryDateTime = "required";
+    }
+
+    if (!values.stockFromWarehouse.trim()) {
+      errors.stockFromWarehouse = "required";
+    }
+
+    return errors;
+  }
+
+  async function onSubmit(values: ValuesDeliverSale) {
+    try {
+      if (id && isNumeric(id)) {
+        const updatedSale: SaleSupabase = {
+          contact_name: values.contactName,
+          opportunity_description: values.opportunityDescription,
+          deposit: parseFloat(values.deposit) ?? 0,
+          total: parseFloat(values.total) ?? 0,
+          payment_method: values.paymentMethod,
+          phone: values.phone,
+          address: values.address,
+          state: values.state,
+          post_code: values.postCode,
+          email_address: values.emailAddress,
+          note: values.note,
+          sales_person: values.salesPerson,
+          closer: values.closer,
+          status: values.status,
+          show: parseInt(values.show),
+          follow_up_notes: values.followUpNotes,
+          sale_date: new Date(values.saleDate),
+          delivery_date_time: new Date(values.deliveryDateTime),
+          stock_from_warehouse: parseInt(values.stockFromWarehouse),
+        };
+
+        const salesRepository = new SalesRepository();
+        const deliveredSale = await salesRepository.deliver(
+          parseInt(id),
+          updatedSale
+        );
+
+        if (deliveredSale) {
+          const profilesRepository = new ProfilesRepository();
+          const salesPersonProfile = await profilesRepository.getSingle(
+            values.salesPerson
+          );
+          const closerProfile = await profilesRepository.getSingle(
+            values.closer
+          );
+
+          if (salesPersonProfile && closerProfile) {
+            const {
+              profileData: salesProfileData,
+              profileError: salesProfileError,
+            } = salesPersonProfile;
+            const {
+              profileData: closerProfileData,
+              profileError: closerProfileError,
+            } = closerProfile;
+
+            if (
+              salesProfileData &&
+              closerProfileData &&
+              !salesProfileError &&
+              !closerProfileError
+            ) {
+              const newSalesPersonInvoice: InvoiceSupabase = {
+                sale: deliveredSale.id,
+                commission:
+                  parseFloat(values.total) *
+                  (salesProfileData.commission
+                    ? salesProfileData.commission / 100
+                    : 10),
+                beneficiary: values.salesPerson,
+              };
+              const newCloserInvoice: InvoiceSupabase = {
+                sale: deliveredSale.id,
+                commission:
+                  parseFloat(values.total) *
+                  (closerProfileData.commission
+                    ? closerProfileData.commission / 100
+                    : 10),
+                beneficiary: values.closer,
+              };
+
+              const invoicesRepository = new InvoicesRepository();
+              const createdSalesPersonInvoice = await invoicesRepository.create(
+                newSalesPersonInvoice
+              );
+              const createdCloserInvoice =
+                await invoicesRepository.create(newCloserInvoice);
+
+              if (createdSalesPersonInvoice && createdCloserInvoice) {
+                if (sale?.closed) {
+                  openSnackbar({
+                    open: true,
+                    message: "Sale marked as delivered successfully and invoices have been updated.",
+                    variant: "alert",
+                    alert: {
+                      color: "success",
+                    },
+                  } as SnackbarProps);
+                } else {
+                  openSnackbar({
+                    open: true,
+                    message:
+                      "Sale closed and marked as delivered successfully and invoices have been updated.",
+                    variant: "alert",
+                    alert: {
+                      color: "success",
+                    },
+                  } as SnackbarProps);
+                }
+              } else {
+                openSnackbar({
+                  open: true,
+                  message:
+                    "Sale closed and marked as delivered successfully but invoices could not be updated.",
+                  variant: "alert",
+                  alert: {
+                    color: "success",
+                  },
+                } as SnackbarProps);
+              }
+            }
+          } else {
+            openSnackbar({
+              open: true,
+              message:
+                "Sale closed and marked as delivered successfully but invoices could not be updated.",
+              variant: "alert",
+              alert: {
+                color: "success",
+              },
+            } as SnackbarProps);
+          }
+        } else {
+          openSnackbar({
+            open: true,
+            message:
+              "Sale could not be marked as delivered successfully. Please try again.",
+            variant: "alert",
+            alert: {
+              color: "error",
+            },
+          } as SnackbarProps);
+        }
+
+        navigate("/deliveries");
+      } else {
+        openSnackbar({
+          open: true,
+          message:
+            "Sale could not be marked as delivered successfully. Please try again.",
+          variant: "alert",
+          alert: {
+            color: "error",
+          },
+        } as SnackbarProps);
+
+        navigate("/deliveries");
+      }
+    } catch (e) {
+      openSnackbar({
+        open: true,
+        message:
+          "Sale could not be marked as delivered successfully. Please try again.",
+        variant: "alert",
+        alert: {
+          color: "error",
+        },
+      } as SnackbarProps);
+
+      navigate("/deliveries");
+    }
+  }
+
+  async function getSale() {
+    setLoading(true);
+    if (id && isNumeric(id)) {
+      const salesRepository = new SalesRepository();
+      const existingSale = await salesRepository.getSingle(parseInt(id));
+      if (existingSale) {
+        const { saleData, saleError } = existingSale;
+        if (saleData && !saleError) {
+          setSale(saleData);
+        }
+      }
+    }
+  }
+
+  async function getProfilesShowsWarehouses() {
+    setLoading(true);
+    const profilesRepository = new ProfilesRepository();
+    const allProfiles = await profilesRepository.getWithoutFilters();
+    if (allProfiles) {
+      const { profilesData, profilesError } = allProfiles;
+      if (profilesData && !profilesError) {
+        let temp = [];
+        let temp2 = [];
+        for (let i = 0; i < profilesData.length; i++) {
+          if (
+            profilesData[i].role === UserRoles.SalesPerson ||
+            profilesData[i].role === UserRoles.Both
+          ) {
+            temp.push(profilesData[i]);
+          }
+          if (
+            profilesData[i].role === UserRoles.Closer ||
+            profilesData[i].role === UserRoles.Both
+          ) {
+            temp2.push(profilesData[i]);
+          }
+        }
+        setSalesPersons(temp);
+        setClosers(temp2);
+      }
+    }
+    const showsRepository = new ShowsRepository();
+    const allShows = await showsRepository.getWithoutFilters();
+    if (allShows) {
+      const { showsData, showsError } = allShows;
+      if (showsData && !showsError) {
+        setShows(showsData);
+      }
+    }
+    const warehousesRepository = new WarehousesRepository();
+    const allWarehouses = await warehousesRepository.getWithoutFilters();
+    if (allWarehouses) {
+      const { warehousesData, warehousesError } = allWarehouses;
+      if (warehousesData && !warehousesError) {
+        setWarehouses(warehousesData);
+      }
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    getSale();
+    getProfilesShowsWarehouses();
+  }, []);
+
+  return {
+    validate,
+    onSubmit,
+    sale,
+    loading,
+    salesPersons,
+    closers,
+    shows,
+    warehouses,
+  };
+}

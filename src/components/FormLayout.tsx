@@ -3,9 +3,7 @@ import { forwardRef, Ref, ReactElement } from "react";
 // types
 import { KeyedObject } from "types/root";
 import { Box, Grid } from "@mui/material";
-import useConfig from "hooks/useConfig";
 import ActionButton from "./ActionButton";
-import Loader from "./Loader";
 
 export interface FormLayoutProps extends KeyedObject {
   inputs: ReactElement[];

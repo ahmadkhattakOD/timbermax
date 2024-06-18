@@ -73,6 +73,37 @@ class InvoicesRepository {
     }
   }
 
+  public async getBySale(
+    id: number,
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number
+  ) {
+    try {
+      const {
+        data: invoicesData,
+        count: invoicesCount,
+        error: invoicesError,
+      } = await supabase
+        .from(this.className)
+        .select(
+          "id, sale ( contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ) ), commission, beneficiary( full_name )",
+          { count: "exact" }
+        )
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit)
+        .eq("sale", id);
+
+      return { invoicesData, invoicesCount, invoicesError };
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      return null;
+    }
+  }
+
   public async getWithoutFilters() {
     try {
       const { data: invoicesData, error: invoicesError } = await supabase

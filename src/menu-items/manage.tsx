@@ -2,7 +2,16 @@
 import { FormattedMessage } from "react-intl";
 
 // assets
-import { Briefcase, ClipboardTick, ForwardItem, House2, I24Support, MessageProgramming, Money, UserEdit } from "iconsax-react";
+import {
+  Briefcase,
+  ClipboardTick,
+  ForwardItem,
+  House2,
+  I24Support,
+  MessageProgramming,
+  Money,
+  Truck,
+} from "iconsax-react";
 
 // type
 import { NavItemType } from "types/menu";
@@ -12,6 +21,7 @@ import { NavItemType } from "types/menu";
 const icons = {
   maintenance: MessageProgramming,
   sales: Money,
+  deliveries: Truck,
   items: ForwardItem,
   stock: ClipboardTick,
   shows: Briefcase,
@@ -32,6 +42,14 @@ const manageAdmin: NavItemType = {
       type: "item",
       url: "/sales",
       icon: icons.sales,
+      target: false,
+    },
+    {
+      id: "deliveries",
+      title: <FormattedMessage id="deliveries" />,
+      type: "item",
+      url: "/deliveries",
+      icon: icons.deliveries,
       target: false,
     },
     {
@@ -78,11 +96,11 @@ const manageCloser: NavItemType = {
       id: "sales",
       title: <FormattedMessage id="sales" />,
       type: "item",
-      url: "/sales",
+      url: "/close-sales",
       icon: icons.sales,
       target: false,
     },
   ],
 };
 
-export default { manageAdmin, manageCloser }
+export default { manageAdmin, manageCloser };

@@ -29,6 +29,12 @@ import EditUser from "pages/users/edit/edit-user";
 import Invoices from "pages/invoices/main/invoices";
 import ViewInvoices from "pages/invoices/view/view-invoices";
 import EditProfile from "pages/edit-profile/edit-profile";
+import CloseSales from "pages/close/main/close-sales";
+import CloseSale from "pages/close/close/close-sale";
+import Deliveries from "pages/deliveries/main/deliveries";
+import SelectSale from "pages/deliveries/select/select-sale";
+import DeliverSale from "pages/deliveries/deliver/deliver-sale";
+import ViewDelivery from "pages/deliveries/view/view-delivery";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -91,6 +97,47 @@ const MainRoutes = {
         {
           path: "sales/:id/edit",
           element: <EditSale />,
+        },
+      ],
+    },
+
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "deliveries",
+          element: <Deliveries />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "deliveries/new",
+          element: <SelectSale />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "deliveries/new/:id/deliver",
+          element: <DeliverSale />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "deliveries/:id/view",
+          element: <ViewDelivery />,
         },
       ],
     },
@@ -281,6 +328,26 @@ const MainRoutes = {
         {
           path: "profile",
           element: <EditProfile />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "close-sales",
+          element: <CloseSales />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "close-sales/:id/close",
+          element: <CloseSale />,
         },
       ],
     },

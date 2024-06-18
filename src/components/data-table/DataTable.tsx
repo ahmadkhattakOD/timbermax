@@ -72,6 +72,7 @@ interface DataTableProps {
   openFilterModal: () => void;
   selectable?: boolean;
   takeToOnClick?: string;
+  clickable?: boolean;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
@@ -208,7 +209,8 @@ export default function DataTable({
   openDeleteConfirmModal,
   openFilterModal,
   selectable = true,
-  takeToOnClick = 'edit'
+  takeToOnClick = 'edit',
+  clickable = true
 }: DataTableProps) {
   const {
     handleRequestSort,
@@ -231,7 +233,8 @@ export default function DataTable({
     setOrderBy: setOrderBy,
     order: order,
     setOrder: setOrder,
-    takeToOnClick: takeToOnClick
+    takeToOnClick: takeToOnClick,
+    clickable: clickable
   });
 
   return (

@@ -1,18 +1,24 @@
-import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
-import { FormattedMessage } from "react-intl";
+import { FormikHelpers } from "formik";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
+  UserRoles,
   getDateFormatted,
   initialRowsPerPage,
+  isNumeric,
 } from "utils/helpers";
+import ProfilesRepository from "utils/repositories/profilesRepository";
+import SalesRepository, {
+  SaleSupabase,
+} from "utils/repositories/salesRepository";
+import ShowsRepository from "utils/repositories/showsRepository";
+import WarehousesRepository from "utils/repositories/warehousesRepository";
+import { Checkbox, TableCell } from "@mui/material";
+import { FormattedMessage } from "react-intl";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
-import ProfilesRepository, {
-  InvoiceRulesSupabase,
-} from "utils/repositories/profilesRepository";
 
 const headCells: HeadCell[] = [
   {
@@ -44,6 +50,12 @@ const headCells: HeadCell[] = [
     numeric: true,
     disablePadding: true,
     label: "Commission",
+  },
+  {
+    id: "beneficiary",
+    numeric: false,
+    disablePadding: true,
+    label: "Beneficiary",
   },
   {
     id: "payment_method",
@@ -125,14 +137,38 @@ const headCells: HeadCell[] = [
   },
 ];
 
-export interface ValuesEditInvoice {
-  showDays: string;
-  travelBonus: string;
-  otherBonuses: string;
-  deductions: string;
+export interface ValuesViewDelivery {
+  contactName: string;
+  opportunityDescription: string;
+  deposit: string;
+  total: string;
+  paymentMethod: string;
+  phone: string;
+  address: string;
+  state: string;
+  postCode: string;
+  emailAddress: string;
+  note: string;
+  salesPerson: string;
+  closer: string;
+  status: string;
+  show: string;
+  followUpNotes: string;
+  saleDate: string;
+  deliveryDateTime: string;
+  stockFromWarehouse: string;
+  invoiceDate: string;
 }
 
-export function useViewInvoices() {
+export function useViewDelivery() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [salesPersons, setSalesPersons] = useState<any[]>([]);
+  const [closers, setClosers] = useState<any[]>([]);
+  const [shows, setShows] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [sale, setSale] = useState<any>(null);
+  const { id } = useParams();
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -140,22 +176,8 @@ export function useViewInvoices() {
   const [selected, setSelected] = useState<readonly number[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
-  const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
-  const [invoiceRules, setInvoiceRules] = useState<InvoiceRulesSupabase>({
-    show_days: 0,
-    travel_bonus: 0,
-    other_bonuses: 0,
-    deductions: 0,
-  });
-  const [fullName, setFullName] = useState<string>("");
-  const [profilePicture, setProfilePicture] = useState<string>("");
-  const [invoiceRulesLoading, setInvoiceRulesLoading] = useState<boolean>(true);
-  const [cancelledSales, setCancelledSales] = useState<number>(0);
-  const [totalCommission, setTotalCommission] = useState<number>(0);
-
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
 
   function generateTableCells(
     row: any,
@@ -164,15 +186,6 @@ export function useViewInvoices() {
   ) {
     return (
       <React.Fragment>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            checked={isItemSelected}
-            inputProps={{
-              "aria-labelledby": labelId,
-            }}
-          />
-        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.contact_name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.opportunity_description}
@@ -185,6 +198,9 @@ export function useViewInvoices() {
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.commission}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.beneficiary?.full_name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.payment_method && (
@@ -209,7 +225,9 @@ export function useViewInvoices() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.status && <FormattedMessage id={row.sale?.status} />}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.follow_up_notes}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.follow_up_notes}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale?.sale_date)}
         </TableCell>
@@ -252,98 +270,22 @@ export function useViewInvoices() {
     setDeleteConfirmModalOpen(false);
   }
 
-  function validate(values: ValuesEditInvoice) {
-    const errors = {} as ValuesEditInvoice;
-
-    if (values.showDays !== "" && parseInt(values.showDays) < 0) {
-      errors.showDays = "required-valid-number-positive";
-    }
-
-    if (values.travelBonus !== "" && parseInt(values.travelBonus) < 0) {
-      errors.travelBonus = "required-valid-number-positive";
-    }
-
-    if (values.otherBonuses !== "" && parseInt(values.otherBonuses) < 0) {
-      errors.otherBonuses = "required-valid-number-positive";
-    }
-
-    if (values.deductions !== "" && parseInt(values.deductions) < 0) {
-      errors.deductions = "required-valid-number-positive";
-    }
-
-    return errors;
-  }
-
-  async function onSubmit(values: ValuesEditInvoice) {
-    try {
-      if (id) {
-        const newRules: InvoiceRulesSupabase = {
-          show_days: values.showDays !== "" ? parseInt(values.showDays) : 0,
-          travel_bonus:
-            values.travelBonus !== "" ? parseFloat(values.travelBonus) : 0,
-          other_bonuses:
-            values.otherBonuses !== "" ? parseFloat(values.otherBonuses) : 0,
-          deductions:
-            values.deductions !== "" ? parseFloat(values.deductions) : 0,
-        };
-
-        const profilesRepository = new ProfilesRepository();
-        const editedRules = await profilesRepository.editInvoiceRules(
-          id,
-          newRules
-        );
-
-        if (editedRules) {
-          openSnackbar({
-            open: true,
-            message: "Invoice rules updated successfully.",
-            variant: "alert",
-            alert: {
-              color: "success",
-            },
-          } as SnackbarProps);
-          getProfileAndFigures();
-        } else {
-          openSnackbar({
-            open: true,
-            message:
-              "Invoice rules could not be updated successfully. Please try again.",
-            variant: "alert",
-            alert: {
-              color: "error",
-            },
-          } as SnackbarProps);
-        }
-      }
-    } catch (e) {
-      openSnackbar({
-        open: true,
-        message:
-          "Invoice rules could not be updated successfully. Please try again.",
-        variant: "alert",
-        alert: {
-          color: "error",
-        },
-      } as SnackbarProps);
-      navigate("/shows");
-    }
-  }
-
   async function getData() {
     try {
-      if (id) {
+      if (id && isNumeric(id)) {
         setLoading(true);
         const invoicesRepository = new InvoicesRepository();
         const rangeStart = rowsPerPage * page;
         const rangeEnd = rangeStart + rowsPerPage;
-        const invoices = await invoicesRepository.get(
-          id,
+        const invoices = await invoicesRepository.getBySale(
+          parseInt(id),
           orderBy,
           order === "asc",
           rangeStart,
           rangeEnd,
           rowsPerPage
         );
+
         if (invoices) {
           const { invoicesData, invoicesCount, invoicesError } = invoices;
           if (invoicesData && !invoicesError) {
@@ -359,62 +301,132 @@ export function useViewInvoices() {
     }
   }
 
-  async function getProfileAndFigures() {
-    try {
-      if (id) {
-        setInvoiceRulesLoading(true);
-        const profilesRepository = new ProfilesRepository();
-        const profile = await profilesRepository.getSingle(id);
-        let commissionPercentage = 10;
-        if (profile) {
-          const { profileData, profileError } = profile;
-          if (profileData && !profileError) {
-            setInvoiceRules(profileData.invoice_rules);
-            setFullName(profileData.full_name);
-            setProfilePicture(profileData.profile_picture);
-            commissionPercentage = profileData.commission;
-          }
-        }
-        const invoicesRepository = new InvoicesRepository();
-        const allInvoices = await invoicesRepository.getWithExtendedLimit(id);
-        if (allInvoices) {
-          const { invoicesData, invoicesError } = allInvoices;
-          if (invoicesData && !invoicesError) {
-            let salesCancelledValue = 0;
-            let salesMadeValue = 0;
-            for (let i = 0; i < invoicesData.length; i++) {
-              let sale = invoicesData[i].sale as any;
-              if (sale.status === "cancelled") {
-                salesCancelledValue +=
-                  sale.total * (commissionPercentage / 100);
-              }
-              salesMadeValue += invoicesData[i].commission;
-            }
+  function validate(values: ValuesViewDelivery) {
+    const errors = {} as ValuesViewDelivery;
 
-            setCancelledSales(salesCancelledValue);
-            setTotalCommission(salesMadeValue);
-          }
+    return errors;
+
+    if (!values.contactName.trim()) {
+      errors.contactName = "required";
+    }
+
+    if (!values.salesPerson.trim()) {
+      errors.salesPerson = "required";
+    }
+
+    if (!values.deposit || parseFloat(values.deposit) <= 0) {
+      errors.deposit = "required-valid-number";
+    }
+
+    if (!values.total || parseFloat(values.total) <= 0) {
+      errors.total = "required-valid-number";
+    }
+
+    if (!values.paymentMethod.trim()) {
+      errors.paymentMethod = "required";
+    }
+
+    if (!values.closer.trim()) {
+      errors.closer = "required";
+    }
+
+    if (!values.status.trim()) {
+      errors.status = "required";
+    }
+
+    if (!values.show.trim()) {
+      errors.show = "required";
+    }
+
+    if (!values.saleDate.trim()) {
+      errors.saleDate = "required";
+    }
+
+    return errors;
+  }
+
+  async function onSubmit(values: ValuesViewDelivery) {
+    try {
+    } catch (e) {}
+  }
+
+  async function getSale() {
+    setLoading(true);
+    if (id && isNumeric(id)) {
+      const salesRepository = new SalesRepository();
+      const existingSale = await salesRepository.getSingle(parseInt(id));
+      if (existingSale) {
+        const { saleData, saleError } = existingSale;
+        if (saleData && !saleError) {
+          setSale(saleData);
         }
-        setInvoiceRulesLoading(false);
       }
-    } catch (e) {
-      console.error("Error fetching invoice rules:", e);
-      setLoading(false);
     }
   }
 
-  useEffect(() => {
-    getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  async function getProfilesShowsWarehouses() {
+    setLoading(true);
+    const profilesRepository = new ProfilesRepository();
+    const allProfiles = await profilesRepository.getWithoutFilters();
+    if (allProfiles) {
+      const { profilesData, profilesError } = allProfiles;
+      if (profilesData && !profilesError) {
+        let temp = [];
+        let temp2 = [];
+        for (let i = 0; i < profilesData.length; i++) {
+          if (
+            profilesData[i].role === UserRoles.SalesPerson ||
+            profilesData[i].role === UserRoles.Both
+          ) {
+            temp.push(profilesData[i]);
+          }
+          if (
+            profilesData[i].role === UserRoles.Closer ||
+            profilesData[i].role === UserRoles.Both
+          ) {
+            temp2.push(profilesData[i]);
+          }
+        }
+        setSalesPersons(temp);
+        setClosers(temp2);
+      }
+    }
+    const showsRepository = new ShowsRepository();
+    const allShows = await showsRepository.getWithoutFilters();
+    if (allShows) {
+      const { showsData, showsError } = allShows;
+      if (showsData && !showsError) {
+        setShows(showsData);
+      }
+    }
+    const warehousesRepository = new WarehousesRepository();
+    const allWarehouses = await warehousesRepository.getWithoutFilters();
+    if (allWarehouses) {
+      const { warehousesData, warehousesError } = allWarehouses;
+      if (warehousesData && !warehousesError) {
+        setWarehouses(warehousesData);
+      }
+    }
+    setLoading(false);
+  }
 
   useEffect(() => {
-    getProfileAndFigures();
+    getSale();
+    getProfilesShowsWarehouses();
+    getData();
   }, []);
 
   return {
+    validate,
+    onSubmit,
+    sale,
+    loading,
+    salesPersons,
+    closers,
+    shows,
+    warehouses,
     data,
     dataCount,
-    loading,
     order,
     setOrder,
     orderBy,
@@ -431,13 +443,5 @@ export function useViewInvoices() {
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
     closeDeleteConfirmModal,
-    validate,
-    onSubmit,
-    invoiceRulesLoading,
-    invoiceRules,
-    fullName,
-    profilePicture,
-    totalCommission,
-    cancelledSales
   };
 }

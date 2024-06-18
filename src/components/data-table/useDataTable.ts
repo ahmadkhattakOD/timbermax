@@ -16,6 +16,7 @@ interface UseDataTableProps {
   order: Order;
   setOrder: (value: Order) => void;
   takeToOnClick: string;
+  clickable?: boolean;
 }
 
 export function useDataTable({
@@ -31,7 +32,8 @@ export function useDataTable({
   setOrderBy,
   order,
   setOrder,
-  takeToOnClick
+  takeToOnClick,
+  clickable = true,
 }: UseDataTableProps) {
   const navigate = useNavigate();
 
@@ -75,9 +77,10 @@ export function useDataTable({
         );
       }
       setSelected(newSelected);
-    }
-    else {
-      navigate(`${id}/${takeToOnClick}`);
+    } else {
+      if (clickable) {
+        navigate(`${id}/${takeToOnClick}`);
+      }
     }
   };
 

@@ -105,5 +105,16 @@
   "current-password": "Current Password",
   "new-password": "New Password",
   "confirm-new-password": "Confirm New Password",
-  "profile": "My Profile"
+  "profile": "My Profile",
+  "close": "Close",
+  "close-sales": "Close Sales",
+  "unclosed": "Unclosed",
+  "closed": "Closed",
+  "deliveries": "Deliveries",
+  "add-new-delivery": "Add New Delivery",
+  "delivery-date-time": "Delivery Date & Time",
+  "stock-from-warehouse": "Stock From Warehouse",
+  "edit": "Edit",
+  "invoice-date": "Invoice Date",
+  "beneficiary": "Beneficiary"
 }

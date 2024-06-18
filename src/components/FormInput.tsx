@@ -40,7 +40,7 @@ const FormInput = ({
   const theme = useTheme();
 
   useEffect(() => {
-    if (value) {
+    if (value && value.length > 0) {
       helpers.setValue(value);
     }
   }, []);
@@ -62,7 +62,7 @@ const FormInput = ({
           }}
         >
           <Typography
-            sx={{ color: theme.palette.secondary.main, fontSize: "16px" }}
+            sx={{ color: disabled ? theme.palette.text.disabled : theme.palette.text.primary, fontSize: "16px" }}
           >
             <FormattedMessage id={label} />
           </Typography>

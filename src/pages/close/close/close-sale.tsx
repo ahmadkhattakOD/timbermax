@@ -4,7 +4,7 @@ import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { useEditSale } from "./useEditSale";
+import { useCloseSale } from "./useCloseSale";
 import CircularLoader from "components/CircularLoader";
 import {
   australianStates,
@@ -14,9 +14,9 @@ import {
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
-export default function EditSale() {
+export default function CloseSale() {
   const { validate, onSubmit, sale, loading, salesPersons, closers, shows } =
-    useEditSale();
+    useCloseSale();
 
   if (loading) {
     return (
@@ -229,7 +229,6 @@ export default function EditSale() {
                       "ready-for-delivery",
                     ]}
                     disabled
-                    disabledValues={["delivered"]}
                     error={touched.status ? errors.status : ""}
                   />,
                   <FormDropdown
@@ -313,6 +312,7 @@ export default function EditSale() {
                 label={"contact-name"}
                 optional={false}
                 type={"text"}
+                disabled
                 error={touched.contactName ? errors.contactName : ""}
               />,
               <FormDropdown
@@ -326,6 +326,7 @@ export default function EditSale() {
                     value: salesPerson.id.toString(),
                   };
                 })}
+                disabled
                 optional={false}
                 error={touched.salesPerson ? errors.salesPerson : ""}
               />,
@@ -342,6 +343,7 @@ export default function EditSale() {
                 optional={false}
                 type={"number"}
                 min={0}
+                disabled
                 error={touched.deposit ? errors.deposit : ""}
               />,
               <FormInput
@@ -357,6 +359,7 @@ export default function EditSale() {
                 optional={false}
                 type={"number"}
                 min={0}
+                disabled
                 error={touched.total ? errors.total : ""}
               />,
               <FormDropdown
@@ -372,6 +375,7 @@ export default function EditSale() {
                   "ndis",
                   "care-package",
                 ]}
+                disabled
                 error={touched.paymentMethod ? errors.paymentMethod : ""}
               />,
               <FormInput
@@ -380,6 +384,7 @@ export default function EditSale() {
                 placeholder={"Phone"}
                 label={"phone"}
                 type={"text"}
+                disabled
               />,
               <FormInput
                 id={"address"}
@@ -387,6 +392,7 @@ export default function EditSale() {
                 placeholder={"Address"}
                 label={"address"}
                 type={"text"}
+                disabled
               />,
               <FormDropdown
                 id={"state"}
@@ -394,6 +400,7 @@ export default function EditSale() {
                 label={"state"}
                 useFormattedStrings={false}
                 options={australianStates}
+                disabled
               />,
               <FormInput
                 id={"postCode"}
@@ -401,6 +408,7 @@ export default function EditSale() {
                 placeholder={"Post Code"}
                 label={"post-code"}
                 type={"text"}
+                disabled
               />,
               <FormInput
                 id={"emailAddress"}
@@ -408,6 +416,7 @@ export default function EditSale() {
                 placeholder={"Email Address"}
                 label={"email-address"}
                 type={"email"}
+                disabled
               />,
               <FormInput
                 id={"note"}
@@ -416,6 +425,7 @@ export default function EditSale() {
                 label={"note"}
                 type={"text"}
                 isTextArea
+                disabled
               />,
               <FormInput
                 id={"opportunityDescription"}
@@ -424,6 +434,7 @@ export default function EditSale() {
                 label={"opportunity-description"}
                 type={"text"}
                 isTextArea
+                disabled
               />,
               <FormDropdown
                 id={"closer"}
@@ -437,6 +448,7 @@ export default function EditSale() {
                   };
                 })}
                 optional={false}
+                disabled
                 error={touched.closer ? errors.closer : ""}
               />,
               <FormDropdown
@@ -452,7 +464,6 @@ export default function EditSale() {
                   "on-hold",
                   "ready-for-delivery",
                 ]}
-                disabledValues={["delivered"]}
                 error={touched.status ? errors.status : ""}
               />,
               <FormDropdown
@@ -467,6 +478,7 @@ export default function EditSale() {
                   };
                 })}
                 optional={false}
+                disabled
                 error={touched.show ? errors.show : ""}
               />,
               <FormInput
@@ -477,6 +489,7 @@ export default function EditSale() {
                 optional={false}
                 type={"date"}
                 max={getDateFormattedForField()}
+                disabled
                 error={touched.saleDate ? errors.saleDate : ""}
               />,
               <FormInput
