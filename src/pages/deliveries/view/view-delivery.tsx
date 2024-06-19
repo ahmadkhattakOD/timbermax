@@ -40,10 +40,6 @@ export default function ViewDelivery() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete,
-    deleteConfirmModalOpen,
-    openDeleteConfirmModal,
-    closeDeleteConfirmModal,
   } = useViewDelivery();
 
   if (loading) {
@@ -81,10 +77,9 @@ export default function ViewDelivery() {
         setOrder={setOrder}
         headCells={headCells}
         generateTableCells={generateTableCells}
-        openDeleteConfirmModal={openDeleteConfirmModal}
-        openFilterModal={openDeleteConfirmModal}
         selectable={false}
         clickable={false}
+        showFilter={false}
       />
       <Box display={"flex"} paddingBottom={"2rem"} paddingTop={"2rem"}>
         <Typography>
@@ -94,27 +89,27 @@ export default function ViewDelivery() {
       <Formik
         enableReinitialize
         initialValues={{
-          contactName: sale.contact_name ?? "",
-          opportunityDescription: sale.opportunity_description ?? "",
-          deposit: sale.deposit ?? "",
-          total: sale.total ?? "",
-          paymentMethod: sale.payment_method ?? "",
-          phone: sale.phone ?? "",
-          address: sale.address ?? "",
-          state: sale.state ?? "",
-          postCode: sale.post_code ?? "",
-          emailAddress: sale.email_address ?? "",
-          note: sale.note ?? "",
-          salesPerson: sale.sales_person.id ?? "",
-          closer: sale.closer.id ?? "",
-          status: sale.status ?? "",
-          show: sale.show?.id ?? "",
-          followUpNotes: sale.follow_up_notes ?? "",
-          saleDate: getDateFormattedForField(sale.sale_date) ?? "",
+          contactName: sale?.contact_name ?? "",
+          opportunityDescription: sale?.opportunity_description ?? "",
+          deposit: sale?.deposit ?? "",
+          total: sale?.total ?? "",
+          paymentMethod: sale?.payment_method ?? "",
+          phone: sale?.phone ?? "",
+          address: sale?.address ?? "",
+          state: sale?.state ?? "",
+          postCode: sale?.post_code ?? "",
+          emailAddress: sale?.email_address ?? "",
+          note: sale?.note ?? "",
+          salesPerson: sale?.sales_person.id ?? "",
+          closer: sale?.closer.id ?? "",
+          status: sale?.status ?? "",
+          show: sale?.show?.id ?? "",
+          followUpNotes: sale?.follow_up_notes ?? "",
+          saleDate: getDateFormattedForField(sale?.sale_date) ?? "",
           deliveryDateTime:
-            getDateTimeFormattedForField(sale.delivery_date_time) ?? "",
-          invoiceDate: getDateFormattedForField(sale.invoice_date) ?? "",
-          stockFromWarehouse: sale.stock_from_warehouse.id ?? "",
+            getDateTimeFormattedForField(sale?.delivery_date_time) ?? "",
+          invoiceDate: getDateFormattedForField(sale?.invoice_date) ?? "",
+          stockFromWarehouse: sale?.stock_from_warehouse.id ?? "",
         }}
         validate={validate}
         onSubmit={onSubmit}

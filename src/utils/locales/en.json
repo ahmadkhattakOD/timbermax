@@ -121,5 +121,6 @@
   "stock-from-warehouse": "Stock From Warehouse",
   "edit": "Edit",
   "invoice-date": "Invoice Date",
-  "beneficiary": "Beneficiary"
+  "beneficiary": "Beneficiary",
+  "filter-deliveries": "Filter Deliveries"
 }

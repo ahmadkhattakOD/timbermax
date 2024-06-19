@@ -264,7 +264,6 @@ export default function Sales() {
                       placeholder={"Sale Date From"}
                       label={"sale-date-from"}
                       type={"date"}
-                      max={getDateFormattedForField()}
                       error={touched.saleDateFrom ? errors.saleDateFrom : ""}
                     />,
                     <FormInput
@@ -273,7 +272,6 @@ export default function Sales() {
                       placeholder={"Sale Date To"}
                       label={"sale-date-to"}
                       type={"date"}
-                      max={getDateFormattedForField()}
                       error={touched.saleDateTo ? errors.saleDateTo : ""}
                     />,
                     <FormDropdown

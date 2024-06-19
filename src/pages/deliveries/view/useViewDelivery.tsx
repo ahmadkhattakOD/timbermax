@@ -16,7 +16,7 @@ import SalesRepository, {
 } from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
-import { Checkbox, TableCell } from "@mui/material";
+import { TableCell } from "@mui/material";
 import { FormattedMessage } from "react-intl";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 
@@ -176,8 +176,6 @@ export function useViewDelivery() {
   const [selected, setSelected] = useState<readonly number[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
-  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
 
   function generateTableCells(
     row: any,
@@ -233,41 +231,6 @@ export function useViewDelivery() {
         </TableCell>
       </React.Fragment>
     );
-  }
-
-  function openDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(true);
-  }
-
-  async function onDelete() {
-    const invoicesRepository = new InvoicesRepository();
-    const deletedInvoices = await invoicesRepository.delete(selected);
-    if (deletedInvoices > 0) {
-      openSnackbar({
-        open: true,
-        message: `${deletedInvoices} invoice(s) deleted successfully.`,
-        variant: "alert",
-        alert: {
-          color: "success",
-        },
-      } as SnackbarProps);
-      setSelected([]);
-      await getData();
-    } else {
-      openSnackbar({
-        open: true,
-        message:
-          "Invoice(s) could not be deleted successfully. Please try again.",
-        variant: "alert",
-        alert: {
-          color: "error",
-        },
-      } as SnackbarProps);
-    }
-  }
-
-  function closeDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(false);
   }
 
   async function getData() {
@@ -439,9 +402,5 @@ export function useViewDelivery() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete,
-    deleteConfirmModalOpen,
-    openDeleteConfirmModal,
-    closeDeleteConfirmModal,
   };
 }

@@ -43,8 +43,9 @@ interface EnhancedTableProps {
 interface EnhancedTableToolbarProps {
   numSelected: number;
   tableTitle: string;
-  openDeleteConfirmModal: () => void;
-  openFilterModal: () => void;
+  openDeleteConfirmModal?: () => void;
+  openFilterModal?: () => void;
+  showFilter?: boolean;
 }
 
 interface DataTableProps {
@@ -68,11 +69,12 @@ interface DataTableProps {
     labelId: string,
     isItemSelected: boolean
   ) => React.ReactElement;
-  openDeleteConfirmModal: () => void;
-  openFilterModal: () => void;
+  openDeleteConfirmModal?: () => void;
+  openFilterModal?: () => void;
   selectable?: boolean;
   takeToOnClick?: string;
   clickable?: boolean;
+  showFilter?: boolean;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
@@ -138,6 +140,7 @@ function EnhancedTableToolbar({
   tableTitle,
   openDeleteConfirmModal,
   openFilterModal,
+  showFilter = true,
 }: EnhancedTableToolbarProps) {
   return (
     <Toolbar
@@ -179,11 +182,13 @@ function EnhancedTableToolbar({
           </IconButton>
         </Tooltip>
       ) : (
-        <Tooltip title="Filters">
-          <IconButton onClick={openFilterModal}>
-            <Filter />
-          </IconButton>
-        </Tooltip>
+        showFilter && (
+          <Tooltip title="Filters">
+            <IconButton onClick={openFilterModal}>
+              <Filter />
+            </IconButton>
+          </Tooltip>
+        )
       )}
     </Toolbar>
   );
@@ -209,8 +214,9 @@ export default function DataTable({
   openDeleteConfirmModal,
   openFilterModal,
   selectable = true,
-  takeToOnClick = 'edit',
-  clickable = true
+  takeToOnClick = "edit",
+  clickable = true,
+  showFilter = true,
 }: DataTableProps) {
   const {
     handleRequestSort,
@@ -234,7 +240,7 @@ export default function DataTable({
     order: order,
     setOrder: setOrder,
     takeToOnClick: takeToOnClick,
-    clickable: clickable
+    clickable: clickable,
   });
 
   return (
@@ -245,6 +251,7 @@ export default function DataTable({
           tableTitle={tableTitle}
           openDeleteConfirmModal={openDeleteConfirmModal}
           openFilterModal={openFilterModal}
+          showFilter={showFilter}
         />
         <TableContainer>
           <Table

@@ -174,7 +174,6 @@ export function useSales() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterSales>(initialFilters);
-
   const navigate = useNavigate();
 
   function goToCreate() {

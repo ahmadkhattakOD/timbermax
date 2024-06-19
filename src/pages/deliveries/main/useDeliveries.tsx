@@ -5,8 +5,10 @@ import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { getDateFormatted, initialRowsPerPage } from "utils/helpers";
+import { UserRoles, getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
+import ShowsRepository from "utils/repositories/showsRepository";
 
 const headCells: HeadCell[] = [
   {
@@ -111,7 +113,65 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Sale Date",
   },
+  {
+    id: "delivery_date_time",
+    numeric: false,
+    disablePadding: true,
+    label: "Delivery Date Time",
+  },
+  {
+    id: "stock_from_warehouse",
+    numeric: false,
+    disablePadding: true,
+    label: "Stock from Warehouse",
+  },
+  {
+    id: "invoice_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Invoice Date",
+  },
 ];
+
+export interface ValuesFilterDeliveries {
+  contactName: string;
+  salesPerson: string;
+  minimumDeposit: string;
+  maximumDeposit: string;
+  minimumTotal: string;
+  maximumTotal: string;
+  paymentMethod: string;
+  phone: string;
+  address: string;
+  state: string;
+  postCode: string;
+  emailAddress: string;
+  opportunityDescription: string;
+  closer: string;
+  show: string;
+  saleDateFrom: string;
+  saleDateTo: string;
+}
+
+const initialFilters: ValuesFilterDeliveries = {
+  contactName: "",
+  salesPerson: "",
+  minimumDeposit: "",
+  maximumDeposit: "",
+  minimumTotal: "",
+  maximumTotal: "",
+  paymentMethod: "",
+  phone: "",
+  address: "",
+  state: "",
+  postCode: "",
+  emailAddress: "",
+  opportunityDescription: "",
+  closer: "",
+  show: "",
+  saleDateFrom: "",
+  saleDateTo: "",
+};
 
 export function useDeliveries() {
   const [data, setData] = useState<any[]>([]);
@@ -124,6 +184,10 @@ export function useDeliveries() {
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [salesPersons, setSalesPersons] = useState<any[]>([]);
+  const [closers, setClosers] = useState<any[]>([]);
+  const [shows, setShows] = useState<any[]>([]);
+  const [filters, setFilters] = useState<ValuesFilterDeliveries>(initialFilters);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -186,7 +250,16 @@ export function useDeliveries() {
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {getDateFormatted(row.sale_date)}
+          {row.sale_date && getDateFormatted(row.sale_date)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.delivery_date_time && getDateTimeFormatted(row.delivery_date_time, true)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.stock_from_warehouse?.name}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.invoice_date && getDateFormatted(row.invoice_date)}
         </TableCell>
       </React.Fragment>
     );
@@ -263,7 +336,66 @@ export function useDeliveries() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterDeliveries) {
+    const errors = {} as ValuesFilterDeliveries;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterDeliveries) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering deliveries:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
+  }
+
+  async function getFilterData() {
+    const profilesRepository = new ProfilesRepository();
+    const allProfiles = await profilesRepository.getWithoutFilters();
+    if (allProfiles) {
+      const { profilesData, profilesError } = allProfiles;
+      if (profilesData && !profilesError) {
+        let temp = [];
+        let temp2 = [];
+        for (let i = 0; i < profilesData.length; i++) {
+          if (
+            profilesData[i].role === UserRoles.SalesPerson ||
+            profilesData[i].role === UserRoles.Both
+          ) {
+            temp.push(profilesData[i]);
+          }
+          if (
+            profilesData[i].role === UserRoles.Closer ||
+            profilesData[i].role === UserRoles.Both
+          ) {
+            temp2.push(profilesData[i]);
+          }
+        }
+        setSalesPersons(temp);
+        setClosers(temp2);
+      }
+    }
+    const showsRepository = new ShowsRepository();
+    const allShows = await showsRepository.getWithoutFilters();
+    if (allShows) {
+      const { showsData, showsError } = allShows;
+      if (showsData && !showsError) {
+        setShows(showsData);
+      }
+    }
+  }
+
+  useEffect(() => {
+    getFilterData();
+  }, []);
 
   return {
     data,
@@ -288,6 +420,13 @@ export function useDeliveries() {
     closeDeleteConfirmModal,
     filterModalOpen,
     openFilterModal,
-    closeFilterModal
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    salesPersons,
+    closers,
+    shows,
+    resetFilters,
   };
 }
