@@ -141,5 +141,9 @@
   "minimum-commission": "Minimum Commission",
   "maximum-commission": "Maximum Commission",
   "joined-at-from": "Joined At From",
-  "joined-at-to": "Joined At To"
+  "joined-at-to": "Joined At To",
+  "filter-invoices": "Filter Invoices",
+  "sale": "Sale",
+  "invoice-date-from": "Invoice Date From",
+  "invoice-date-to": "Invoice Date To"
 }

@@ -7,12 +7,14 @@ import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
   getDateFormatted,
+  getDateTimeFormatted,
   initialRowsPerPage,
 } from "utils/helpers";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import ProfilesRepository, {
   InvoiceRulesSupabase,
 } from "utils/repositories/profilesRepository";
+import SalesRepository from "utils/repositories/salesRepository";
 
 const headCells: HeadCell[] = [
   {
@@ -123,6 +125,24 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Sale Date",
   },
+  {
+    id: "delivery_date_time",
+    numeric: false,
+    disablePadding: true,
+    label: "Delivery Date Time",
+  },
+  {
+    id: "stock_from_warehouse",
+    numeric: false,
+    disablePadding: true,
+    label: "Stock from Warehouse",
+  },
+  {
+    id: "invoice_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Invoice Date",
+  },
 ];
 
 export interface ValuesEditInvoice {
@@ -131,6 +151,22 @@ export interface ValuesEditInvoice {
   otherBonuses: string;
   deductions: string;
 }
+
+export interface ValuesFilterInvoices {
+  sale: string;
+  minimumCommission: string;
+  maximumCommission: string;
+  invoiceDateFrom: string;
+  invoiceDateTo: string;
+}
+
+const initialFilters: ValuesFilterInvoices = {
+  sale: "",
+  minimumCommission: "",
+  maximumCommission: "",
+  invoiceDateFrom: "",
+  invoiceDateTo: "",
+};
 
 export function useViewInvoices() {
   const [data, setData] = useState<any[]>([]);
@@ -153,7 +189,9 @@ export function useViewInvoices() {
   const [invoiceRulesLoading, setInvoiceRulesLoading] = useState<boolean>(true);
   const [cancelledSales, setCancelledSales] = useState<number>(0);
   const [totalCommission, setTotalCommission] = useState<number>(0);
-
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [sales, setSales] = useState<any[]>([]);
+  const [filters, setFilters] = useState<ValuesFilterInvoices>(initialFilters);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -205,13 +243,25 @@ export function useViewInvoices() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.show && row.sale?.show.name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale.notes}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.sale?.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.status && <FormattedMessage id={row.sale?.status} />}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.follow_up_notes}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.follow_up_notes}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale?.sale_date)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.delivery_date_time &&
+            getDateTimeFormatted(row.sale?.delivery_date_time, true)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.stock_from_warehouse?.name}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.created_at && getDateFormatted(row.created_at)}
         </TableCell>
       </React.Fragment>
     );
@@ -250,6 +300,14 @@ export function useViewInvoices() {
 
   function closeDeleteConfirmModal() {
     setDeleteConfirmModalOpen(false);
+  }
+
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
   }
 
   function validate(values: ValuesEditInvoice) {
@@ -342,7 +400,8 @@ export function useViewInvoices() {
           order === "asc",
           rangeStart,
           rangeEnd,
-          rowsPerPage
+          rowsPerPage,
+          filters
         );
         if (invoices) {
           const { invoicesData, invoicesCount, invoicesError } = invoices;
@@ -357,6 +416,29 @@ export function useViewInvoices() {
       console.error("Error fetching invoices:", e);
       setLoading(false);
     }
+  }
+
+  useEffect(() => {
+    getData();
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterInvoices) {
+    const errors = {} as ValuesFilterInvoices;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterInvoices) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering invoices:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
   }
 
   async function getProfileAndFigures() {
@@ -403,12 +485,20 @@ export function useViewInvoices() {
     }
   }
 
-  useEffect(() => {
-    getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  async function getFilterData() {
+    const salesRepository = new SalesRepository();
+    const allSales = await salesRepository.getWithoutFilters();
+    if (allSales) {
+      const { salesData, salesError } = allSales;
+      if (salesData && !salesError) {
+        setSales(salesData);
+      }
+    }
+  }
 
   useEffect(() => {
     getProfileAndFigures();
+    getFilterData();
   }, []);
 
   return {
@@ -438,6 +528,14 @@ export function useViewInvoices() {
     fullName,
     profilePicture,
     totalCommission,
-    cancelledSales
+    cancelledSales,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    sales,
+    resetFilters,
   };
 }

@@ -1,3 +1,4 @@
+import { ValuesFilterInvoices } from "pages/invoices/view/useViewInvoices";
 import { extendedDataLimit } from "utils/helpers";
 import supabase from "utils/supabase";
 
@@ -48,23 +49,44 @@ class InvoicesRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterInvoices
   ) {
     try {
-      const {
-        data: invoicesData,
-        count: invoicesCount,
-        error: invoicesError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select(
-          "id, sale ( contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ) ), commission, beneficiary( full_name )",
+          "id, created_at, sale ( contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit)
         .eq("beneficiary", id);
+
+      if (filters) {
+        if (filters.sale) {
+          query.eq("sale", filters.sale);
+        }
+        if (filters.minimumCommission) {
+          query.gte("commission", filters.minimumCommission);
+        }
+        if (filters.maximumCommission) {
+          query.lte("commission", filters.maximumCommission);
+        }
+        if (filters.invoiceDateFrom) {
+          query.gte("created_at", filters.invoiceDateFrom);
+        }
+        if (filters.invoiceDateTo) {
+          query.lte("created_at", filters.invoiceDateTo);
+        }
+      }
+
+      const {
+        data: invoicesData,
+        count: invoicesCount,
+        error: invoicesError,
+      } = await query;
 
       return { invoicesData, invoicesCount, invoicesError };
     } catch (error) {

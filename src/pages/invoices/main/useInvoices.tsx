@@ -46,6 +46,30 @@ const headCells: HeadCell[] = [
   },
 ];
 
+export interface ValuesFilterUsers {
+  fullName: string;
+  email: string;
+  role: string;
+  minimumDailyWage: string;
+  maximumDailyWage: string;
+  minimumCommission: string;
+  maximumCommission: string;
+  joinedAtFrom: string;
+  joinedAtTo: string;
+}
+
+const initialFilters: ValuesFilterUsers = {
+  fullName: "",
+  email: "",
+  role: "",
+  minimumDailyWage: "",
+  maximumDailyWage: "",
+  minimumCommission: "",
+  maximumCommission: "",
+  joinedAtFrom: "",
+  joinedAtTo: "",
+};
+
 export function useInvoices() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -56,7 +80,8 @@ export function useInvoices() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
-  const navigate = useNavigate();
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState<ValuesFilterUsers>(initialFilters);
 
   function generateTableCells(
     row: any,
@@ -90,6 +115,14 @@ export function useInvoices() {
     setDeleteConfirmModalOpen(false);
   }
 
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
+  }
+
   async function getData() {
     try {
       setLoading(true);
@@ -101,7 +134,8 @@ export function useInvoices() {
         order === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage
+        rowsPerPage,
+        filters
       );
       if (profiles) {
         const { profilesData, profilesCount, profilesError } = profiles;
@@ -119,7 +153,26 @@ export function useInvoices() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterUsers) {
+    const errors = {} as ValuesFilterUsers;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterUsers) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering profiles:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
+  }
 
   return {
     data,
@@ -141,5 +194,12 @@ export function useInvoices() {
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
     closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    resetFilters,
   };
 }

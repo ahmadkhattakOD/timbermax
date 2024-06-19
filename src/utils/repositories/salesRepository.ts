@@ -143,6 +143,20 @@ class SalesRepository {
     }
   }
 
+  public async getWithoutFilters() {
+    try {
+      const { data: salesData, error: salesError } = await supabase
+        .from(this.className)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      return { salesData, salesError };
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+      return null;
+    }
+  }
+
   public async getForCloser(
     closerId: string,
     closed: boolean,

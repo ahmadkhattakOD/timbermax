@@ -103,8 +103,8 @@ export default function Users() {
                   submitButtonText={"apply"}
                   inputs={[
                     <FormInput
-                      id={"full_name"}
-                      name={"full_name"}
+                      id={"fullName"}
+                      name={"fullName"}
                       placeholder={"Full Name"}
                       label={"full-name"}
                       type={"text"}

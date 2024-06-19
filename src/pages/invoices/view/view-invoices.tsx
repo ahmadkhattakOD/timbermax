@@ -11,6 +11,9 @@ import CircularLoader from "components/CircularLoader";
 import { Divider, Typography } from "@mui/material";
 import ProfilePicture from "components/ProfilePicture";
 import { useTheme } from "@mui/system";
+import { hasNonEmptyValue } from "utils/helpers";
+import ModalFilters from "components/modal-filters/ModalFilters";
+import FormDropdown from "components/FormDropdown";
 
 export default function ViewInvoices() {
   const {
@@ -41,6 +44,14 @@ export default function ViewInvoices() {
     profilePicture,
     cancelledSales,
     totalCommission,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    sales,
+    resetFilters,
   } = useViewInvoices();
 
   const theme = useTheme();
@@ -197,6 +208,19 @@ export default function ViewInvoices() {
           </Formik>
         )}
       </Box>
+      <CreateAndFiltersLayout
+        filters={
+          hasNonEmptyValue(filters) ? (
+            <ActionButton
+              text={"reset-filters"}
+              color="secondary"
+              onClick={resetFilters}
+            />
+          ) : (
+            <></>
+          )
+        }
+      />
       <DataTable
         data={data}
         dataCount={dataCount}
@@ -215,12 +239,93 @@ export default function ViewInvoices() {
         headCells={headCells}
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
-        openFilterModal={openDeleteConfirmModal}
+        openFilterModal={openFilterModal}
+        clickable={false}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
         onClose={closeDeleteConfirmModal}
         onDelete={onDelete}
+      />
+      <ModalFilters
+        title="filter-invoices"
+        open={filterModalOpen}
+        onClose={closeFilterModal}
+        form={
+          <Formik
+            enableReinitialize
+            initialValues={filters}
+            validate={validateFilters}
+            onSubmit={handleFiltersSubmit}
+          >
+            {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+              <Form onSubmit={handleSubmit}>
+                <FormLayout
+                  isSubmitting={isSubmitting}
+                  submitButtonText={"apply"}
+                  inputs={[
+                    <FormDropdown
+                      id={"sale"}
+                      name={"sale"}
+                      label={"sale"}
+                      useFormattedStrings={false}
+                      options={sales.map((sale) => {
+                        return {
+                          label: sale.contact_name,
+                          value: sale.id.toString(),
+                        };
+                      })}
+                    />,
+                    <FormInput
+                      id={"minimumCommission"}
+                      name={"minimumCommission"}
+                      placeholder={"Minimum Commission"}
+                      label={"minimum-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumCommission"}
+                      name={"maximumCommission"}
+                      placeholder={"Maximum Commission"}
+                      label={"maximum-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"invoiceDateFrom"}
+                      name={"invoiceDateFrom"}
+                      placeholder={"Invoice Date From"}
+                      label={"invoice-date-from"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"invoiceDateTo"}
+                      name={"invoiceDateTo"}
+                      placeholder={"Invoice Date To"}
+                      label={"invoice-date-to"}
+                      type={"date"}
+                    />,
+                  ]}
+                  showSubmitButton={false}
+                />
+                <Box
+                  display={"flex"}
+                  justifyContent={"center"}
+                  gap={"15px"}
+                  marginTop={"2rem"}
+                >
+                  <ActionButton
+                    onClick={closeFilterModal}
+                    color={"secondary"}
+                    text={"cancel"}
+                  />
+                  <ActionButton type="submit" text={"apply"} />
+                </Box>
+              </Form>
+            )}
+          </Formik>
+        }
       />
     </Box>
   );
