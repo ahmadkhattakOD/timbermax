@@ -7,18 +7,18 @@ import { Grid } from "@mui/material";
 // ==============================|| DASHBOARD PAGE ||============================== //
 
 export default function Dashboard() {
-  const { options, series, userOptions, userSeries } = useDashboard();
+  const { salesOptions, salesSeries, commissionOptions, commissionSeries, userOptions, userSeries } = useDashboard();
 
   return (
     <Grid container columnSpacing={"1rem"} rowSpacing={"1rem"}>
       <Grid item xs={12} md={6}>
         <MainCard title="Total Sales">
-          <Chart options={options} series={series} type="bar" />
+          <Chart options={salesOptions} series={salesSeries} type="bar" />
         </MainCard>
       </Grid>
       <Grid item xs={12} md={6}>
         <MainCard title="Total Commission">
-          <Chart options={options} series={series} type="bar" />
+          <Chart options={commissionOptions} series={commissionSeries} type="bar" />
         </MainCard>
       </Grid>
       <Grid item xs={12} md={4}>

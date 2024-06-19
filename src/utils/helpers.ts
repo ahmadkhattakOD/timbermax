@@ -160,3 +160,23 @@ export function hasNonEmptyValue(obj: any) {
   }
   return false; // Return false if all values are empty
 }
+
+export function getMonthName(date: Date) {
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const monthIndex = date.getMonth();
+  return monthNames[monthIndex];
+}

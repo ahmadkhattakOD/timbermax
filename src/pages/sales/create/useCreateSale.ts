@@ -139,7 +139,7 @@ export function useCreateSale() {
                   parseFloat(values.total) *
                   (salesProfileData.commission
                     ? salesProfileData.commission / 100
-                    : 10),
+                    : 0),
                 beneficiary: values.salesPerson,
               };
               const newCloserInvoice: InvoiceSupabase = {
@@ -148,7 +148,7 @@ export function useCreateSale() {
                   parseFloat(values.total) *
                   (closerProfileData.commission
                     ? closerProfileData.commission / 100
-                    : 10),
+                    : 0),
                 beneficiary: values.closer,
               };
 

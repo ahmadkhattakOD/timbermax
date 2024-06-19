@@ -50,7 +50,7 @@ export default function EditProfile() {
           <Form onSubmit={handleSubmit}>
             <FormLayout
               isSubmitting={isSubmitting}
-              submitButtonText={"submit"}
+              showSubmitButton={false}
               inputs={[
                 <FormInput
                   id={"fullName"}
@@ -59,6 +59,7 @@ export default function EditProfile() {
                   label={"full-name"}
                   optional={false}
                   type={"text"}
+                  disabled
                   error={touched.fullName ? errors.fullName : ""}
                 />,
                 <FormInput

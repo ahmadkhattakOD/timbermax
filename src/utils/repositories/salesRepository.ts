@@ -1,5 +1,10 @@
 import { ValuesFilterDeliveries } from "pages/deliveries/main/useDeliveries";
 import { ValuesFilterSales } from "pages/sales/main/useSales";
+import {
+  getDateFormatted,
+  getDateFormattedForField,
+  getMonthName,
+} from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface SaleSupabase {
@@ -377,6 +382,44 @@ class SalesRepository {
     } catch (error) {
       console.error("Error fetching sales:", error);
       return null;
+    }
+  }
+
+  public async getTotalSalesForYear(
+    year: number
+  ): Promise<{ month: string; sales: number }[]> {
+    try {
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+      const { data: salesData, error: salesError } = await supabase
+        .from(this.className)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .gte("created_at", getDateFormattedForField(startDate))
+        .lte("created_at", getDateFormattedForField(endDate));
+
+      const totalSalesCount: { [month: string]: number } = {};
+
+      if (salesData && !salesError) {
+        for (let i = 0; i < salesData.length; i++) {
+          const saleDate = new Date(salesData[i].sale_date);
+          const month = getMonthName(saleDate);
+
+          if (!totalSalesCount[month]) {
+            totalSalesCount[month] = 0;
+          }
+
+          totalSalesCount[month] += salesData[i].total;
+        }
+      }
+
+      return Object.keys(totalSalesCount).map((month) => ({
+        month,
+        sales: totalSalesCount[month],
+      }));
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+      return [];
     }
   }
 

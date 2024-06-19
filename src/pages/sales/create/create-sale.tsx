@@ -171,13 +171,12 @@ export default function CreateSale() {
                 type={"text"}
                 isTextArea
               />,
-              <FormInput
+              <FormDropdown
                 id={"opportunityDescription"}
                 name={"opportunityDescription"}
-                placeholder={"Opportunity Description"}
                 label={"opportunity-description"}
-                type={"text"}
-                isTextArea
+                useFormattedStrings={false}
+                options={['Electric Bases - Narrow Single']}
               />,
               <FormDropdown
                 id={"closer"}

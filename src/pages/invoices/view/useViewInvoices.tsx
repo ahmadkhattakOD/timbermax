@@ -447,7 +447,7 @@ export function useViewInvoices() {
         setInvoiceRulesLoading(true);
         const profilesRepository = new ProfilesRepository();
         const profile = await profilesRepository.getSingle(id);
-        let commissionPercentage = 10;
+        let commissionPercentage = 0;
         if (profile) {
           const { profileData, profileError } = profile;
           if (profileData && !profileError) {
@@ -467,8 +467,7 @@ export function useViewInvoices() {
             for (let i = 0; i < invoicesData.length; i++) {
               let sale = invoicesData[i].sale as any;
               if (sale.status === "cancelled") {
-                salesCancelledValue +=
-                  sale.total * (commissionPercentage / 100);
+                salesCancelledValue += invoicesData[i].commission;
               }
               salesMadeValue += invoicesData[i].commission;
             }

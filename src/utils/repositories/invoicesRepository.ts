@@ -1,5 +1,9 @@
 import { ValuesFilterInvoices } from "pages/invoices/view/useViewInvoices";
-import { extendedDataLimit } from "utils/helpers";
+import {
+  extendedDataLimit,
+  getDateFormattedForField,
+  getMonthName,
+} from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface InvoiceSupabase {
@@ -153,6 +157,44 @@ class InvoicesRepository {
     } catch (error) {
       console.error("Error fetching invoices:", error);
       return null;
+    }
+  }
+
+  public async getTotalCommissionsForYear(
+    year: number
+  ): Promise<{ month: string; sales: number }[]> {
+    try {
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+      const { data: invoicesData, error: invoicesError } = await supabase
+        .from(this.className)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .gte("created_at", getDateFormattedForField(startDate))
+        .lte("created_at", getDateFormattedForField(endDate));
+
+      const totalCommissionCount: { [month: string]: number } = {};
+
+      if (invoicesData && !invoicesError) {
+        for (let i = 0; i < invoicesData.length; i++) {
+          const invoiceDate = new Date(invoicesData[i].created_at);
+          const month = getMonthName(invoiceDate);
+
+          if (!totalCommissionCount[month]) {
+            totalCommissionCount[month] = 0;
+          }
+
+          totalCommissionCount[month] += invoicesData[i].commission;
+        }
+      }
+
+      return Object.keys(totalCommissionCount).map((month) => ({
+        month,
+        sales: totalCommissionCount[month],
+      }));
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      return [];
     }
   }
 
