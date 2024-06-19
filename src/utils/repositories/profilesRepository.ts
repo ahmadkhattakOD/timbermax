@@ -1,4 +1,5 @@
 import { ValuesFilterUsers } from "pages/users/main/useUsers";
+import { UserRoles } from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface ProfileSupabase {
@@ -70,7 +71,11 @@ class ProfilesRepository {
     }
   }
 
-  public async resetPassword(email: string, oldPassword: string, newPassword: string) {
+  public async resetPassword(
+    email: string,
+    oldPassword: string,
+    newPassword: string
+  ) {
     try {
       const { data, error } = await supabase.functions.invoke("account", {
         body: {
@@ -105,7 +110,8 @@ class ProfilesRepository {
         .select("*", { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
-        .limit(limit);
+        .limit(limit)
+        .neq("role", UserRoles.Admin);
 
       if (filters) {
         if (filters.fullName) {
@@ -155,7 +161,8 @@ class ProfilesRepository {
       const { data: profilesData, error: profilesError } = await supabase
         .from(this.className)
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .neq("role", UserRoles.Admin);
 
       return { profilesData, profilesError };
     } catch (error) {
