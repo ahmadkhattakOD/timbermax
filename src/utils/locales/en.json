@@ -122,5 +122,10 @@
   "edit": "Edit",
   "invoice-date": "Invoice Date",
   "beneficiary": "Beneficiary",
-  "filter-deliveries": "Filter Deliveries"
+  "filter-deliveries": "Filter Deliveries",
+  "filter-shows": "Filter Shows",
+  "start-date-from": "Start Date From",
+  "start-date-to": "Start Date To",
+  "end-date-from": "End Date From",
+  "end-date-to": "End Date To"
 }

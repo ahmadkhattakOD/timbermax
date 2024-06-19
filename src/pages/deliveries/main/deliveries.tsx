@@ -229,8 +229,6 @@ export default function Deliveries() {
                           value: closer.id.toString(),
                         };
                       })}
-                      optional={false}
-                      error={touched.closer ? errors.closer : ""}
                     />,
                     <FormDropdown
                       id={"show"}
@@ -243,8 +241,6 @@ export default function Deliveries() {
                           value: show.id.toString(),
                         };
                       })}
-                      optional={false}
-                      error={touched.show ? errors.show : ""}
                     />,
                     <FormInput
                       id={"saleDateFrom"}
@@ -252,7 +248,6 @@ export default function Deliveries() {
                       placeholder={"Sale Date From"}
                       label={"sale-date-from"}
                       type={"date"}
-                      error={touched.saleDateFrom ? errors.saleDateFrom : ""}
                     />,
                     <FormInput
                       id={"saleDateTo"}
@@ -260,7 +255,6 @@ export default function Deliveries() {
                       placeholder={"Sale Date To"}
                       label={"sale-date-to"}
                       type={"date"}
-                      error={touched.saleDateTo ? errors.saleDateTo : ""}
                     />,
                     
                   ]}

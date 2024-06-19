@@ -227,8 +227,6 @@ export default function Sales() {
                           value: closer.id.toString(),
                         };
                       })}
-                      optional={false}
-                      error={touched.closer ? errors.closer : ""}
                     />,
                     <FormDropdown
                       id={"status"}
@@ -242,7 +240,6 @@ export default function Sales() {
                         "on-hold",
                         "ready-for-delivery",
                       ]}
-                      error={touched.status ? errors.status : ""}
                     />,
                     <FormDropdown
                       id={"show"}
@@ -255,8 +252,6 @@ export default function Sales() {
                           value: show.id.toString(),
                         };
                       })}
-                      optional={false}
-                      error={touched.show ? errors.show : ""}
                     />,
                     <FormInput
                       id={"saleDateFrom"}
@@ -264,7 +259,6 @@ export default function Sales() {
                       placeholder={"Sale Date From"}
                       label={"sale-date-from"}
                       type={"date"}
-                      error={touched.saleDateFrom ? errors.saleDateFrom : ""}
                     />,
                     <FormInput
                       id={"saleDateTo"}
@@ -272,14 +266,12 @@ export default function Sales() {
                       placeholder={"Sale Date To"}
                       label={"sale-date-to"}
                       type={"date"}
-                      error={touched.saleDateTo ? errors.saleDateTo : ""}
                     />,
                     <FormDropdown
                       id={"closed"}
                       name={"closed"}
                       label={"closed"}
                       options={["yes", "no"]}
-                      error={touched.closed ? errors.closed : ""}
                     />,
                   ]}
                   showSubmitButton={false}

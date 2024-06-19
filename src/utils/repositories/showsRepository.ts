@@ -1,3 +1,4 @@
+import { ValuesFilterShows } from "pages/shows/main/useShows";
 import supabase from "utils/supabase";
 
 export interface ShowSupabase {
@@ -35,19 +36,52 @@ class ShowsRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterShows
   ) {
     try {
-      const {
-        data: showsData,
-        count: showsCount,
-        error: showsError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select("*", { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
+
+      if (filters) {
+        if (filters.name) {
+          query.ilike("name", `%${filters.name}%`);
+        }
+        if (filters.startDateFrom) {
+          query.gte("start_date", new Date(filters.startDateFrom));
+        }
+        if (filters.startDateTo) {
+          query.lte("start_date", new Date(filters.startDateTo));
+        }
+        if (filters.endDateFrom) {
+          query.gte("end_date", new Date(filters.endDateFrom));
+        }
+        if (filters.endDateTo) {
+          query.lte("end_date", new Date(filters.endDateTo));
+        }
+        if (filters.address) {
+          query.ilike("address", `${filters.address}%`);
+        }
+        if (filters.suburb) {
+          query.ilike("suburb", `${filters.suburb}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+      }
+
+      const {
+        data: showsData,
+        count: showsCount,
+        error: showsError,
+      } = await query;
 
       return { showsData, showsCount, showsError };
     } catch (error) {
@@ -61,7 +95,7 @@ class ShowsRepository {
       const { data: showsData, error: showsError } = await supabase
         .from(this.className)
         .select("*")
-        .order('created_at', { ascending: false })
+        .order("created_at", { ascending: false });
 
       return { showsData, showsError };
     } catch (error) {

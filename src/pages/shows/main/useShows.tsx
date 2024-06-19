@@ -4,11 +4,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import {
-  getDateFormatted,
-  getDateTimeFormatted,
-  initialRowsPerPage,
-} from "utils/helpers";
+import { getDateFormatted, initialRowsPerPage } from "utils/helpers";
 import ShowsRepository from "utils/repositories/showsRepository";
 
 const headCells: HeadCell[] = [
@@ -56,6 +52,30 @@ const headCells: HeadCell[] = [
   },
 ];
 
+export interface ValuesFilterShows {
+  name: string;
+  startDateFrom: string;
+  startDateTo: string;
+  endDateFrom: string;
+  endDateTo: string;
+  address: string;
+  suburb: string;
+  state: string;
+  postCode: string;
+}
+
+const initialFilters: ValuesFilterShows = {
+  name: "",
+  startDateFrom: "",
+  startDateTo: "",
+  endDateFrom: "",
+  endDateTo: "",
+  address: "",
+  suburb: "",
+  state: "",
+  postCode: "",
+};
+
 export function useShows() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -66,6 +86,8 @@ export function useShows() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState<ValuesFilterShows>(initialFilters);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -88,9 +110,7 @@ export function useShows() {
             }}
           />
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.name}
-        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.start_date)}
         </TableCell>
@@ -139,6 +159,14 @@ export function useShows() {
     setDeleteConfirmModalOpen(false);
   }
 
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
+  }
+
   async function getData() {
     try {
       setLoading(true);
@@ -150,7 +178,8 @@ export function useShows() {
         order === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage
+        rowsPerPage,
+        filters
       );
       if (shows) {
         const { showsData, showsCount, showsError } = shows;
@@ -168,7 +197,26 @@ export function useShows() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterShows) {
+    const errors = {} as ValuesFilterShows;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterShows) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering shows:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
+  }
 
   return {
     data,
@@ -191,5 +239,12 @@ export function useShows() {
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
     closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    resetFilters,
   };
 }

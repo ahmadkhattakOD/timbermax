@@ -65,7 +65,7 @@ class SalesRepository {
 
       if (filters) {
         if (filters.contactName) {
-          query.ilike("contact_name", `${filters.contactName}%`);
+          query.ilike("contact_name", `%${filters.contactName}%`);
         }
         if (filters.salesPerson) {
           query.eq("sales_person", filters.salesPerson);
@@ -89,7 +89,7 @@ class SalesRepository {
           query.eq("phone", filters.phone);
         }
         if (filters.address) {
-          query.ilike("address", `${filters.address}%`);
+          query.ilike("address", `%${filters.address}%`);
         }
         if (filters.state) {
           query.eq("state", filters.state);
@@ -98,12 +98,12 @@ class SalesRepository {
           query.eq("post_code", filters.postCode);
         }
         if (filters.emailAddress) {
-          query.ilike("email_address", `${filters.emailAddress}%`);
+          query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
           query.ilike(
             "opportunity_description",
-            `${filters.opportunityDescription}%`
+            `%${filters.opportunityDescription}%`
           );
         }
         if (filters.closer) {
@@ -198,7 +198,7 @@ class SalesRepository {
 
       if (filters) {
         if (filters.contactName) {
-          query.ilike("contact_name", `${filters.contactName}%`);
+          query.ilike("contact_name", `%${filters.contactName}%`);
         }
         if (filters.salesPerson) {
           query.eq("sales_person", filters.salesPerson);
@@ -222,7 +222,7 @@ class SalesRepository {
           query.eq("phone", filters.phone);
         }
         if (filters.address) {
-          query.ilike("address", `${filters.address}%`);
+          query.ilike("address", `%${filters.address}%`);
         }
         if (filters.state) {
           query.eq("state", filters.state);
@@ -231,12 +231,12 @@ class SalesRepository {
           query.eq("post_code", filters.postCode);
         }
         if (filters.emailAddress) {
-          query.ilike("email_address", `${filters.emailAddress}%`);
+          query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
           query.ilike(
             "opportunity_description",
-            `${filters.opportunityDescription}%`
+            `%${filters.opportunityDescription}%`
           );
         }
         if (filters.closer) {
@@ -288,7 +288,7 @@ class SalesRepository {
 
       if (filters) {
         if (filters.contactName) {
-          query.ilike("contact_name", `${filters.contactName}%`);
+          query.ilike("contact_name", `%${filters.contactName}%`);
         }
         if (filters.salesPerson) {
           query.eq("sales_person", filters.salesPerson);
@@ -312,7 +312,7 @@ class SalesRepository {
           query.eq("phone", filters.phone);
         }
         if (filters.address) {
-          query.ilike("address", `${filters.address}%`);
+          query.ilike("address", `%${filters.address}%`);
         }
         if (filters.state) {
           query.eq("state", filters.state);
@@ -321,12 +321,12 @@ class SalesRepository {
           query.eq("post_code", filters.postCode);
         }
         if (filters.emailAddress) {
-          query.ilike("email_address", `${filters.emailAddress}%`);
+          query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
           query.ilike(
             "opportunity_description",
-            `${filters.opportunityDescription}%`
+            `%${filters.opportunityDescription}%`
           );
         }
         if (filters.closer) {
