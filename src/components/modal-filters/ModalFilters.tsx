@@ -1,6 +1,7 @@
 import { Box, Modal, Typography, useTheme } from "@mui/material";
 import { FormattedMessage } from "react-intl";
 import { ReactElement } from "react";
+import { maxHeight } from "@mui/system";
 
 interface ModalFiltersProps {
   open: boolean;
@@ -16,6 +17,8 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: "80%",
   maxWidth: "900px",
+  maxHeight: "80%",
+  overflow: "scroll",
   boxShadow: 5,
   p: 4,
   padding: "1.5rem",

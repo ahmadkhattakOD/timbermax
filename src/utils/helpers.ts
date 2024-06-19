@@ -146,3 +146,17 @@ export function isRouteAllowed(
   }
   return false;
 }
+
+export function hasNonEmptyValue(obj: any) {
+  // Iterate over all values of the object
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const value = obj[key];
+      // Check if the value is not an empty string
+      if (value !== "") {
+        return true; // Return true if any value is not empty
+      }
+    }
+  }
+  return false; // Return false if all values are empty
+}

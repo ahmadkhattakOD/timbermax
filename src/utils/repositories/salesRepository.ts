@@ -1,3 +1,4 @@
+import { ValuesFilterSales } from "pages/sales/main/useSales";
 import supabase from "utils/supabase";
 
 export interface SaleSupabase {
@@ -47,14 +48,11 @@ class SalesRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterSales
   ) {
     try {
-      const {
-        data: salesData,
-        count: salesCount,
-        error: salesError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select(
           "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
@@ -63,6 +61,79 @@ class SalesRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
+
+      if (filters) {
+        if (filters.contactName) {
+          query.ilike("contact_name", `${filters.contactName}%`);
+        }
+        if (filters.salesPerson) {
+          query.eq("sales_person", filters.salesPerson);
+        }
+        if (filters.minimumDeposit) {
+          query.gte("deposit", parseFloat(filters.minimumDeposit));
+        }
+        if (filters.maximumDeposit) {
+          query.lte("deposit", parseFloat(filters.maximumDeposit));
+        }
+        if (filters.minimumTotal) {
+          query.gte("total", parseFloat(filters.minimumTotal));
+        }
+        if (filters.maximumTotal) {
+          query.gte("total", parseFloat(filters.maximumTotal));
+        }
+        if (filters.paymentMethod) {
+          query.eq("payment_method", filters.paymentMethod);
+        }
+        if (filters.phone) {
+          query.eq("phone", filters.phone);
+        }
+        if (filters.address) {
+          query.ilike("address", `${filters.address}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+        if (filters.emailAddress) {
+          query.ilike("email_address", `${filters.emailAddress}%`);
+        }
+        if (filters.opportunityDescription) {
+          query.ilike(
+            "opportunity_description",
+            `${filters.opportunityDescription}%`
+          );
+        }
+        if (filters.closer) {
+          query.eq("closer", filters.closer);
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.show) {
+          query.eq("show", parseInt(filters.show));
+        }
+        if (filters.saleDateFrom) {
+          query.gte("sale_date", new Date(filters.saleDateFrom));
+        }
+        if (filters.saleDateTo) {
+          query.lte("sale_date", new Date(filters.saleDateTo));
+        }
+        if (filters.closed) {
+          if (filters.closed === "yes") {
+            query.eq("closed", true);
+          } else {
+            query.eq("closed", false);
+          }
+        }
+      }
+
+      const {
+        data: salesData,
+        count: salesCount,
+        error: salesError,
+      } = await query;
 
       return { salesData, salesCount, salesError };
     } catch (error) {
@@ -231,7 +302,7 @@ class SalesRepository {
           follow_up_notes: sale.follow_up_notes,
           closed: true,
           delivery_date_time: sale.delivery_date_time,
-          stock_from_warehouse: sale.stock_from_warehouse
+          stock_from_warehouse: sale.stock_from_warehouse,
         })
         .eq("id", id)
         .select();

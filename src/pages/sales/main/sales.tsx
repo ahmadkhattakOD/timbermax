@@ -9,6 +9,11 @@ import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
+import {
+  australianStates,
+  getDateFormattedForField,
+  hasNonEmptyValue,
+} from "utils/helpers";
 
 export default function Sales() {
   const {
@@ -35,6 +40,13 @@ export default function Sales() {
     filterModalOpen,
     openFilterModal,
     closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    salesPersons,
+    closers,
+    shows,
+    resetFilters,
   } = useSales();
 
   return (
@@ -42,6 +54,17 @@ export default function Sales() {
       <CreateAndFiltersLayout
         actionButton={
           <ActionButton text={"add-new-sale"} onClick={goToCreate} />
+        }
+        filters={
+          hasNonEmptyValue(filters) ? (
+            <ActionButton
+              text={"reset-filters"}
+              color="secondary"
+              onClick={resetFilters}
+            />
+          ) : (
+            <></>
+          )
         }
       />
       <DataTable
@@ -76,9 +99,9 @@ export default function Sales() {
         form={
           <Formik
             enableReinitialize
-            initialValues={{}}
-            validate={() => {}}
-            onSubmit={() => {}}
+            initialValues={filters}
+            validate={validateFilters}
+            onSubmit={handleFiltersSubmit}
           >
             {({ handleSubmit, errors, touched, isSubmitting, values }) => (
               <Form onSubmit={handleSubmit}>
@@ -92,51 +115,173 @@ export default function Sales() {
                       placeholder={"Contact Name"}
                       label={"contact-name"}
                       type={"text"}
-                      // error={touched.contactName ? errors.contactName : ""}
                     />,
                     <FormDropdown
                       id={"salesPerson"}
                       name={"salesPerson"}
                       label={"sales-person"}
                       useFormattedStrings={false}
-                      options={[0, 1, 2, 3]}
-                      // error={touched.salesPerson ? errors.salesPerson : ""}
+                      options={salesPersons.map((salesPerson) => {
+                        return {
+                          label: salesPerson.full_name,
+                          value: salesPerson.id.toString(),
+                        };
+                      })}
                     />,
                     <FormInput
-                      id={"depositMin"}
-                      name={"depositMin"}
+                      id={"minimumDeposit"}
+                      name={"minimumDeposit"}
                       placeholder={"Minimum Deposit"}
                       label={"minimum-deposit"}
                       type={"number"}
                       min={0}
-                      // error={touched.deposit ? errors.deposit : ""}
                     />,
                     <FormInput
-                      id={"depositMax"}
-                      name={"depositMax"}
+                      id={"maximumDeposit"}
+                      name={"maximumDeposit"}
                       placeholder={"Maximum Deposit"}
                       label={"maximum-deposit"}
                       type={"number"}
                       min={0}
-                      // error={touched.deposit ? errors.deposit : ""}
                     />,
                     <FormInput
-                      id={"totalMin"}
-                      name={"totalMin"}
+                      id={"minimumTotal"}
+                      name={"minimumTotal"}
                       placeholder={"Minimum Total"}
                       label={"minimum-total"}
                       type={"number"}
                       min={0}
-                      // error={touched.deposit ? errors.deposit : ""}
                     />,
                     <FormInput
-                      id={"totalMax"}
-                      name={"totalMax"}
+                      id={"maximumTotal"}
+                      name={"maximumTotal"}
                       placeholder={"Maximum Total"}
                       label={"maximum-total"}
                       type={"number"}
                       min={0}
-                      // error={touched.deposit ? errors.deposit : ""}
+                    />,
+                    <FormDropdown
+                      id={"paymentMethod"}
+                      name={"paymentMethod"}
+                      label={"payment-method"}
+                      options={[
+                        "cash",
+                        "card",
+                        "bank-transfer",
+                        "finance",
+                        "ndis",
+                        "care-package",
+                      ]}
+                    />,
+                    <FormInput
+                      id={"phone"}
+                      name={"phone"}
+                      placeholder={"Phone"}
+                      label={"phone"}
+                      type={"text"}
+                    />,
+                    <FormInput
+                      id={"address"}
+                      name={"address"}
+                      placeholder={"Address"}
+                      label={"address"}
+                      type={"text"}
+                    />,
+                    <FormDropdown
+                      id={"state"}
+                      name={"state"}
+                      label={"state"}
+                      useFormattedStrings={false}
+                      options={australianStates}
+                    />,
+                    <FormInput
+                      id={"postCode"}
+                      name={"postCode"}
+                      placeholder={"Post Code"}
+                      label={"post-code"}
+                      type={"text"}
+                    />,
+                    <FormInput
+                      id={"emailAddress"}
+                      name={"emailAddress"}
+                      placeholder={"Email Address"}
+                      label={"email-address"}
+                      type={"email"}
+                    />,
+                    <FormInput
+                      id={"opportunityDescription"}
+                      name={"opportunityDescription"}
+                      placeholder={"Opportunity Description"}
+                      label={"opportunity-description"}
+                      type={"text"}
+                      isTextArea
+                    />,
+                    <FormDropdown
+                      id={"closer"}
+                      name={"closer"}
+                      label={"closer"}
+                      useFormattedStrings={false}
+                      options={closers.map((closer) => {
+                        return {
+                          label: closer.full_name,
+                          value: closer.id.toString(),
+                        };
+                      })}
+                      optional={false}
+                      error={touched.closer ? errors.closer : ""}
+                    />,
+                    <FormDropdown
+                      id={"status"}
+                      name={"status"}
+                      label={"status"}
+                      options={[
+                        "delivered",
+                        "cancelled",
+                        "deposited-twenty-plus",
+                        "scheduled-for-delivery",
+                        "on-hold",
+                        "ready-for-delivery",
+                      ]}
+                      error={touched.status ? errors.status : ""}
+                    />,
+                    <FormDropdown
+                      id={"show"}
+                      name={"show"}
+                      label={"show"}
+                      useFormattedStrings={false}
+                      options={shows.map((show) => {
+                        return {
+                          label: show.name,
+                          value: show.id.toString(),
+                        };
+                      })}
+                      optional={false}
+                      error={touched.show ? errors.show : ""}
+                    />,
+                    <FormInput
+                      id={"saleDateFrom"}
+                      name={"saleDateFrom"}
+                      placeholder={"Sale Date From"}
+                      label={"sale-date-from"}
+                      type={"date"}
+                      max={getDateFormattedForField()}
+                      error={touched.saleDateFrom ? errors.saleDateFrom : ""}
+                    />,
+                    <FormInput
+                      id={"saleDateTo"}
+                      name={"saleDateTo"}
+                      placeholder={"Sale Date To"}
+                      label={"sale-date-to"}
+                      type={"date"}
+                      max={getDateFormattedForField()}
+                      error={touched.saleDateTo ? errors.saleDateTo : ""}
+                    />,
+                    <FormDropdown
+                      id={"closed"}
+                      name={"closed"}
+                      label={"closed"}
+                      options={["yes", "no"]}
+                      error={touched.closed ? errors.closed : ""}
                     />,
                   ]}
                   showSubmitButton={false}
