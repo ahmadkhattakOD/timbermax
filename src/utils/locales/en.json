@@ -91,6 +91,7 @@
   "required-lesser-than-limit": "Please enter a valid amount up till the available amount",
   "required-password": "Password does not meet the Password Policy requirements. Password must be at least 8 characters long, and have at least one uppercase character, one lowercase character, one number and one special character (!, $, #, ^, etc.).",
   "required-password-match": "Please make sure both passwords match",
+  "required-password-different": "Please make sure the new password does not match the current password",
   "required-email": "Please enter a valid email",
   "users": "Users",
   "add-new-user": "Add New User",

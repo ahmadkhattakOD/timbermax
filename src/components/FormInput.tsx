@@ -2,6 +2,7 @@ import { Box, Typography, styled, Checkbox, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Field, useField } from "formik";
 import { FormattedMessage } from "react-intl";
+import { Eye, EyeSlash } from "iconsax-react";
 
 interface FieldInputProps {
   id: string;
@@ -18,6 +19,8 @@ interface FieldInputProps {
   defaultValue?: string;
   disabled?: boolean;
   isTextArea?: boolean;
+  isPasswordField?: boolean;
+  onChangePasswordVisibility?: () => void;
 }
 
 const FormInput = ({
@@ -35,6 +38,8 @@ const FormInput = ({
   defaultValue,
   disabled,
   isTextArea = false,
+  isPasswordField,
+  onChangePasswordVisibility,
 }: FieldInputProps) => {
   const [_, __, helpers] = useField(name);
   const theme = useTheme();
@@ -62,7 +67,12 @@ const FormInput = ({
           }}
         >
           <Typography
-            sx={{ color: disabled ? theme.palette.text.disabled : theme.palette.text.primary, fontSize: "16px" }}
+            sx={{
+              color: disabled
+                ? theme.palette.text.disabled
+                : theme.palette.text.primary,
+              fontSize: "16px",
+            }}
           >
             <FormattedMessage id={label} />
           </Typography>
@@ -89,8 +99,26 @@ const FormInput = ({
           type={type}
           defaultValue={defaultValue}
           disabled={disabled}
-          autoComplete={type === 'password' ? 'new-password' : undefined}
+          autoComplete={type === "password" ? "new-password" : undefined}
         />
+
+        {isPasswordField && (
+          <Box sx={{ paddingRight: "0.5rem" }}>
+            {type === "password" ? (
+              <Eye
+                color={theme.palette.primary.main}
+                onClick={onChangePasswordVisibility}
+                size="1rem"
+              />
+            ) : (
+              <EyeSlash
+                color={theme.palette.primary.main}
+                onClick={onChangePasswordVisibility}
+                size="1rem"
+              />
+            )}
+          </Box>
+        )}
       </div>
 
       {error && (

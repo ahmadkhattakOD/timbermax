@@ -50,6 +50,47 @@ class ProfilesRepository {
     }
   }
 
+  public async setPassword(userId: string, newPassword: string) {
+    try {
+      const { data, error } = await supabase.functions.invoke("account", {
+        body: {
+          userId: userId,
+          newPassword: newPassword,
+          action: "setPassword",
+        },
+      });
+
+      if (data && data.status === "success" && error === null) {
+        return data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error creating new user:", error);
+      return null;
+    }
+  }
+
+  public async resetPassword(email: string, oldPassword: string, newPassword: string) {
+    try {
+      const { data, error } = await supabase.functions.invoke("account", {
+        body: {
+          email: email,
+          oldPassword: oldPassword,
+          newPassword: newPassword,
+          action: "resetPassword",
+        },
+      });
+
+      if (data && data.status === "success" && error === null) {
+        return data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error creating new user:", error);
+      return null;
+    }
+  }
+
   public async get(
     orderBy: string,
     ascending: boolean,

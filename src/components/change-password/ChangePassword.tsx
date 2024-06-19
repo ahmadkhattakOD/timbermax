@@ -29,6 +29,12 @@ export default function ChangePassword({
     validateWithoutConfirmation,
     onSubmit,
     onSubmitWithoutConfirmation,
+    currentPasswordObscured,
+    changeCurrentPasswordVisibility,
+    newPasswordObscured,
+    changeNewPasswordVisibility,
+    confirmPasswordObscured,
+    changeConfirmPasswordVisibility,
   } = useChangePassword();
 
   const theme = useTheme();
@@ -84,7 +90,11 @@ export default function ChangePassword({
                         placeholder={"Current Password"}
                         label={"current-password"}
                         optional={false}
-                        type={"text"}
+                        type={currentPasswordObscured ? "password" : "text"}
+                        isPasswordField
+                        onChangePasswordVisibility={
+                          changeCurrentPasswordVisibility
+                        }
                         error={
                           touched.currentPassword ? errors.currentPassword : ""
                         }
@@ -95,7 +105,9 @@ export default function ChangePassword({
                         placeholder={"New Password"}
                         label={"new-password"}
                         optional={false}
-                        type={"text"}
+                        type={newPasswordObscured ? "password" : "text"}
+                        isPasswordField
+                        onChangePasswordVisibility={changeNewPasswordVisibility}
                         error={touched.newPassword ? errors.newPassword : ""}
                       />,
                       <FormInput
@@ -104,7 +116,11 @@ export default function ChangePassword({
                         placeholder={"Confirm New Password"}
                         label={"confirm-new-password"}
                         optional={false}
-                        type={"text"}
+                        type={confirmPasswordObscured ? "password" : "text"}
+                        isPasswordField
+                        onChangePasswordVisibility={
+                          changeConfirmPasswordVisibility
+                        }
                         error={
                           touched.confirmPassword ? errors.confirmPassword : ""
                         }
@@ -136,7 +152,9 @@ export default function ChangePassword({
                         placeholder={"New Password"}
                         label={"new-password"}
                         optional={false}
-                        type={"text"}
+                        type={newPasswordObscured ? "password" : "text"}
+                        isPasswordField
+                        onChangePasswordVisibility={changeNewPasswordVisibility}
                         error={touched.newPassword ? errors.newPassword : ""}
                       />,
                       <FormInput
@@ -145,7 +163,11 @@ export default function ChangePassword({
                         placeholder={"Confirm New Password"}
                         label={"confirm-new-password"}
                         optional={false}
-                        type={"text"}
+                        type={confirmCurrentPassword ? "password" : "text"}
+                        isPasswordField
+                        onChangePasswordVisibility={
+                          changeConfirmPasswordVisibility
+                        }
                         error={
                           touched.confirmPassword ? errors.confirmPassword : ""
                         }
