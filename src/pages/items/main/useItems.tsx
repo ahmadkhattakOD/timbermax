@@ -22,6 +22,16 @@ const headCells: HeadCell[] = [
   },
 ];
 
+export interface ValuesFilterItems {
+  name: string;
+  description: string;
+}
+
+const initialFilters: ValuesFilterItems = {
+  name: "",
+  description: ""
+};
+
 export function useItems() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -32,6 +42,8 @@ export function useItems() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState<ValuesFilterItems>(initialFilters);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -103,6 +115,14 @@ export function useItems() {
     setDeleteConfirmModalOpen(false);
   }
 
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
+  }
+
   async function getData() {
     try {
       setLoading(true);
@@ -114,7 +134,8 @@ export function useItems() {
         order === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage
+        rowsPerPage,
+        filters,
       );
       if (warehouses) {
         const { itemsData, itemsCount, itemsError } = warehouses;
@@ -132,7 +153,26 @@ export function useItems() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterItems) {
+    const errors = {} as ValuesFilterItems;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterItems) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering items:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
+  }
 
   return {
     data,
@@ -154,6 +194,13 @@ export function useItems() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
+    closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    resetFilters,
   };
 }

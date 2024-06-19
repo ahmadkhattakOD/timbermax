@@ -127,5 +127,6 @@
   "start-date-from": "Start Date From",
   "start-date-to": "Start Date To",
   "end-date-from": "End Date From",
-  "end-date-to": "End Date To"
+  "end-date-to": "End Date To",
+  "filter-items": "Filter Items"
 }

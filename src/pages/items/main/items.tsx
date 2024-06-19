@@ -4,6 +4,11 @@ import ActionButton from "components/ActionButton";
 import { useItems } from "./useItems";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
+import { hasNonEmptyValue } from "utils/helpers";
+import ModalFilters from "components/modal-filters/ModalFilters";
+import { Form, Formik } from "formik";
+import FormLayout from "components/FormLayout";
+import FormInput from "components/FormInput";
 
 
 export default function Items() {
@@ -27,7 +32,14 @@ export default function Items() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
+    closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    resetFilters,
   } = useItems();
 
   return (
@@ -35,6 +47,17 @@ export default function Items() {
       <CreateAndFiltersLayout
         actionButton={
           <ActionButton text={"add-new-item"} onClick={goToCreate} />
+        }
+        filters={
+          hasNonEmptyValue(filters) ? (
+            <ActionButton
+              text={"reset-filters"}
+              color="secondary"
+              onClick={resetFilters}
+            />
+          ) : (
+            <></>
+          )
         }
       />
       <DataTable
@@ -55,12 +78,64 @@ export default function Items() {
         headCells={headCells}
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
-        openFilterModal={openDeleteConfirmModal}
+        openFilterModal={openFilterModal}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
         onClose={closeDeleteConfirmModal}
         onDelete={onDelete}
+      />
+      <ModalFilters
+        title="filter-items"
+        open={filterModalOpen}
+        onClose={closeFilterModal}
+        form={
+          <Formik
+            enableReinitialize
+            initialValues={filters}
+            validate={validateFilters}
+            onSubmit={handleFiltersSubmit}
+          >
+            {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+              <Form onSubmit={handleSubmit}>
+                <FormLayout
+                  isSubmitting={isSubmitting}
+                  submitButtonText={"apply"}
+                  inputs={[
+                    <FormInput
+                      id={"name"}
+                      name={"name"}
+                      placeholder={"Name"}
+                      label={"name"}
+                      type={"text"}
+                    />,
+                    <FormInput
+                      id={"description"}
+                      name={"description"}
+                      placeholder={"Description"}
+                      label={"description"}
+                      type={"text"}
+                    />,
+                  ]}
+                  showSubmitButton={false}
+                />
+                <Box
+                  display={"flex"}
+                  justifyContent={"center"}
+                  gap={"15px"}
+                  marginTop={"2rem"}
+                >
+                  <ActionButton
+                    onClick={closeFilterModal}
+                    color={"secondary"}
+                    text={"cancel"}
+                  />
+                  <ActionButton type="submit" text={"apply"} />
+                </Box>
+              </Form>
+            )}
+          </Formik>
+        }
       />
     </Box>
   );

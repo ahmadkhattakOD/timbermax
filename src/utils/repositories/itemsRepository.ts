@@ -1,3 +1,4 @@
+import { ValuesFilterItems } from "pages/items/main/useItems";
 import supabase from "utils/supabase";
 
 export interface ItemSupabase {
@@ -30,19 +31,31 @@ class ItemsRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterItems
   ) {
     try {
-      const {
-        data: itemsData,
-        count: itemsCount,
-        error: itemsError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select("*", { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
+
+      if (filters) {
+        if (filters.name) {
+          query.ilike("name", `%${filters.name}%`);
+        }
+        if (filters.description) {
+          query.ilike("description", `%${filters.description}%`);
+        }
+      }
+
+      const {
+        data: itemsData,
+        count: itemsCount,
+        error: itemsError,
+      } = await query;
 
       return { itemsData, itemsCount, itemsError };
     } catch (error) {
@@ -56,7 +69,7 @@ class ItemsRepository {
       const { data: itemsData, error: itemsError } = await supabase
         .from(this.className)
         .select("*")
-        .order('created_at', { ascending: false })
+        .order("created_at", { ascending: false });
 
       return { itemsData, itemsError };
     } catch (error) {
