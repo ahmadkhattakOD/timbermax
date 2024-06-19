@@ -398,8 +398,20 @@ class SalesRepository {
         .gte("created_at", getDateFormattedForField(startDate))
         .lte("created_at", getDateFormattedForField(endDate));
 
-      const totalSalesCount: { [month: string]: number } = {};
-
+      const totalSalesCount: { [month: string]: number } = {
+        January: 0,
+        February: 0,
+        March: 0,
+        April: 0,
+        May: 0,
+        June: 0,
+        July: 0,
+        August: 0,
+        September: 0,
+        October: 0,
+        November: 0,
+        December: 0,
+      };
       if (salesData && !salesError) {
         for (let i = 0; i < salesData.length; i++) {
           const saleDate = new Date(salesData[i].sale_date);

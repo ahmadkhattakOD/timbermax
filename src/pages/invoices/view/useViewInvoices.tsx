@@ -189,6 +189,7 @@ export function useViewInvoices() {
   const [invoiceRulesLoading, setInvoiceRulesLoading] = useState<boolean>(true);
   const [cancelledSales, setCancelledSales] = useState<number>(0);
   const [totalCommission, setTotalCommission] = useState<number>(0);
+  const [totalWages, setTotalWages] = useState<number>(0);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [sales, setSales] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterInvoices>(initialFilters);
@@ -447,15 +448,16 @@ export function useViewInvoices() {
         setInvoiceRulesLoading(true);
         const profilesRepository = new ProfilesRepository();
         const profile = await profilesRepository.getSingle(id);
-        let commissionPercentage = 0;
         if (profile) {
+          let dailyWage = 0;
           const { profileData, profileError } = profile;
           if (profileData && !profileError) {
             setInvoiceRules(profileData.invoice_rules);
             setFullName(profileData.full_name);
             setProfilePicture(profileData.profile_picture);
-            commissionPercentage = profileData.commission;
+            dailyWage = profileData.daily_wage;
           }
+          setTotalWages(dailyWage * (profileData.invoice_rules.show_days ?? 0));
         }
         const invoicesRepository = new InvoicesRepository();
         const allInvoices = await invoicesRepository.getWithExtendedLimit(id);
@@ -476,6 +478,7 @@ export function useViewInvoices() {
             setTotalCommission(salesMadeValue);
           }
         }
+        
         setInvoiceRulesLoading(false);
       }
     } catch (e) {
@@ -524,6 +527,7 @@ export function useViewInvoices() {
     onSubmit,
     invoiceRulesLoading,
     invoiceRules,
+    totalWages,
     fullName,
     profilePicture,
     totalCommission,

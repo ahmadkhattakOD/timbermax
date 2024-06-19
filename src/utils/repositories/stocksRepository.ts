@@ -110,6 +110,21 @@ class StocksRepository {
     }
   }
 
+  public async getLowInStock() {
+    try {
+      const { data: stocksData, error: stocksError } = await supabase
+        .from(this.className)
+        .select(" id, item ( name ), quantity ")
+        .order("quantity", { ascending: true })
+        .limit(5);
+
+        return { stocksData, stocksError };
+    } catch (error) {
+      console.error("Error fetching stocks:", error);
+      return null;
+    }
+  }
+
   public async getSingle(id: number) {
     try {
       const { data: stockData, error: stockError } = await supabase

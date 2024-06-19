@@ -2,38 +2,218 @@
 import MainCard from "components/MainCard";
 import Chart from "react-apexcharts";
 import { useDashboard } from "./useDashboard";
-import { Grid } from "@mui/material";
+import {
+  Box,
+  Button,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import CircularLoader from "components/CircularLoader";
+import { getDateFormatted } from "utils/helpers";
 
 // ==============================|| DASHBOARD PAGE ||============================== //
 
 export default function Dashboard() {
-  const { salesOptions, salesSeries, commissionOptions, commissionSeries, userOptions, userSeries } = useDashboard();
+  const {
+    loadingSales,
+    salesOptions,
+    salesSeries,
+    salesYear,
+    loadingCommissions,
+    commissionOptions,
+    commissionSeries,
+    commissionYear,
+    userOptions,
+    userSeries,
+    upcomingShows,
+    viewAllShows,
+    viewAllUsers,
+    viewAllStock,
+    viewShow,
+    viewStock,
+    yearOptions,
+    handleSalesYearChange,
+    handleCommissionYearChange,
+    lowInStock,
+    loadingUsers,
+    loadingUpcomingShows,
+    loadingLowInStock,
+  } = useDashboard();
+  const theme = useTheme();
 
   return (
     <Grid container columnSpacing={"1rem"} rowSpacing={"1rem"}>
       <Grid item xs={12} md={6}>
-        <MainCard title="Total Sales">
-          <Chart options={salesOptions} series={salesSeries} type="bar" />
+        <MainCard
+          title="Total Sales"
+          secondary={
+            <Box sx={{ width: "100px" }}>
+              <FormControl fullWidth>
+                <InputLabel>Year</InputLabel>
+                <Select
+                  value={salesYear}
+                  label="Year"
+                  onChange={(e) => {
+                    handleSalesYearChange(e.target.value as number);
+                  }}
+                >
+                  {yearOptions.map((year) => (
+                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          }
+        >
+          {loadingSales ? (
+            <Box sx={{ padding: "3rem" }}>
+              <CircularLoader />
+            </Box>
+          ) : (
+            <Chart options={salesOptions} series={salesSeries} type="bar" />
+          )}
         </MainCard>
       </Grid>
       <Grid item xs={12} md={6}>
-        <MainCard title="Total Commission">
-          <Chart options={commissionOptions} series={commissionSeries} type="bar" />
+        <MainCard
+          title="Total Commission"
+          secondary={
+            <Box sx={{ width: "100px" }}>
+              <FormControl fullWidth>
+                <InputLabel>Year</InputLabel>
+                <Select
+                  value={commissionYear}
+                  label="Year"
+                  onChange={(e) => {
+                    handleCommissionYearChange(e.target.value as number);
+                  }}
+                >
+                  {yearOptions.map((year) => (
+                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          }
+        >
+          {loadingCommissions ? (
+            <Box sx={{ padding: "3rem" }}>
+              <CircularLoader />
+            </Box>
+          ) : (
+            <Chart
+              options={commissionOptions}
+              series={commissionSeries}
+              type="bar"
+            />
+          )}
         </MainCard>
       </Grid>
       <Grid item xs={12} md={4}>
-        <MainCard title="Users">
-          <Chart options={userOptions} series={userSeries} type="donut" />
+        <MainCard
+          title="Users"
+          secondary={<Button onClick={viewAllUsers}>View All</Button>}
+        >
+          {loadingUsers ? (
+            <Box sx={{ padding: "3rem" }}>
+              <CircularLoader />
+            </Box>
+          ) : userSeries.length > 0 ? (
+            <Chart options={userOptions} series={userSeries} type="donut" />
+          ) : (
+            <Typography>No Users Found.</Typography>
+          )}
         </MainCard>
       </Grid>
       <Grid item xs={12} md={4}>
-        <MainCard title="Upcoming Shows">
-
+        <MainCard
+          title="Upcoming Shows"
+          secondary={<Button onClick={viewAllShows}>View All</Button>}
+        >
+          {loadingUpcomingShows ? (
+            <Box sx={{ padding: "3rem" }}>
+              <CircularLoader />
+            </Box>
+          ) : upcomingShows.length > 0 ? (
+            upcomingShows.map((show, idx) => {
+              return (
+                <Box key={idx}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "0.25rem",
+                      "&:hover": {
+                        backgroundColor: theme.palette.secondary[100],
+                        cursor: "pointer",
+                      },
+                    }}
+                    onClick={() => {
+                      viewShow(show.id);
+                    }}
+                  >
+                    <Typography sx={{ color: theme.palette.text.primary }}>
+                      {show.name} ({show.suburb}
+                      {show.suburb && ", "}
+                      {show.state})
+                    </Typography>
+                    <Typography sx={{ color: theme.palette.text.secondary }}>
+                      {getDateFormatted(show.start_date)}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })
+          ) : (
+            <Typography>No Upcoming Shows Found.</Typography>
+          )}
         </MainCard>
       </Grid>
       <Grid item xs={12} md={4}>
-        <MainCard title="Low in Stock">
-          
+        <MainCard
+          title="Low in Stock"
+          secondary={<Button onClick={viewAllStock}>View All</Button>}
+        >
+          {loadingLowInStock ? (
+            <Box sx={{ padding: "3rem" }}>
+              <CircularLoader />
+            </Box>
+          ) : lowInStock.length > 0 ? (
+            lowInStock.map((stock, idx) => {
+              return (
+                <Box key={idx}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "0.25rem",
+                      "&:hover": {
+                        backgroundColor: theme.palette.secondary[100],
+                        cursor: "pointer",
+                      },
+                    }}
+                    onClick={() => {
+                      viewStock(stock.id);
+                    }}
+                  >
+                    <Typography sx={{ color: theme.palette.text.primary }}>
+                      {stock.item?.name}
+                    </Typography>
+                    <Typography sx={{ color: theme.palette.text.secondary }}>
+                      {stock.quantity}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })
+          ) : (
+            <Typography>No Stock Found.</Typography>
+          )}
         </MainCard>
       </Grid>
     </Grid>

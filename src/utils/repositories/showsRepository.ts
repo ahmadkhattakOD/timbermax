@@ -1,4 +1,5 @@
 import { ValuesFilterShows } from "pages/shows/main/useShows";
+import { getDateFormattedForField } from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface ShowSupabase {
@@ -96,6 +97,22 @@ class ShowsRepository {
         .from(this.className)
         .select("*")
         .order("created_at", { ascending: false });
+
+      return { showsData, showsError };
+    } catch (error) {
+      console.error("Error fetching shows:", error);
+      return null;
+    }
+  }
+
+  public async getUpcoming() {
+    try {
+      const { data: showsData, error: showsError } = await supabase
+        .from(this.className)
+        .select("*")
+        .order("created_at", { ascending: true })
+        .gte("start_date", getDateFormattedForField())
+        .limit(5);
 
       return { showsData, showsError };
     } catch (error) {

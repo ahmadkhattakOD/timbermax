@@ -40,6 +40,7 @@ export default function ViewInvoices() {
     onSubmit,
     invoiceRulesLoading,
     invoiceRules,
+    totalWages,
     fullName,
     profilePicture,
     cancelledSales,
@@ -83,14 +84,19 @@ export default function ViewInvoices() {
               }}
             >
               <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Bonuses:{" "}
+                Wages: <span style={{ fontWeight: 700 }}>{totalWages}</span>
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 400 }}>
+                Travel Bonus:{" "}
                 <span style={{ fontWeight: 700 }}>
                   {invoiceRules.travel_bonus}
-                </span>{" "}
-                +{" "}
+                </span>
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 400 }}>
+                Other Bonuses:{" "}
                 <span style={{ fontWeight: 700 }}>
                   {invoiceRules.other_bonuses}
-                </span>
+                </span>{" "}
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 400 }}>
                 Total Commission:{" "}
@@ -118,13 +124,15 @@ export default function ViewInvoices() {
               <Typography variant="h5" sx={{ fontWeight: 400 }}>
                 Total:{" "}
                 <span style={{ fontWeight: 700 }}>
-                  {invoiceRules.travel_bonus +
+                  {totalWages +
+                    invoiceRules.travel_bonus +
                     invoiceRules.other_bonuses +
                     totalCommission -
                     cancelledSales -
                     invoiceRules.deductions >=
                   0
-                    ? invoiceRules.travel_bonus +
+                    ? totalWages +
+                      invoiceRules.travel_bonus +
                       invoiceRules.other_bonuses +
                       totalCommission -
                       cancelledSales -

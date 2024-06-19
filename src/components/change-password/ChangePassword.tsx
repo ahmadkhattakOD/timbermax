@@ -99,6 +99,7 @@ export default function ChangePassword({
                           touched.currentPassword ? errors.currentPassword : ""
                         }
                       />,
+                      <Box></Box>,
                       <FormInput
                         id={"newPassword"}
                         name={"newPassword"}

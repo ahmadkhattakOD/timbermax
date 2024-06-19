@@ -9,6 +9,7 @@ import CircularLoader from "components/CircularLoader";
 import {
   australianStates,
   getDateFormatted,
+  getDateFormattedForField,
   getDateTimeFormatted,
 } from "utils/helpers";
 
@@ -37,8 +38,8 @@ export default function EditShow() {
       enableReinitialize
       initialValues={{
         name: show.name ?? "",
-        startDate: show.start_date ? getDateTimeFormatted(show.start_date) : "",
-        endDate: show.end_date ? getDateTimeFormatted(show.end_date) : "",
+        startDate: show.start_date ? getDateFormattedForField(show.start_date) : "",
+        endDate: show.end_date ? getDateFormattedForField(show.end_date) : "",
         address: show.address ?? "",
         suburb: show.suburb ?? "",
         state: show.state ?? "",
