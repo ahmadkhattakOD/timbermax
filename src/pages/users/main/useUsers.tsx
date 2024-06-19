@@ -46,6 +46,30 @@ const headCells: HeadCell[] = [
   },
 ];
 
+export interface ValuesFilterUsers {
+  fullName: string;
+  email: string;
+  role: string;
+  minimumDailyWage: string;
+  maximumDailyWage: string;
+  minimumCommission: string;
+  maximumCommission: string;
+  joinedAtFrom: string;
+  joinedAtTo: string;
+}
+
+const initialFilters: ValuesFilterUsers = {
+  fullName: "",
+  email: "",
+  role: "",
+  minimumDailyWage: "",
+  maximumDailyWage: "",
+  minimumCommission: "",
+  maximumCommission: "",
+  joinedAtFrom: "",
+  joinedAtTo: "",
+};
+
 export function useUsers() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -56,6 +80,8 @@ export function useUsers() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState<ValuesFilterUsers>(initialFilters);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -82,7 +108,10 @@ export function useUsers() {
         <TableCell sx={{ minWidth: 200 }}>{row.email}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.role}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.daily_wage}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.commission}{row.commission !== null && '%'}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.commission}
+          {row.commission !== null && "%"}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateTimeFormatted(row.created_at, true)}
         </TableCell>
@@ -124,6 +153,14 @@ export function useUsers() {
     setDeleteConfirmModalOpen(false);
   }
 
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
+  }
+
   async function getData() {
     try {
       setLoading(true);
@@ -135,7 +172,8 @@ export function useUsers() {
         order === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage
+        rowsPerPage,
+        filters,
       );
       if (profiles) {
         const { profilesData, profilesCount, profilesError } = profiles;
@@ -153,7 +191,26 @@ export function useUsers() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterUsers) {
+    const errors = {} as ValuesFilterUsers;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterUsers) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering profiles:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
+  }
 
   return {
     data,
@@ -176,5 +233,12 @@ export function useUsers() {
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
     closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    resetFilters,
   };
 }

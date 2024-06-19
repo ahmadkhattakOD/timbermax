@@ -4,7 +4,12 @@ import ActionButton from "components/ActionButton";
 import { useUsers } from "./useUsers";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-
+import { hasNonEmptyValue, userRoles } from "utils/helpers";
+import ModalFilters from "components/modal-filters/ModalFilters";
+import { Form, Formik } from "formik";
+import FormLayout from "components/FormLayout";
+import FormInput from "components/FormInput";
+import FormDropdown from "components/FormDropdown";
 
 export default function Users() {
   const {
@@ -27,7 +32,14 @@ export default function Users() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
+    closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    resetFilters,
   } = useUsers();
 
   return (
@@ -35,6 +47,17 @@ export default function Users() {
       <CreateAndFiltersLayout
         actionButton={
           <ActionButton text={"add-new-user"} onClick={goToCreate} />
+        }
+        filters={
+          hasNonEmptyValue(filters) ? (
+            <ActionButton
+              text={"reset-filters"}
+              color="secondary"
+              onClick={resetFilters}
+            />
+          ) : (
+            <></>
+          )
         }
       />
       <DataTable
@@ -55,12 +78,117 @@ export default function Users() {
         headCells={headCells}
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
-        openFilterModal={openDeleteConfirmModal}
+        openFilterModal={openFilterModal}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
         onClose={closeDeleteConfirmModal}
         onDelete={onDelete}
+      />
+      <ModalFilters
+        title="filter-users"
+        open={filterModalOpen}
+        onClose={closeFilterModal}
+        form={
+          <Formik
+            enableReinitialize
+            initialValues={filters}
+            validate={validateFilters}
+            onSubmit={handleFiltersSubmit}
+          >
+            {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+              <Form onSubmit={handleSubmit}>
+                <FormLayout
+                  isSubmitting={isSubmitting}
+                  submitButtonText={"apply"}
+                  inputs={[
+                    <FormInput
+                      id={"full_name"}
+                      name={"full_name"}
+                      placeholder={"Full Name"}
+                      label={"full-name"}
+                      type={"text"}
+                    />,
+                    <FormInput
+                      id={"email"}
+                      name={"email"}
+                      placeholder={"Email"}
+                      label={"email"}
+                      type={"email"}
+                    />,
+                    <FormDropdown
+                      id={"role"}
+                      name={"role"}
+                      label={"role"}
+                      useFormattedStrings={false}
+                      options={userRoles}
+                    />,
+                    <FormInput
+                      id={"minimumDailyWage"}
+                      name={"minimumDailyWage"}
+                      placeholder={"Minimum Daily Wage"}
+                      label={"minimum-daily-wage"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumDailyWage"}
+                      name={"maximumDailyWage"}
+                      placeholder={"Maximum Daily Wage"}
+                      label={"maximum-daily-wage"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"minimumCommission"}
+                      name={"minimumCommission"}
+                      placeholder={"Minimum Commission"}
+                      label={"minimum-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumCommission"}
+                      name={"maximumCommission"}
+                      placeholder={"Maximum Commission"}
+                      label={"maximum-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"joinedAtFrom"}
+                      name={"joinedAtFrom"}
+                      placeholder={"Joined At From"}
+                      label={"joined-at-from"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"joinedAtTo"}
+                      name={"joinedAtTo"}
+                      placeholder={"Joined At To"}
+                      label={"joined-at-to"}
+                      type={"date"}
+                    />,
+                  ]}
+                  showSubmitButton={false}
+                />
+                <Box
+                  display={"flex"}
+                  justifyContent={"center"}
+                  gap={"15px"}
+                  marginTop={"2rem"}
+                >
+                  <ActionButton
+                    onClick={closeFilterModal}
+                    color={"secondary"}
+                    text={"cancel"}
+                  />
+                  <ActionButton type="submit" text={"apply"} />
+                </Box>
+              </Form>
+            )}
+          </Formik>
+        }
       />
     </Box>
   );

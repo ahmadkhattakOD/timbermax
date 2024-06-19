@@ -1,3 +1,4 @@
+import { ValuesFilterUsers } from "pages/users/main/useUsers";
 import supabase from "utils/supabase";
 
 export interface ProfileSupabase {
@@ -37,8 +38,6 @@ class ProfilesRepository {
           },
         });
 
-        console.log("DATA", data, error);
-
         if (data && data.status === "success" && error === null) {
           return data.data;
         }
@@ -56,19 +55,52 @@ class ProfilesRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterUsers
   ) {
     try {
-      const {
-        data: profilesData,
-        count: profilesCount,
-        error: profilesError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select("*", { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
+
+      if (filters) {
+        if (filters.fullName) {
+          query.ilike("full_name", `%${filters.fullName}%`);
+        }
+        if (filters.email) {
+          query.ilike("email", `%${filters.email}%`);
+        }
+        if (filters.role) {
+          query.eq("role", filters.role);
+        }
+        if (filters.minimumDailyWage) {
+          query.gte("daily_wage", filters.minimumDailyWage);
+        }
+        if (filters.maximumDailyWage) {
+          query.lte("daily_wage", filters.maximumDailyWage);
+        }
+        if (filters.minimumCommission) {
+          query.gte("commission", filters.minimumCommission);
+        }
+        if (filters.maximumCommission) {
+          query.lte("commission", filters.maximumCommission);
+        }
+        if (filters.joinedAtFrom) {
+          query.gte("created_at", filters.joinedAtFrom);
+        }
+        if (filters.joinedAtTo) {
+          query.lte("created_at", filters.joinedAtTo);
+        }
+      }
+
+      const {
+        data: profilesData,
+        count: profilesCount,
+        error: profilesError,
+      } = await query;
 
       return { profilesData, profilesCount, profilesError };
     } catch (error) {

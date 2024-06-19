@@ -134,5 +134,12 @@
   "maximum-quantity": "Maximum Quantity",
   "updated-at-from": "Updated At From",
   "updated-at-to": "Updated At To",
-  "filter-warehouses": "Filter Warehouses"
+  "filter-warehouses": "Filter Warehouses",
+  "filter-users": "Filter Users",
+  "minimum-daily-wage": "Minimum Daily Wage",
+  "maximum-daily-wage": "Maximum Daily Wage",
+  "minimum-commission": "Minimum Commission",
+  "maximum-commission": "Maximum Commission",
+  "joined-at-from": "Joined At From",
+  "joined-at-to": "Joined At To"
 }
