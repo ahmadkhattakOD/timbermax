@@ -4,7 +4,8 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import { getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import ItemsRepository from "utils/repositories/itemsRepository";
 import StocksRepository from "utils/repositories/stocksRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
 
@@ -35,6 +36,24 @@ const headCells: HeadCell[] = [
   },
 ];
 
+export interface ValuesFilterStock {
+  item: string;
+  warehouse: string;
+  minimumQuantity: string;
+  maximumQuantity: string;
+  updatedAtFrom: string;
+  updatedAtTo: string;
+}
+
+const initialFilters: ValuesFilterStock = {
+  item: "",
+  warehouse: "",
+  minimumQuantity: "",
+  maximumQuantity: "",
+  updatedAtFrom: "",
+  updatedAtTo: "",
+};
+
 export function useStock() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -45,6 +64,10 @@ export function useStock() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [items, setItems] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState<ValuesFilterStock>(initialFilters);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -113,6 +136,14 @@ export function useStock() {
     setDeleteConfirmModalOpen(false);
   }
 
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
+  }
+
   async function getData() {
     try {
       setLoading(true);
@@ -124,7 +155,8 @@ export function useStock() {
         order === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage
+        rowsPerPage,
+        filters
       );
       if (stocks) {
         const { stocksData, stocksCount, stocksError } = stocks;
@@ -142,7 +174,49 @@ export function useStock() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterStock) {
+    const errors = {} as ValuesFilterStock;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterStock) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering stocks:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
+  }
+
+  async function getFilterData() {
+    const itemsRepository = new ItemsRepository();
+    const allItems = await itemsRepository.getWithoutFilters();
+    if (allItems) {
+      const { itemsData, itemsError } = allItems;
+      if (itemsData && !itemsError) {
+        setItems(itemsData);
+      }
+    }
+    const warehousesRepository = new WarehousesRepository();
+    const allWarehouses = await warehousesRepository.getWithoutFilters();
+    if (allWarehouses) {
+      const { warehousesData, warehousesError } = allWarehouses;
+      if (warehousesData && !warehousesError) {
+        setWarehouses(warehousesData);
+      }
+    }
+  }
+
+  useEffect(() => {
+    getFilterData();
+  }, []);
 
   return {
     data,
@@ -165,6 +239,15 @@ export function useStock() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
+    closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    items,
+    warehouses,
+    resetFilters,
   };
 }

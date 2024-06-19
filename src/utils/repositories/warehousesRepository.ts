@@ -1,3 +1,4 @@
+import { ValuesFilterWarehouses } from "pages/warehouses/main/useWarehouses";
 import supabase from "utils/supabase";
 
 export interface WarehouseSupabase {
@@ -32,19 +33,37 @@ class WarehousesRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterWarehouses
   ) {
     try {
-      const {
-        data: warehousesData,
-        count: warehousesCount,
-        error: warehousesError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select("*", { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
+
+      if (filters) {
+        if (filters.name) {
+          query.ilike("name", `%${filters.name}%`);
+        }
+        if (filters.address) {
+          query.ilike("address", `%${filters.address}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+      }
+
+      const {
+        data: warehousesData,
+        count: warehousesCount,
+        error: warehousesError,
+      } = await query;
 
       return { warehousesData, warehousesCount, warehousesError };
     } catch (error) {
@@ -58,7 +77,7 @@ class WarehousesRepository {
       const { data: warehousesData, error: warehousesError } = await supabase
         .from(this.className)
         .select("*")
-        .order('created_at', { ascending: false })
+        .order("created_at", { ascending: false });
 
       return { warehousesData, warehousesError };
     } catch (error) {

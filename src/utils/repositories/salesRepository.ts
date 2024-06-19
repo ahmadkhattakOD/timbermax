@@ -116,10 +116,10 @@ class SalesRepository {
           query.eq("show", parseInt(filters.show));
         }
         if (filters.saleDateFrom) {
-          query.gte("sale_date", new Date(filters.saleDateFrom));
+          query.gte("sale_date", filters.saleDateFrom);
         }
         if (filters.saleDateTo) {
-          query.lte("sale_date", new Date(filters.saleDateTo));
+          query.lte("sale_date", filters.saleDateTo);
         }
         if (filters.closed) {
           if (filters.closed === "yes") {
@@ -246,10 +246,10 @@ class SalesRepository {
           query.eq("show", parseInt(filters.show));
         }
         if (filters.saleDateFrom) {
-          query.gte("sale_date", new Date(filters.saleDateFrom));
+          query.gte("sale_date", filters.saleDateFrom);
         }
         if (filters.saleDateTo) {
-          query.lte("sale_date", new Date(filters.saleDateTo));
+          query.lte("sale_date", filters.saleDateTo);
         }
       }
 
@@ -339,10 +339,10 @@ class SalesRepository {
           query.eq("show", parseInt(filters.show));
         }
         if (filters.saleDateFrom) {
-          query.gte("sale_date", new Date(filters.saleDateFrom));
+          query.gte("sale_date", filters.saleDateFrom);
         }
         if (filters.saleDateTo) {
-          query.lte("sale_date", new Date(filters.saleDateTo));
+          query.lte("sale_date", filters.saleDateTo);
         }
         if (filters.closed) {
           if (filters.closed === "yes") {

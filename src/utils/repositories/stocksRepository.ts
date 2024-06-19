@@ -1,3 +1,4 @@
+import { ValuesFilterStock } from "pages/stock/main/useStock";
 import supabase from "utils/supabase";
 
 export interface StockSupabase {
@@ -61,14 +62,11 @@ class StocksRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterStock
   ) {
     try {
-      const {
-        data: stocksData,
-        count: stocksCount,
-        error: stocksError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select(
           "id, item (id, name), warehouse (id, name), quantity, updated_at",
@@ -77,6 +75,33 @@ class StocksRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
+
+      if (filters) {
+        if (filters.item) {
+          query.eq("item", filters.item);
+        }
+        if (filters.warehouse) {
+          query.eq("warehouse", filters.warehouse);
+        }
+        if (filters.minimumQuantity) {
+          query.gte("quantity", parseInt(filters.minimumQuantity));
+        }
+        if (filters.maximumQuantity) {
+          query.lte("quantity", parseInt(filters.maximumQuantity));
+        }
+        if (filters.updatedAtFrom) {
+          query.gte("updated_at", filters.updatedAtFrom);
+        }
+        if (filters.updatedAtTo) {
+          query.lte("updated_at", filters.updatedAtTo);
+        }
+      }
+
+      const {
+        data: stocksData,
+        count: stocksCount,
+        error: stocksError,
+      } = await query;
 
       return { stocksData, stocksCount, stocksError };
     } catch (error) {

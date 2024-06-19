@@ -34,6 +34,20 @@ const headCells: HeadCell[] = [
   },
 ];
 
+export interface ValuesFilterWarehouses {
+  name: string;
+  address: string;
+  state: string;
+  postCode: string;
+}
+
+const initialFilters: ValuesFilterWarehouses = {
+  name: "",
+  address: "",
+  state: "",
+  postCode: "",
+};
+
 export function useWarehouses() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -44,6 +58,9 @@ export function useWarehouses() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filters, setFilters] =
+    useState<ValuesFilterWarehouses>(initialFilters);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -104,7 +121,8 @@ export function useWarehouses() {
     } else {
       openSnackbar({
         open: true,
-        message: "Warehouse(s) could not be deleted successfully. Please try again.",
+        message:
+          "Warehouse(s) could not be deleted successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",
@@ -115,6 +133,14 @@ export function useWarehouses() {
 
   function closeDeleteConfirmModal() {
     setDeleteConfirmModalOpen(false);
+  }
+
+  function openFilterModal() {
+    setFilterModalOpen(true);
+  }
+
+  function closeFilterModal() {
+    setFilterModalOpen(false);
   }
 
   async function getData() {
@@ -128,7 +154,8 @@ export function useWarehouses() {
         order === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage
+        rowsPerPage,
+        filters
       );
       if (warehouses) {
         const { warehousesData, warehousesCount, warehousesError } = warehouses;
@@ -146,7 +173,26 @@ export function useWarehouses() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function validateFilters(values: ValuesFilterWarehouses) {
+    const errors = {} as ValuesFilterWarehouses;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmit(values: ValuesFilterWarehouses) {
+    try {
+      setFilters(values);
+      setFilterModalOpen(false);
+    } catch (error) {
+      console.error("Error filtering warehouses:", error);
+    }
+  }
+
+  function resetFilters() {
+    setFilters(initialFilters);
+  }
 
   return {
     data,
@@ -168,6 +214,13 @@ export function useWarehouses() {
     onDelete,
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
-    closeDeleteConfirmModal
+    closeDeleteConfirmModal,
+    filterModalOpen,
+    openFilterModal,
+    closeFilterModal,
+    handleFiltersSubmit,
+    validateFilters,
+    filters,
+    resetFilters,
   };
 }

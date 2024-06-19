@@ -128,5 +128,11 @@
   "start-date-to": "Start Date To",
   "end-date-from": "End Date From",
   "end-date-to": "End Date To",
-  "filter-items": "Filter Items"
+  "filter-items": "Filter Items",
+  "filter-stock": "Filter Stock",
+  "minimum-quantity": "Minimum Quantity",
+  "maximum-quantity": "Maximum Quantity",
+  "updated-at-from": "Updated At From",
+  "updated-at-to": "Updated At To",
+  "filter-warehouses": "Filter Warehouses"
 }

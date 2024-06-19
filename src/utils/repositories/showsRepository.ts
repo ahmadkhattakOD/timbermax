@@ -52,22 +52,22 @@ class ShowsRepository {
           query.ilike("name", `%${filters.name}%`);
         }
         if (filters.startDateFrom) {
-          query.gte("start_date", new Date(filters.startDateFrom));
+          query.gte("start_date", filters.startDateFrom);
         }
         if (filters.startDateTo) {
-          query.lte("start_date", new Date(filters.startDateTo));
+          query.lte("start_date", filters.startDateTo);
         }
         if (filters.endDateFrom) {
-          query.gte("end_date", new Date(filters.endDateFrom));
+          query.gte("end_date", filters.endDateFrom);
         }
         if (filters.endDateTo) {
-          query.lte("end_date", new Date(filters.endDateTo));
+          query.lte("end_date", filters.endDateTo);
         }
         if (filters.address) {
-          query.ilike("address", `${filters.address}%`);
+          query.ilike("address", `%${filters.address}%`);
         }
         if (filters.suburb) {
-          query.ilike("suburb", `${filters.suburb}%`);
+          query.ilike("suburb", `%${filters.suburb}%`);
         }
         if (filters.state) {
           query.eq("state", filters.state);
