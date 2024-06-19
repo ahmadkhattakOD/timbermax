@@ -10,6 +10,7 @@ import {
   I24Support,
   MessageProgramming,
   Money,
+  NoteSquare,
   Truck,
 } from "iconsax-react";
 
@@ -26,6 +27,7 @@ const icons = {
   stock: ClipboardTick,
   shows: Briefcase,
   warehouses: House2,
+  opportunityDescriptions: NoteSquare,
   contactus: I24Support,
 };
 
@@ -82,6 +84,14 @@ const manageAdmin: NavItemType = {
       type: "item",
       url: "/warehouses",
       icon: icons.warehouses,
+      target: false,
+    },
+    {
+      id: "opportunity-descriptions",
+      title: <FormattedMessage id="opportunity-descriptions" />,
+      type: "item",
+      url: "/opportunity-descriptions",
+      icon: icons.opportunityDescriptions,
       target: false,
     },
   ],

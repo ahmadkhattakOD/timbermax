@@ -6,6 +6,7 @@ import { UserRoles } from "utils/helpers";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
+import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
   SaleSupabase,
@@ -37,6 +38,7 @@ export function useCreateSale() {
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   function validate(values: ValuesCreateSale) {
@@ -266,6 +268,14 @@ export function useCreateSale() {
         setShows(showsData);
       }
     }
+    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
+    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    if (allOpportunities) {
+      const { opportunitiesData, opportunitiesError } = allOpportunities;
+      if (opportunitiesData && !opportunitiesError) {
+        setOpportunities(opportunitiesData);
+      }
+    }
     setLoading(false);
   }
 
@@ -273,5 +283,5 @@ export function useCreateSale() {
     getProfilesShows();
   }, []);
 
-  return { validate, onSubmit, salesPersons, closers, shows, loading };
+  return { validate, onSubmit, salesPersons, closers, shows, opportunities, loading };
 }

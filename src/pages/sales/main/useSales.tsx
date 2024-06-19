@@ -6,6 +6,7 @@ import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { UserRoles, getDateFormatted, initialRowsPerPage } from "utils/helpers";
+import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
@@ -173,6 +174,7 @@ export function useSales() {
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterSales>(initialFilters);
   const navigate = useNavigate();
 
@@ -369,6 +371,16 @@ export function useSales() {
         setShows(showsData);
       }
     }
+    const opportunityDescriptionsRepository =
+      new OpportunityDescriptionsRepository();
+    const allOpportunities =
+      await opportunityDescriptionsRepository.getWithoutFilters();
+    if (allOpportunities) {
+      const { opportunitiesData, opportunitiesError } = allOpportunities;
+      if (opportunitiesData && !opportunitiesError) {
+        setOpportunities(opportunitiesData);
+      }
+    }
   }
 
   useEffect(() => {
@@ -405,6 +417,7 @@ export function useSales() {
     salesPersons,
     closers,
     shows,
+    opportunities,
     resetFilters,
   };
 }

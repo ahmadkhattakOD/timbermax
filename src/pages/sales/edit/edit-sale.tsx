@@ -15,8 +15,16 @@ import {
 // ==============================|| EDIT SALE PAGE ||============================== //
 
 export default function EditSale() {
-  const { validate, onSubmit, sale, loading, salesPersons, closers, shows } =
-    useEditSale();
+  const {
+    validate,
+    onSubmit,
+    sale,
+    loading,
+    salesPersons,
+    closers,
+    shows,
+    opportunities,
+  } = useEditSale();
 
   if (loading) {
     return (
@@ -36,8 +44,10 @@ export default function EditSale() {
   if (!loading && sale?.closed) {
     return (
       <>
-        <Box display={'flex'} paddingBottom={'2rem'}>
-          <Typography>This sale has been closed and is no longer editable.</Typography>
+        <Box display={"flex"} paddingBottom={"2rem"}>
+          <Typography>
+            This sale has been closed and is no longer editable.
+          </Typography>
         </Box>
         <Formik
           enableReinitialize
@@ -191,13 +201,17 @@ export default function EditSale() {
                     isTextArea
                     disabled
                   />,
-                  <FormInput
+                  <FormDropdown
                     id={"opportunityDescription"}
                     name={"opportunityDescription"}
-                    placeholder={"Opportunity Description"}
                     label={"opportunity-description"}
-                    type={"text"}
-                    isTextArea
+                    useFormattedStrings={false}
+                    options={opportunities.map((opportunity) => {
+                      return {
+                        label: opportunity.name,
+                        value: opportunity.name,
+                      };
+                    })}
                     disabled
                   />,
                   <FormDropdown
@@ -417,13 +431,17 @@ export default function EditSale() {
                 type={"text"}
                 isTextArea
               />,
-              <FormInput
+              <FormDropdown
                 id={"opportunityDescription"}
                 name={"opportunityDescription"}
-                placeholder={"Opportunity Description"}
                 label={"opportunity-description"}
-                type={"text"}
-                isTextArea
+                useFormattedStrings={false}
+                options={opportunities.map((opportunity) => {
+                  return {
+                    label: opportunity.name,
+                    value: opportunity.name,
+                  };
+                })}
               />,
               <FormDropdown
                 id={"closer"}

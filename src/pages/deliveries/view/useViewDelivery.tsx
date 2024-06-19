@@ -19,6 +19,7 @@ import WarehousesRepository from "utils/repositories/warehousesRepository";
 import { TableCell } from "@mui/material";
 import { FormattedMessage } from "react-intl";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
+import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 
 const headCells: HeadCell[] = [
   {
@@ -167,6 +168,7 @@ export function useViewDelivery() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [sale, setSale] = useState<any>(null);
   const { id } = useParams();
   const [data, setData] = useState<any[]>([]);
@@ -370,6 +372,14 @@ export function useViewDelivery() {
         setWarehouses(warehousesData);
       }
     }
+    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
+    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    if (allOpportunities) {
+      const { opportunitiesData, opportunitiesError } = allOpportunities;
+      if (opportunitiesData && !opportunitiesError) {
+        setOpportunities(opportunitiesData);
+      }
+    }
     setLoading(false);
   }
 
@@ -388,6 +398,7 @@ export function useViewDelivery() {
     closers,
     shows,
     warehouses,
+    opportunities,
     data,
     dataCount,
     order,

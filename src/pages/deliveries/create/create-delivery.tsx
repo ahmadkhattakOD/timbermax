@@ -11,7 +11,7 @@ import CircularLoader from "components/CircularLoader";
 // ==============================|| CREATE SALE PAGE ||============================== //
 
 export default function CreateDelivery() {
-  const { validate, onSubmit, salesPersons, closers, shows, loading } =
+  const { validate, onSubmit, salesPersons, closers, shows, opportunities, loading } =
     useCreateDelivery();
 
   if (loading) {
@@ -171,13 +171,17 @@ export default function CreateDelivery() {
                 type={"text"}
                 isTextArea
               />,
-              <FormInput
+              <FormDropdown
                 id={"opportunityDescription"}
                 name={"opportunityDescription"}
-                placeholder={"Opportunity Description"}
                 label={"opportunity-description"}
-                type={"text"}
-                isTextArea
+                useFormattedStrings={false}
+                options={opportunities.map((opportunity) => {
+                  return {
+                    label: opportunity.name,
+                    value: opportunity.name,
+                  };
+                })}
               />,
               <FormDropdown
                 id={"closer"}

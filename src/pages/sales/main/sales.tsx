@@ -46,6 +46,7 @@ export default function Sales() {
     salesPersons,
     closers,
     shows,
+    opportunities,
     resetFilters,
   } = useSales();
 
@@ -208,13 +209,17 @@ export default function Sales() {
                       label={"email-address"}
                       type={"email"}
                     />,
-                    <FormInput
+                    <FormDropdown
                       id={"opportunityDescription"}
                       name={"opportunityDescription"}
-                      placeholder={"Opportunity Description"}
                       label={"opportunity-description"}
-                      type={"text"}
-                      isTextArea
+                      useFormattedStrings={false}
+                      options={opportunities.map((opportunity) => {
+                        return {
+                          label: opportunity.name,
+                          value: opportunity.name,
+                        };
+                      })}
                     />,
                     <FormDropdown
                       id={"closer"}

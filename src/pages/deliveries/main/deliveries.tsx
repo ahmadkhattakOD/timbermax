@@ -47,6 +47,7 @@ export default function Deliveries() {
     salesPersons,
     closers,
     shows,
+    opportunities,
     resetFilters,
   } = useDeliveries();
 
@@ -210,13 +211,17 @@ export default function Deliveries() {
                       label={"email-address"}
                       type={"email"}
                     />,
-                    <FormInput
+                    <FormDropdown
                       id={"opportunityDescription"}
                       name={"opportunityDescription"}
-                      placeholder={"Opportunity Description"}
                       label={"opportunity-description"}
-                      type={"text"}
-                      isTextArea
+                      useFormattedStrings={false}
+                      options={opportunities.map((opportunity) => {
+                        return {
+                          label: opportunity.name,
+                          value: opportunity.name,
+                        };
+                      })}
                     />,
                     <FormDropdown
                       id={"closer"}
@@ -256,7 +261,6 @@ export default function Deliveries() {
                       label={"sale-date-to"}
                       type={"date"}
                     />,
-                    
                   ]}
                   showSubmitButton={false}
                 />

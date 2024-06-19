@@ -7,6 +7,7 @@ import { UserRoles, isNumeric } from "utils/helpers";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
+import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
   SaleSupabase,
@@ -43,6 +44,7 @@ export function useDeliverSale() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [sale, setSale] = useState<any>(null);
   const { id } = useParams();
 
@@ -320,6 +322,14 @@ export function useDeliverSale() {
         setWarehouses(warehousesData);
       }
     }
+    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
+    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    if (allOpportunities) {
+      const { opportunitiesData, opportunitiesError } = allOpportunities;
+      if (opportunitiesData && !opportunitiesError) {
+        setOpportunities(opportunitiesData);
+      }
+    }
     setLoading(false);
   }
 
@@ -337,5 +347,6 @@ export function useDeliverSale() {
     closers,
     shows,
     warehouses,
+    opportunities
   };
 }

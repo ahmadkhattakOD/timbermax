@@ -17,8 +17,17 @@ import {
 // ==============================|| EDIT SALE PAGE ||============================== //
 
 export default function DeliverSale() {
-  const { validate, onSubmit, sale, loading, salesPersons, closers, shows, warehouses } =
-    useDeliverSale();
+  const {
+    validate,
+    onSubmit,
+    sale,
+    loading,
+    salesPersons,
+    closers,
+    shows,
+    warehouses,
+    opportunities
+  } = useDeliverSale();
 
   if (loading) {
     return (
@@ -65,7 +74,7 @@ export default function DeliverSale() {
           followUpNotes: sale.follow_up_notes ?? "",
           saleDate: getDateFormattedForField(sale.sale_date) ?? "",
           deliveryDateTime: getDateTimeFormattedForField() ?? "",
-          stockFromWarehouse: ""
+          stockFromWarehouse: "",
         }}
         validate={validate}
         onSubmit={onSubmit}
@@ -200,13 +209,17 @@ export default function DeliverSale() {
                   isTextArea
                   disabled
                 />,
-                <FormInput
+                <FormDropdown
                   id={"opportunityDescription"}
                   name={"opportunityDescription"}
-                  placeholder={"Opportunity Description"}
                   label={"opportunity-description"}
-                  type={"text"}
-                  isTextArea
+                  useFormattedStrings={false}
+                  options={opportunities.map((opportunity) => {
+                    return {
+                      label: opportunity.name,
+                      value: opportunity.name,
+                    };
+                  })}
                   disabled
                 />,
                 <FormDropdown
@@ -282,7 +295,9 @@ export default function DeliverSale() {
                   label={"delivery-date-time"}
                   optional={false}
                   type={"datetime-local"}
-                  error={touched.deliveryDateTime ? errors.deliveryDateTime : ""}
+                  error={
+                    touched.deliveryDateTime ? errors.deliveryDateTime : ""
+                  }
                 />,
                 <FormDropdown
                   id={"stockFromWarehouse"}
@@ -296,7 +311,9 @@ export default function DeliverSale() {
                     };
                   })}
                   optional={false}
-                  error={touched.stockFromWarehouse ? errors.stockFromWarehouse : ""}
+                  error={
+                    touched.stockFromWarehouse ? errors.stockFromWarehouse : ""
+                  }
                 />,
               ]}
             />

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { UserRoles, isNumeric } from "utils/helpers";
+import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
   SaleSupabase,
@@ -36,6 +37,7 @@ export function useEditSale() {
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [sale, setSale] = useState<any>(null);
   const { id } = useParams();
 
@@ -208,6 +210,16 @@ export function useEditSale() {
         setShows(showsData);
       }
     }
+    const opportunityDescriptionsRepository =
+      new OpportunityDescriptionsRepository();
+    const allOpportunities =
+      await opportunityDescriptionsRepository.getWithoutFilters();
+    if (allOpportunities) {
+      const { opportunitiesData, opportunitiesError } = allOpportunities;
+      if (opportunitiesData && !opportunitiesError) {
+        setOpportunities(opportunitiesData);
+      }
+    }
     setLoading(false);
   }
 
@@ -216,5 +228,14 @@ export function useEditSale() {
     getProfilesShows();
   }, []);
 
-  return { validate, onSubmit, sale, loading, salesPersons, closers, shows };
+  return {
+    validate,
+    onSubmit,
+    sale,
+    loading,
+    salesPersons,
+    closers,
+    shows,
+    opportunities,
+  };
 }

@@ -10,7 +10,7 @@ import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
 import { Typography } from "@mui/material";
-import { australianStates } from "utils/helpers";
+import { australianStates, hasNonEmptyValue } from "utils/helpers";
 
 export default function SelectSale() {
   const {
@@ -38,6 +38,7 @@ export default function SelectSale() {
     salesPersons,
     closers,
     shows,
+    opportunities,
     resetFilters,
   } = useSelectSale();
 
@@ -49,6 +50,17 @@ export default function SelectSale() {
             Select a sale to continue. Only sales with status not set as
             "Delivered" show up here.
           </Typography>
+        }
+        filters={
+          hasNonEmptyValue(filters) ? (
+            <ActionButton
+              text={"reset-filters"}
+              color="secondary"
+              onClick={resetFilters}
+            />
+          ) : (
+            <></>
+          )
         }
       />
       <DataTable
@@ -188,13 +200,17 @@ export default function SelectSale() {
                       label={"email-address"}
                       type={"email"}
                     />,
-                    <FormInput
+                    <FormDropdown
                       id={"opportunityDescription"}
                       name={"opportunityDescription"}
-                      placeholder={"Opportunity Description"}
                       label={"opportunity-description"}
-                      type={"text"}
-                      isTextArea
+                      useFormattedStrings={false}
+                      options={opportunities.map((opportunity) => {
+                        return {
+                          label: opportunity.name,
+                          value: opportunity.name,
+                        };
+                      })}
                     />,
                     <FormDropdown
                       id={"closer"}

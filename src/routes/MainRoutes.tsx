@@ -35,6 +35,9 @@ import Deliveries from "pages/deliveries/main/deliveries";
 import SelectSale from "pages/deliveries/select/select-sale";
 import DeliverSale from "pages/deliveries/deliver/deliver-sale";
 import ViewDelivery from "pages/deliveries/view/view-delivery";
+import OpportunityDescriptions from "pages/opportunity-descriptions/main/opportunity-descriptions";
+import CreateOpportunityDescription from "pages/opportunity-descriptions/create/create-opportunity-description";
+import EditOpportunityDescription from "pages/opportunity-descriptions/edit/edit-opportunity-description";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -351,54 +354,33 @@ const MainRoutes = {
         },
       ],
     },
-
-
-
-
-
-
-
-
     {
       path: "/",
       element: <DashboardLayout />,
       children: [
         {
-          path: "sample-page",
-          element: <SamplePage />,
+          path: "opportunity-descriptions",
+          element: <OpportunityDescriptions />,
         },
       ],
     },
-    
     {
       path: "/",
-      element: <SimpleLayout layout={SimpleLayoutType.SIMPLE} />,
+      element: <DashboardLayout />,
       children: [
         {
-          path: "contact-us",
-          element: <AppContactUS />,
+          path: "opportunity-descriptions/new",
+          element: <CreateOpportunityDescription />,
         },
       ],
     },
     {
-      path: "/maintenance",
-      element: <PagesLayout />,
+      path: "/",
+      element: <DashboardLayout />,
       children: [
         {
-          path: "404",
-          element: <MaintenanceError />,
-        },
-        {
-          path: "500",
-          element: <MaintenanceError500 />,
-        },
-        {
-          path: "under-construction",
-          element: <MaintenanceUnderConstruction />,
-        },
-        {
-          path: "coming-soon",
-          element: <MaintenanceComingSoon />,
+          path: "opportunity-descriptions/:id/edit",
+          element: <EditOpportunityDescription />,
         },
       ],
     },

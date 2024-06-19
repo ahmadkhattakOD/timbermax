@@ -180,3 +180,27 @@ export function getMonthName(date: Date) {
   const monthIndex = date.getMonth();
   return monthNames[monthIndex];
 }
+
+export const opportunityDescriptions = [
+  "Electric Bases (Narrow Single)",
+  "Electric Bases (Long Single)",
+  "Electric Bases (King Single)",
+  "Electric Bases (Double)",
+  "Electric Bases (Full Queen)",
+  "Mattress - Memory Foam (Narrow Single)",
+  "Electric Bases (Narrow Single)",
+  "Electric Bases (Long Single)",
+  "Electric Bases (King Single)",
+  "Electric Bases (Double)",
+  "Electric Bases (Full Queen)",
+  "Mattress - Memory Foam (Narrow Single)",
+  "Mattress - Memory Foam (Long Single)",
+  "Mattress - Memory Foam (King Single)",
+  "Mattress - Memory Foam (Double)",
+  "Mattress - Memory Foam (Full Queen)",
+  "Mattress - Bodychoice (innerspring) (Narrow Single)",
+  "Mattress - Bodychoice (innerspring) (Long Single)",
+  "Mattress - Bodychoice (innerspring) (King Single)",
+  "Mattress - Bodychoice (innerspring) (Double)",
+  "Mattress - Bodychoice (innerspring) (Full Queen)",
+];

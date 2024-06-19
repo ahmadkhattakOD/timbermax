@@ -4,14 +4,18 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateSale } from "./useCreateSale";
-import { australianStates, getDateFormatted, getDateFormattedForField } from "utils/helpers";
+import {
+  australianStates,
+  getDateFormatted,
+  getDateFormattedForField,
+} from "utils/helpers";
 import { Box } from "@mui/material";
 import CircularLoader from "components/CircularLoader";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
 
 export default function CreateSale() {
-  const { validate, onSubmit, salesPersons, closers, shows, loading } =
+  const { validate, onSubmit, salesPersons, closers, shows, opportunities, loading } =
     useCreateSale();
 
   if (loading) {
@@ -176,7 +180,12 @@ export default function CreateSale() {
                 name={"opportunityDescription"}
                 label={"opportunity-description"}
                 useFormattedStrings={false}
-                options={['Electric Bases - Narrow Single']}
+                options={opportunities.map((opportunity) => {
+                  return {
+                    label: opportunity.name,
+                    value: opportunity.name,
+                  };
+                })}
               />,
               <FormDropdown
                 id={"closer"}

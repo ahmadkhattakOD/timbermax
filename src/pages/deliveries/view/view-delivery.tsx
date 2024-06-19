@@ -26,6 +26,7 @@ export default function ViewDelivery() {
     closers,
     shows,
     warehouses,
+    opportunities,
     data,
     dataCount,
     order,
@@ -242,13 +243,17 @@ export default function ViewDelivery() {
                   isTextArea
                   disabled
                 />,
-                <FormInput
+                <FormDropdown
                   id={"opportunityDescription"}
                   name={"opportunityDescription"}
-                  placeholder={"Opportunity Description"}
                   label={"opportunity-description"}
-                  type={"text"}
-                  isTextArea
+                  useFormattedStrings={false}
+                  options={opportunities.map((opportunity) => {
+                    return {
+                      label: opportunity.name,
+                      value: opportunity.name,
+                    };
+                  })}
                   disabled
                 />,
                 <FormDropdown

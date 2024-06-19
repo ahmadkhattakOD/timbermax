@@ -146,5 +146,8 @@
   "filter-invoices": "Filter Invoices",
   "sale": "Sale",
   "invoice-date-from": "Invoice Date From",
-  "invoice-date-to": "Invoice Date To"
+  "invoice-date-to": "Invoice Date To",
+  "add-new-opportunity": "Add New Opportunity",
+  "opportunity-descriptions": "Opportunity Descriptions",
+  "filter-opportunity-descriptions": "Filter Opportunity Descriptions"
 }

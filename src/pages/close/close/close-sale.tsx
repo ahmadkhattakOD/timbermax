@@ -6,17 +6,21 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCloseSale } from "./useCloseSale";
 import CircularLoader from "components/CircularLoader";
-import {
-  australianStates,
-  getDateFormatted,
-  getDateFormattedForField,
-} from "utils/helpers";
+import { australianStates, getDateFormattedForField } from "utils/helpers";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
 export default function CloseSale() {
-  const { validate, onSubmit, sale, loading, salesPersons, closers, shows } =
-    useCloseSale();
+  const {
+    validate,
+    onSubmit,
+    sale,
+    loading,
+    salesPersons,
+    closers,
+    shows,
+    opportunities,
+  } = useCloseSale();
 
   if (loading) {
     return (
@@ -36,8 +40,10 @@ export default function CloseSale() {
   if (!loading && sale?.closed) {
     return (
       <>
-        <Box display={'flex'} paddingBottom={'2rem'}>
-          <Typography>This sale has been closed and is no longer editable.</Typography>
+        <Box display={"flex"} paddingBottom={"2rem"}>
+          <Typography>
+            This sale has been closed and is no longer editable.
+          </Typography>
         </Box>
         <Formik
           enableReinitialize
@@ -191,13 +197,17 @@ export default function CloseSale() {
                     isTextArea
                     disabled
                   />,
-                  <FormInput
+                  <FormDropdown
                     id={"opportunityDescription"}
                     name={"opportunityDescription"}
-                    placeholder={"Opportunity Description"}
                     label={"opportunity-description"}
-                    type={"text"}
-                    isTextArea
+                    useFormattedStrings={false}
+                    options={opportunities.map((opportunity) => {
+                      return {
+                        label: opportunity.name,
+                        value: opportunity.name,
+                      };
+                    })}
                     disabled
                   />,
                   <FormDropdown
