@@ -39,8 +39,6 @@ class ProfilesRepository {
           },
         });
 
-        console.log("DATA", data)
-
         if (data && data.status === "success" && error === null) {
           return data.data;
         }
