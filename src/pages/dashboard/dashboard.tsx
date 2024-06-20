@@ -14,7 +14,7 @@ import {
   useTheme,
 } from "@mui/material";
 import CircularLoader from "components/CircularLoader";
-import { getDateFormatted } from "utils/helpers";
+import { UserRoles, getDateFormatted } from "utils/helpers";
 
 // ==============================|| DASHBOARD PAGE ||============================== //
 
@@ -43,6 +43,7 @@ export default function Dashboard() {
     loadingUsers,
     loadingUpcomingShows,
     loadingLowInStock,
+    role
   } = useDashboard();
   const theme = useTheme();
 
@@ -114,7 +115,7 @@ export default function Dashboard() {
           )}
         </MainCard>
       </Grid>
-      <Grid item xs={12} md={4}>
+      {role === UserRoles.Admin && <Grid item xs={12} md={4}>
         <MainCard
           title="Users"
           secondary={<Button onClick={viewAllUsers}>View All</Button>}
@@ -129,8 +130,8 @@ export default function Dashboard() {
             <Typography>No Users Found.</Typography>
           )}
         </MainCard>
-      </Grid>
-      <Grid item xs={12} md={4}>
+      </Grid>}
+      {role === UserRoles.Admin && <Grid item xs={12} md={4}>
         <MainCard
           title="Upcoming Shows"
           secondary={<Button onClick={viewAllShows}>View All</Button>}
@@ -173,8 +174,8 @@ export default function Dashboard() {
             <Typography>No Upcoming Shows Found.</Typography>
           )}
         </MainCard>
-      </Grid>
-      <Grid item xs={12} md={4}>
+      </Grid>}
+      {role === UserRoles.Admin && <Grid item xs={12} md={4}>
         <MainCard
           title="Low in Stock"
           secondary={<Button onClick={viewAllStock}>View All</Button>}
@@ -215,7 +216,7 @@ export default function Dashboard() {
             <Typography>No Stock Found.</Typography>
           )}
         </MainCard>
-      </Grid>
+      </Grid>}
     </Grid>
   );
 }

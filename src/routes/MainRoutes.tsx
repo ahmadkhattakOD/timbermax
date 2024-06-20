@@ -38,6 +38,8 @@ import ViewDelivery from "pages/deliveries/view/view-delivery";
 import OpportunityDescriptions from "pages/opportunity-descriptions/main/opportunity-descriptions";
 import CreateOpportunityDescription from "pages/opportunity-descriptions/create/create-opportunity-description";
 import EditOpportunityDescription from "pages/opportunity-descriptions/edit/edit-opportunity-description";
+import ViewSales from "pages/view-sales/main/view-sales";
+import ViewSale from "pages/view-sales/view/view-sale";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -381,6 +383,26 @@ const MainRoutes = {
         {
           path: "opportunity-descriptions/:id/edit",
           element: <EditOpportunityDescription />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "view-sales",
+          element: <ViewSales />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "view-sales/:id/view",
+          element: <ViewSale />,
         },
       ],
     },

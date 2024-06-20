@@ -1,10 +1,7 @@
-import { Checkbox, TableCell } from "@mui/material";
-import { openSnackbar } from "api/snackbar";
+import { TableCell } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
-import { useNavigate } from "react-router";
-import { SnackbarProps } from "types/snackbar";
 import { UserRoles, getDateFormatted, initialRowsPerPage } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
@@ -116,9 +113,8 @@ const headCells: HeadCell[] = [
   },
 ];
 
-export interface ValuesFilterCloseSales {
+export interface ValuesFilterViewSales {
   contactName: string;
-  salesPerson: string;
   minimumDeposit: string;
   maximumDeposit: string;
   minimumTotal: string;
@@ -130,15 +126,15 @@ export interface ValuesFilterCloseSales {
   postCode: string;
   emailAddress: string;
   opportunityDescription: string;
+  closer: string;
   status: string;
   show: string;
   saleDateFrom: string;
   saleDateTo: string;
 }
 
-const initialFilters: ValuesFilterCloseSales = {
+const initialFilters: ValuesFilterViewSales = {
   contactName: "",
-  salesPerson: "",
   minimumDeposit: "",
   maximumDeposit: "",
   minimumTotal: "",
@@ -150,13 +146,14 @@ const initialFilters: ValuesFilterCloseSales = {
   postCode: "",
   emailAddress: "",
   opportunityDescription: "",
+  closer: "",
   status: "",
   show: "",
   saleDateFrom: "",
   saleDateTo: "",
 };
 
-export function useCloseSales() {
+export function useViewSales() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -166,11 +163,10 @@ export function useCloseSales() {
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [salesPersons, setSalesPersons] = useState<any[]>([]);
+  const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [filters, setFilters] =
-    useState<ValuesFilterCloseSales>(initialFilters);
+  const [filters, setFilters] = useState<ValuesFilterViewSales>(initialFilters);
   const [mode, setMode] = useState("unclosed");
 
   function generateTableCells(
@@ -247,7 +243,7 @@ export function useCloseSales() {
         const salesRepository = new SalesRepository();
         const rangeStart = rowsPerPage * page;
         const rangeEnd = rangeStart + rowsPerPage;
-        const sales = await salesRepository.getForCloser(
+        const sales = await salesRepository.getForSalesPerson(
           currentUser.id,
           mode === "closed",
           orderBy,
@@ -276,13 +272,13 @@ export function useCloseSales() {
     getData();
   }, [order, orderBy, page, rowsPerPage, mode, filters]);
 
-  async function validateFilters(values: ValuesFilterCloseSales) {
-    const errors = {} as ValuesFilterCloseSales;
+  async function validateFilters(values: ValuesFilterViewSales) {
+    const errors = {} as ValuesFilterViewSales;
 
     return errors;
   }
 
-  async function handleFiltersSubmit(values: ValuesFilterCloseSales) {
+  async function handleFiltersSubmit(values: ValuesFilterViewSales) {
     try {
       setFilters(values);
       setFilterModalOpen(false);
@@ -304,13 +300,13 @@ export function useCloseSales() {
         let temp = [];
         for (let i = 0; i < profilesData.length; i++) {
           if (
-            profilesData[i].role === UserRoles.SalesPerson ||
+            profilesData[i].role === UserRoles.Closer ||
             profilesData[i].role === UserRoles.Both
           ) {
             temp.push(profilesData[i]);
           }
         }
-        setSalesPersons(temp);
+        setClosers(temp);
       }
     }
     const showsRepository = new ShowsRepository();
@@ -361,7 +357,7 @@ export function useCloseSales() {
     handleFiltersSubmit,
     validateFilters,
     filters,
-    salesPersons,
+    closers,
     shows,
     opportunities,
     resetFilters,

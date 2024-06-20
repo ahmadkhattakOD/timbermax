@@ -97,6 +97,22 @@ const manageAdmin: NavItemType = {
   ],
 };
 
+const manageSalesPerson: NavItemType = {
+  id: "manage-pages",
+  title: <FormattedMessage id="manage" />,
+  type: "group",
+  children: [
+    {
+      id: "sales",
+      title: <FormattedMessage id="sales" />,
+      type: "item",
+      url: "/view-sales",
+      icon: icons.sales,
+      target: false,
+    },
+  ],
+};
+
 const manageCloser: NavItemType = {
   id: "manage-pages",
   title: <FormattedMessage id="manage" />,
@@ -113,4 +129,4 @@ const manageCloser: NavItemType = {
   ],
 };
 
-export default { manageAdmin, manageCloser };
+export default { manageAdmin, manageSalesPerson, manageCloser };

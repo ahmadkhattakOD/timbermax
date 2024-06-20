@@ -13,7 +13,7 @@ const menuItemsAdmin: { items: NavItemType[] } = {
 };
 
 const menuItemsSalesPerson: { items: NavItemType[] } = {
-  items: [dashboard, edit]
+  items: [dashboard, manage.manageSalesPerson, edit]
 };
 
 const menuItemsCloser: { items: NavItemType[] } = {

@@ -161,17 +161,24 @@ class InvoicesRepository {
   }
 
   public async getTotalCommissionsForYear(
-    year: number
+    year: number,
+    userId?: string
   ): Promise<{ month: string; sales: number }[]> {
     try {
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
-      const { data: invoicesData, error: invoicesError } = await supabase
+      const query = supabase
         .from(this.className)
         .select("*")
         .order("created_at", { ascending: false })
         .gte("created_at", getDateFormattedForField(startDate))
         .lte("created_at", getDateFormattedForField(endDate));
+
+      if (userId) {
+        query.eq("beneficiary", userId);
+      }
+
+      const { data: invoicesData, error: invoicesError } = await query;
 
       const totalCommissionCount: { [month: string]: number } = {
         January: 0,
@@ -185,7 +192,7 @@ class InvoicesRepository {
         September: 0,
         October: 0,
         November: 0,
-        December: 0
+        December: 0,
       };
 
       if (invoicesData && !invoicesError) {

@@ -40,7 +40,7 @@ export default function Navigation() {
     if (role === UserRoles.Admin) {
       setMenuItems(menuItem.menuItemsAdmin);
     }
-    else if (role === UserRoles.Closer || UserRoles.Both) {
+    else if (role === UserRoles.Closer || role === UserRoles.Both) {
       setMenuItems(menuItem.menuItemsCloser);
     }
     else if (role === UserRoles.SalesPerson) {

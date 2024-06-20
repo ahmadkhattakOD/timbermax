@@ -1,5 +1,7 @@
+import { ValuesFilterCloseSales } from "pages/close/main/useCloseSales";
 import { ValuesFilterDeliveries } from "pages/deliveries/main/useDeliveries";
 import { ValuesFilterSales } from "pages/sales/main/useSales";
+import { ValuesFilterViewSales } from "pages/view-sales/main/useViewSales";
 import {
   getDateFormatted,
   getDateFormattedForField,
@@ -169,14 +171,11 @@ class SalesRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
+    limit: number,
+    filters?: ValuesFilterCloseSales
   ) {
     try {
-      const {
-        data: salesData,
-        count: salesCount,
-        error: salesError,
-      } = await supabase
+      const query = supabase
         .from(this.className)
         .select(
           "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
@@ -187,6 +186,162 @@ class SalesRepository {
         .limit(limit)
         .eq("closer", closerId)
         .eq("closed", closed);
+
+      if (filters) {
+        if (filters.contactName) {
+          query.ilike("contact_name", `%${filters.contactName}%`);
+        }
+        if (filters.salesPerson) {
+          query.eq("sales_person", filters.salesPerson);
+        }
+        if (filters.minimumDeposit) {
+          query.gte("deposit", parseFloat(filters.minimumDeposit));
+        }
+        if (filters.maximumDeposit) {
+          query.lte("deposit", parseFloat(filters.maximumDeposit));
+        }
+        if (filters.minimumTotal) {
+          query.gte("total", parseFloat(filters.minimumTotal));
+        }
+        if (filters.maximumTotal) {
+          query.gte("total", parseFloat(filters.maximumTotal));
+        }
+        if (filters.paymentMethod) {
+          query.eq("payment_method", filters.paymentMethod);
+        }
+        if (filters.phone) {
+          query.eq("phone", filters.phone);
+        }
+        if (filters.address) {
+          query.ilike("address", `%${filters.address}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+        if (filters.emailAddress) {
+          query.ilike("email_address", `%${filters.emailAddress}%`);
+        }
+        if (filters.opportunityDescription) {
+          query.ilike(
+            "opportunity_description",
+            `%${filters.opportunityDescription}%`
+          );
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.show) {
+          query.eq("show", parseInt(filters.show));
+        }
+        if (filters.saleDateFrom) {
+          query.gte("sale_date", filters.saleDateFrom);
+        }
+        if (filters.saleDateTo) {
+          query.lte("sale_date", filters.saleDateTo);
+        }
+      }
+
+      const {
+        data: salesData,
+        count: salesCount,
+        error: salesError,
+      } = await query;
+
+      return { salesData, salesCount, salesError };
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+      return null;
+    }
+  }
+
+  public async getForSalesPerson(
+    salesPersonId: string,
+    closed: boolean,
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterViewSales
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select(
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          { count: "exact" }
+        )
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit)
+        .eq("sales_person", salesPersonId)
+        .eq("closed", closed);
+
+      if (filters) {
+        if (filters.contactName) {
+          query.ilike("contact_name", `%${filters.contactName}%`);
+        }
+        if (filters.minimumDeposit) {
+          query.gte("deposit", parseFloat(filters.minimumDeposit));
+        }
+        if (filters.maximumDeposit) {
+          query.lte("deposit", parseFloat(filters.maximumDeposit));
+        }
+        if (filters.minimumTotal) {
+          query.gte("total", parseFloat(filters.minimumTotal));
+        }
+        if (filters.maximumTotal) {
+          query.gte("total", parseFloat(filters.maximumTotal));
+        }
+        if (filters.paymentMethod) {
+          query.eq("payment_method", filters.paymentMethod);
+        }
+        if (filters.phone) {
+          query.eq("phone", filters.phone);
+        }
+        if (filters.address) {
+          query.ilike("address", `%${filters.address}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+        if (filters.emailAddress) {
+          query.ilike("email_address", `%${filters.emailAddress}%`);
+        }
+        if (filters.opportunityDescription) {
+          query.ilike(
+            "opportunity_description",
+            `%${filters.opportunityDescription}%`
+          );
+        }
+        if (filters.closer) {
+          query.eq("closer", filters.closer);
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.show) {
+          query.eq("show", parseInt(filters.show));
+        }
+        if (filters.saleDateFrom) {
+          query.gte("sale_date", filters.saleDateFrom);
+        }
+        if (filters.saleDateTo) {
+          query.lte("sale_date", filters.saleDateTo);
+        }
+      }
+
+      const {
+        data: salesData,
+        count: salesCount,
+        error: salesError,
+      } = await query;
 
       return { salesData, salesCount, salesError };
     } catch (error) {
@@ -386,17 +541,24 @@ class SalesRepository {
   }
 
   public async getTotalSalesForYear(
-    year: number
+    year: number,
+    userId?: string
   ): Promise<{ month: string; sales: number }[]> {
     try {
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
-      const { data: salesData, error: salesError } = await supabase
+      const query = supabase
         .from(this.className)
         .select("*")
         .order("created_at", { ascending: false })
         .gte("created_at", getDateFormattedForField(startDate))
         .lte("created_at", getDateFormattedForField(endDate));
+
+      if (userId) {
+        query.or(`sales_person.eq.${userId},closer.eq.${userId}`);
+      }
+
+      const { data: salesData, error: salesError } = await query;
 
       const totalSalesCount: { [month: string]: number } = {
         January: 0,

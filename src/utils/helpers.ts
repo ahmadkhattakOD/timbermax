@@ -135,7 +135,7 @@ export function isRouteAllowed(
     }
     return false;
   } else if (UserRoles.SalesPerson) {
-    let whiteListedURLs = ["/dashboard", "/profile"];
+    let whiteListedURLs = ["/dashboard", "/profile", "/view-sales"];
 
     for (let i = 0; i < whiteListedURLs.length; i++) {
       if (window.location.href.includes(whiteListedURLs[i])) {

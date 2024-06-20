@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
-import { useCloseSales } from "./useCloseSales";
+import { useViewSales } from "./useViewSales";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
 import ModalFilters from "components/modal-filters/ModalFilters";
@@ -11,7 +11,7 @@ import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
 import { australianStates, hasNonEmptyValue } from "utils/helpers";
 
-export default function CloseSales() {
+export default function ViewSales() {
   const {
     data,
     dataCount,
@@ -36,11 +36,11 @@ export default function CloseSales() {
     handleFiltersSubmit,
     validateFilters,
     filters,
-    salesPersons,
+    closers,
     shows,
     opportunities,
     resetFilters,
-  } = useCloseSales();
+  } = useViewSales();
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -93,7 +93,7 @@ export default function CloseSales() {
         headCells={headCells}
         generateTableCells={generateTableCells}
         openFilterModal={openFilterModal}
-        takeToOnClick="close"
+        takeToOnClick="view"
         selectable={false}
       />
       <ModalFilters
@@ -119,18 +119,6 @@ export default function CloseSales() {
                       placeholder={"Contact Name"}
                       label={"contact-name"}
                       type={"text"}
-                    />,
-                    <FormDropdown
-                      id={"salesPerson"}
-                      name={"salesPerson"}
-                      label={"sales-person"}
-                      useFormattedStrings={false}
-                      options={salesPersons.map((salesPerson) => {
-                        return {
-                          label: salesPerson.full_name,
-                          value: salesPerson.id.toString(),
-                        };
-                      })}
                     />,
                     <FormInput
                       id={"minimumDeposit"}
@@ -221,6 +209,18 @@ export default function CloseSales() {
                         return {
                           label: opportunity.name,
                           value: opportunity.name,
+                        };
+                      })}
+                    />,
+                    <FormDropdown
+                      id={"closer"}
+                      name={"closer"}
+                      label={"closer"}
+                      useFormattedStrings={false}
+                      options={closers.map((closer) => {
+                        return {
+                          label: closer.full_name,
+                          value: closer.id.toString(),
                         };
                       })}
                     />,

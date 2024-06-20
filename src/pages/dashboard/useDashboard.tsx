@@ -1,4 +1,5 @@
 import { ApexOptions } from "apexcharts";
+import useAuth from "hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { UserRoles } from "utils/helpers";
@@ -34,7 +35,9 @@ export function useDashboard() {
     },
   ]);
   const [salesYear, setSalesYear] = useState(new Date().getFullYear());
-  const [yearOptions, setYearOptions] = useState<number[]>([new Date().getFullYear()]);
+  const [yearOptions, setYearOptions] = useState<number[]>([
+    new Date().getFullYear(),
+  ]);
 
   const [loadingCommissions, setLoadingCommissions] = useState(true);
   const [commissionOptions, setCommissionOptions] = useState<ApexOptions>({
@@ -82,6 +85,8 @@ export function useDashboard() {
   const [loadingLowInStock, setLoadingLowInStock] = useState(true);
   const [lowInStock, setLowInStock] = useState<any[]>([]);
 
+  const { role } = useAuth();
+
   function viewAllShows() {
     navigate("/shows");
   }
@@ -104,33 +109,40 @@ export function useDashboard() {
 
   async function getTotalSales() {
     setLoadingSales(true);
-    const salesRepository = new SalesRepository();
-    const totalSales = await salesRepository.getTotalSalesForYear(salesYear);
+    const profilesRepository = new ProfilesRepository();
+    const currentUser = await profilesRepository.getCurrentUser();
+    if (currentUser) {
+      const salesRepository = new SalesRepository();
+      const totalSales = await salesRepository.getTotalSalesForYear(
+        salesYear,
+        role !== UserRoles.Admin ? currentUser.id : undefined
+      );
 
-    if (totalSales) {
-      let categories = [];
-      let values = [];
-      for (let i = 0; i < totalSales.length; i++) {
-        categories.push(totalSales[i].month);
-        values.push(totalSales[i].sales);
-      }
+      if (totalSales) {
+        let categories = [];
+        let values = [];
+        for (let i = 0; i < totalSales.length; i++) {
+          categories.push(totalSales[i].month);
+          values.push(totalSales[i].sales);
+        }
 
-      setSalesOptions({
-        chart: {
-          id: "Sales",
-          toolbar: {
-            show: false,
+        setSalesOptions({
+          chart: {
+            id: "Sales",
+            toolbar: {
+              show: false,
+            },
           },
-        },
-        xaxis: {
-          categories: categories,
-        },
-        dataLabels: {
-          enabled: false,
-        },
-      });
+          xaxis: {
+            categories: categories,
+          },
+          dataLabels: {
+            enabled: false,
+          },
+        });
 
-      setSalesSeries([{ data: values, name: "Sales" }]);
+        setSalesSeries([{ data: values, name: "Sales" }]);
+      }
     }
     setLoadingSales(false);
   }
@@ -158,35 +170,43 @@ export function useDashboard() {
 
   async function getTotalCommission() {
     setLoadingCommissions(true);
-    const invoicesRepository = new InvoicesRepository();
-    const totalCommissions =
-      await invoicesRepository.getTotalCommissionsForYear(commissionYear);
+    const profilesRepository = new ProfilesRepository();
+    const currentUser = await profilesRepository.getCurrentUser();
+    if (currentUser) {
+      const invoicesRepository = new InvoicesRepository();
+      const totalCommissions =
+        await invoicesRepository.getTotalCommissionsForYear(
+          commissionYear,
+          role !== UserRoles.Admin ? currentUser.id : undefined
+        );
 
-    if (totalCommissions) {
-      let categories = [];
-      let values = [];
-      for (let i = 0; i < totalCommissions.length; i++) {
-        categories.push(totalCommissions[i].month);
-        values.push(totalCommissions[i].sales);
-      }
+      if (totalCommissions) {
+        let categories = [];
+        let values = [];
+        for (let i = 0; i < totalCommissions.length; i++) {
+          categories.push(totalCommissions[i].month);
+          values.push(totalCommissions[i].sales);
+        }
 
-      setCommissionOptions({
-        chart: {
-          id: "Commission",
-          toolbar: {
-            show: false,
+        setCommissionOptions({
+          chart: {
+            id: "Commission",
+            toolbar: {
+              show: false,
+            },
           },
-        },
-        xaxis: {
-          categories: categories,
-        },
-        dataLabels: {
-          enabled: false,
-        },
-      });
+          xaxis: {
+            categories: categories,
+          },
+          dataLabels: {
+            enabled: false,
+          },
+        });
 
-      setCommissionSeries([{ data: values, name: "Commission" }]);
+        setCommissionSeries([{ data: values, name: "Commission" }]);
+      }
     }
+
     setLoadingCommissions(false);
   }
 
@@ -278,10 +298,12 @@ export function useDashboard() {
   }
 
   useEffect(() => {
-    getUsers();
-    getUpcomingShows();
-    generateYearOptions();
-    getLowInStock();
+    if (role === UserRoles.Admin) {
+      getUsers();
+      getUpcomingShows();
+      generateYearOptions();
+      getLowInStock();
+    }
   }, []);
 
   useEffect(() => {
@@ -316,5 +338,6 @@ export function useDashboard() {
     loadingUsers,
     loadingUpcomingShows,
     loadingLowInStock,
+    role
   };
 }
