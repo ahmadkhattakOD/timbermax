@@ -22,6 +22,8 @@ import { useGetMenuMaster } from "api/menu";
 import { ArrowRight2 } from "iconsax-react";
 
 import avatar1 from "assets/images/users/avatar-1.png";
+import { Typography } from "@mui/material";
+import { getInitials } from "utils/helpers";
 
 interface ExpandMoreProps extends IconButtonProps {
   theme: Theme;
@@ -116,11 +118,16 @@ export default function UserList() {
           <ListItemAvatar>
             <Avatar
               alt="Avatar"
-              src={avatar1}
               sx={{ ...(drawerOpen && { width: 46, height: 46 }) }}
-            />
+            >
+              <Typography sx={{fontWeight: 800}}>{getInitials(fullName)}</Typography>
+            </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={fullName} sx={{ ...(!drawerOpen && { display: 'none' }) }} secondary={role} />
+          <ListItemText
+            primary={fullName}
+            sx={{ ...(!drawerOpen && { display: "none" }) }}
+            secondary={role}
+          />
         </ListItem>
       </List>
       <Menu

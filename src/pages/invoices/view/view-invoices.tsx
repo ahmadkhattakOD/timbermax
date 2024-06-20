@@ -11,7 +11,7 @@ import CircularLoader from "components/CircularLoader";
 import { Divider, Typography } from "@mui/material";
 import ProfilePicture from "components/ProfilePicture";
 import { useTheme } from "@mui/system";
-import { hasNonEmptyValue } from "utils/helpers";
+import { getInitials, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import FormDropdown from "components/FormDropdown";
 
@@ -69,7 +69,13 @@ export default function ViewInvoices() {
               gap: "10px",
             }}
           >
-            <ProfilePicture />
+            <ProfilePicture
+              avatarChild={
+                <Typography sx={{ fontWeight: 800 }}>
+                  {getInitials(fullName)}
+                </Typography>
+              }
+            />
             <Typography variant="h4">{fullName}</Typography>
           </Box>
         }

@@ -204,3 +204,18 @@ export const opportunityDescriptions = [
   "Mattress - Bodychoice (innerspring) (Double)",
   "Mattress - Bodychoice (innerspring) (Full Queen)",
 ];
+
+export function getInitials(name: string) {
+  try {
+    let initials = "";
+    let nameParts = name.split(" ");
+    for (let i = 0; i < nameParts.length; i++) {
+      initials += nameParts[i][0].toUpperCase();
+    }
+  
+    return initials;
+  }
+  catch (error) {
+    return "";
+  }
+}
