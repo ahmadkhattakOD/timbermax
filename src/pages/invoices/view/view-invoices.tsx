@@ -14,6 +14,8 @@ import { useTheme } from "@mui/system";
 import { getInitials, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import FormDropdown from "components/FormDropdown";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import PDFInvoice from "./pdf-invoice";
 
 export default function ViewInvoices() {
   const {
@@ -59,6 +61,12 @@ export default function ViewInvoices() {
 
   return (
     <Box sx={{ width: "100%" }}>
+      <PDFDownloadLink document={<PDFInvoice />} fileName="invoice.pdf">
+        {({ blob, url, loading, error }) =>
+          loading ? "Loading document..." : "Download PDF"
+        }
+      </PDFDownloadLink>
+
       <CreateAndFiltersLayout
         actionButton={
           <Box
