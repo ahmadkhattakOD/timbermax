@@ -63,7 +63,7 @@ export default function ViewInvoices() {
     <Box sx={{ width: "100%" }}>
       <PDFDownloadLink document={<PDFInvoice />} fileName="invoice.pdf">
         {({ blob, url, loading, error }) =>
-          loading ? "Loading document..." : "Download PDF"
+          loading ? "Loading document..." : "Download PDF TEST"
         }
       </PDFDownloadLink>
 

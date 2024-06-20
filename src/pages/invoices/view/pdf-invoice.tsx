@@ -1,169 +1,150 @@
 import React from "react";
-import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  PDFViewer,
+} from "@react-pdf/renderer";
+
+interface SaleData {
+  contactName: string;
+  opportunity: string;
+  deposit: string;
+  total: string;
+  paymentMethod: string;
+  salesPerson: string;
+  closer: string;
+  note: string;
+  status: string;
+  show: string;
+  comms: string;
+  saleDate: string;
+}
+
+interface TableProps {
+  data: SaleData[];
+}
 
 // Create styles
 const styles = StyleSheet.create({
-  page: {
-    fontFamily: "Helvetica",
-    padding: 30,
-  },
-  section: {
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
   table: {
     display: "flex",
-    width: "auto",
-    borderStyle: "solid",
+    flexDirection: "column",
     borderWidth: 1,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
+    borderColor: "#000",
   },
   tableRow: {
-    margin: "auto",
     flexDirection: "row",
   },
   tableCol: {
-    width: "16%",
-    borderStyle: "solid",
+    flex: 1,
     borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
+    borderColor: "#000",
+    padding: 5,
   },
   tableCell: {
-    margin: 5,
     fontSize: 10,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  detailSection: {
-    padding: 10,
-    borderStyle: "solid",
-    borderWidth: 1,
-    marginBottom: 20,
-  },
-  detailItem: {
-    marginBottom: 5,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    whiteSpace: 'nowrap'
   },
 });
 
-// Create Document Component
-const PDFInvoice: React.FC = () => (
+// Create table component
+const Table: React.FC<TableProps> = ({ data }) => (
+  <View style={styles.table}>
+    {/* Table Header */}
+    <View style={styles.tableRow}>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Contact Name</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Opp. Descr.</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Deposit</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Total</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Payment Method</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Sales Person</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Closer</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Note</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Status</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Show</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Comms</Text>
+      </View>
+      <View style={styles.tableCol}>
+        <Text style={styles.tableCell}>Sale Date</Text>
+      </View>
+    </View>
+    {/* Table Content */}
+    {data.map((row, index) => (
+      <View style={styles.tableRow} key={index}>
+        <View style={styles.tableCol}>
+          <Text style={styles.tableCell}>{row.contactName}</Text>
+        </View>
+        <View style={styles.tableCol}>
+          <Text style={styles.tableCell}>{row.opportunity}</Text>
+        </View>
+        <View style={styles.tableCol}>
+          <Text style={styles.tableCell}>{row.deposit}</Text>
+        </View>
+        <View style={styles.tableCol}>
+          <Text style={styles.tableCell}>{row.total}</Text>
+        </View>
+      </View>
+    ))}
+  </View>
+);
+
+interface MyDocumentProps {
+  data: SaleData[];
+}
+
+const MyDocument: React.FC<MyDocumentProps> = ({ data }) => (
   <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.header}>
-        <View>
-          <Text>Sale Start Date : 28/Apr/24</Text>
-          <Text>End Date : 3/May/24</Text>
-        </View>
-        <View>
-          <Text>Role : Sales Person</Text>
-          <Text>Name : Chloe Butterworth</Text>
-          <Text>Include Canceled after Delivery</Text>
-        </View>
-      </View>
-      <Text style={styles.title}>Invoice Date : 17/Jun/2024</Text>
-      <View style={styles.detailSection}>
-        <Text style={styles.detailItem}>Name: Chloe Butterworth</Text>
-        <Text style={styles.detailItem}>Wages: $0</Text>
-        <Text style={styles.detailItem}>Number of Show Days: ...........</Text>
-      </View>
-      <View style={styles.table}>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Travel Bonus</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>$0.00</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Other Bonuses</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>$0.00</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Deductions</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>$0.00</Text>
-          </View>
-        </View>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Cancelled Sales</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>$0.00</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Total</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>$0.00</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Commission</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>$0.00</Text>
-          </View>
-        </View>
-      </View>
-      <Text style={styles.title}>TOTAL: $0.00</Text>
-      <View style={styles.table}>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Contact Name</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Opportunity Description</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Deposit</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Total</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Payment Method</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Sales Person</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Closer</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Note</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Status</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Show</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Comms</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Sale Date</Text>
-          </View>
-        </View>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>No data</Text>
-          </View>
-        </View>
-      </View>
+    <Page size="A4" style={{ padding: 30 }} orientation="landscape">
+      <Text style={{ marginBottom: 20, fontSize: 15 }}>My Table</Text>
+      <Table data={data} />
     </Page>
   </Document>
 );
+
+const PDFInvoice: React.FC = () => {
+  const data: SaleData[] = [
+    // {
+    //   col1: "Row 1, Col 1",
+    //   col2: "Row 1, Col 2",
+    //   col3: "Row 1, Col 3",
+    //   col4: "Row 1, Col 4",
+    // },
+    // {
+    //   col1: "Row 2, Col 1",
+    //   col2: "Row 2, Col 2",
+    //   col3: "Row 2, Col 3",
+    //   col4: "Row 2, Col 4",
+    // },
+    // Add more rows as needed
+  ];
+
+  return <MyDocument data={data} />;
+};
 
 export default PDFInvoice;

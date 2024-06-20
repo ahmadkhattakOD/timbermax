@@ -43,7 +43,7 @@ export default function Dashboard() {
     loadingUsers,
     loadingUpcomingShows,
     loadingLowInStock,
-    role
+    role,
   } = useDashboard();
   const theme = useTheme();
 
@@ -64,7 +64,9 @@ export default function Dashboard() {
                   }}
                 >
                   {yearOptions.map((year) => (
-                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                    <MenuItem key={year} value={year}>
+                      {year}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -95,7 +97,9 @@ export default function Dashboard() {
                   }}
                 >
                   {yearOptions.map((year) => (
-                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                    <MenuItem key={year} value={year}>
+                      {year}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -115,108 +119,123 @@ export default function Dashboard() {
           )}
         </MainCard>
       </Grid>
-      {role === UserRoles.Admin && <Grid item xs={12} md={4}>
-        <MainCard
-          title="Users"
-          secondary={<Button onClick={viewAllUsers}>View All</Button>}
-        >
-          {loadingUsers ? (
-            <Box sx={{ padding: "3rem" }}>
-              <CircularLoader />
-            </Box>
-          ) : userSeries.length > 0 ? (
-            <Chart options={userOptions} series={userSeries} type="donut" />
-          ) : (
-            <Typography>No Users Found.</Typography>
-          )}
-        </MainCard>
-      </Grid>}
-      {role === UserRoles.Admin && <Grid item xs={12} md={4}>
-        <MainCard
-          title="Upcoming Shows"
-          secondary={<Button onClick={viewAllShows}>View All</Button>}
-        >
-          {loadingUpcomingShows ? (
-            <Box sx={{ padding: "3rem" }}>
-              <CircularLoader />
-            </Box>
-          ) : upcomingShows.length > 0 ? (
-            upcomingShows.map((show, idx) => {
-              return (
-                <Box key={idx}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "0.25rem",
-                      "&:hover": {
-                        backgroundColor: theme.palette.secondary[100],
-                        cursor: "pointer",
-                      },
-                    }}
-                    onClick={() => {
-                      viewShow(show.id);
-                    }}
-                  >
-                    <Typography sx={{ color: theme.palette.text.primary }}>
-                      {show.name} ({show.suburb}
-                      {show.suburb && ", "}
-                      {show.state})
-                    </Typography>
-                    <Typography sx={{ color: theme.palette.text.secondary }}>
-                      {getDateFormatted(show.start_date)}
-                    </Typography>
+      {role === UserRoles.Admin && (
+        <Grid item xs={12} md={4}>
+          <MainCard
+            title="Users"
+            secondary={<Button onClick={viewAllUsers}>View All</Button>}
+          >
+            {loadingUsers ? (
+              <Box sx={{ padding: "3rem" }}>
+                <CircularLoader />
+              </Box>
+            ) : userSeries.length > 0 ? (
+              <Chart options={userOptions} series={userSeries} type="donut" />
+            ) : (
+              <Typography>No Users Found.</Typography>
+            )}
+          </MainCard>
+        </Grid>
+      )}
+      {role === UserRoles.Admin && (
+        <Grid item xs={12} md={4}>
+          <MainCard
+            title="Upcoming Shows"
+            secondary={<Button onClick={viewAllShows}>View All</Button>}
+          >
+            {loadingUpcomingShows ? (
+              <Box sx={{ padding: "3rem" }}>
+                <CircularLoader />
+              </Box>
+            ) : upcomingShows.length > 0 ? (
+              upcomingShows.map((show, idx) => {
+                return (
+                  <Box key={idx}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "0.25rem",
+                        "&:hover": {
+                          backgroundColor: theme.palette.secondary[100],
+                          cursor: "pointer",
+                        },
+                      }}
+                      onClick={() => {
+                        viewShow(show.id);
+                      }}
+                    >
+                      <Typography sx={{ color: theme.palette.text.primary }}>
+                        {show.name}{" "}
+                        {show.suburb || show.state
+                          ? show.suburb
+                            ? `(${show.suburb}${show.state && `, ${show.state}`})`
+                            : `(${show.state})`
+                          : ""}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          textAlign: "right",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {getDateFormatted(show.start_date)}
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })
-          ) : (
-            <Typography>No Upcoming Shows Found.</Typography>
-          )}
-        </MainCard>
-      </Grid>}
-      {role === UserRoles.Admin && <Grid item xs={12} md={4}>
-        <MainCard
-          title="Low in Stock"
-          secondary={<Button onClick={viewAllStock}>View All</Button>}
-        >
-          {loadingLowInStock ? (
-            <Box sx={{ padding: "3rem" }}>
-              <CircularLoader />
-            </Box>
-          ) : lowInStock.length > 0 ? (
-            lowInStock.map((stock, idx) => {
-              return (
-                <Box key={idx}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "0.25rem",
-                      "&:hover": {
-                        backgroundColor: theme.palette.secondary[100],
-                        cursor: "pointer",
-                      },
-                    }}
-                    onClick={() => {
-                      viewStock(stock.id);
-                    }}
-                  >
-                    <Typography sx={{ color: theme.palette.text.primary }}>
-                      {stock.item?.name}
-                    </Typography>
-                    <Typography sx={{ color: theme.palette.text.secondary }}>
-                      {stock.quantity}
-                    </Typography>
+                );
+              })
+            ) : (
+              <Typography>No Upcoming Shows Found.</Typography>
+            )}
+          </MainCard>
+        </Grid>
+      )}
+      {role === UserRoles.Admin && (
+        <Grid item xs={12} md={4}>
+          <MainCard
+            title="Low in Stock"
+            secondary={<Button onClick={viewAllStock}>View All</Button>}
+          >
+            {loadingLowInStock ? (
+              <Box sx={{ padding: "3rem" }}>
+                <CircularLoader />
+              </Box>
+            ) : lowInStock.length > 0 ? (
+              lowInStock.map((stock, idx) => {
+                return (
+                  <Box key={idx}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "0.25rem",
+                        "&:hover": {
+                          backgroundColor: theme.palette.secondary[100],
+                          cursor: "pointer",
+                        },
+                      }}
+                      onClick={() => {
+                        viewStock(stock.id);
+                      }}
+                    >
+                      <Typography sx={{ color: theme.palette.text.primary }}>
+                        {stock.item?.name}
+                      </Typography>
+                      <Typography sx={{ color: theme.palette.text.secondary }}>
+                        {stock.quantity}
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })
-          ) : (
-            <Typography>No Stock Found.</Typography>
-          )}
-        </MainCard>
-      </Grid>}
+                );
+              })
+            ) : (
+              <Typography>No Stock Found.</Typography>
+            )}
+          </MainCard>
+        </Grid>
+      )}
     </Grid>
   );
 }

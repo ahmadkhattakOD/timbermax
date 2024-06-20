@@ -38,7 +38,7 @@ import supabase from "utils/supabase";
 // ============================|| JWT - REGISTER ||============================ //
 
 export default function AuthRegister() {
-  const { register } = useAuth();
+  // const { register } = useAuth();
   const scriptedRef = useScriptRef();
   const navigate = useNavigate();
 
