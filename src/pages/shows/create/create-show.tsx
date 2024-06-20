@@ -22,6 +22,7 @@ export default function CreateShow() {
         suburb: "",
         state: "",
         postCode: "",
+        notes: ""
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -92,6 +93,14 @@ export default function CreateShow() {
                 placeholder={"Post Code"}
                 label={"post-code"}
                 type={"text"}
+              />,
+              <FormInput
+                id={"notes"}
+                name={"notes"}
+                placeholder={"Notes"}
+                label={"notes"}
+                type={"text"}
+                isTextArea
               />,
             ]}
           />

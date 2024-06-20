@@ -149,5 +149,6 @@
   "invoice-date-to": "Invoice Date To",
   "add-new-opportunity": "Add New Opportunity",
   "opportunity-descriptions": "Opportunity Descriptions",
-  "filter-opportunity-descriptions": "Filter Opportunity Descriptions"
+  "filter-opportunity-descriptions": "Filter Opportunity Descriptions",
+  "notes": "Notes"
 }

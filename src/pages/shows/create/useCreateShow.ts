@@ -11,6 +11,7 @@ export interface ValuesCreateShow {
   suburb: string;
   state: string;
   postCode: string;
+  notes: string;
 }
 
 export function useCreateShow() {
@@ -40,6 +41,7 @@ export function useCreateShow() {
         suburb: values.suburb,
         state: values.state,
         post_code: values.postCode,
+        notes: values.notes
       };
 
       const showsRepository = new ShowsRepository();

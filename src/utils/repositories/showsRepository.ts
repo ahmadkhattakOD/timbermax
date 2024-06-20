@@ -10,6 +10,7 @@ export interface ShowSupabase {
   suburb: string;
   state: string;
   post_code: string;
+  notes: string;
 }
 
 class ShowsRepository {

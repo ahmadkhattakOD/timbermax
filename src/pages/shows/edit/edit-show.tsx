@@ -44,6 +44,7 @@ export default function EditShow() {
         suburb: show.suburb ?? "",
         state: show.state ?? "",
         postCode: show.post_code ?? "",
+        notes: show.notes ?? ""
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -114,6 +115,14 @@ export default function EditShow() {
                 placeholder={"Post Code"}
                 label={"post-code"}
                 type={"text"}
+              />,
+              <FormInput
+                id={"notes"}
+                name={"notes"}
+                placeholder={"Notes"}
+                label={"notes"}
+                type={"text"}
+                isTextArea
               />,
             ]}
           />

@@ -50,6 +50,12 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Post Code",
   },
+  {
+    id: "notes",
+    numeric: false,
+    disablePadding: true,
+    label: "Notes",
+  },
 ];
 
 export interface ValuesFilterShows {
@@ -121,6 +127,7 @@ export function useShows() {
         <TableCell sx={{ minWidth: 200 }}>{row.suburb}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
       </React.Fragment>
     );
   }
