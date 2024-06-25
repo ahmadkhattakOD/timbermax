@@ -3,7 +3,7 @@ import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { useViewInvoices } from "./useViewInvoices";
+import { useCreateInvoice } from "./useCreateInvoice";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";
@@ -15,9 +15,8 @@ import { getDateFormatted, getInitials, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import FormDropdown from "components/FormDropdown";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import PDFInvoice from "./pdf-invoice";
 
-export default function ViewInvoices() {
+export default function CreateInvoice() {
   const {
     data,
     dataCount,
@@ -55,10 +54,9 @@ export default function ViewInvoices() {
     filters,
     sales,
     resetFilters,
-    pdfInvoiceData,
     handleSaleDatesSubmit,
     validateSaleDates,
-  } = useViewInvoices();
+  } = useCreateInvoice();
 
   const theme = useTheme();
 
@@ -77,7 +75,7 @@ export default function ViewInvoices() {
           <Form onSubmit={handleSubmit} onChange={(e) => {}}>
             <FormLayout
               isSubmitting={isSubmitting}
-              submitButtonText={'get-data'}
+              submitButtonText={"get-data"}
               inputs={[
                 <FormInput
                   id={"saleDateFrom"}
@@ -118,43 +116,7 @@ export default function ViewInvoices() {
                 </Typography>
               }
             />
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Typography variant="h4">{fullName}</Typography>
-              {!invoiceRulesLoading && !loading && (
-                <PDFDownloadLink
-                  document={
-                    <PDFInvoice
-                      data={pdfInvoiceData}
-                      fullName={fullName}
-                      wages={totalWages.toFixed(2)}
-                      numberOfShowDays={invoiceRules.show_days.toFixed(0)}
-                      travelBonus={invoiceRules.travel_bonus.toFixed(2)}
-                      otherBonuses={invoiceRules.other_bonuses.toFixed(2)}
-                      deductions={invoiceRules.deductions.toFixed(2)}
-                      cancelledSales={cancelledSales.toFixed(2)}
-                      totalCommission={totalCommission.toFixed(2)}
-                      total={(
-                        totalWages +
-                        invoiceRules.travel_bonus +
-                        invoiceRules.other_bonuses +
-                        totalCommission -
-                        cancelledSales -
-                        invoiceRules.deductions
-                      ).toFixed(2)}
-                    />
-                  }
-                  fileName={`invoice_${getInitials(fullName)}_${getDateFormatted()}.pdf`}
-                  style={{
-                    textDecoration: "underline",
-                    textUnderlineOffset: 5,
-                    color: theme.palette.primary.dark,
-                    fontWeight: 600,
-                  }}
-                >
-                  {({ loading }) => (loading ? "Loading..." : "Download PDF")}
-                </PDFDownloadLink>
-              )}
-            </Box>
+            <Typography variant="h4">{fullName}</Typography>
           </Box>
         }
         filters={
