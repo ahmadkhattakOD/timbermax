@@ -11,7 +11,7 @@ import CircularLoader from "components/CircularLoader";
 import { Divider, Typography } from "@mui/material";
 import ProfilePicture from "components/ProfilePicture";
 import { useTheme } from "@mui/system";
-import { getInitials, hasNonEmptyValue } from "utils/helpers";
+import { getDateFormatted, getInitials, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import FormDropdown from "components/FormDropdown";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -55,18 +55,13 @@ export default function ViewInvoices() {
     filters,
     sales,
     resetFilters,
+    pdfInvoiceData,
   } = useViewInvoices();
 
   const theme = useTheme();
 
   return (
     <Box sx={{ width: "100%" }}>
-      <PDFDownloadLink document={<PDFInvoice />} fileName="invoice.pdf">
-        {({ blob, url, loading, error }) =>
-          loading ? "Loading document..." : "Download PDF TEST"
-        }
-      </PDFDownloadLink>
-
       <CreateAndFiltersLayout
         actionButton={
           <Box
@@ -84,7 +79,43 @@ export default function ViewInvoices() {
                 </Typography>
               }
             />
-            <Typography variant="h4">{fullName}</Typography>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Typography variant="h4">{fullName}</Typography>
+              {!invoiceRulesLoading && !loading && (
+                <PDFDownloadLink
+                  document={
+                    <PDFInvoice
+                      data={pdfInvoiceData}
+                      fullName={fullName}
+                      wages={totalWages.toFixed(2)}
+                      numberOfShowDays={invoiceRules.show_days.toFixed(0)}
+                      travelBonus={invoiceRules.travel_bonus.toFixed(2)}
+                      otherBonuses={invoiceRules.other_bonuses.toFixed(2)}
+                      deductions={invoiceRules.deductions.toFixed(2)}
+                      cancelledSales={cancelledSales.toFixed(2)}
+                      totalCommission={totalCommission.toFixed(2)}
+                      total={(
+                        totalWages +
+                        invoiceRules.travel_bonus +
+                        invoiceRules.other_bonuses +
+                        totalCommission -
+                        cancelledSales -
+                        invoiceRules.deductions
+                      ).toFixed(2)}
+                    />
+                  }
+                  fileName={`invoice_${getInitials(fullName)}_${getDateFormatted()}.pdf`}
+                  style={{
+                    textDecoration: "underline",
+                    textUnderlineOffset: 5,
+                    color: theme.palette.primary.dark,
+                    fontWeight: 600,
+                  }}
+                >
+                  {({ loading }) => (loading ? "Loading..." : "Download PDF")}
+                </PDFDownloadLink>
+              )}
+            </Box>
           </Box>
         }
         filters={

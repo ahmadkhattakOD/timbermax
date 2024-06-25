@@ -15,6 +15,7 @@ import ProfilesRepository, {
   InvoiceRulesSupabase,
 } from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
+import { PDFInvoiceData } from "./pdf-invoice";
 
 const headCells: HeadCell[] = [
   {
@@ -193,6 +194,7 @@ export function useViewInvoices() {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [sales, setSales] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterInvoices>(initialFilters);
+  const [pdfInvoiceData, setPdfInvoiceData] = useState<PDFInvoiceData[]>([]);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -409,6 +411,28 @@ export function useViewInvoices() {
           if (invoicesData && !invoicesError) {
             setData(invoicesData);
             setDataCount(invoicesCount ?? 0);
+
+            let temp: PDFInvoiceData[] = [];
+            for (let i = 0; i < invoicesData.length; i++) {
+              let invoice = invoicesData[i] as any;
+              temp.push({
+                contactName: invoice.sale?.contact_name ?? "",
+                opportunity: invoice.sale?.opportunity_description ?? "",
+                deposit: invoice.sale?.deposit.toString() ?? "",
+                total: invoice.sale?.total.toString() ?? "",
+                paymentMethod: invoice.sale?.payment_method ?? "",
+                salesPerson: invoice.sale?.sales_person?.full_name ?? "",
+                closer: invoice.sale?.closer?.full_name ?? "",
+                note: invoice.sale?.note ?? "",
+                status: invoice.sale?.status ?? "",
+                show: invoice.sale?.show?.name ?? "",
+                comms: invoice.commission.toString(),
+                saleDate: invoice.sale?.sale_date
+                  ? getDateFormatted(invoice.sale?.sale_date)
+                  : "",
+              });
+            }
+            setPdfInvoiceData(temp);
           }
         }
         setLoading(false);
@@ -478,7 +502,7 @@ export function useViewInvoices() {
             setTotalCommission(salesMadeValue);
           }
         }
-        
+
         setInvoiceRulesLoading(false);
       }
     } catch (e) {
@@ -540,5 +564,6 @@ export function useViewInvoices() {
     filters,
     sales,
     resetFilters,
+    pdfInvoiceData,
   };
 }
