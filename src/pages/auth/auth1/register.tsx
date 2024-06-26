@@ -13,9 +13,9 @@ import AuthDivider from 'sections/auth/AuthDivider';
 import AuthWrapper from 'sections/auth/AuthWrapper';
 
 // assets
-import imgFacebook from 'assets/images/auth/facebook.svg';
-import imgTwitter from 'assets/images/auth/twitter.svg';
-import imgGoogle from 'assets/images/auth/google.svg';
+// import imgFacebook from 'assets/images/auth/facebook.svg';
+// import imgTwitter from 'assets/images/auth/twitter.svg';
+// import imgGoogle from 'assets/images/auth/google.svg';
 import AuthRegister from 'sections/auth/auth-forms/AuthRegister';
 
 // ================================|| REGISTER ||================================ //
@@ -31,7 +31,7 @@ export default function Register() {
         </Grid>
         <Grid item xs={12}>
           <Grid container spacing={1}>
-            <Grid item xs={12}>
+            {/* <Grid item xs={12}>
               <AuthSocButton>
                 <img src={imgFacebook} alt="Facebook" style={{ margin: '0 10px' }} /> Sign In with Facebook
               </AuthSocButton>
@@ -45,7 +45,7 @@ export default function Register() {
               <AuthSocButton>
                 <img src={imgGoogle} alt="Facebook" style={{ margin: '0 10px' }} /> Sign In with Google
               </AuthSocButton>
-            </Grid>
+            </Grid> */}
           </Grid>
         </Grid>
         <Grid item xs={12}>
