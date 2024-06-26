@@ -21,6 +21,7 @@ interface FieldInputProps {
   isTextArea?: boolean;
   isPasswordField?: boolean;
   onChangePasswordVisibility?: () => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const FormInput = ({
@@ -40,6 +41,7 @@ const FormInput = ({
   isTextArea = false,
   isPasswordField,
   onChangePasswordVisibility,
+  onChange,
 }: FieldInputProps) => {
   const [_, __, helpers] = useField(name);
   const theme = useTheme();
@@ -88,19 +90,36 @@ const FormInput = ({
       </Box>
 
       <div className={"group-input"}>
-        <Field
-          as={isTextArea ? "textarea" : "input"}
-          min={min}
-          max={max}
-          id={id}
-          name={name}
-          placeholder={placeholder}
-          className="input"
-          type={type}
-          defaultValue={defaultValue}
-          disabled={disabled}
-          autoComplete={type === "password" ? "new-password" : undefined}
-        />
+        {onChange ? (
+          <Field
+            as={isTextArea ? "textarea" : "input"}
+            min={min}
+            max={max}
+            id={id}
+            name={name}
+            placeholder={placeholder}
+            className="input"
+            type={type}
+            defaultValue={defaultValue}
+            disabled={disabled}
+            autoComplete={type === "password" ? "new-password" : undefined}
+            onChange={onChange}
+          />
+        ) : (
+          <Field
+            as={isTextArea ? "textarea" : "input"}
+            min={min}
+            max={max}
+            id={id}
+            name={name}
+            placeholder={placeholder}
+            className="input"
+            type={type}
+            defaultValue={defaultValue}
+            disabled={disabled}
+            autoComplete={type === "password" ? "new-password" : undefined}
+          />
+        )}
 
         {isPasswordField && (
           <Box sx={{ paddingRight: "0.5rem" }}>

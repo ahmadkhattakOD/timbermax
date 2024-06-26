@@ -411,6 +411,8 @@ export function useViewInvoices() {
           rangeStart,
           rangeEnd,
           rowsPerPage,
+          "",
+          "",
           filters
         );
         if (invoices) {
@@ -506,7 +508,7 @@ export function useViewInvoices() {
           setTotalWages(dailyWage * (profileData.invoice_rules.show_days ?? 0));
         }
         const invoicesRepository = new InvoicesRepository();
-        const allInvoices = await invoicesRepository.getWithExtendedLimit(id);
+        const allInvoices = await invoicesRepository.getWithExtendedLimit(id, "", "");
         if (allInvoices) {
           const { invoicesData, invoicesError } = allInvoices;
           if (invoicesData && !invoicesError) {

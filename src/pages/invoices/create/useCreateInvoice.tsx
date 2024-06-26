@@ -10,6 +10,9 @@ import {
   getDateTimeFormatted,
   initialRowsPerPage,
 } from "utils/helpers";
+import GeneratedInvoicesRepository, {
+  GeneratedInvoiceSupabase,
+} from "utils/repositories/generatedInvoicesRepository";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import ProfilesRepository, {
   InvoiceRulesSupabase,
@@ -150,6 +153,8 @@ export interface ValuesEditInvoice {
   travelBonus: string;
   otherBonuses: string;
   deductions: string;
+  totalCommission: string;
+  cancelledSales: string;
 }
 
 export interface ValuesSaleDates {
@@ -182,19 +187,19 @@ export function useCreateInvoice() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
-  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [fullName, setFullName] = useState<string>("");
+  const [profilePicture, setProfilePicture] = useState<string>("");
+  const [wage, setWage] = useState<number>(0);
+  const [profileDataLoading, setProfileDataLoading] = useState(true);
+  const [cancelledSales, setCancelledSales] = useState<number>(0);
+  const [totalCommission, setTotalCommission] = useState<number>(0);
   const [invoiceRules, setInvoiceRules] = useState<InvoiceRulesSupabase>({
     show_days: 0,
     travel_bonus: 0,
     other_bonuses: 0,
     deductions: 0,
   });
-  const [fullName, setFullName] = useState<string>("");
-  const [profilePicture, setProfilePicture] = useState<string>("");
-  const [invoiceRulesLoading, setInvoiceRulesLoading] = useState<boolean>(true);
-  const [cancelledSales, setCancelledSales] = useState<number>(0);
-  const [totalCommission, setTotalCommission] = useState<number>(0);
-  const [totalWages, setTotalWages] = useState<number>(0);
+  const [grandTotal, setGrandTotal] = useState<number>(0);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [sales, setSales] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterInvoices>(initialFilters);
@@ -210,15 +215,6 @@ export function useCreateInvoice() {
   ) {
     return (
       <React.Fragment>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            checked={isItemSelected}
-            inputProps={{
-              "aria-labelledby": labelId,
-            }}
-          />
-        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.contact_name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.opportunity_description}
@@ -275,41 +271,6 @@ export function useCreateInvoice() {
     );
   }
 
-  function openDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(true);
-  }
-
-  async function onDelete() {
-    const invoicesRepository = new InvoicesRepository();
-    const deletedInvoices = await invoicesRepository.delete(selected);
-    if (deletedInvoices > 0) {
-      openSnackbar({
-        open: true,
-        message: `${deletedInvoices} invoice(s) deleted successfully.`,
-        variant: "alert",
-        alert: {
-          color: "success",
-        },
-      } as SnackbarProps);
-      setSelected([]);
-      await getData();
-    } else {
-      openSnackbar({
-        open: true,
-        message:
-          "Invoice(s) could not be deleted successfully. Please try again.",
-        variant: "alert",
-        alert: {
-          color: "error",
-        },
-      } as SnackbarProps);
-    }
-  }
-
-  function closeDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(false);
-  }
-
   function openFilterModal() {
     setFilterModalOpen(true);
   }
@@ -343,55 +304,60 @@ export function useCreateInvoice() {
   async function onSubmit(values: ValuesEditInvoice) {
     try {
       if (id) {
-        const newRules: InvoiceRulesSupabase = {
-          show_days: values.showDays !== "" ? parseInt(values.showDays) : 0,
-          travel_bonus:
-            values.travelBonus !== "" ? parseFloat(values.travelBonus) : 0,
-          other_bonuses:
-            values.otherBonuses !== "" ? parseFloat(values.otherBonuses) : 0,
-          deductions:
-            values.deductions !== "" ? parseFloat(values.deductions) : 0,
+        const newGeneratedInvoice: GeneratedInvoiceSupabase = {
+          start_date: new Date(saleDateFrom),
+          end_date: new Date(saleDateTo),
+          wages: (parseFloat(values.showDays) ?? 0) * wage,
+          travel_bonus: parseFloat(values.travelBonus) ?? 0,
+          other_bonuses: parseFloat(values.otherBonuses) ?? 0,
+          total_commission: parseFloat(values.totalCommission) ?? 0,
+          cancelled_sales: parseFloat(values.cancelledSales) ?? 0,
+          deductions: parseFloat(values.deductions) ?? 0,
+          status: "Pending",
+          beneficiary: id,
         };
 
-        const profilesRepository = new ProfilesRepository();
-        const editedRules = await profilesRepository.editInvoiceRules(
-          id,
-          newRules
-        );
+        const generatedInvoicesRepository = new GeneratedInvoicesRepository();
+        const createdInvoice =
+          await generatedInvoicesRepository.create(newGeneratedInvoice);
 
-        if (editedRules) {
+        if (createdInvoice) {
           openSnackbar({
             open: true,
-            message: "Invoice rules updated successfully.",
+            message: "Invoice generated successfully.",
             variant: "alert",
             alert: {
               color: "success",
             },
           } as SnackbarProps);
-          getProfileAndFigures();
         } else {
           openSnackbar({
             open: true,
             message:
-              "Invoice rules could not be updated successfully. Please try again.",
+              "Invoice could not be generated successfully. Please try again.",
             variant: "alert",
             alert: {
               color: "error",
             },
           } as SnackbarProps);
         }
+        navigate(`/invoices/users/${id}/view`);
       }
     } catch (e) {
       openSnackbar({
         open: true,
         message:
-          "Invoice rules could not be updated successfully. Please try again.",
+          "Invoice could not be generated successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",
         },
       } as SnackbarProps);
-      navigate("/shows");
+      if (id) {
+        navigate(`/invoices/users/${id}/view`);
+      } else {
+        navigate(`/invoices/users`);
+      }
     }
   }
 
@@ -409,6 +375,8 @@ export function useCreateInvoice() {
           rangeStart,
           rangeEnd,
           rowsPerPage,
+          saleDateFrom,
+          saleDateTo,
           filters
         );
         if (invoices) {
@@ -428,7 +396,7 @@ export function useCreateInvoice() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage, filters]);
+  }, [order, orderBy, page, rowsPerPage, filters, saleDateFrom, saleDateTo]);
 
   async function validateFilters(values: ValuesFilterInvoices) {
     const errors = {} as ValuesFilterInvoices;
@@ -452,6 +420,14 @@ export function useCreateInvoice() {
   async function validateSaleDates(values: ValuesSaleDates) {
     const errors = {} as ValuesSaleDates;
 
+    if (!values.saleDateFrom) {
+      errors.saleDateFrom = "required";
+    }
+
+    if (!values.saleDateTo) {
+      errors.saleDateTo = "required";
+    }
+
     return errors;
   }
 
@@ -467,22 +443,23 @@ export function useCreateInvoice() {
   async function getProfileAndFigures() {
     try {
       if (id) {
-        setInvoiceRulesLoading(true);
+        setProfileDataLoading(true);
         const profilesRepository = new ProfilesRepository();
         const profile = await profilesRepository.getSingle(id);
         if (profile) {
-          let dailyWage = 0;
           const { profileData, profileError } = profile;
           if (profileData && !profileError) {
-            setInvoiceRules(profileData.invoice_rules);
             setFullName(profileData.full_name);
             setProfilePicture(profileData.profile_picture);
-            dailyWage = profileData.daily_wage;
+            setWage(profileData.daily_wage ?? 0);
           }
-          setTotalWages(dailyWage * (profileData.invoice_rules.show_days ?? 0));
         }
         const invoicesRepository = new InvoicesRepository();
-        const allInvoices = await invoicesRepository.getWithExtendedLimit(id);
+        const allInvoices = await invoicesRepository.getWithExtendedLimit(
+          id,
+          saleDateFrom,
+          saleDateTo
+        );
         if (allInvoices) {
           const { invoicesData, invoicesError } = allInvoices;
           if (invoicesData && !invoicesError) {
@@ -498,14 +475,14 @@ export function useCreateInvoice() {
 
             setCancelledSales(salesCancelledValue);
             setTotalCommission(salesMadeValue);
+            setGrandTotal(salesMadeValue - salesCancelledValue);
           }
         }
-
-        setInvoiceRulesLoading(false);
+        setProfileDataLoading(false);
       }
     } catch (e) {
-      console.error("Error fetching invoice rules:", e);
-      setLoading(false);
+      console.error("Error fetching profile data:", e);
+      setProfileDataLoading(false);
     }
   }
 
@@ -521,9 +498,23 @@ export function useCreateInvoice() {
   }
 
   useEffect(() => {
-    getProfileAndFigures();
     getFilterData();
   }, []);
+
+  useEffect(() => {
+    getProfileAndFigures();
+  }, [saleDateFrom, saleDateTo]);
+
+  useEffect(() => {
+    setGrandTotal(
+      totalCommission +
+        invoiceRules.show_days * wage +
+        invoiceRules.travel_bonus +
+        invoiceRules.other_bonuses -
+        invoiceRules.deductions -
+        cancelledSales
+    );
+  }, [invoiceRules, wage, totalCommission, cancelledSales]);
 
   return {
     data,
@@ -541,19 +532,14 @@ export function useCreateInvoice() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete,
-    deleteConfirmModalOpen,
-    openDeleteConfirmModal,
-    closeDeleteConfirmModal,
     validate,
     onSubmit,
-    invoiceRulesLoading,
-    invoiceRules,
-    totalWages,
     fullName,
     profilePicture,
+    wage,
     totalCommission,
     cancelledSales,
+    grandTotal,
     filterModalOpen,
     openFilterModal,
     closeFilterModal,
@@ -563,6 +549,11 @@ export function useCreateInvoice() {
     sales,
     resetFilters,
     validateSaleDates,
-    handleSaleDatesSubmit
+    handleSaleDatesSubmit,
+    profileDataLoading,
+    invoiceRules,
+    setInvoiceRules,
+    saleDateFrom,
+    saleDateTo,
   };
 }

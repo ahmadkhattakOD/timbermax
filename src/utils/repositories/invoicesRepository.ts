@@ -54,13 +54,15 @@ class InvoicesRepository {
     rangeStart: number,
     rangeEnd: number,
     limit: number,
+    saleDateFrom: string,
+    saleDateTo: string,
     filters?: ValuesFilterInvoices
   ) {
     try {
       const query = supabase
         .from(this.className)
         .select(
-          "id, created_at, sale ( contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
+          "id, created_at, sale!inner ( contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -83,6 +85,12 @@ class InvoicesRepository {
         }
         if (filters.invoiceDateTo) {
           query.lte("created_at", filters.invoiceDateTo);
+        }
+        if (saleDateFrom !== "") {
+          query.gte("sale.sale_date", saleDateFrom);
+        }
+        if (saleDateTo !== "") {
+          query.lte("sale.sale_date", saleDateTo);
         }
       }
 
@@ -144,14 +152,27 @@ class InvoicesRepository {
     }
   }
 
-  public async getWithExtendedLimit(id: string) {
+  public async getWithExtendedLimit(
+    id: string,
+    saleDateFrom: string,
+    saleDateTo: string
+  ) {
     try {
-      const { data: invoicesData, error: invoicesError } = await supabase
+      const query = supabase
         .from(this.className)
-        .select("commission, sale ( status, total, deposit ) ")
+        .select("commission, sale!inner ( status, total, deposit ) ")
         .order("created_at", { ascending: false })
         .eq("beneficiary", id)
         .limit(extendedDataLimit);
+
+      if (saleDateFrom !== "") {
+        query.gte("sale.sale_date", saleDateFrom);
+      }
+      if (saleDateTo !== "") {
+        query.lte("sale.sale_date", saleDateTo);
+      }
+
+      const { data: invoicesData, error: invoicesError } = await query;
 
       return { invoicesData, invoicesError };
     } catch (error) {

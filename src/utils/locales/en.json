@@ -152,5 +152,8 @@
   "filter-opportunity-descriptions": "Filter Opportunity Descriptions",
   "notes": "Notes",
   "inventory": "Inventory",
-  "get-data": "Get Data"
+  "get-data": "Get Data",
+  "total-commission": "Total Commission",
+  "cancelled-sales": "Cancelled Sales",
+  "generate-invoice": "Generate Invoice"
 }
