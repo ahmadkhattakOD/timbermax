@@ -221,7 +221,7 @@ export function useViewDelivery() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.show && row.sale?.show.name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale.notes}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.sale?.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.status && <FormattedMessage id={row.sale?.status} />}
         </TableCell>
@@ -372,8 +372,10 @@ export function useViewDelivery() {
         setWarehouses(warehousesData);
       }
     }
-    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
-    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    const opportunityDescriptionsRepository =
+      new OpportunityDescriptionsRepository();
+    const allOpportunities =
+      await opportunityDescriptionsRepository.getWithoutFilters();
     if (allOpportunities) {
       const { opportunitiesData, opportunitiesError } = allOpportunities;
       if (opportunitiesData && !opportunitiesError) {

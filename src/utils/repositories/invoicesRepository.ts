@@ -181,6 +181,36 @@ class InvoicesRepository {
     }
   }
 
+  public async getCancelledWithExtendedLimit(
+    id: string,
+    saleDateFrom: string,
+    saleDateTo: string
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select("commission, sale!inner ( status, total, deposit, status_changed_at ) ")
+        .order("created_at", { ascending: false })
+        .eq("beneficiary", id)
+        .eq("sale.status", "cancelled")
+        .limit(extendedDataLimit);
+
+      if (saleDateFrom !== "") {
+        query.gte("sale.status_changed_at", saleDateFrom);
+      }
+      if (saleDateTo !== "") {
+        query.lte("sale.status_changed_at", saleDateTo);
+      }
+
+      const { data: invoicesData, error: invoicesError } = await query;
+
+      return { invoicesData, invoicesError };
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      return null;
+    }
+  }
+
   public async getTotalCommissionsForYear(
     year: number,
     userId?: string

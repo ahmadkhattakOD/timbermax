@@ -471,24 +471,34 @@ export function useCreateInvoice() {
           saleDateFrom,
           saleDateTo
         );
+        let salesMadeValue = 0;
         if (allInvoices) {
           const { invoicesData, invoicesError } = allInvoices;
           if (invoicesData && !invoicesError) {
-            let salesCancelledValue = 0;
-            let salesMadeValue = 0;
             for (let i = 0; i < invoicesData.length; i++) {
-              let sale = invoicesData[i].sale as any;
-              if (sale.status === "cancelled") {
-                salesCancelledValue += invoicesData[i].commission;
-              }
               salesMadeValue += invoicesData[i].commission;
             }
-
-            setCancelledSales(salesCancelledValue);
             setTotalCommission(salesMadeValue);
-            setGrandTotal(salesMadeValue - salesCancelledValue);
           }
         }
+        let salesCancelledValue = 0;
+        const allCancelledInvoices =
+          await invoicesRepository.getCancelledWithExtendedLimit(
+            id,
+            saleDateFrom,
+            saleDateTo
+          );
+        if (allCancelledInvoices) {
+          const { invoicesData, invoicesError } = allCancelledInvoices;
+          if (invoicesData && !invoicesError) {
+            for (let i = 0; i < invoicesData?.length; i++) {
+              salesCancelledValue += invoicesData[i].commission;
+            }
+            setCancelledSales(salesCancelledValue);
+          }
+        }
+        setGrandTotal(salesMadeValue - salesCancelledValue);
+
         setProfileDataLoading(false);
       }
     } catch (e) {
