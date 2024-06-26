@@ -1,4 +1,4 @@
-import { ValuesFilterInvoices } from "pages/invoices/view/useViewInvoices";
+import { ValuesFilterInvoices } from "pages/invoices/create/useCreateInvoice";
 import {
   extendedDataLimit,
   getDateFormattedForField,

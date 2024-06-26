@@ -322,8 +322,8 @@ const MainRoutes = {
       element: <DashboardLayout />,
       children: [
         {
-          path: "invoices/users/:id/new",
-          element: <CreateInvoice />,
+          path: "invoices/users/:id/view",
+          element: <ViewInvoices />,
         },
       ],
     },
@@ -332,8 +332,8 @@ const MainRoutes = {
       element: <DashboardLayout />,
       children: [
         {
-          path: "invoices/users/:id/view",
-          element: <ViewInvoices />,
+          path: "invoices/users/:id/view/new",
+          element: <CreateInvoice />,
         },
       ],
     },

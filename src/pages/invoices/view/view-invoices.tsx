@@ -1,27 +1,24 @@
 import Box from "@mui/material/Box";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
+import { useViewInvoices } from "./useViewInvoices";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { useViewInvoices } from "./useViewInvoices";
+import { getInitials, hasNonEmptyValue, userRoles } from "utils/helpers";
+import ModalFilters from "components/modal-filters/ModalFilters";
+import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
-import { Form, Formik } from "formik";
-import CircularLoader from "components/CircularLoader";
-import { Divider, Grid, Typography } from "@mui/material";
-import ProfilePicture from "components/ProfilePicture";
-import { useTheme } from "@mui/system";
-import { getDateFormatted, getInitials, hasNonEmptyValue } from "utils/helpers";
-import ModalFilters from "components/modal-filters/ModalFilters";
 import FormDropdown from "components/FormDropdown";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import PDFInvoice from "./pdf-invoice";
+import ProfilePicture from "components/ProfilePicture";
+import { Typography } from "@mui/material";
 
 export default function ViewInvoices() {
   const {
     data,
     dataCount,
     loading,
+    goToCreate,
     order,
     setOrder,
     orderBy,
@@ -38,286 +35,87 @@ export default function ViewInvoices() {
     deleteConfirmModalOpen,
     openDeleteConfirmModal,
     closeDeleteConfirmModal,
-    validate,
-    onSubmit,
-    invoiceRulesLoading,
-    invoiceRules,
-    totalWages,
-    fullName,
-    profilePicture,
-    cancelledSales,
-    totalCommission,
     filterModalOpen,
     openFilterModal,
     closeFilterModal,
     handleFiltersSubmit,
     validateFilters,
     filters,
-    sales,
     resetFilters,
-    pdfInvoiceData,
-    handleSaleDatesSubmit,
-    validateSaleDates,
+    fullName,
+    markSelectedAsPaid,
+    markSelectedAsPending,
   } = useViewInvoices();
-
-  const theme = useTheme();
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Formik
-        enableReinitialize
-        initialValues={{
-          saleDateFrom: "",
-          saleDateTo: "",
-        }}
-        validate={validateSaleDates}
-        onSubmit={handleSaleDatesSubmit}
+      <Box
+        sx={{ display: "flex", justifyContent: "start", paddingBottom: "2rem" }}
       >
-        {({ handleSubmit, errors, touched, isSubmitting, values }) => (
-          <Form onSubmit={handleSubmit} onChange={(e) => {}}>
-            <FormLayout
-              isSubmitting={isSubmitting}
-              submitButtonText={'get-data'}
-              inputs={[
-                <FormInput
-                  id={"saleDateFrom"}
-                  name={"saleDateFrom"}
-                  placeholder={"Sale Date From"}
-                  label={"sale-date-from"}
-                  type={"date"}
-                />,
-                <FormInput
-                  id={"saleDateTo"}
-                  name={"saleDateTo"}
-                  placeholder={"Sale Date To"}
-                  label={"sale-date-to"}
-                  type={"date"}
-                />,
-              ]}
-            />
-          </Form>
-        )}
-      </Formik>
-      <Grid container>
-        <Grid item xs={12} md={6}></Grid>
-      </Grid>
-      <CreateAndFiltersLayout
-        actionButton={
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "10px",
-            }}
-          >
-            <ProfilePicture
-              avatarChild={
-                <Typography sx={{ fontWeight: 800 }}>
-                  {getInitials(fullName)}
-                </Typography>
-              }
-            />
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Typography variant="h4">{fullName}</Typography>
-              {!invoiceRulesLoading && !loading && (
-                <PDFDownloadLink
-                  document={
-                    <PDFInvoice
-                      data={pdfInvoiceData}
-                      fullName={fullName}
-                      wages={totalWages.toFixed(2)}
-                      numberOfShowDays={invoiceRules.show_days.toFixed(0)}
-                      travelBonus={invoiceRules.travel_bonus.toFixed(2)}
-                      otherBonuses={invoiceRules.other_bonuses.toFixed(2)}
-                      deductions={invoiceRules.deductions.toFixed(2)}
-                      cancelledSales={cancelledSales.toFixed(2)}
-                      totalCommission={totalCommission.toFixed(2)}
-                      total={(
-                        totalWages +
-                        invoiceRules.travel_bonus +
-                        invoiceRules.other_bonuses +
-                        totalCommission -
-                        cancelledSales -
-                        invoiceRules.deductions
-                      ).toFixed(2)}
-                    />
-                  }
-                  fileName={`invoice_${getInitials(fullName)}_${getDateFormatted()}.pdf`}
-                  style={{
-                    textDecoration: "underline",
-                    textUnderlineOffset: 5,
-                    color: theme.palette.primary.dark,
-                    fontWeight: 600,
-                  }}
-                >
-                  {({ loading }) => (loading ? "Loading..." : "Download PDF")}
-                </PDFDownloadLink>
-              )}
-            </Box>
-          </Box>
-        }
-        filters={
-          !invoiceRulesLoading ? (
-            <Box
-              sx={{
-                paddingBottom: "2rem",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: { xs: "center", sm: "flex-end" },
-              }}
-            >
-              <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Wages: <span style={{ fontWeight: 700 }}>{totalWages}</span>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+          }}
+        >
+          <ProfilePicture
+            avatarChild={
+              <Typography sx={{ fontWeight: 800 }}>
+                {getInitials(fullName)}
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Travel Bonus:{" "}
-                <span style={{ fontWeight: 700 }}>
-                  {invoiceRules.travel_bonus}
-                </span>
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Other Bonuses:{" "}
-                <span style={{ fontWeight: 700 }}>
-                  {invoiceRules.other_bonuses}
-                </span>{" "}
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Total Commission:{" "}
-                <span style={{ fontWeight: 700 }}>{totalCommission}</span>
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Cancelled Sales:{" "}
-                <span style={{ fontWeight: 700 }}>({cancelledSales})</span>
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Deductions:{" "}
-                <span style={{ fontWeight: 700 }}>
-                  ({invoiceRules.deductions})
-                </span>
-              </Typography>
-              <Box
-                sx={{
-                  height: "1px",
-                  width: "100%",
-                  backgroundColor: theme.palette.secondary.light,
-                  marginTop: "0.5rem",
-                  marginBottom: "0.5rem",
-                }}
-              ></Box>
-              <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                Total:{" "}
-                <span style={{ fontWeight: 700 }}>
-                  {totalWages +
-                    invoiceRules.travel_bonus +
-                    invoiceRules.other_bonuses +
-                    totalCommission -
-                    cancelledSales -
-                    invoiceRules.deductions >=
-                  0
-                    ? totalWages +
-                      invoiceRules.travel_bonus +
-                      invoiceRules.other_bonuses +
-                      totalCommission -
-                      cancelledSales -
-                      invoiceRules.deductions
-                    : `(${invoiceRules.travel_bonus + invoiceRules.other_bonuses + totalCommission - cancelledSales - invoiceRules.deductions})`}
-                </span>
-              </Typography>
-            </Box>
-          ) : (
-            <></>
-          )
-        }
-      />
-      <Box sx={{ paddingBottom: "2rem" }}>
-        {invoiceRulesLoading ? (
-          <Box
-            sx={{
-              height: "100%",
-              width: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <CircularLoader />
-          </Box>
-        ) : (
-          <Formik
-            enableReinitialize
-            initialValues={{
-              showDays: invoiceRules.show_days.toString(),
-              travelBonus: invoiceRules.travel_bonus.toString(),
-              otherBonuses: invoiceRules.other_bonuses.toString(),
-              deductions: invoiceRules.deductions.toString(),
-            }}
-            validate={validate}
-            onSubmit={onSubmit}
-          >
-            {({ handleSubmit, errors, touched, isSubmitting, values }) => (
-              <Form onSubmit={handleSubmit}>
-                <FormLayout
-                  isSubmitting={isSubmitting}
-                  submitButtonText={"submit"}
-                  inputs={[
-                    <FormInput
-                      id={"showDays"}
-                      name={"showDays"}
-                      placeholder={"Show Days"}
-                      label={"show-days"}
-                      type={"number"}
-                      error={touched.showDays ? errors.showDays : ""}
-                    />,
-                    <FormInput
-                      id={"travelBonus"}
-                      name={"travelBonus"}
-                      placeholder={"Travel Bonus"}
-                      label={"travel-bonus"}
-                      type={"number"}
-                      error={touched.showDays ? errors.showDays : ""}
-                    />,
-                    <FormInput
-                      id={"otherBonuses"}
-                      name={"otherBonuses"}
-                      placeholder={"Other Bonuses"}
-                      label={"other-bonuses"}
-                      type={"number"}
-                      error={touched.otherBonuses ? errors.otherBonuses : ""}
-                    />,
-                    <FormInput
-                      id={"deductions"}
-                      name={"deductions"}
-                      placeholder={"Deductions"}
-                      label={"deductions"}
-                      type={"number"}
-                      error={touched.deductions ? errors.deductions : ""}
-                    />,
-                  ]}
-                />
-              </Form>
-            )}
-          </Formik>
-        )}
+            }
+          />
+          <Typography variant="h4">{fullName}</Typography>
+        </Box>
       </Box>
       <CreateAndFiltersLayout
+        actionButton={
+          <ActionButton text={"add-new-invoice"} onClick={goToCreate} />
+        }
         filters={
-          hasNonEmptyValue(filters) ? (
-            <ActionButton
-              text={"reset-filters"}
-              color="secondary"
-              onClick={resetFilters}
-            />
-          ) : (
-            <></>
-          )
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              width: "100%",
+              alignItems: "flex-end",
+            }}
+          >
+            {selected.length > 0 && (
+              <ActionButton
+                text={"mark-selected-as-paid"}
+                color="primary"
+                onClick={markSelectedAsPaid}
+              />
+            )}
+            {selected.length > 0 && (
+              <ActionButton
+                text={"mark-selected-as-pending"}
+                color="secondary"
+                onClick={markSelectedAsPending}
+              />
+            )}
+
+            {hasNonEmptyValue(filters) ? (
+              <ActionButton
+                text={"reset-filters"}
+                color="secondary"
+                onClick={resetFilters}
+              />
+            ) : (
+              <></>
+            )}
+          </Box>
         }
       />
       <DataTable
         data={data}
         dataCount={dataCount}
         loading={loading}
-        tableTitle="sales"
+        tableTitle="invoices"
         selected={selected}
         setSelected={setSelected}
         rowsPerPage={rowsPerPage}
@@ -340,7 +138,7 @@ export default function ViewInvoices() {
         onDelete={onDelete}
       />
       <ModalFilters
-        title="filter-sales"
+        title="filter-invoices"
         open={filterModalOpen}
         onClose={closeFilterModal}
         form={
@@ -356,46 +154,148 @@ export default function ViewInvoices() {
                   isSubmitting={isSubmitting}
                   submitButtonText={"apply"}
                   inputs={[
-                    <FormDropdown
-                      id={"sale"}
-                      name={"sale"}
-                      label={"sale"}
-                      useFormattedStrings={false}
-                      options={sales.map((sale) => {
-                        return {
-                          label: sale.contact_name,
-                          value: sale.id.toString(),
-                        };
-                      })}
-                    />,
                     <FormInput
-                      id={"minimumCommission"}
-                      name={"minimumCommission"}
-                      placeholder={"Minimum Commission"}
-                      label={"minimum-commission"}
-                      type={"number"}
-                      min={0}
-                    />,
-                    <FormInput
-                      id={"maximumCommission"}
-                      name={"maximumCommission"}
-                      placeholder={"Maximum Commission"}
-                      label={"maximum-commission"}
-                      type={"number"}
-                      min={0}
-                    />,
-                    <FormInput
-                      id={"invoiceDateFrom"}
-                      name={"invoiceDateFrom"}
-                      placeholder={"Invoice Date From"}
-                      label={"invoice-date-from"}
+                      id={"startDateFrom"}
+                      name={"startDateFrom"}
+                      placeholder={"Start Date From"}
+                      label={"start-date-from"}
                       type={"date"}
                     />,
                     <FormInput
-                      id={"invoiceDateTo"}
-                      name={"invoiceDateTo"}
-                      placeholder={"Invoice Date To"}
-                      label={"invoice-date-to"}
+                      id={"startDateTo"}
+                      name={"startDateTo"}
+                      placeholder={"Start Date To"}
+                      label={"start-date-to"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"endDateFrom"}
+                      name={"endDateFrom"}
+                      placeholder={"End Date From"}
+                      label={"end-date-from"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"endDateTo"}
+                      name={"endDateTo"}
+                      placeholder={"End Date To"}
+                      label={"end-date-to"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"minimumWages"}
+                      name={"minimumWages"}
+                      placeholder={"Minimum Wages"}
+                      label={"minimum-wages"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumWages"}
+                      name={"maximumWages"}
+                      placeholder={"Maximum Wages"}
+                      label={"maximum-wages"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"minimumTravelBonus"}
+                      name={"minimumTravelBonus"}
+                      placeholder={"Minimum Travel Bonus"}
+                      label={"minimum-travel-bonus"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumTravelBonus"}
+                      name={"maximumTravelBonus"}
+                      placeholder={"Maximum Travel Bonus"}
+                      label={"maximum-travel-bonus"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"minimumOtherBonuses"}
+                      name={"minimumOtherBonuses"}
+                      placeholder={"Minimum Other Bonuses"}
+                      label={"minimum-other-bonuses"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumOtherBonuses"}
+                      name={"maximumOtherBonuses"}
+                      placeholder={"Maximum Other Bonuses"}
+                      label={"maximum-other-bonuses"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"minimumTotalCommission"}
+                      name={"minimumTotalCommission"}
+                      placeholder={"Minimum Total Commission"}
+                      label={"minimum-total-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumTotalCommission"}
+                      name={"maximumTotalCommission"}
+                      placeholder={"Maximum Total Commission"}
+                      label={"maximum-total-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"minimumCancelledSales"}
+                      name={"minimumCancelledSales"}
+                      placeholder={"Minimum Cancelled Sales"}
+                      label={"minimum-cancelled-sales"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumCancelledSales"}
+                      name={"maximumCancelledSales"}
+                      placeholder={"Maximum Cancelled Sales"}
+                      label={"maximum-cancelled-sales"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"minimumDeductions"}
+                      name={"minimumDeductions"}
+                      placeholder={"Minimum Deductions"}
+                      label={"minimum-deductions"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumDeductions"}
+                      name={"maximumDeductions"}
+                      placeholder={"Maximum Deductions"}
+                      label={"maximum-deductions"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormDropdown
+                      id={"status"}
+                      name={"status"}
+                      label={"status"}
+                      options={["pending", "paid"]}
+                    />,
+                    <FormInput
+                      id={"generatedAtFrom"}
+                      name={"generatedAtFrom"}
+                      placeholder={"Generated At From"}
+                      label={"generated-at-from"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"generatedAtTo"}
+                      name={"generatedAtTo"}
+                      placeholder={"Generated At To"}
+                      label={"generated-at-to"}
                       type={"date"}
                     />,
                   ]}

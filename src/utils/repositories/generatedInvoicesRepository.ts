@@ -1,3 +1,4 @@
+import { ValuesFilterGeneratedInvoices } from "pages/invoices/view/useViewInvoices";
 import supabase from "utils/supabase";
 
 export interface GeneratedInvoiceSupabase {
@@ -54,8 +55,8 @@ class GeneratedInvoicesRepository {
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
-    limit: number
-    // filters?: ValuesFilterInvoices
+    limit: number,
+    filters?: ValuesFilterGeneratedInvoices
   ) {
     try {
       const query = supabase
@@ -69,23 +70,65 @@ class GeneratedInvoicesRepository {
         .limit(limit)
         .eq("beneficiary", id);
 
-      // if (filters) {
-      //   if (filters.sale) {
-      //     query.eq("sale", filters.sale);
-      //   }
-      //   if (filters.minimumCommission) {
-      //     query.gte("commission", filters.minimumCommission);
-      //   }
-      //   if (filters.maximumCommission) {
-      //     query.lte("commission", filters.maximumCommission);
-      //   }
-      //   if (filters.invoiceDateFrom) {
-      //     query.gte("created_at", filters.invoiceDateFrom);
-      //   }
-      //   if (filters.invoiceDateTo) {
-      //     query.lte("created_at", filters.invoiceDateTo);
-      //   }
-      // }
+      if (filters) {
+        if (filters.startDateFrom) {
+          query.gte("start_date", filters.startDateFrom);
+        }
+        if (filters.startDateTo) {
+          query.lte("start_date", filters.startDateTo);
+        }
+        if (filters.endDateFrom) {
+          query.gte("end_date", filters.endDateFrom);
+        }
+        if (filters.endDateTo) {
+          query.lte("end_date", filters.endDateTo);
+        }
+        if (filters.minimumWages) {
+          query.gte("wages", filters.minimumWages);
+        }
+        if (filters.maximumWages) {
+          query.lte("wages", filters.maximumWages);
+        }
+        if (filters.minimumTravelBonus) {
+          query.gte("travel_bonus", filters.minimumTravelBonus);
+        }
+        if (filters.maximumTravelBonus) {
+          query.lte("travel_bonus", filters.maximumTravelBonus);
+        }
+        if (filters.minimumOtherBonuses) {
+          query.gte("other_bonuses", filters.minimumOtherBonuses);
+        }
+        if (filters.maximumOtherBonuses) {
+          query.lte("other_bonuses", filters.maximumOtherBonuses);
+        }
+        if (filters.minimumTotalCommission) {
+          query.gte("total_commission", filters.minimumTotalCommission);
+        }
+        if (filters.maximumTotalCommission) {
+          query.lte("total_commission", filters.maximumTotalCommission);
+        }
+        if (filters.minimumCancelledSales) {
+          query.gte("cancelled_sales", filters.minimumCancelledSales);
+        }
+        if (filters.maximumCancelledSales) {
+          query.lte("cancelled_sales", filters.maximumCancelledSales);
+        }
+        if (filters.minimumDeductions) {
+          query.gte("deductions", filters.minimumDeductions);
+        }
+        if (filters.maximumDeductions) {
+          query.lte("deductions", filters.maximumDeductions);
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.generatedAtFrom) {
+          query.gte("created_at", filters.generatedAtFrom);
+        }
+        if (filters.generatedAtTo) {
+          query.lte("created_at", filters.generatedAtTo);
+        }
+      }
 
       const {
         data: invoicesData,
@@ -130,6 +173,28 @@ class GeneratedInvoicesRepository {
     }
   }
 
+  public async changeBulkStatus(ids: readonly number[], status: string) {
+    try {
+      let updatedIdsCount = 0;
+      for (let i = 0; i < ids.length; i++) {
+        const { data, error } = await supabase
+          .from(this.className)
+          .update({ status: status })
+          .eq("id", ids[i])
+          .select();
+
+        if (data && data.length > 0 && error === null) {
+          updatedIdsCount += 1;
+        }
+      }
+
+      return updatedIdsCount;
+    } catch (error) {
+      console.error("Error bulk updating generated invoices status:", error);
+      return 0;
+    }
+  }
+
   public async delete(ids: readonly number[]) {
     try {
       let deletedIdsCount = 0;
@@ -152,4 +217,5 @@ class GeneratedInvoicesRepository {
     }
   }
 }
+
 export default GeneratedInvoicesRepository;

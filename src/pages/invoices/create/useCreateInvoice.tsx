@@ -307,12 +307,23 @@ export function useCreateInvoice() {
         const newGeneratedInvoice: GeneratedInvoiceSupabase = {
           start_date: new Date(saleDateFrom),
           end_date: new Date(saleDateTo),
-          wages: (parseFloat(values.showDays) ?? 0) * wage,
-          travel_bonus: parseFloat(values.travelBonus) ?? 0,
-          other_bonuses: parseFloat(values.otherBonuses) ?? 0,
-          total_commission: parseFloat(values.totalCommission) ?? 0,
-          cancelled_sales: parseFloat(values.cancelledSales) ?? 0,
-          deductions: parseFloat(values.deductions) ?? 0,
+          wages:
+            parseFloat(values.showDays !== "" ? values.showDays : "0") * wage,
+          travel_bonus:
+            parseFloat(values.travelBonus !== "" ? values.travelBonus : "0") ??
+            0,
+          other_bonuses: parseFloat(
+            values.otherBonuses !== "" ? values.otherBonuses : "0"
+          ),
+          total_commission: parseFloat(
+            values.totalCommission !== "" ? values.totalCommission : "0"
+          ),
+          cancelled_sales: parseFloat(
+            values.cancelledSales !== "" ? values.cancelledSales : "0"
+          ),
+          deductions: parseFloat(
+            values.deductions !== "" ? values.deductions : "0"
+          ),
           status: "Pending",
           beneficiary: id,
         };

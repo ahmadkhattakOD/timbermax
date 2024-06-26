@@ -76,7 +76,7 @@ export default function Invoices() {
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
         selectable={false}
-        takeToOnClick="new"
+        takeToOnClick="view"
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
