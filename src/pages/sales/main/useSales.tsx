@@ -28,13 +28,13 @@ const headCells: HeadCell[] = [
     id: "deposit",
     numeric: true,
     disablePadding: true,
-    label: "Deposit",
+    label: "Deposit (A$)",
   },
   {
     id: "total",
     numeric: true,
     disablePadding: true,
-    label: "Total",
+    label: "Total (A$)",
   },
   {
     id: "payment_method",
@@ -214,7 +214,9 @@ export function useSales() {
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}
         </TableCell>
-        <TableCell align="right">{row.total}</TableCell>
+        <TableCell align="right" sx={{ minWidth: 200 }}>
+          {row.total}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>

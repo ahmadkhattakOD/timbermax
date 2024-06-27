@@ -30,13 +30,13 @@ const headCells: HeadCell[] = [
     id: "daily_wage",
     numeric: false,
     disablePadding: true,
-    label: "Daily Wage",
+    label: "Daily Wage (A$)",
   },
   {
     id: "commission",
     numeric: false,
     disablePadding: true,
-    label: "Commission",
+    label: "Commission (%)",
   },
   {
     id: "created_at",

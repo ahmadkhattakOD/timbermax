@@ -206,6 +206,7 @@ export function useCreateInvoice() {
   const { id } = useParams();
   const [saleDateFrom, setSaleDateFrom] = useState("");
   const [saleDateTo, setSaleDateTo] = useState("");
+  const [alreadyCreatedInvoice, setAlreadyCreatedInvoice] = useState<any>(null);
   const navigate = useNavigate();
 
   function generateTableCells(
@@ -324,7 +325,7 @@ export function useCreateInvoice() {
           deductions: parseFloat(
             values.deductions !== "" ? values.deductions : "0"
           ),
-          status: "Pending",
+          status: "pending",
           beneficiary: id,
         };
 
@@ -444,10 +445,30 @@ export function useCreateInvoice() {
 
   async function handleSaleDatesSubmit(values: ValuesSaleDates) {
     try {
+      setAlreadyCreatedInvoice(null);
       setSaleDateFrom(values.saleDateFrom);
       setSaleDateTo(values.saleDateTo);
+      // if (id) {
+      //   const generatedInvoicesRepository = new GeneratedInvoicesRepository();
+      //   const alreadyCreatedForDates =
+      //     await generatedInvoicesRepository.checkExistence(
+      //       id,
+      //       values.saleDateFrom,
+      //       values.saleDateTo
+      //     );
+
+      //   if (alreadyCreatedForDates) {
+      //     const { invoiceData, invoiceError } = alreadyCreatedForDates;
+      //     if (invoiceData && !invoiceError) {
+      //       setAlreadyCreatedInvoice(invoiceData);
+      //     }
+      //   }
+      //   else {
+      //     setAlreadyCreatedInvoice(null);
+      //   }
+      // }
     } catch (error) {
-      console.error("Error filtering invoices:", error);
+      console.error("Error setting dates:", error);
     }
   }
 
@@ -507,6 +528,8 @@ export function useCreateInvoice() {
     }
   }
 
+  async function getAlreadyCreatedInvoice() {}
+
   async function getFilterData() {
     const salesRepository = new SalesRepository();
     const allSales = await salesRepository.getWithoutFilters();
@@ -524,6 +547,9 @@ export function useCreateInvoice() {
 
   useEffect(() => {
     getProfileAndFigures();
+    if (saleDateFrom !== "" && saleDateTo !== "") {
+      // getAlreadyCreatedInvoice();
+    }
   }, [saleDateFrom, saleDateTo]);
 
   useEffect(() => {
@@ -576,5 +602,6 @@ export function useCreateInvoice() {
     setInvoiceRules,
     saleDateFrom,
     saleDateTo,
+    alreadyCreatedInvoice,
   };
 }

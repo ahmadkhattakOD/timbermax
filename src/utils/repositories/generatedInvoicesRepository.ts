@@ -173,6 +173,74 @@ class GeneratedInvoicesRepository {
     }
   }
 
+  public async checkExistence(
+    userId: string,
+    startDateFrom: string,
+    startDateTo: string
+  ) {
+    try {
+      const { data: invoiceData1, error: invoiceError1 } = await supabase
+        .from(this.className)
+        .select("start_date, end_date")
+        .eq("beneficiary", userId)
+        .gte("start_date", startDateFrom)
+        .gte("end_date", startDateTo)
+        .lte("start_date", startDateTo)
+        // .or(`start_date.gt.${startDateFrom} AND end_date.gt.${startDateTo}`)
+        // .or(`start_date.lt.${startDateFrom} AND end_date.lt.${startDateTo}`)
+        // .or(`start_date.lt.${startDateFrom} AND end_date.gt.${startDateTo}`)
+        // .or(`start_date.gt.${startDateFrom} AND end_date.lt.${startDateTo}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (invoiceData1 && !invoiceError1) {
+        return { invoiceData: invoiceData1, invoiceError: invoiceError1 };
+      } else {
+        const { data: invoiceData2, error: invoiceError2 } = await supabase
+          .from(this.className)
+          .select("start_date, end_date")
+          .eq("beneficiary", userId)
+          .lte("start_date", startDateFrom)
+          .lte("end_date", startDateTo)
+          .gte("end_date", startDateFrom)
+          .limit(1)
+          .maybeSingle();
+        if (invoiceData2 && !invoiceError2) {
+          return { invoiceData: invoiceData2, invoiceError: invoiceError2 };
+        } else {
+          const { data: invoiceData3, error: invoiceError3 } = await supabase
+            .from(this.className)
+            .select("start_date, end_date")
+            .eq("beneficiary", userId)
+            .lte("start_date", startDateFrom)
+            .gte("end_date", startDateTo)
+            .limit(1)
+            .maybeSingle();
+          if (invoiceData3 && !invoiceError3) {
+            return { invoiceData: invoiceData3, invoiceError: invoiceError3 };
+          } else {
+            const { data: invoiceData4, error: invoiceError4 } = await supabase
+              .from(this.className)
+              .select("start_date, end_date")
+              .eq("beneficiary", userId)
+              .gte("start_date", startDateFrom)
+              .lte("end_date", startDateTo)
+              .limit(1)
+              .maybeSingle();
+            if (invoiceData4 && !invoiceError4) {
+              return { invoiceData: invoiceData4, invoiceError: invoiceError4 };
+            } else {
+              return null;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching generated invoice:", error);
+      return null;
+    }
+  }
+
   public async changeBulkStatus(ids: readonly number[], status: string) {
     try {
       let updatedIdsCount = 0;

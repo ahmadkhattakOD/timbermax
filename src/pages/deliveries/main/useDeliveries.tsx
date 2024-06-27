@@ -5,7 +5,12 @@ import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, getDateFormatted, getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import {
+  UserRoles,
+  getDateFormatted,
+  getDateTimeFormatted,
+  initialRowsPerPage,
+} from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -28,13 +33,13 @@ const headCells: HeadCell[] = [
     id: "deposit",
     numeric: true,
     disablePadding: true,
-    label: "Deposit",
+    label: "Deposit (A$)",
   },
   {
     id: "total",
     numeric: true,
     disablePadding: true,
-    label: "Total",
+    label: "Total (A$)",
   },
   {
     id: "payment_method",
@@ -189,7 +194,8 @@ export function useDeliveries() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [filters, setFilters] = useState<ValuesFilterDeliveries>(initialFilters);
+  const [filters, setFilters] =
+    useState<ValuesFilterDeliveries>(initialFilters);
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -228,7 +234,9 @@ export function useDeliveries() {
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}
         </TableCell>
-        <TableCell align="right">{row.total}</TableCell>
+        <TableCell align="right" sx={{ minWidth: 200 }}>
+          {row.total}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>
@@ -255,7 +263,8 @@ export function useDeliveries() {
           {row.sale_date && getDateFormatted(row.sale_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.delivery_date_time && getDateTimeFormatted(row.delivery_date_time, true)}
+          {row.delivery_date_time &&
+            getDateTimeFormatted(row.delivery_date_time, true)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.stock_from_warehouse?.name}
@@ -393,8 +402,10 @@ export function useDeliveries() {
         setShows(showsData);
       }
     }
-    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
-    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    const opportunityDescriptionsRepository =
+      new OpportunityDescriptionsRepository();
+    const allOpportunities =
+      await opportunityDescriptionsRepository.getWithoutFilters();
     if (allOpportunities) {
       const { opportunitiesData, opportunitiesError } = allOpportunities;
       if (opportunitiesData && !opportunitiesError) {

@@ -56,6 +56,7 @@ export default function CreateInvoice() {
     setInvoiceRules,
     saleDateFrom,
     saleDateTo,
+    alreadyCreatedInvoice,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -202,6 +203,7 @@ export default function CreateInvoice() {
                     <FormLayout
                       isSubmitting={isSubmitting}
                       submitButtonText={"generate-invoice"}
+                      showSubmitButton={alreadyCreatedInvoice === null}
                       inputs={[
                         <FormInput
                           id={"totalCommission"}
@@ -316,6 +318,30 @@ export default function CreateInvoice() {
                 )}
               </Formik>
             )}
+            {alreadyCreatedInvoice &&
+              alreadyCreatedInvoice.start_date &&
+              alreadyCreatedInvoice.end_date && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    color: theme.palette.error.main,
+                    padding: "2rem",
+                    paddingBottom: 0
+                  }}
+                >
+                  <Typography sx={{textAlign: 'center'}}>
+                    An invoice already exists for the dates:{" "}
+                    <span style={{ fontWeight: "bold" }}>
+                      {getDateFormatted(alreadyCreatedInvoice.start_date)}
+                    </span>{" "}
+                    -{" "}
+                    <span style={{ fontWeight: "bold" }}>
+                      {getDateFormatted(alreadyCreatedInvoice.end_date)}
+                    </span>. <br /><br /> Please select another date range to generate an invoice.
+                  </Typography>
+                </Box>
+              )}
           </Box>
           <CreateAndFiltersLayout
             filters={
