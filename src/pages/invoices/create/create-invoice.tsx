@@ -243,7 +243,7 @@ export default function CreateInvoice() {
                           placeholder={"Show Days"}
                           label={"show-days"}
                           type={"number"}
-                          secondaryLabel={`Daily Wage: ${wage}`}
+                          secondaryLabel={`Daily Wage: ${wage} (A$)`}
                           value={values.showDays}
                           onChange={(e) => {
                             setFieldValue("showDays", e.target.value);
