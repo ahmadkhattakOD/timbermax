@@ -455,25 +455,24 @@ export function useCreateInvoice() {
       setAlreadyCreatedInvoice(null);
       setSaleDateFrom(values.saleDateFrom);
       setSaleDateTo(values.saleDateTo);
-      // if (id) {
-      //   const generatedInvoicesRepository = new GeneratedInvoicesRepository();
-      //   const alreadyCreatedForDates =
-      //     await generatedInvoicesRepository.checkExistence(
-      //       id,
-      //       values.saleDateFrom,
-      //       values.saleDateTo
-      //     );
+      if (id) {
+        const generatedInvoicesRepository = new GeneratedInvoicesRepository();
+        const alreadyCreatedForDates =
+          await generatedInvoicesRepository.checkExistence(
+            id,
+            values.saleDateFrom,
+            values.saleDateTo
+          );
 
-      //   if (alreadyCreatedForDates) {
-      //     const { invoiceData, invoiceError } = alreadyCreatedForDates;
-      //     if (invoiceData && !invoiceError) {
-      //       setAlreadyCreatedInvoice(invoiceData);
-      //     }
-      //   }
-      //   else {
-      //     setAlreadyCreatedInvoice(null);
-      //   }
-      // }
+        if (alreadyCreatedForDates) {
+          const { invoiceData, invoiceError } = alreadyCreatedForDates;
+          if (invoiceData && !invoiceError) {
+            setAlreadyCreatedInvoice(invoiceData);
+          }
+        } else {
+          setAlreadyCreatedInvoice(null);
+        }
+      }
     } catch (error) {
       console.error("Error setting dates:", error);
     }
@@ -504,7 +503,7 @@ export function useCreateInvoice() {
           const { invoicesData, invoicesError } = allInvoices;
           if (invoicesData && !invoicesError) {
             for (let i = 0; i < invoicesData.length; i++) {
-              salesMadeValue += invoicesData[i].commission;
+              salesMadeValue += invoicesData[i].commission - 300;
             }
             setTotalCommission(salesMadeValue);
           }
