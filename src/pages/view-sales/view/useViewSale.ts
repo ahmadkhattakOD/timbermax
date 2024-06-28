@@ -1,13 +1,9 @@
-import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
-import { SnackbarProps } from "types/snackbar";
+import { useParams } from "react-router";
 import { UserRoles, isNumeric } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
-import SalesRepository, {
-  SaleSupabase,
-} from "utils/repositories/salesRepository";
+import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 
 export interface ValuesEditSale {

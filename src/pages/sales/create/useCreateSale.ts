@@ -20,6 +20,7 @@ export interface ValuesCreateSale {
   total: string;
   paymentMethod: string;
   phone: string;
+  mobile: string;
   address: string;
   state: string;
   postCode: string;
@@ -44,7 +45,6 @@ export function useCreateSale() {
   function validate(values: ValuesCreateSale) {
     const errors = {} as ValuesCreateSale;
 
-    return errors;
     if (!values.contactName.trim()) {
       errors.contactName = "required";
     }
@@ -93,6 +93,7 @@ export function useCreateSale() {
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
         phone: values.phone,
+        mobile: values.mobile,
         address: values.address,
         state: values.state,
         post_code: values.postCode,

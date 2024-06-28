@@ -1,5 +1,6 @@
 import { ValuesFilterCloseSales } from "pages/close/main/useCloseSales";
 import { ValuesFilterDeliveries } from "pages/deliveries/main/useDeliveries";
+import { ValuesFilterSelectSales } from "pages/deliveries/select/useSelectSale";
 import { ValuesFilterSales } from "pages/sales/main/useSales";
 import { ValuesFilterViewSales } from "pages/view-sales/main/useViewSales";
 import {
@@ -16,6 +17,7 @@ export interface SaleSupabase {
   total: number;
   payment_method: string;
   phone: string;
+  mobile: string;
   address: string;
   state: string;
   post_code: string;
@@ -63,7 +65,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -94,6 +96,9 @@ class SalesRepository {
         }
         if (filters.phone) {
           query.eq("phone", filters.phone);
+        }
+        if (filters.mobile) {
+          query.eq("mobile", filters.mobile);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -178,7 +183,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -211,6 +216,9 @@ class SalesRepository {
         }
         if (filters.phone) {
           query.eq("phone", filters.phone);
+        }
+        if (filters.mobile) {
+          query.eq("mobile", filters.mobile);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -271,7 +279,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -301,6 +309,9 @@ class SalesRepository {
         }
         if (filters.phone) {
           query.eq("phone", filters.phone);
+        }
+        if (filters.mobile) {
+          query.eq("mobile", filters.mobile);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -362,7 +373,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -446,13 +457,13 @@ class SalesRepository {
     rangeStart: number,
     rangeEnd: number,
     limit: number,
-    filters?: ValuesFilterSales
+    filters?: ValuesFilterSelectSales
   ) {
     try {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -484,6 +495,9 @@ class SalesRepository {
         }
         if (filters.phone) {
           query.eq("phone", filters.phone);
+        }
+        if (filters.mobile) {
+          query.eq("mobile", filters.mobile);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -602,7 +616,7 @@ class SalesRepository {
       const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, address, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date"
+          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date"
         )
         .eq("id", id)
         .limit(1)

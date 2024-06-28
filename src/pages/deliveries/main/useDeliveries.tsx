@@ -54,6 +54,12 @@ const headCells: HeadCell[] = [
     label: "Phone",
   },
   {
+    id: "mobile",
+    numeric: false,
+    disablePadding: true,
+    label: "Mobile",
+  },
+  {
     id: "address",
     numeric: false,
     disablePadding: true,
@@ -241,6 +247,7 @@ export function useDeliveries() {
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>

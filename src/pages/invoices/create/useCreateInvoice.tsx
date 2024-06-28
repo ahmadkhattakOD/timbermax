@@ -63,6 +63,12 @@ const headCells: HeadCell[] = [
     label: "Phone",
   },
   {
+    id: "mobile",
+    numeric: false,
+    disablePadding: true,
+    label: "Mobile",
+  },
+  {
     id: "address",
     numeric: false,
     disablePadding: true,
@@ -235,6 +241,7 @@ export function useCreateInvoice() {
           )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.sale?.mobile}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.post_code}</TableCell>

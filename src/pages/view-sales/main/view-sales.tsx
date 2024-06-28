@@ -173,6 +173,13 @@ export default function ViewSales() {
                       type={"text"}
                     />,
                     <FormInput
+                      id={"mobile"}
+                      name={"mobile"}
+                      placeholder={"Mobile"}
+                      label={"mobile"}
+                      type={"text"}
+                    />,
+                    <FormInput
                       id={"address"}
                       name={"address"}
                       placeholder={"Address"}

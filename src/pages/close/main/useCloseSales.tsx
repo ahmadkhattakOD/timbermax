@@ -1,10 +1,7 @@
-import { Checkbox, TableCell } from "@mui/material";
-import { openSnackbar } from "api/snackbar";
+import { TableCell } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
-import { useNavigate } from "react-router";
-import { SnackbarProps } from "types/snackbar";
 import { UserRoles, getDateFormatted, initialRowsPerPage } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
@@ -47,6 +44,12 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Phone",
+  },
+  {
+    id: "mobile",
+    numeric: false,
+    disablePadding: true,
+    label: "Mobile",
   },
   {
     id: "address",
@@ -125,6 +128,7 @@ export interface ValuesFilterCloseSales {
   maximumTotal: string;
   paymentMethod: string;
   phone: string;
+  mobile: string;
   address: string;
   state: string;
   postCode: string;
@@ -145,6 +149,7 @@ const initialFilters: ValuesFilterCloseSales = {
   maximumTotal: "",
   paymentMethod: "",
   phone: "",
+  mobile: "",
   address: "",
   state: "",
   postCode: "",
@@ -201,6 +206,7 @@ export function useCloseSales() {
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>

@@ -46,6 +46,12 @@ const headCells: HeadCell[] = [
     label: "Phone",
   },
   {
+    id: "mobile",
+    numeric: false,
+    disablePadding: true,
+    label: "Mobile",
+  },
+  {
     id: "address",
     numeric: false,
     disablePadding: true,
@@ -121,6 +127,7 @@ export interface ValuesFilterViewSales {
   maximumTotal: string;
   paymentMethod: string;
   phone: string;
+  mobile: string;
   address: string;
   state: string;
   postCode: string;
@@ -141,6 +148,7 @@ const initialFilters: ValuesFilterViewSales = {
   maximumTotal: "",
   paymentMethod: "",
   phone: "",
+  mobile: "",
   address: "",
   state: "",
   postCode: "",
@@ -197,6 +205,7 @@ export function useViewSales() {
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>

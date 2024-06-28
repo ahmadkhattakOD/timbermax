@@ -15,8 +15,15 @@ import CircularLoader from "components/CircularLoader";
 // ==============================|| CREATE SALE PAGE ||============================== //
 
 export default function CreateSale() {
-  const { validate, onSubmit, salesPersons, closers, shows, opportunities, loading } =
-    useCreateSale();
+  const {
+    validate,
+    onSubmit,
+    salesPersons,
+    closers,
+    shows,
+    opportunities,
+    loading,
+  } = useCreateSale();
 
   if (loading) {
     return (
@@ -43,6 +50,7 @@ export default function CreateSale() {
         total: "",
         paymentMethod: "",
         phone: "",
+        mobile: "",
         address: "",
         state: "",
         postCode: "",
@@ -137,6 +145,13 @@ export default function CreateSale() {
                 name={"phone"}
                 placeholder={"Phone"}
                 label={"phone"}
+                type={"text"}
+              />,
+              <FormInput
+                id={"mobile"}
+                name={"mobile"}
+                placeholder={"Mobile"}
+                label={"mobile"}
                 type={"text"}
               />,
               <FormInput

@@ -39,6 +39,7 @@ export default function CreateDelivery() {
         total: "",
         paymentMethod: "",
         phone: "",
+        mobile: "",
         address: "",
         state: "",
         postCode: "",
@@ -133,6 +134,13 @@ export default function CreateDelivery() {
                 name={"phone"}
                 placeholder={"Phone"}
                 label={"phone"}
+                type={"text"}
+              />,
+              <FormInput
+                id={"mobile"}
+                name={"mobile"}
+                placeholder={"Mobile"}
+                label={"mobile"}
                 type={"text"}
               />,
               <FormInput

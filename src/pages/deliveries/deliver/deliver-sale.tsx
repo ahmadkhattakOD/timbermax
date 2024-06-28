@@ -26,7 +26,7 @@ export default function DeliverSale() {
     closers,
     shows,
     warehouses,
-    opportunities
+    opportunities,
   } = useDeliverSale();
 
   if (loading) {
@@ -62,6 +62,7 @@ export default function DeliverSale() {
           total: sale.total ?? "",
           paymentMethod: sale.payment_method ?? "",
           phone: sale.phone ?? "",
+          mobile: sale.mobile ?? "",
           address: sale.address ?? "",
           state: sale.state ?? "",
           postCode: sale.post_code ?? "",
@@ -165,6 +166,14 @@ export default function DeliverSale() {
                   name={"phone"}
                   placeholder={"Phone"}
                   label={"phone"}
+                  type={"text"}
+                  disabled
+                />,
+                <FormInput
+                  id={"mobile"}
+                  name={"mobile"}
+                  placeholder={"Mobile"}
+                  label={"mobile"}
                   type={"text"}
                   disabled
                 />,

@@ -174,5 +174,6 @@
   "pending": "Pending",
   "paid": "Paid",
   "mark-selected-as-paid": "Mark Selected as Paid",
-  "mark-selected-as-pending": "Mark Selected as Pending"
+  "mark-selected-as-pending": "Mark Selected as Pending",
+  "mobile": "Mobile"
 }

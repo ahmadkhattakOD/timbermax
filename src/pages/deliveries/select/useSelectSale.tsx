@@ -49,6 +49,12 @@ const headCells: HeadCell[] = [
     label: "Phone",
   },
   {
+    id: "mobile",
+    numeric: false,
+    disablePadding: true,
+    label: "Mobile",
+  },
+  {
     id: "address",
     numeric: false,
     disablePadding: true,
@@ -116,7 +122,7 @@ const headCells: HeadCell[] = [
   },
 ];
 
-export interface ValuesFilterSales {
+export interface ValuesFilterSelectSales {
   contactName: string;
   salesPerson: string;
   minimumDeposit: string;
@@ -125,6 +131,7 @@ export interface ValuesFilterSales {
   maximumTotal: string;
   paymentMethod: string;
   phone: string;
+  mobile: string;
   address: string;
   state: string;
   postCode: string;
@@ -138,7 +145,7 @@ export interface ValuesFilterSales {
   closed: string;
 }
 
-const initialFilters: ValuesFilterSales = {
+const initialFilters: ValuesFilterSelectSales = {
   contactName: "",
   salesPerson: "",
   minimumDeposit: "",
@@ -147,6 +154,7 @@ const initialFilters: ValuesFilterSales = {
   maximumTotal: "",
   paymentMethod: "",
   phone: "",
+  mobile: "",
   address: "",
   state: "",
   postCode: "",
@@ -174,7 +182,7 @@ export function useSelectSale() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [filters, setFilters] = useState<ValuesFilterSales>(initialFilters);
+  const [filters, setFilters] = useState<ValuesFilterSelectSales>(initialFilters);
 
   function generateTableCells(
     row: any,
@@ -206,6 +214,7 @@ export function useSelectSale() {
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
@@ -271,13 +280,13 @@ export function useSelectSale() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function validateFilters(values: ValuesFilterSales) {
-    const errors = {} as ValuesFilterSales;
+  async function validateFilters(values: ValuesFilterSelectSales) {
+    const errors = {} as ValuesFilterSelectSales;
 
     return errors;
   }
 
-  async function handleFiltersSubmit(values: ValuesFilterSales) {
+  async function handleFiltersSubmit(values: ValuesFilterSelectSales) {
     try {
       setFilters(values);
       setFilterModalOpen(false);

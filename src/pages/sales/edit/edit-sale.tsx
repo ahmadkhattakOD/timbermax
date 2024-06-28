@@ -58,6 +58,7 @@ export default function EditSale() {
             total: sale.total ?? "",
             paymentMethod: sale.payment_method ?? "",
             phone: sale.phone ?? "",
+            mobile: sale.mobile ?? "",
             address: sale.address ?? "",
             state: sale.state ?? "",
             postCode: sale.post_code ?? "",
@@ -157,6 +158,14 @@ export default function EditSale() {
                     name={"phone"}
                     placeholder={"Phone"}
                     label={"phone"}
+                    type={"text"}
+                    disabled
+                  />,
+                  <FormInput
+                    id={"mobile"}
+                    name={"mobile"}
+                    placeholder={"Mobile"}
+                    label={"mobile"}
                     type={"text"}
                     disabled
                   />,
@@ -299,6 +308,7 @@ export default function EditSale() {
         total: sale.total ?? "",
         paymentMethod: sale.payment_method ?? "",
         phone: sale.phone ?? "",
+        mobile: sale.mobile ?? "",
         address: sale.address ?? "",
         state: sale.state ?? "",
         postCode: sale.post_code ?? "",
@@ -393,6 +403,13 @@ export default function EditSale() {
                 name={"phone"}
                 placeholder={"Phone"}
                 label={"phone"}
+                type={"text"}
+              />,
+              <FormInput
+                id={"mobile"}
+                name={"mobile"}
+                placeholder={"Mobile"}
+                label={"mobile"}
                 type={"text"}
               />,
               <FormInput

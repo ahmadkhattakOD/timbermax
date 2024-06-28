@@ -22,6 +22,7 @@ export interface ValuesDeliverSale {
   total: string;
   paymentMethod: string;
   phone: string;
+  mobile: string;
   address: string;
   state: string;
   postCode: string;
@@ -108,6 +109,7 @@ export function useDeliverSale() {
           total: parseFloat(values.total) ?? 0,
           payment_method: values.paymentMethod,
           phone: values.phone,
+          mobile: values.mobile,
           address: values.address,
           state: values.state,
           post_code: values.postCode,

@@ -183,6 +183,13 @@ export default function Sales() {
                       type={"text"}
                     />,
                     <FormInput
+                      id={"mobile"}
+                      name={"mobile"}
+                      placeholder={"Mobile"}
+                      label={"mobile"}
+                      type={"text"}
+                    />,
+                    <FormInput
                       id={"address"}
                       name={"address"}
                       placeholder={"Address"}

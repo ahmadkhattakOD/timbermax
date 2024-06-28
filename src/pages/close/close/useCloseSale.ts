@@ -17,6 +17,7 @@ export interface ValuesEditSale {
   total: string;
   paymentMethod: string;
   phone: string;
+  mobile: string;
   address: string;
   state: string;
   postCode: string;
@@ -42,8 +43,6 @@ export function useCloseSale() {
 
   function validate(values: ValuesEditSale) {
     const errors = {} as ValuesEditSale;
-
-    return errors;
 
     if (!values.contactName.trim()) {
       errors.contactName = "required";
@@ -94,6 +93,7 @@ export function useCloseSale() {
           total: parseFloat(values.total) ?? 0,
           payment_method: values.paymentMethod,
           phone: values.phone,
+          mobile: values.mobile,
           address: values.address,
           state: values.state,
           post_code: values.postCode,

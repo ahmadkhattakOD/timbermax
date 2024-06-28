@@ -11,9 +11,7 @@ import {
   isNumeric,
 } from "utils/helpers";
 import ProfilesRepository from "utils/repositories/profilesRepository";
-import SalesRepository, {
-  SaleSupabase,
-} from "utils/repositories/salesRepository";
+import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
 import { TableCell } from "@mui/material";
@@ -69,6 +67,12 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Phone",
+  },
+  {
+    id: "mobile",
+    numeric: false,
+    disablePadding: true,
+    label: "Mobile",
   },
   {
     id: "address",
@@ -208,6 +212,7 @@ export function useViewDelivery() {
           )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.sale?.mobile}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.post_code}</TableCell>
