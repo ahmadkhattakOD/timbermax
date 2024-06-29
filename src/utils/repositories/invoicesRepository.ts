@@ -17,30 +17,30 @@ class InvoicesRepository {
 
   public async create(invoice: InvoiceSupabase) {
     try {
-      const { data: existingInvoiceData, error: existingInvoiceError } =
-        await supabase
-          .from(this.className)
-          .select()
-          .eq("sale", invoice.sale)
-          .eq("beneficiary", invoice.beneficiary);
+      // const { data: existingInvoiceData, error: existingInvoiceError } =
+      //   await supabase
+      //     .from(this.className)
+      //     .select()
+      //     .eq("sale", invoice.sale)
+      //     .eq("beneficiary", invoice.beneficiary);
 
-      if (
-        existingInvoiceData &&
-        existingInvoiceData.length > 0 &&
-        !existingInvoiceError
-      ) {
-        return existingInvoiceData[0];
-      } else {
-        const { data, error } = await supabase
-          .from(this.className)
-          .insert(invoice)
-          .select();
+      // if (
+      //   existingInvoiceData &&
+      //   existingInvoiceData.length > 0 &&
+      //   !existingInvoiceError
+      // ) {
+      //   return existingInvoiceData[0];
+      // } else {
+      const { data, error } = await supabase
+        .from(this.className)
+        .insert(invoice)
+        .select();
 
-        if (data && data.length > 0 && error === null) {
-          return data[0];
-        }
-        return null;
+      if (data && data.length > 0 && error === null) {
+        return data[0];
       }
+      return null;
+      // }
     } catch (error) {
       console.error("Error creating new invoice:", error);
       return null;
@@ -160,7 +160,7 @@ class InvoicesRepository {
     try {
       const query = supabase
         .from(this.className)
-        .select("commission, sale!inner ( status, total, deposit ) ")
+        .select("commission, sale!inner (id, status, total, deposit ) ")
         .order("created_at", { ascending: false })
         .eq("beneficiary", id)
         .limit(extendedDataLimit);

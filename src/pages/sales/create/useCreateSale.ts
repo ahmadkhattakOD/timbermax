@@ -159,22 +159,38 @@ export function useCreateSale() {
               !salesProfileError &&
               !closerProfileError
             ) {
+              let salesPersonCommissionPercentage =
+                salesProfileData.commissions &&
+                salesProfileData.commissions.length > 0
+                  ? salesProfileData.commissions[0] / 100
+                  : 0;
+
+              let closerCommissionPercentage = 0;
+
+              if (closerProfileData.role === UserRoles.Both) {
+                closerCommissionPercentage =
+                  closerProfileData.commissions &&
+                  closerProfileData.commissions.length > 1
+                    ? closerProfileData.commissions[1] / 100
+                    : 0;
+              } else {
+                closerCommissionPercentage =
+                  closerProfileData.commissions &&
+                  closerProfileData.commissions.length > 0
+                    ? closerProfileData.commissions[0] / 100
+                    : 0;
+              }
+
               const newSalesPersonInvoice: InvoiceSupabase = {
                 sale: createdSale.id,
                 commission:
-                  parseFloat(values.total) *
-                  (salesProfileData.commission
-                    ? salesProfileData.commission / 100
-                    : 0),
+                  parseFloat(values.total) * salesPersonCommissionPercentage,
                 beneficiary: values.salesPerson,
               };
               const newCloserInvoice: InvoiceSupabase = {
                 sale: createdSale.id,
                 commission:
-                  parseFloat(values.total) *
-                  (closerProfileData.commission
-                    ? closerProfileData.commission / 100
-                    : 0),
+                  parseFloat(values.total) * closerCommissionPercentage,
                 beneficiary: values.closer,
               };
 

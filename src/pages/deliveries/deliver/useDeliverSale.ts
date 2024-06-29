@@ -109,7 +109,7 @@ export function useDeliverSale() {
           parseInt(id),
           values.followUpNotes,
           new Date(values.deliveryDateTime),
-          parseInt(values.stockFromWarehouse),
+          parseInt(values.stockFromWarehouse)
         );
 
         if (deliveredSale) {
@@ -137,22 +137,38 @@ export function useDeliverSale() {
               !salesProfileError &&
               !closerProfileError
             ) {
+              let salesPersonCommissionPercentage =
+                salesProfileData.commissions &&
+                salesProfileData.commissions.length > 0
+                  ? salesProfileData.commissions[0] / 100
+                  : 0;
+
+              let closerCommissionPercentage = 0;
+
+              if (closerProfileData.role === UserRoles.Both) {
+                closerCommissionPercentage =
+                  closerProfileData.commissions &&
+                  closerProfileData.commissions.length > 1
+                    ? closerProfileData.commissions[1] / 100
+                    : 0;
+              } else {
+                closerCommissionPercentage =
+                  closerProfileData.commissions &&
+                  closerProfileData.commissions.length > 0
+                    ? closerProfileData.commissions[0] / 100
+                    : 0;
+              }
+
               const newSalesPersonInvoice: InvoiceSupabase = {
                 sale: deliveredSale.id,
                 commission:
-                  parseFloat(values.total) *
-                  (salesProfileData.commission
-                    ? salesProfileData.commission / 100
-                    : 0),
+                  parseFloat(values.total) * salesPersonCommissionPercentage,
                 beneficiary: values.salesPerson,
               };
               const newCloserInvoice: InvoiceSupabase = {
                 sale: deliveredSale.id,
                 commission:
-                  parseFloat(values.total) *
-                  (closerProfileData.commission
-                    ? closerProfileData.commission / 100
-                    : 0),
+                  parseFloat(values.total) * closerCommissionPercentage,
                 beneficiary: values.closer,
               };
 
@@ -167,7 +183,8 @@ export function useDeliverSale() {
                 if (sale?.closed) {
                   openSnackbar({
                     open: true,
-                    message: "Sale marked as delivered successfully and invoices have been updated.",
+                    message:
+                      "Sale marked as delivered successfully and invoices have been updated.",
                     variant: "alert",
                     alert: {
                       color: "success",
@@ -306,8 +323,10 @@ export function useDeliverSale() {
         setWarehouses(warehousesData);
       }
     }
-    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
-    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    const opportunityDescriptionsRepository =
+      new OpportunityDescriptionsRepository();
+    const allOpportunities =
+      await opportunityDescriptionsRepository.getWithoutFilters();
     if (allOpportunities) {
       const { opportunitiesData, opportunitiesError } = allOpportunities;
       if (opportunitiesData && !opportunitiesError) {
@@ -332,6 +351,6 @@ export function useDeliverSale() {
     shows,
     warehouses,
     opportunities,
-    selectedOpportunities
+    selectedOpportunities,
   };
 }

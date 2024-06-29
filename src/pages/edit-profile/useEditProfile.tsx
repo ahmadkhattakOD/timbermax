@@ -15,7 +15,6 @@ export interface ValuesEditProfile {
 }
 
 export function useEditProfile() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [selectedRole, setSelectedRole] = useState<string>("");
