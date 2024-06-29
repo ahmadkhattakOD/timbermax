@@ -1,4 +1,4 @@
-import { Checkbox, TableCell } from "@mui/material";
+import { Checkbox, TableCell, Typography } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
@@ -216,8 +216,15 @@ export function useSales() {
         >
           {row.contact_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.opportunity_description}
+        <TableCell sx={{ minWidth: 500 }}>
+          {row.opportunity_descriptions &&
+            row.opportunity_descriptions.map(
+              (opportunity: string, idx: number) => (
+                <Typography key={idx}>
+                  - {opportunity} <br />
+                </Typography>
+              )
+            )}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}

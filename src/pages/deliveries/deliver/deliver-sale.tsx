@@ -8,11 +8,11 @@ import { useDeliverSale } from "./useDeliverSale";
 import CircularLoader from "components/CircularLoader";
 import {
   australianStates,
-  getDateFormatted,
   getDateFormattedForField,
-  getDateTimeFormatted,
   getDateTimeFormattedForField,
 } from "utils/helpers";
+import { Trash } from "iconsax-react";
+import { IconButton } from "@mui/material";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
@@ -27,6 +27,7 @@ export default function DeliverSale() {
     shows,
     warehouses,
     opportunities,
+    selectedOpportunities,
   } = useDeliverSale();
 
   if (loading) {
@@ -57,7 +58,6 @@ export default function DeliverSale() {
         enableReinitialize
         initialValues={{
           contactName: sale.contact_name ?? "",
-          opportunityDescription: sale.opportunity_description ?? "",
           deposit: sale.deposit ?? "",
           total: sale.total ?? "",
           paymentMethod: sale.payment_method ?? "",
@@ -218,19 +218,43 @@ export default function DeliverSale() {
                   isTextArea
                   disabled
                 />,
-                <FormDropdown
-                  id={"opportunityDescription"}
-                  name={"opportunityDescription"}
-                  label={"opportunity-description"}
-                  useFormattedStrings={false}
-                  options={opportunities.map((opportunity) => {
-                    return {
-                      label: opportunity.name,
-                      value: opportunity.name,
-                    };
-                  })}
-                  disabled
-                />,
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                  }}
+                >
+                  {selectedOpportunities.map((opportunity, idx) => (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        flexDirection: "row",
+                        alignItems: "flex-end",
+                      }}
+                    >
+                      <FormDropdown
+                        key={idx}
+                        id={"opportunityDescription"}
+                        name={"opportunityDescription"}
+                        label={
+                          idx === 0 ? "opportunity-description" : undefined
+                        }
+                        useFormattedStrings={false}
+                        value={opportunity}
+                        onChange={(e) => {}}
+                        options={opportunities.map((opportunity) => {
+                          return {
+                            label: opportunity.name,
+                            value: opportunity.name,
+                          };
+                        })}
+                        disabled
+                      />
+                    </Box>
+                  ))}
+                </Box>,
                 <FormDropdown
                   id={"closer"}
                   name={"closer"}

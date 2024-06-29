@@ -274,8 +274,6 @@ export function useViewDelivery() {
   function validate(values: ValuesViewDelivery) {
     const errors = {} as ValuesViewDelivery;
 
-    return errors;
-
     if (!values.contactName.trim()) {
       errors.contactName = "required";
     }
@@ -304,7 +302,7 @@ export function useViewDelivery() {
       errors.status = "required";
     }
 
-    if (!values.show.trim()) {
+    if (!values.show) {
       errors.show = "required";
     }
 

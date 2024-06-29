@@ -1,3 +1,4 @@
+import { Typography } from "@mui/material";
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -182,7 +183,8 @@ export function useSelectSale() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [filters, setFilters] = useState<ValuesFilterSelectSales>(initialFilters);
+  const [filters, setFilters] =
+    useState<ValuesFilterSelectSales>(initialFilters);
 
   function generateTableCells(
     row: any,
@@ -201,8 +203,15 @@ export function useSelectSale() {
         >
           {row.contact_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.opportunity_description}
+        <TableCell sx={{ minWidth: 500 }}>
+          {row.opportunity_descriptions &&
+            row.opportunity_descriptions.map(
+              (opportunity: string, idx: number) => (
+                <Typography key={idx}>
+                  - {opportunity} <br />
+                </Typography>
+              )
+            )}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}

@@ -1,3 +1,4 @@
+import { Typography } from "@mui/material";
 import { TableCell } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
@@ -195,8 +196,15 @@ export function useCloseSales() {
         >
           {row.contact_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.opportunity_description}
+        <TableCell sx={{ minWidth: 500 }}>
+          {row.opportunity_descriptions &&
+            row.opportunity_descriptions.map(
+              (opportunity: string, idx: number) => (
+                <Typography key={idx}>
+                  - {opportunity} <br />
+                </Typography>
+              )
+            )}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}

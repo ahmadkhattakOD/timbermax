@@ -17,7 +17,6 @@ import WarehousesRepository from "utils/repositories/warehousesRepository";
 
 export interface ValuesDeliverSale {
   contactName: string;
-  opportunityDescription: string;
   deposit: string;
   total: string;
   paymentMethod: string;
@@ -47,6 +46,9 @@ export function useDeliverSale() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [sale, setSale] = useState<any>(null);
+  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
+    "",
+  ]);
   const { id } = useParams();
 
   function validate(values: ValuesDeliverSale) {
@@ -102,33 +104,12 @@ export function useDeliverSale() {
   async function onSubmit(values: ValuesDeliverSale) {
     try {
       if (id && isNumeric(id)) {
-        const updatedSale: SaleSupabase = {
-          contact_name: values.contactName,
-          opportunity_description: values.opportunityDescription,
-          deposit: parseFloat(values.deposit) ?? 0,
-          total: parseFloat(values.total) ?? 0,
-          payment_method: values.paymentMethod,
-          phone: values.phone,
-          mobile: values.mobile,
-          address: values.address,
-          state: values.state,
-          post_code: values.postCode,
-          email_address: values.emailAddress,
-          note: values.note,
-          sales_person: values.salesPerson,
-          closer: values.closer,
-          status: values.status,
-          show: parseInt(values.show),
-          follow_up_notes: values.followUpNotes,
-          sale_date: new Date(values.saleDate),
-          delivery_date_time: new Date(values.deliveryDateTime),
-          stock_from_warehouse: parseInt(values.stockFromWarehouse),
-        };
-
         const salesRepository = new SalesRepository();
         const deliveredSale = await salesRepository.deliver(
           parseInt(id),
-          updatedSale
+          values.followUpNotes,
+          new Date(values.deliveryDateTime),
+          parseInt(values.stockFromWarehouse),
         );
 
         if (deliveredSale) {
@@ -276,6 +257,7 @@ export function useDeliverSale() {
         const { saleData, saleError } = existingSale;
         if (saleData && !saleError) {
           setSale(saleData);
+          setSelectedOpportunities(saleData.opportunity_descriptions);
         }
       }
     }
@@ -349,6 +331,7 @@ export function useDeliverSale() {
     closers,
     shows,
     warehouses,
-    opportunities
+    opportunities,
+    selectedOpportunities
   };
 }

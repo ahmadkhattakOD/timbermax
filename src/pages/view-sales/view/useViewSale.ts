@@ -40,8 +40,6 @@ export function useViewSale() {
   function validate(values: ValuesEditSale) {
     const errors = {} as ValuesEditSale;
 
-    return errors;
-
     if (!values.contactName.trim()) {
       errors.contactName = "required";
     }
@@ -70,7 +68,7 @@ export function useViewSale() {
       errors.status = "required";
     }
 
-    if (!values.show.trim()) {
+    if (!values.show) {
       errors.show = "required";
     }
 

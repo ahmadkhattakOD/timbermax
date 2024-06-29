@@ -40,7 +40,32 @@ export function useEditSale() {
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [sale, setSale] = useState<any>(null);
+  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
+    "",
+  ]);
   const { id } = useParams();
+
+  function handleChangeSelectedOpportunities(
+    e: React.ChangeEvent<HTMLSelectElement>,
+    idx: number
+  ) {
+    let temp = [...selectedOpportunities];
+    temp[idx] = e.target.value;
+    setSelectedOpportunities(temp);
+  }
+
+  function addSelectedOpportunity() {
+    let temp = [...selectedOpportunities];
+    temp.push("");
+    setSelectedOpportunities(temp);
+  }
+
+  function removeSelectedOpportunity(idx: number) {
+    let temp = [...selectedOpportunities];
+    temp.splice(idx, 1);
+    setSelectedOpportunities(temp);
+  }
+
 
   function validate(values: ValuesEditSale) {
     const errors = {} as ValuesEditSale;
@@ -73,7 +98,7 @@ export function useEditSale() {
       errors.status = "required";
     }
 
-    if (!values.show.trim()) {
+    if (!values.show) {
       errors.show = "required";
     }
 
@@ -89,7 +114,7 @@ export function useEditSale() {
       if (id && isNumeric(id)) {
         const updatedSale: SaleSupabase = {
           contact_name: values.contactName,
-          opportunity_description: values.opportunityDescription,
+          opportunity_descriptions: selectedOpportunities,
           deposit: parseFloat(values.deposit) ?? 0,
           total: parseFloat(values.total) ?? 0,
           payment_method: values.paymentMethod,
@@ -170,6 +195,7 @@ export function useEditSale() {
         const { saleData, saleError } = existingSale;
         if (saleData && !saleError) {
           setSale(saleData);
+          setSelectedOpportunities(saleData.opportunity_descriptions);
         }
       }
     }
@@ -237,5 +263,9 @@ export function useEditSale() {
     closers,
     shows,
     opportunities,
+    selectedOpportunities,
+    handleChangeSelectedOpportunities,
+    addSelectedOpportunity,
+    removeSelectedOpportunity
   };
 }

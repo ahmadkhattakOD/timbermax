@@ -5,9 +5,7 @@ import { SnackbarProps } from "types/snackbar";
 import { UserRoles, isNumeric } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
-import SalesRepository, {
-  SaleSupabase,
-} from "utils/repositories/salesRepository";
+import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 
 export interface ValuesEditSale {
@@ -38,6 +36,10 @@ export function useCloseSale() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
+    "",
+  ]);
+
   const [sale, setSale] = useState<any>(null);
   const { id } = useParams();
 
@@ -72,7 +74,7 @@ export function useCloseSale() {
       errors.status = "required";
     }
 
-    if (!values.show.trim()) {
+    if (!values.show) {
       errors.show = "required";
     }
 
@@ -86,31 +88,11 @@ export function useCloseSale() {
   async function onSubmit(values: ValuesEditSale) {
     try {
       if (id && isNumeric(id)) {
-        const updatedSale: SaleSupabase = {
-          contact_name: values.contactName,
-          opportunity_description: values.opportunityDescription,
-          deposit: parseFloat(values.deposit) ?? 0,
-          total: parseFloat(values.total) ?? 0,
-          payment_method: values.paymentMethod,
-          phone: values.phone,
-          mobile: values.mobile,
-          address: values.address,
-          state: values.state,
-          post_code: values.postCode,
-          email_address: values.emailAddress,
-          note: values.note,
-          sales_person: values.salesPerson,
-          closer: values.closer,
-          status: values.status,
-          show: parseInt(values.show),
-          follow_up_notes: values.followUpNotes,
-          sale_date: new Date(values.saleDate),
-        };
-
         const salesRepository = new SalesRepository();
         const closedSale = await salesRepository.close(
           parseInt(id),
-          updatedSale
+          values.status,
+          values.followUpNotes
         );
 
         if (closedSale) {
@@ -168,6 +150,7 @@ export function useCloseSale() {
         const { saleData, saleError } = existingSale;
         if (saleData && !saleError) {
           setSale(saleData);
+          setSelectedOpportunities(saleData.opportunity_descriptions);
         }
       }
     }
@@ -208,8 +191,10 @@ export function useCloseSale() {
         setShows(showsData);
       }
     }
-    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
-    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    const opportunityDescriptionsRepository =
+      new OpportunityDescriptionsRepository();
+    const allOpportunities =
+      await opportunityDescriptionsRepository.getWithoutFilters();
     if (allOpportunities) {
       const { opportunitiesData, opportunitiesError } = allOpportunities;
       if (opportunitiesData && !opportunitiesError) {
@@ -224,5 +209,15 @@ export function useCloseSale() {
     getProfilesShows();
   }, []);
 
-  return { validate, onSubmit, sale, loading, salesPersons, closers, shows, opportunities };
+  return {
+    validate,
+    onSubmit,
+    sale,
+    loading,
+    salesPersons,
+    closers,
+    shows,
+    opportunities,
+    selectedOpportunities,
+  };
 }

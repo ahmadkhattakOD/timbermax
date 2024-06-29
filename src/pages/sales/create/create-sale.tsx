@@ -11,6 +11,8 @@ import {
 } from "utils/helpers";
 import { Box } from "@mui/material";
 import CircularLoader from "components/CircularLoader";
+import { IconButton } from "@mui/material";
+import { Add, NoteRemove, Trash } from "iconsax-react";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
 
@@ -23,6 +25,10 @@ export default function CreateSale() {
     shows,
     opportunities,
     loading,
+    selectedOpportunities,
+    handleChangeSelectedOpportunities,
+    addSelectedOpportunity,
+    removeSelectedOpportunity,
   } = useCreateSale();
 
   if (loading) {
@@ -45,7 +51,6 @@ export default function CreateSale() {
       enableReinitialize
       initialValues={{
         contactName: "",
-        opportunityDescription: "",
         deposit: "",
         total: "",
         paymentMethod: "",
@@ -190,18 +195,53 @@ export default function CreateSale() {
                 type={"text"}
                 isTextArea
               />,
-              <FormDropdown
-                id={"opportunityDescription"}
-                name={"opportunityDescription"}
-                label={"opportunity-description"}
-                useFormattedStrings={false}
-                options={opportunities.map((opportunity) => {
-                  return {
-                    label: opportunity.name,
-                    value: opportunity.name,
-                  };
-                })}
-              />,
+              <Box
+                sx={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+              >
+                {selectedOpportunities.map((opportunity, idx) => (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      flexDirection: "row",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    <FormDropdown
+                      key={idx}
+                      id={"opportunityDescription"}
+                      name={"opportunityDescription"}
+                      label={idx === 0 ? "opportunity-description" : undefined}
+                      useFormattedStrings={false}
+                      value={opportunity}
+                      onChange={(e) => {
+                        handleChangeSelectedOpportunities(e, idx);
+                      }}
+                      options={opportunities.map((opportunity) => {
+                        return {
+                          label: opportunity.name,
+                          value: opportunity.name,
+                        };
+                      })}
+                    />
+                    {idx === selectedOpportunities.length - 1 &&
+                      opportunity !== "" && (
+                        <IconButton onClick={addSelectedOpportunity}>
+                          <Add />
+                        </IconButton>
+                      )}
+                    {idx !== 0 && (
+                      <IconButton
+                        onClick={() => {
+                          removeSelectedOpportunity(idx);
+                        }}
+                      >
+                        <Trash />
+                      </IconButton>
+                    )}
+                  </Box>
+                ))}
+              </Box>,
               <FormDropdown
                 id={"closer"}
                 name={"closer"}

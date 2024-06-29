@@ -15,7 +15,6 @@ import ShowsRepository from "utils/repositories/showsRepository";
 
 export interface ValuesCreateSale {
   contactName: string;
-  opportunityDescription: string;
   deposit: string;
   total: string;
   paymentMethod: string;
@@ -40,7 +39,31 @@ export function useCreateSale() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
+    "",
+  ]);
   const [loading, setLoading] = useState(true);
+
+  function handleChangeSelectedOpportunities(
+    e: React.ChangeEvent<HTMLSelectElement>,
+    idx: number
+  ) {
+    let temp = [...selectedOpportunities];
+    temp[idx] = e.target.value;
+    setSelectedOpportunities(temp);
+  }
+
+  function addSelectedOpportunity() {
+    let temp = [...selectedOpportunities];
+    temp.push("");
+    setSelectedOpportunities(temp);
+  }
+
+  function removeSelectedOpportunity(idx: number) {
+    let temp = [...selectedOpportunities];
+    temp.splice(idx, 1);
+    setSelectedOpportunities(temp);
+  }
 
   function validate(values: ValuesCreateSale) {
     const errors = {} as ValuesCreateSale;
@@ -73,7 +96,7 @@ export function useCreateSale() {
       errors.status = "required";
     }
 
-    if (!values.show.trim()) {
+    if (!values.show) {
       errors.show = "required";
     }
 
@@ -88,7 +111,7 @@ export function useCreateSale() {
     try {
       const newSale: SaleSupabase = {
         contact_name: values.contactName,
-        opportunity_description: values.opportunityDescription,
+        opportunity_descriptions: selectedOpportunities.filter((i) => i !== ""),
         deposit: parseFloat(values.deposit) ?? 0,
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
@@ -269,8 +292,10 @@ export function useCreateSale() {
         setShows(showsData);
       }
     }
-    const opportunityDescriptionsRepository = new OpportunityDescriptionsRepository();
-    const allOpportunities = await opportunityDescriptionsRepository.getWithoutFilters();
+    const opportunityDescriptionsRepository =
+      new OpportunityDescriptionsRepository();
+    const allOpportunities =
+      await opportunityDescriptionsRepository.getWithoutFilters();
     if (allOpportunities) {
       const { opportunitiesData, opportunitiesError } = allOpportunities;
       if (opportunitiesData && !opportunitiesError) {
@@ -284,5 +309,17 @@ export function useCreateSale() {
     getProfilesShows();
   }, []);
 
-  return { validate, onSubmit, salesPersons, closers, shows, opportunities, loading };
+  return {
+    validate,
+    onSubmit,
+    salesPersons,
+    closers,
+    shows,
+    opportunities,
+    loading,
+    selectedOpportunities,
+    handleChangeSelectedOpportunities,
+    addSelectedOpportunity,
+    removeSelectedOpportunity,
+  };
 }

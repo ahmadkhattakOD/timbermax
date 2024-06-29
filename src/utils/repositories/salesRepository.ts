@@ -12,7 +12,7 @@ import supabase from "utils/supabase";
 
 export interface SaleSupabase {
   contact_name: string;
-  opportunity_description: string;
+  opportunity_descriptions: string[];
   deposit: number;
   total: number;
   payment_method: string;
@@ -65,7 +65,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -113,9 +113,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.ilike(
-            "opportunity_description",
-            `%${filters.opportunityDescription}%`
+          query.contains(
+            "opportunity_descriptions",
+            [filters.opportunityDescription]
           );
         }
         if (filters.closer) {
@@ -183,7 +183,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -233,9 +233,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.ilike(
-            "opportunity_description",
-            `%${filters.opportunityDescription}%`
+          query.contains(
+            "opportunity_descriptions",
+            [filters.opportunityDescription]
           );
         }
         if (filters.status) {
@@ -279,7 +279,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -326,9 +326,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.ilike(
-            "opportunity_description",
-            `%${filters.opportunityDescription}%`
+          query.contains(
+            "opportunity_descriptions",
+            [filters.opportunityDescription]
           );
         }
         if (filters.closer) {
@@ -373,7 +373,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -419,9 +419,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.ilike(
-            "opportunity_description",
-            `%${filters.opportunityDescription}%`
+          query.contains(
+            "opportunity_descriptions",
+            [filters.opportunityDescription]
           );
         }
         if (filters.closer) {
@@ -463,7 +463,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -512,9 +512,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.ilike(
-            "opportunity_description",
-            `%${filters.opportunityDescription}%`
+          query.contains(
+            "opportunity_descriptions",
+            [filters.opportunityDescription]
           );
         }
         if (filters.closer) {
@@ -616,7 +616,7 @@ class SalesRepository {
       const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date"
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date"
         )
         .eq("id", id)
         .limit(1)
@@ -647,13 +647,13 @@ class SalesRepository {
     }
   }
 
-  public async close(id: number, sale: SaleSupabase) {
+  public async close(id: number, status: string, followUpNotes: string) {
     try {
       const { data, error } = await supabase
         .from(this.className)
         .update({
-          status: sale.status,
-          follow_up_notes: sale.follow_up_notes,
+          status: status,
+          follow_up_notes: followUpNotes,
           closed: true,
         })
         .eq("id", id)
@@ -669,16 +669,21 @@ class SalesRepository {
     }
   }
 
-  public async deliver(id: number, sale: SaleSupabase) {
+  public async deliver(
+    id: number,
+    followUpNotes: string,
+    deliveryDateTime: Date,
+    stockFromWarehouse: number
+  ) {
     try {
       const { data, error } = await supabase
         .from(this.className)
         .update({
           status: "delivered",
-          follow_up_notes: sale.follow_up_notes,
+          follow_up_notes: followUpNotes,
           closed: true,
-          delivery_date_time: sale.delivery_date_time,
-          stock_from_warehouse: sale.stock_from_warehouse,
+          delivery_date_time: deliveryDateTime,
+          stock_from_warehouse: stockFromWarehouse,
         })
         .eq("id", id)
         .select();

@@ -21,6 +21,7 @@ interface FieldInputProps {
   options: string[] | number[] | LabelValue[];
   useFormattedStrings?: boolean;
   disabledValues?: any[];
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
 const FormDropdown = ({
@@ -35,7 +36,8 @@ const FormDropdown = ({
   defaultValue,
   options,
   useFormattedStrings = true,
-  disabledValues
+  disabledValues,
+  onChange,
 }: FieldInputProps) => {
   const [field, __, helpers] = useField(name);
   const theme = useTheme();
@@ -64,19 +66,24 @@ const FormDropdown = ({
           mb: label && "0.5rem",
         }}
       >
-        <Box
+        {label && <Box
           sx={{
             display: "flex",
             gap: "10px",
           }}
         >
           <Typography
-            sx={{ color: disabled ? theme.palette.text.disabled : theme.palette.text.primary, fontSize: "16px" }}
+            sx={{
+              color: disabled
+                ? theme.palette.text.disabled
+                : theme.palette.text.primary,
+              fontSize: "16px",
+            }}
           >
             <FormattedMessage id={label} />
           </Typography>
           {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
-        </Box>
+        </Box>}
         {secondaryLabel && (
           <Typography
             sx={{ color: theme.palette.secondary.dark, fontSize: "16px" }}
@@ -86,36 +93,99 @@ const FormDropdown = ({
         )}
       </Box>
       <div className={"group-input"}>
-        <Field
-          as="select"
-          id={id}
-          name={name}
-          className="input"
-          disabled={disabled}
-        >
-          <option disabled value="">
-            {useFormattedStrings ? <FormattedMessage id="select" /> : "Select"}
-          </option>
-          {isLabelValueArray(options)
-            ? options.map((option, idx) => (
-                <option key={idx} value={option.value} disabled={disabledValues && disabledValues.includes(option.value)}>
-                  {useFormattedStrings ? (
-                    <FormattedMessage id={option.label} />
-                  ) : (
-                    option.label
-                  )}
-                </option>
-              ))
-            : options.map((option, idx) => (
-                <option key={idx} value={option.toString()} disabled={disabledValues && disabledValues.includes(option)}>
-                  {useFormattedStrings ? (
-                    <FormattedMessage id={option.toString()} />
-                  ) : (
-                    option.toString()
-                  )}
-                </option>
-              ))}
-        </Field>
+        {onChange ? (
+          <Field
+            as="select"
+            id={id}
+            name={name}
+            value={value}
+            className="input"
+            disabled={disabled}
+            onChange={onChange}
+          >
+            <option value="">
+              {useFormattedStrings ? (
+                <FormattedMessage id="select" />
+              ) : (
+                "Select"
+              )}
+            </option>
+            {isLabelValueArray(options)
+              ? options.map((option, idx) => (
+                  <option
+                    key={idx}
+                    value={option.value}
+                    disabled={
+                      disabledValues && disabledValues.includes(option.value)
+                    }
+                  >
+                    {useFormattedStrings ? (
+                      <FormattedMessage id={option.label} />
+                    ) : (
+                      option.label
+                    )}
+                  </option>
+                ))
+              : options.map((option, idx) => (
+                  <option
+                    key={idx}
+                    value={option.toString()}
+                    disabled={disabledValues && disabledValues.includes(option)}
+                  >
+                    {useFormattedStrings ? (
+                      <FormattedMessage id={option.toString()} />
+                    ) : (
+                      option.toString()
+                    )}
+                  </option>
+                ))}
+          </Field>
+        ) : (
+          <Field
+            as="select"
+            id={id}
+            name={name}
+            className="input"
+            disabled={disabled}
+          >
+            <option value="">
+              {useFormattedStrings ? (
+                <FormattedMessage id="select" />
+              ) : (
+                "Select"
+              )}
+            </option>
+            {isLabelValueArray(options)
+              ? options.map((option, idx) => (
+                  <option
+                    key={idx}
+                    value={option.value}
+                    disabled={
+                      disabledValues && disabledValues.includes(option.value)
+                    }
+                  >
+                    {useFormattedStrings ? (
+                      <FormattedMessage id={option.label} />
+                    ) : (
+                      option.label
+                    )}
+                  </option>
+                ))
+              : options.map((option, idx) => (
+                  <option
+                    key={idx}
+                    value={option.toString()}
+                    disabled={disabledValues && disabledValues.includes(option)}
+                  >
+                    {useFormattedStrings ? (
+                      <FormattedMessage id={option.toString()} />
+                    ) : (
+                      option.toString()
+                    )}
+                  </option>
+                ))}
+          </Field>
+        )}
       </div>
 
       {error && (
