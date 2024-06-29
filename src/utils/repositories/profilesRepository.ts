@@ -8,7 +8,7 @@ export interface ProfileSupabase {
   profile_picture: string;
   role: string;
   daily_wage: number;
-  commission: number;
+  commissions: number[];
 }
 
 export interface UserSupabase {

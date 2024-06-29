@@ -137,22 +137,22 @@ export default function Invoices() {
                       type={"number"}
                       min={0}
                     />,
-                    <FormInput
-                      id={"minimumCommission"}
-                      name={"minimumCommission"}
-                      placeholder={"Minimum Commission"}
-                      label={"minimum-commission"}
-                      type={"number"}
-                      min={0}
-                    />,
-                    <FormInput
-                      id={"maximumCommission"}
-                      name={"maximumCommission"}
-                      placeholder={"Maximum Commission"}
-                      label={"maximum-commission"}
-                      type={"number"}
-                      min={0}
-                    />,
+                    // <FormInput
+                    //   id={"minimumCommission"}
+                    //   name={"minimumCommission"}
+                    //   placeholder={"Minimum Commission"}
+                    //   label={"minimum-commission"}
+                    //   type={"number"}
+                    //   min={0}
+                    // />,
+                    // <FormInput
+                    //   id={"maximumCommission"}
+                    //   name={"maximumCommission"}
+                    //   placeholder={"Maximum Commission"}
+                    //   label={"maximum-commission"}
+                    //   type={"number"}
+                    //   min={0}
+                    // />,
                     <FormInput
                       id={"joinedAtFrom"}
                       name={"joinedAtFrom"}

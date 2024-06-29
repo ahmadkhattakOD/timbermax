@@ -1,10 +1,15 @@
+import { Typography } from "@mui/material";
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { getDateTimeFormatted, initialRowsPerPage, stripEmail } from "utils/helpers";
+import {
+  getDateTimeFormatted,
+  initialRowsPerPage,
+  stripEmail,
+} from "utils/helpers";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 
 const headCells: HeadCell[] = [
@@ -95,8 +100,16 @@ export function useInvoices() {
         <TableCell sx={{ minWidth: 200 }}>{row.role}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.daily_wage}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.commission}
-          {row.commission !== null && "%"}
+          {row.commissions &&
+            row.commissions.length > 0 &&
+            (row.commissions.length > 1 ? (
+              <Typography>
+                Sales: {row.commissions[0]}%<br />
+                Closing: {row.commissions[1]}%
+              </Typography>
+            ) : (
+              `${row.commissions[0]}%`
+            ))}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateTimeFormatted(row.created_at, true)}

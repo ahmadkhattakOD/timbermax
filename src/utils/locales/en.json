@@ -102,6 +102,8 @@
   "role": "Role",
   "commission": "Commission",
   "commission-percentage": "Commission (%)",
+  "sales-commission-percentage": "Sales Commission (%)",
+  "closing-commission-percentage": "Closing Commission (%)",
   "daily-wage": "Daily Wage (A$)",
   "invoices": "Invoices",
   "show-days": "Show Days",

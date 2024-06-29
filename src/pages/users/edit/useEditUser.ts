@@ -2,7 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { isNumeric } from "utils/helpers";
+import { UserRoles, isNumeric } from "utils/helpers";
 import ProfilesRepository, {
   ProfileSupabase,
 } from "utils/repositories/profilesRepository";
@@ -12,6 +12,7 @@ export interface ValuesEditProfile {
   email: string;
   role: string;
   commission: string;
+  secondaryCommission: string;
   dailyWage: string;
 }
 
@@ -19,6 +20,7 @@ export function useEditUser() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("");
   const { id } = useParams();
 
   function validate(values: ValuesEditProfile) {
@@ -51,6 +53,14 @@ export function useEditUser() {
       errors.commission = "required-valid-number-positive";
     }
 
+    if (
+      selectedRole === UserRoles.Both &&
+      (values.secondaryCommission === "" ||
+        parseFloat(values.secondaryCommission) < 0)
+    ) {
+      errors.secondaryCommission = "required-valid-number-positive";
+    }
+
     if (values.dailyWage !== "" && parseFloat(values.dailyWage) < 0) {
       errors.dailyWage = "required-valid-number-positive";
     }
@@ -61,13 +71,19 @@ export function useEditUser() {
   async function onSubmit(values: ValuesEditProfile) {
     try {
       if (id) {
+        let commissions = [parseFloat(values.commission)];
+
+        if (selectedRole === UserRoles.Both) {
+          commissions.push(parseFloat(values.secondaryCommission));
+        }
+
         const updatedProfile: ProfileSupabase = {
           full_name: values.fullName,
           email: profile.email,
           profile_picture: "",
           role: values.role,
           daily_wage: parseFloat(values.dailyWage),
-          commission: parseFloat(values.commission),
+          commissions: commissions,
         };
 
         const profilesRepository = new ProfilesRepository();
@@ -129,6 +145,7 @@ export function useEditUser() {
         const { profileData, profileError } = existingProfile;
         if (profileData && !profileError) {
           setProfile(profileData);
+          setSelectedRole(profileData.role);
         }
       }
     }
@@ -139,5 +156,5 @@ export function useEditUser() {
     getProfile();
   }, []);
 
-  return { validate, onSubmit, profile, loading };
+  return { validate, onSubmit, profile, loading, selectedRole };
 }

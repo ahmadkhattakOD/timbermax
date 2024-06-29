@@ -1,7 +1,8 @@
 import { openSnackbar } from "api/snackbar";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { formEmail, isNumeric } from "utils/helpers";
+import { UserRoles, formEmail, isNumeric } from "utils/helpers";
 import ProfilesRepository, {
   ProfileSupabase,
   UserSupabase,
@@ -14,11 +15,13 @@ export interface ValuesCreateUser {
   confirmPassword: string;
   role: string;
   commission: string;
+  secondaryCommission: string;
   dailyWage: string;
 }
 
 export function useCreateUser() {
   const navigate = useNavigate();
+  const [selectedRole, setSelectedRole] = useState<string>("");
 
   function validate(values: ValuesCreateUser) {
     const errors = {} as ValuesCreateUser;
@@ -53,12 +56,20 @@ export function useCreateUser() {
       errors.confirmPassword = "required-password-match";
     }
 
-    if (!values.role.trim()) {
+    if (!selectedRole.trim()) {
       errors.role = "required";
     }
 
     if (values.commission === "" || parseFloat(values.commission) < 0) {
       errors.commission = "required-valid-number-positive";
+    }
+
+    if (
+      selectedRole === UserRoles.Both &&
+      (values.secondaryCommission === "" ||
+        parseFloat(values.secondaryCommission) < 0)
+    ) {
+      errors.secondaryCommission = "required-valid-number-positive";
     }
 
     if (values.dailyWage !== "" && parseFloat(values.dailyWage) < 0) {
@@ -75,13 +86,19 @@ export function useCreateUser() {
         password: values.password.trim(),
       };
 
+      let commissions = [parseFloat(values.commission)];
+
+      if (selectedRole === UserRoles.Both) {
+        commissions.push(parseFloat(values.secondaryCommission));
+      }
+
       const newProfile: ProfileSupabase = {
         full_name: values.fullName,
         email: values.email,
         profile_picture: "",
-        role: values.role,
+        role: selectedRole,
         daily_wage: parseFloat(values.dailyWage),
-        commission: parseFloat(values.commission),
+        commissions: commissions,
       };
 
       const profilesRepository = new ProfilesRepository();
@@ -119,5 +136,10 @@ export function useCreateUser() {
       navigate("/users");
     }
   }
-  return { validate, onSubmit };
+  return {
+    validate,
+    onSubmit,
+    selectedRole,
+    setSelectedRole,
+  };
 }

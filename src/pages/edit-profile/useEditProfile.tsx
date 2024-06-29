@@ -3,16 +3,14 @@ import useAuth from "hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { isNumeric } from "utils/helpers";
-import ProfilesRepository, {
-  ProfileSupabase,
-} from "utils/repositories/profilesRepository";
+import ProfilesRepository from "utils/repositories/profilesRepository";
 
 export interface ValuesEditProfile {
   fullName: string;
   email: string;
   role: string;
   commission: string;
+  secondaryCommission: string;
   dailyWage: string;
 }
 
@@ -20,6 +18,7 @@ export function useEditProfile() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("");
   const { editProfile } = useAuth();
 
   function validate(values: ValuesEditProfile) {
@@ -44,7 +43,7 @@ export function useEditProfile() {
             color: "success",
           },
         } as SnackbarProps);
-        getProfile()
+        getProfile();
       } else {
         openSnackbar({
           open: true,
@@ -81,6 +80,7 @@ export function useEditProfile() {
         const { profileData, profileError } = existingProfile;
         if (profileData && !profileError) {
           setProfile(profileData);
+          setSelectedRole(profileData.role);
         }
       }
     }
@@ -91,5 +91,5 @@ export function useEditProfile() {
     getProfile();
   }, []);
 
-  return { validate, onSubmit, profile, loading };
+  return { validate, onSubmit, profile, loading, selectedRole };
 }

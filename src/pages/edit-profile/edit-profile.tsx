@@ -6,14 +6,15 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useEditProfile } from "./useEditProfile";
 import CircularLoader from "components/CircularLoader";
-import { stripEmail, userRoles } from "utils/helpers";
+import { UserRoles, stripEmail, userRoles } from "utils/helpers";
 
 import ChangePassword from "components/change-password/ChangePassword";
 
 // ==============================|| EDIT USER PAGE ||============================== //
 
 export default function EditProfile() {
-  const { validate, onSubmit, profile, loading } = useEditProfile();
+  const { validate, onSubmit, profile, loading, selectedRole } =
+    useEditProfile();
 
   if (loading) {
     return (
@@ -39,7 +40,15 @@ export default function EditProfile() {
           email: stripEmail(profile.email) ?? "",
           role: profile.role ?? "",
           commission:
-            profile.commission !== null ? profile.commission.toString() : "",
+            profile.commissions !== null && profile.commissions.length > 0
+              ? profile.commissions[0].toString()
+              : "",
+          secondaryCommission:
+            selectedRole === UserRoles.Both &&
+            profile.commissions !== null &&
+            profile.commissions.length > 1
+              ? profile.commissions[1].toString()
+              : "",
           dailyWage:
             profile.daily_wage !== null ? profile.daily_wage.toString() : "",
         }}
@@ -51,51 +60,108 @@ export default function EditProfile() {
             <FormLayout
               isSubmitting={isSubmitting}
               showSubmitButton={false}
-              inputs={[
-                <FormInput
-                  id={"fullName"}
-                  name={"fullName"}
-                  placeholder={"Full Name"}
-                  label={"full-name"}
-                  optional={false}
-                  type={"text"}
-                  disabled
-                  error={touched.fullName ? errors.fullName : ""}
-                />,
-                <FormInput
-                  id={"email"}
-                  name={"email"}
-                  placeholder={"Username"}
-                  label={"username"}
-                  optional={false}
-                  type={"text"}
-                  disabled
-                />,
-                <FormInput
-                  id={"role"}
-                  name={"role"}
-                  label={"role"}
-                  optional={false}
-                  disabled
-                />,
-                <FormInput
-                  id={"commission"}
-                  name={"commission"}
-                  placeholder={"Commission (%)"}
-                  label={"commission-percentage"}
-                  type={"number"}
-                  optional={false}
-                  disabled
-                />,
-                <FormInput
-                  id={"dailyWage"}
-                  name={"dailyWage"}
-                  placeholder={"Daily Wage"}
-                  label={"daily-wage"}
-                  type={"number"}
-                  disabled
-                />,
-              ]}
+              inputs={
+                selectedRole === UserRoles.Both
+                  ? [
+                      <FormInput
+                        id={"fullName"}
+                        name={"fullName"}
+                        placeholder={"Full Name"}
+                        label={"full-name"}
+                        optional={false}
+                        type={"text"}
+                        disabled
+                        error={touched.fullName ? errors.fullName : ""}
+                      />,
+                      <FormInput
+                        id={"email"}
+                        name={"email"}
+                        placeholder={"Username"}
+                        label={"username"}
+                        optional={false}
+                        type={"text"}
+                        disabled
+                      />,
+                      <FormInput
+                        id={"role"}
+                        name={"role"}
+                        label={"role"}
+                        optional={false}
+                        disabled
+                      />,
+                      <FormInput
+                        id={"commission"}
+                        name={"commission"}
+                        placeholder={"Sales Commission (%)"}
+                        label={"sales-commission-percentage"}
+                        type={"number"}
+                        optional={false}
+                        disabled
+                      />,
+                      <FormInput
+                        id={"secondaryCommission"}
+                        name={"secondaryCommission"}
+                        placeholder={"Closing Commission (%)"}
+                        label={"closing-commission-percentage"}
+                        type={"number"}
+                        optional={false}
+                        disabled
+                      />,
+                      <FormInput
+                        id={"dailyWage"}
+                        name={"dailyWage"}
+                        placeholder={"Daily Wage"}
+                        label={"daily-wage"}
+                        type={"number"}
+                        disabled
+                      />,
+                    ]
+                  : [
+                      <FormInput
+                        id={"fullName"}
+                        name={"fullName"}
+                        placeholder={"Full Name"}
+                        label={"full-name"}
+                        optional={false}
+                        type={"text"}
+                        disabled
+                        error={touched.fullName ? errors.fullName : ""}
+                      />,
+                      <FormInput
+                        id={"email"}
+                        name={"email"}
+                        placeholder={"Username"}
+                        label={"username"}
+                        optional={false}
+                        type={"text"}
+                        disabled
+                      />,
+                      <FormInput
+                        id={"role"}
+                        name={"role"}
+                        label={"role"}
+                        optional={false}
+                        disabled
+                      />,
+                      <FormInput
+                        id={"commission"}
+                        name={"commission"}
+                        placeholder={"Commission (%)"}
+                        label={"commission-percentage"}
+                        type={"number"}
+                        optional={false}
+                        disabled
+                      />,
+                      <FormInput
+                        id={"dailyWage"}
+                        name={"dailyWage"}
+                        placeholder={"Daily Wage"}
+                        label={"daily-wage"}
+                        type={"number"}
+                        disabled
+                      />,
+                    ]
+              }
             />
           </Form>
         )}
