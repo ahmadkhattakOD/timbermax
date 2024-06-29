@@ -112,9 +112,9 @@ export default function Users() {
                     <FormInput
                       id={"email"}
                       name={"email"}
-                      placeholder={"Email"}
-                      label={"email"}
-                      type={"email"}
+                      placeholder={"Username"}
+                      label={"username"}
+                      type={"text"}
                     />,
                     <FormDropdown
                       id={"role"}

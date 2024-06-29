@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
-import ProfilesRepository, { ProfileSupabase } from "utils/repositories/profilesRepository";
+import ProfilesRepository, {
+  ProfileSupabase,
+} from "utils/repositories/profilesRepository";
 
 export interface ValuesEditProfile {
   fullName: string;
@@ -26,11 +28,19 @@ export function useEditUser() {
       errors.fullName = "required";
     }
 
-    const emailRegex = new RegExp(
-      /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
-    );
-    if (!emailRegex.test(values.email.trim())) {
-      errors.email = "required-email";
+    // const emailRegex = new RegExp(
+    //   /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
+    // );
+    // if (!emailRegex.test(values.email.trim())) {
+    //   errors.email = "required-email";
+    // }
+
+    if (
+      !values.email.trim() ||
+      values.email.trim().length < 3 ||
+      (values.email.length > 0 && isNumeric(values.email[0]))
+    ) {
+      errors.email = "required-username";
     }
 
     if (!values.role.trim()) {
@@ -61,10 +71,7 @@ export function useEditUser() {
         };
 
         const profilesRepository = new ProfilesRepository();
-        const editedProfile = await profilesRepository.edit(
-          id,
-          updatedProfile
-        );
+        const editedProfile = await profilesRepository.edit(id, updatedProfile);
 
         if (editedProfile) {
           openSnackbar({

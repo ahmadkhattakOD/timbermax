@@ -44,10 +44,10 @@ export default function CreateUser() {
               <FormInput
                 id={"email"}
                 name={"email"}
-                placeholder={"Email"}
-                label={"email"}
+                placeholder={"Username"}
+                label={"username"}
                 optional={false}
-                type={"email"}
+                type={"text"}
                 error={touched.email ? errors.email : ""}
               />,
               <FormInput

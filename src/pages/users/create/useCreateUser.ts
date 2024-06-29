@@ -1,6 +1,7 @@
 import { openSnackbar } from "api/snackbar";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
+import { formEmail, isNumeric } from "utils/helpers";
 import ProfilesRepository, {
   ProfileSupabase,
   UserSupabase,
@@ -26,11 +27,19 @@ export function useCreateUser() {
       errors.fullName = "required";
     }
 
-    const emailRegex = new RegExp(
-      /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
-    );
-    if (!emailRegex.test(values.email.trim())) {
-      errors.email = "required-email";
+    // const emailRegex = new RegExp(
+    //   /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
+    // );
+    // if (!emailRegex.test(values.email.trim())) {
+    //   errors.email = "required-email";
+    // }
+
+    if (
+      !values.email.trim() ||
+      values.email.trim().length < 3 ||
+      (values.email.length > 0 && isNumeric(values.email[0]))
+    ) {
+      errors.email = "required-username";
     }
 
     const passwordRegex = new RegExp(
@@ -62,7 +71,7 @@ export function useCreateUser() {
   async function onSubmit(values: ValuesCreateUser) {
     try {
       const newUser: UserSupabase = {
-        email: values.email.trim(),
+        email: formEmail(values.email.trim()),
         password: values.password.trim(),
       };
 

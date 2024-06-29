@@ -4,7 +4,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import { getDateTimeFormatted, initialRowsPerPage, stripEmail } from "utils/helpers";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 
 const headCells: HeadCell[] = [
@@ -18,7 +18,7 @@ const headCells: HeadCell[] = [
     id: "email",
     numeric: false,
     disablePadding: true,
-    label: "Email",
+    label: "Username",
   },
   {
     id: "role",
@@ -91,7 +91,7 @@ export function useInvoices() {
     return (
       <React.Fragment>
         <TableCell sx={{ minWidth: 200 }}>{row.full_name}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.email}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{stripEmail(row.email)}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.role}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.daily_wage}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>

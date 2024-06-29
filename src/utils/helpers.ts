@@ -212,10 +212,25 @@ export function getInitials(name: string) {
     for (let i = 0; i < nameParts.length; i++) {
       initials += nameParts[i][0].toUpperCase();
     }
-  
+
     return initials;
-  }
-  catch (error) {
+  } catch (error) {
     return "";
+  }
+}
+
+export function stripEmail(email: string) {
+  return email.split("@")[0];
+}
+
+export function formEmail(email: string) {
+  const emailRegex = new RegExp(
+    /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
+  );
+
+  if (emailRegex.test(email)) {
+    return email;
+  } else {
+    return email.split("@")[0] + "@ultramaticreports.com.au";
   }
 }

@@ -175,5 +175,7 @@
   "paid": "Paid",
   "mark-selected-as-paid": "Mark Selected as Paid",
   "mark-selected-as-pending": "Mark Selected as Pending",
-  "mobile": "Mobile"
+  "mobile": "Mobile",
+  "username": "Username",
+  "required-username": "Please enter a valid username consisting of at least three characters, starting with a non-numeric character"
 }

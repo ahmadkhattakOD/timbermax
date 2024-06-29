@@ -6,7 +6,7 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useEditUser } from "./useEditUser";
 import CircularLoader from "components/CircularLoader";
-import { userRoles } from "utils/helpers";
+import { stripEmail, userRoles } from "utils/helpers";
 import ChangePassword from "components/change-password/ChangePassword";
 
 // ==============================|| EDIT USER PAGE ||============================== //
@@ -35,7 +35,7 @@ export default function EditUser() {
         enableReinitialize
         initialValues={{
           fullName: profile.full_name ?? "",
-          email: profile.email ?? "",
+          email: stripEmail(profile.email) ?? "",
           role: profile.role ?? "",
           commission:
             profile.commission !== null ? profile.commission.toString() : "",
@@ -63,10 +63,10 @@ export default function EditUser() {
                 <FormInput
                   id={"email"}
                   name={"email"}
-                  placeholder={"Email"}
-                  label={"email"}
+                  placeholder={"Username"}
+                  label={"username"}
                   optional={false}
-                  type={"email"}
+                  type={"text"}
                   disabled
                   error={touched.email ? errors.email : ""}
                 />,
@@ -78,6 +78,7 @@ export default function EditUser() {
                   optional={false}
                   options={userRoles}
                   error={touched.role ? errors.role : ""}
+                  disabled
                 />,
                 <FormInput
                   id={"commission"}

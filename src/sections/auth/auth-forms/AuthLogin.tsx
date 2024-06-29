@@ -33,6 +33,7 @@ import ProfilesRepository from "utils/repositories/profilesRepository";
 import { openSnackbar } from "api/snackbar";
 import { SnackbarProps } from "types/snackbar";
 import auth from "store/reducers/auth";
+import { formEmail } from "utils/helpers";
 
 // ============================|| JWT - LOGIN ||============================ //
 
@@ -61,15 +62,15 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
           submit: null,
         }}
         validationSchema={Yup.object().shape({
-          email: Yup.string()
-            .email("Must be a valid email")
-            .max(255)
-            .required("Email is required"),
+          email: Yup.string().max(255).required("Username is required"),
           password: Yup.string().max(255).required("Password is required"),
         })}
         onSubmit={async (values, { setStatus, setSubmitting }) => {
           try {
-            const loggedInUser = await login(values.email, values.password);
+            const loggedInUser = await login(
+              formEmail(values.email),
+              values.password
+            );
             if (loggedInUser) {
               if (scriptedRef.current) {
                 setStatus({ success: true });
@@ -117,15 +118,15 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Stack spacing={1}>
-                  <InputLabel htmlFor="email-login">Email Address</InputLabel>
+                  <InputLabel htmlFor="email-login">Username</InputLabel>
                   <OutlinedInput
                     id="email-login"
-                    type="email"
+                    type="text"
                     value={values.email}
                     name="email"
                     onBlur={handleBlur}
                     onChange={handleChange}
-                    placeholder="Enter email address"
+                    placeholder="Enter username"
                     fullWidth
                     error={Boolean(touched.email && errors.email)}
                   />
