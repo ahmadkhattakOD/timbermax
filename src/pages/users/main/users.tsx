@@ -197,6 +197,7 @@ export default function Users() {
       />
       <CSVLink
         data={csvData}
+        headers={headCells.map((cell) => cell.label)}
         filename={`users_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}

@@ -9,7 +9,12 @@ import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
-import { australianStates, hasNonEmptyValue } from "utils/helpers";
+import {
+  australianStates,
+  getDateTimeFormatted,
+  hasNonEmptyValue,
+} from "utils/helpers";
+import { CSVLink } from "react-csv";
 
 export default function ViewSales() {
   const {
@@ -40,6 +45,9 @@ export default function ViewSales() {
     shows,
     opportunities,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useViewSales();
 
   return (
@@ -95,6 +103,7 @@ export default function ViewSales() {
         openFilterModal={openFilterModal}
         takeToOnClick="view"
         selectable={false}
+        onDownload={getDataCsv}
       />
       <ModalFilters
         title="filter-sales"
@@ -290,6 +299,14 @@ export default function ViewSales() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        headers={headCells.map((cell) => cell.label)}
+        filename={`sales_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

@@ -99,7 +99,9 @@ export function useStock() {
         <TableCell sx={{ minWidth: 200 }}>{row.item.name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.warehouse.name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.quantity}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{getDateTimeFormatted(row.updated_at, true)}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {getDateTimeFormatted(row.updated_at, true)}
+        </TableCell>
       </React.Fragment>
     );
   }
@@ -125,7 +127,8 @@ export function useStock() {
     } else {
       openSnackbar({
         open: true,
-        message: "Stock(s) could not be deleted successfully. Please try again.",
+        message:
+          "Stock(s) could not be deleted successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",
@@ -178,32 +181,24 @@ export function useStock() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function getDataCsv() {
+  function getDataCsv() {
     try {
-      const stocksRepository = new StocksRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
-      const stocks = await stocksRepository.getCsv(
-        orderBy,
-        order === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPage,
-        filters
-      );
-      if (stocks) {
-        const { stocksData, stocksError } = stocks;
-        if (stocksData && !stocksError) {
-          setCsvData(stocksData);
-          if (stocksData.length > 0) {
-            setTimeout(() => {
-              csvLink?.current?.link?.click();
-            }, 2000);
-          }
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let stock = data[i] as any;
+          csvString += `${stock?.item?.name ?? ""},${stock?.warehouse?.name ?? ""},${stock?.quantity ?? ""},${stock?.updated_at ?? ""}\n`;
         }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
       }
     } catch (e) {
-      console.error("Error fetching stocks:", e);
+      console.error("Error fetching items:", e);
       setLoading(false);
     }
   }

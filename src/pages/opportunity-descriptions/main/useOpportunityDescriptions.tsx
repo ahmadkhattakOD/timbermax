@@ -163,34 +163,24 @@ export function useOpportunityDescriptions() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function getDataCsv() {
+  function getDataCsv() {
     try {
-      const opportunityDescriptionsRepository =
-        new OpportunityDescriptionsRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
-      const opportunities = await opportunityDescriptionsRepository.getCsv(
-        orderBy,
-        order === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPage,
-        filters
-      );
-      if (opportunities) {
-        const { opportunitiesData, opportunitiesError } =
-          opportunities;
-        if (opportunitiesData && !opportunitiesError) {
-          setCsvData(opportunitiesData);
-          if (opportunitiesData.length > 0) {
-            setTimeout(() => {
-              csvLink?.current?.link?.click();
-            }, 2000);
-          }
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let opportunity = data[i] as any;
+          csvString += `${opportunity?.name ?? ""},${opportunity?.description ?? ""}\n`;
         }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
       }
     } catch (e) {
-      console.error("Error fetching opportunity descriptions:", e);
+      console.error("Error fetching opportunities:", e);
       setLoading(false);
     }
   }

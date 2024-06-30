@@ -373,7 +373,13 @@ export function useDeliveries() {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let sale = data[i] as any;
-          csvString += `${sale?.contact_name ?? ""},${sale?.opportunity_descriptions ?? ""},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""} \n`;
+          let opportunityDescriptions = "";
+          if (sale?.opportunity_descriptions) {
+            sale?.opportunity_descriptions.forEach((opportunity: string) => {
+              opportunityDescriptions += opportunity + " ";
+            });
+          }
+          csvString += `${sale?.contact_name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);

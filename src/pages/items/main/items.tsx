@@ -144,6 +144,7 @@ export default function Items() {
       />
       <CSVLink
         data={csvData}
+        headers={headCells.map((cell) => cell.label)}
         filename={`items_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}

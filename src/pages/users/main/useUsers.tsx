@@ -207,32 +207,32 @@ export function useUsers() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function getDataCsv() {
+  function getDataCsv() {
     try {
-      const profilesRepository = new ProfilesRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
-      const profiles = await profilesRepository.getCsv(
-        orderBy,
-        order === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPage,
-        filters
-      );
-      if (profiles) {
-        const { profilesData, profilesError } = profiles;
-        if (profilesData && !profilesError) {
-          setCsvData(profilesData);
-          if (profilesData.length > 0) {
-            setTimeout(() => {
-              csvLink?.current?.link?.click();
-            }, 2000);
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let user = data[i] as any;
+          let commissions = "";
+          if (user?.commissions) {
+            if (user?.commissions.length === 1) {
+              commissions = `${user?.commissions[0]}%`;
+            } else if (user?.commissions.length >= 2) {
+              commissions = `Sales: ${user?.commissions[0]}% Closer ${user?.commissions[1]}%`;
+            }
           }
+          csvString += `${user?.full_name ?? ""},${stripEmail(user?.email) ?? ""},${user?.role ?? ""},${user?.daily_wage ?? ""},${commissions},${user?.created_at ?? ""}\n`;
         }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
       }
     } catch (e) {
-      console.error("Error fetching profiles:", e);
+      console.error("Error fetching users:", e);
       setLoading(false);
     }
   }

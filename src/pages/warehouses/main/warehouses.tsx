@@ -158,6 +158,7 @@ export default function Warehouses() {
       />
       <CSVLink
         data={csvData}
+        headers={headCells.map((cell) => cell.label)}
         filename={`warehouses_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}

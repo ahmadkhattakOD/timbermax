@@ -339,29 +339,27 @@ export function useSales() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function getDataCsv() {
+  function getDataCsv() {
     try {
-      const salesRepository = new SalesRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
-      const sales = await salesRepository.getCsv(
-        orderBy,
-        order === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPage,
-        filters
-      );
-      if (sales) {
-        const { salesData, salesError } = sales;
-        if (salesData && !salesError) {
-          setCsvData(salesData.replace("\"", ''));
-          if (salesData.length > 0) {
-            setTimeout(() => {
-              csvLink?.current?.link?.click();
-            }, 2000);
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let sale = data[i] as any;
+          let opportunityDescriptions = "";
+          if (sale?.opportunity_descriptions) {
+            sale?.opportunity_descriptions.forEach((opportunity: string) => {
+              opportunityDescriptions += opportunity + " ";
+            });
           }
+          csvString += `${sale?.contact_name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
         }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
       }
     } catch (e) {
       console.error("Error fetching sales:", e);

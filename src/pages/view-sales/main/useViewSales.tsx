@@ -1,7 +1,7 @@
 import { Typography } from "@mui/material";
 import { TableCell } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { UserRoles, getDateFormatted, initialRowsPerPage } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
@@ -176,6 +176,8 @@ export function useViewSales() {
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterViewSales>(initialFilters);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const [mode, setMode] = useState("unclosed");
 
   function generateTableCells(
@@ -289,6 +291,34 @@ export function useViewSales() {
     getData();
   }, [order, orderBy, page, rowsPerPage, mode, filters]);
 
+  function getDataCsv() {
+    try {
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let sale = data[i] as any;
+          let opportunityDescriptions = "";
+          if (sale?.opportunity_descriptions) {
+            sale?.opportunity_descriptions.forEach((opportunity: string) => {
+              opportunityDescriptions += opportunity + " ";
+            });
+          }
+          csvString += `${sale?.contact_name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+        }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
+      }
+    } catch (e) {
+      console.error("Error fetching sales:", e);
+      setLoading(false);
+    }
+  }
+
   async function validateFilters(values: ValuesFilterViewSales) {
     const errors = {} as ValuesFilterViewSales;
 
@@ -378,5 +408,8 @@ export function useViewSales() {
     shows,
     opportunities,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

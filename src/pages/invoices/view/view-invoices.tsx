@@ -326,6 +326,7 @@ export default function ViewInvoices() {
       />
       <CSVLink
         data={csvData}
+        headers={headCells.map((cell) => cell.label)}
         filename={`invoices_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}

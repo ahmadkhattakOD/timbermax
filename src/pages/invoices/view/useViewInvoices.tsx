@@ -285,35 +285,31 @@ export function useViewInvoices() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function getDataCsv() {
+  function getDataCsv() {
     try {
-      if (id) {
-        const generatedInvoicesRepository = new GeneratedInvoicesRepository();
-        const rangeStart = rowsPerPage * page;
-        const rangeEnd = rangeStart + rowsPerPage;
-        const invoices = await generatedInvoicesRepository.getCsv(
-          id,
-          orderBy,
-          order === "asc",
-          rangeStart,
-          rangeEnd,
-          rowsPerPage,
-          filters
-        );
-        if (invoices) {
-          const { invoicesData, invoicesError } = invoices;
-          if (invoicesData && !invoicesError) {
-            setCsvData(invoicesData);
-            if (invoicesData.length > 0) {
-              setTimeout(() => {
-                csvLink?.current?.link?.click();
-              }, 2000);
-            }
-          }
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let invoice = data[i] as any;
+          csvString += `${invoice?.start_date ?? ""},${invoice?.end_date ?? ""},${
+            invoice?.wages +
+              invoice?.travel_bonus +
+              invoice?.other_bonuses +
+              invoice?.total_commission -
+              invoice?.cancelled_sales -
+              invoice?.deductions ?? ""
+          },${invoice?.wages ?? ""},${invoice?.travel_bonus ?? ""},${invoice?.other_bonuses ?? ""},${invoice?.total_commission ?? ""},${invoice?.cancelled_sales ?? ""},${invoice?.deductions ?? ""},${invoice?.status ?? ""},${invoice?.created_at}\n`;
         }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
       }
     } catch (e) {
-      console.error("Error fetching profiles:", e);
+      console.error("Error fetching invoices:", e);
       setLoading(false);
     }
   }

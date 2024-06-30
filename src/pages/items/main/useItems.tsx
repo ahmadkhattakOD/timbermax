@@ -157,29 +157,21 @@ export function useItems() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function getDataCsv() {
+  function getDataCsv() {
     try {
-      const itemsRepository = new ItemsRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
-      const warehouses = await itemsRepository.getCsv(
-        orderBy,
-        order === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPage,
-        filters
-      );
-      if (warehouses) {
-        const { itemsData, itemsError } = warehouses;
-        if (itemsData && !itemsError) {
-          setCsvData(itemsData);
-          if (itemsData.length > 0) {
-            setTimeout(() => {
-              csvLink?.current?.link?.click();
-            }, 2000);
-          }
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let item = data[i] as any;
+          csvString += `${item?.name ?? ""},${item?.description ?? ""}\n`;
         }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
       }
     } catch (e) {
       console.error("Error fetching items:", e);

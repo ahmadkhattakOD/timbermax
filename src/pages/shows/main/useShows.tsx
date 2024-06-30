@@ -208,32 +208,24 @@ export function useShows() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  async function getDataCsv() {
+  function getDataCsv() {
     try {
-      const showsRepository = new ShowsRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
-      const shows = await showsRepository.getCsv(
-        orderBy,
-        order === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPage,
-        filters
-      );
-      if (shows) {
-        const { showsData, showsError } = shows;
-        if (showsData && !showsError) {
-          setCsvData(showsData);
-          if (showsData.length > 0) {
-            setTimeout(() => {
-              csvLink?.current?.link?.click();
-            }, 2000);
-          }
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let show = data[i] as any;
+          csvString += `${show?.name ?? ""},${show?.start_date ?? ""},${show?.end_date ?? ""},${show?.address ?? ""},${show?.suburb ?? ""},${show?.state ?? ""},${show?.post_code ?? ""},${show?.notes ?? ""}\n`;
         }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
       }
     } catch (e) {
-      console.error("Error fetching shows:", e);
+      console.error("Error fetching items:", e);
       setLoading(false);
     }
   }

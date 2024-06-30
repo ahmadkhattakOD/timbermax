@@ -143,6 +143,7 @@ export default function OpportunityDescriptions() {
       />
       <CSVLink
         data={csvData}
+        headers={headCells.map((cell) => cell.label)}
         filename={`opportunities_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}

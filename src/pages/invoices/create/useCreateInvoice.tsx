@@ -434,7 +434,15 @@ export function useCreateInvoice() {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let invoice = data[i] as any;
-          csvString += `${invoice.sale?.contact_name ?? ""},${invoice.sale?.opportunity_descriptions ?? ""},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.payment_method ?? ""},${invoice.sale?.phone ?? ""},${invoice.sale?.mobile ?? ""},${invoice.sale?.address ?? ""},${invoice.sale?.state ?? ""},${invoice.sale?.post_code ?? ""},${invoice.sale?.email_address ?? ""},${invoice.sale?.sales_person?.full_name ?? ""},${invoice.sale?.closer?.full_name ?? ""},${invoice.sale?.show?.name ?? ""},${invoice.sale?.note ?? ""},${invoice.sale?.status ?? ""},${invoice.sale?.follow_up_notes ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.delivery_date_time ?? ""},${invoice.sale?.stock_from_warehose?.name ?? ""},${invoice.sale?.invoice_date ?? ""} \n`;
+          let opportunityDescriptions = "";
+          if (invoice?.sale?.opportunity_descriptions) {
+            invoice?.sale?.opportunity_descriptions.forEach(
+              (opportunity: string) => {
+                opportunityDescriptions += opportunity + " ";
+              }
+            );
+          }
+          csvString += `${invoice.sale?.contact_name ?? ""},${opportunityDescriptions},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.payment_method ?? ""},${invoice.sale?.phone ?? ""},${invoice.sale?.mobile ?? ""},${invoice.sale?.address ?? ""},${invoice.sale?.state ?? ""},${invoice.sale?.post_code ?? ""},${invoice.sale?.email_address ?? ""},${invoice.sale?.sales_person?.full_name ?? ""},${invoice.sale?.closer?.full_name ?? ""},${invoice.sale?.show?.name ?? ""},${invoice.sale?.note ?? ""},${invoice.sale?.status ?? ""},${invoice.sale?.follow_up_notes ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.delivery_date_time ?? ""},${invoice.sale?.stock_from_warehose?.name ?? ""},${invoice.sale?.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);

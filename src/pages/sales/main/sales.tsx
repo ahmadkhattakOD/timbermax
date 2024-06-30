@@ -313,7 +313,7 @@ export default function Sales() {
       />
       <CSVLink
         data={csvData}
-        separator={undefined}
+        headers={headCells.map((cell) => cell.label)}
         filename={`sales_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}
