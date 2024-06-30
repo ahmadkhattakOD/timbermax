@@ -3,7 +3,6 @@ import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
 import { useCloseSales } from "./useCloseSales";
 import DataTable from "components/data-table/DataTable";
-import ModalDeleteConfirm from "components/ModalConfirmDelete";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";

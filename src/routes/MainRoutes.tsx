@@ -41,6 +41,7 @@ import EditOpportunityDescription from "pages/opportunity-descriptions/edit/edit
 import ViewSales from "pages/view-sales/main/view-sales";
 import ViewSale from "pages/view-sales/view/view-sale";
 import CreateInvoice from "pages/invoices/create/create-invoice";
+import DownloadInvoice from "pages/invoices/download/download-invoice";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -312,6 +313,16 @@ const MainRoutes = {
         {
           path: "invoices/users/:id/view",
           element: <ViewInvoices />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "invoices/users/:id/view/:iid/download",
+          element: <DownloadInvoice />,
         },
       ],
     },

@@ -281,7 +281,7 @@ export default function CreateInvoice() {
                               ),
                             });
                           }}
-                          error={touched.showDays ? errors.showDays : ""}
+                          error={touched.travelBonus ? errors.travelBonus : ""}
                         />,
                         <FormInput
                           id={"otherBonuses"}

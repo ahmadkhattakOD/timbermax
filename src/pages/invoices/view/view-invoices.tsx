@@ -134,7 +134,7 @@ export default function ViewInvoices() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
-        clickable={false}
+        takeToOnClick="download"
         onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
