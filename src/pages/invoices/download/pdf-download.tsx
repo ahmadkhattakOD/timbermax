@@ -209,25 +209,25 @@ const Table: React.FC<TableProps> = ({
     {/* Table Header and Content */}
     <View style={styles.tableCol}>
       <View style={styles.tableRow}>
-        <Text style={styles.tableCell}>Wages</Text>
+        <Text style={styles.tableCell}>Wages (A$)</Text>
       </View>
       <View style={styles.tableRow}>
-        <Text style={styles.tableCell}>Travel Bonus</Text>
+        <Text style={styles.tableCell}>Travel Bonus (A$)</Text>
       </View>
       <View style={styles.tableRow}>
-        <Text style={styles.tableCell}>Other Bonuses</Text>
+        <Text style={styles.tableCell}>Other Bonuses (A$)</Text>
       </View>
       <View style={styles.tableRow}>
-        <Text style={styles.tableCell}>Total Commission</Text>
+        <Text style={styles.tableCell}>Total Commission (A$)</Text>
       </View>
       <View style={styles.tableRow}>
-        <Text style={styles.tableCell}>Cancelled Sales</Text>
+        <Text style={styles.tableCell}>Cancelled Sales (A$)</Text>
       </View>
       <View style={styles.tableRow}>
-        <Text style={styles.tableCell}>Deductions</Text>
+        <Text style={styles.tableCell}>Deductions (A$)</Text>
       </View>
       <View style={styles.tableRow}>
-        <Text style={styles.tableCellBold}>Total</Text>
+        <Text style={styles.tableCellBold}>Total (A$)</Text>
       </View>
     </View>
     <View style={styles.tableCol}>
