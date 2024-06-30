@@ -4,12 +4,12 @@ import ActionButton from "components/ActionButton";
 import { useOpportunityDescriptions } from "./useOpportunityDescriptions";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { hasNonEmptyValue } from "utils/helpers";
+import { getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
-
+import { CSVLink } from "react-csv";
 
 export default function OpportunityDescriptions() {
   const {
@@ -40,6 +40,9 @@ export default function OpportunityDescriptions() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useOpportunityDescriptions();
 
   return (
@@ -79,6 +82,7 @@ export default function OpportunityDescriptions() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -136,6 +140,13 @@ export default function OpportunityDescriptions() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        filename={`opportunities_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

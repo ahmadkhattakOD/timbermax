@@ -11,10 +11,16 @@ import CircularLoader from "components/CircularLoader";
 import { Divider, Grid, Typography } from "@mui/material";
 import ProfilePicture from "components/ProfilePicture";
 import { useTheme } from "@mui/system";
-import { getDateFormatted, getInitials, hasNonEmptyValue } from "utils/helpers";
+import {
+  getDateFormatted,
+  getDateTimeFormatted,
+  getInitials,
+  hasNonEmptyValue,
+} from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import FormDropdown from "components/FormDropdown";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { CSVLink } from "react-csv";
 
 export default function CreateInvoice() {
   const {
@@ -57,6 +63,9 @@ export default function CreateInvoice() {
     saleDateFrom,
     saleDateTo,
     alreadyCreatedInvoice,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -327,10 +336,10 @@ export default function CreateInvoice() {
                     justifyContent: "center",
                     color: theme.palette.error.main,
                     padding: "2rem",
-                    paddingBottom: 0
+                    paddingBottom: 0,
                   }}
                 >
-                  <Typography sx={{textAlign: 'center'}}>
+                  <Typography sx={{ textAlign: "center" }}>
                     An invoice already exists for the dates:{" "}
                     <span style={{ fontWeight: "bold" }}>
                       {getDateFormatted(alreadyCreatedInvoice.start_date)}
@@ -338,7 +347,10 @@ export default function CreateInvoice() {
                     -{" "}
                     <span style={{ fontWeight: "bold" }}>
                       {getDateFormatted(alreadyCreatedInvoice.end_date)}
-                    </span>. <br /><br /> Please select another date range to generate an invoice.
+                    </span>
+                    . <br />
+                    <br /> Please select another date range to generate an
+                    invoice.
                   </Typography>
                 </Box>
               )}
@@ -376,6 +388,7 @@ export default function CreateInvoice() {
             openFilterModal={openFilterModal}
             clickable={false}
             selectable={false}
+            onDownload={getDataCsv}
           />
           <ModalFilters
             title="filter-sales"
@@ -456,6 +469,14 @@ export default function CreateInvoice() {
                 )}
               </Formik>
             }
+          />
+          <CSVLink
+            data={csvData}
+            headers={headCells.map((cell) => cell.label)}
+            filename={`commissioned_sales_${getDateTimeFormatted()}.csv`}
+            className="hidden"
+            ref={csvLink}
+            target="_blank"
           />
         </Box>
       )}

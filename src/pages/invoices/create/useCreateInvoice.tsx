@@ -1,7 +1,8 @@
+import { Typography } from "@mui/material";
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
@@ -213,6 +214,8 @@ export function useCreateInvoice() {
   const [saleDateFrom, setSaleDateFrom] = useState("");
   const [saleDateTo, setSaleDateTo] = useState("");
   const [alreadyCreatedInvoice, setAlreadyCreatedInvoice] = useState<any>(null);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const navigate = useNavigate();
 
   function generateTableCells(
@@ -223,8 +226,15 @@ export function useCreateInvoice() {
     return (
       <React.Fragment>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.contact_name}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.opportunity_description}
+        <TableCell sx={{ minWidth: 500 }}>
+          {row.sale?.opportunity_descriptions &&
+            row.sale?.opportunity_descriptions.map(
+              (opportunity: string, idx: number) => (
+                <Typography key={idx}>
+                  - {opportunity} <br />
+                </Typography>
+              )
+            )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.sale?.deposit}
@@ -417,6 +427,28 @@ export function useCreateInvoice() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters, saleDateFrom, saleDateTo]);
 
+  function getDataCsv() {
+    try {
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let invoice = data[i] as any;
+          csvString += `${invoice.sale?.contact_name ?? ""},${invoice.sale?.opportunity_descriptions ?? ""},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.payment_method ?? ""},${invoice.sale?.phone ?? ""},${invoice.sale?.mobile ?? ""},${invoice.sale?.address ?? ""},${invoice.sale?.state ?? ""},${invoice.sale?.post_code ?? ""},${invoice.sale?.email_address ?? ""},${invoice.sale?.sales_person?.full_name ?? ""},${invoice.sale?.closer?.full_name ?? ""},${invoice.sale?.show?.name ?? ""},${invoice.sale?.note ?? ""},${invoice.sale?.status ?? ""},${invoice.sale?.follow_up_notes ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.delivery_date_time ?? ""},${invoice.sale?.stock_from_warehose?.name ?? ""},${invoice.sale?.invoice_date ?? ""} \n`;
+        }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
+      }
+    } catch (e) {
+      console.error("Error fetching invoices:", e);
+      setLoading(false);
+    }
+  }
+
   async function validateFilters(values: ValuesFilterInvoices) {
     const errors = {} as ValuesFilterInvoices;
 
@@ -505,7 +537,7 @@ export function useCreateInvoice() {
           if (invoicesData && !invoicesError) {
             for (let i = 0; i < invoicesData.length; i++) {
               let sale = invoicesData[i].sale as any;
-              salesMadeValue += invoicesData[i].commission
+              salesMadeValue += invoicesData[i].commission;
               if (!salesProcessed.includes(sale.id)) {
                 salesMadeValue -= 300;
               }
@@ -539,8 +571,6 @@ export function useCreateInvoice() {
       setProfileDataLoading(false);
     }
   }
-
-  async function getAlreadyCreatedInvoice() {}
 
   async function getFilterData() {
     const salesRepository = new SalesRepository();
@@ -615,5 +645,8 @@ export function useCreateInvoice() {
     saleDateFrom,
     saleDateTo,
     alreadyCreatedInvoice,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

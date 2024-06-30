@@ -4,12 +4,13 @@ import ActionButton from "components/ActionButton";
 import { useUsers } from "./useUsers";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { hasNonEmptyValue, userRoles } from "utils/helpers";
+import { getDateTimeFormatted, hasNonEmptyValue, userRoles } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
+import { CSVLink } from "react-csv";
 
 export default function Users() {
   const {
@@ -40,6 +41,9 @@ export default function Users() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useUsers();
 
   return (
@@ -79,6 +83,7 @@ export default function Users() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -189,6 +194,13 @@ export default function Users() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        filename={`users_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

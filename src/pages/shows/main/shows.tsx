@@ -4,12 +4,17 @@ import ActionButton from "components/ActionButton";
 import { useShows } from "./useShows";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { australianStates, hasNonEmptyValue } from "utils/helpers";
+import {
+  australianStates,
+  getDateTimeFormatted,
+  hasNonEmptyValue,
+} from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
+import { CSVLink } from "react-csv";
 
 export default function Shows() {
   const {
@@ -40,6 +45,9 @@ export default function Shows() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useShows();
 
   return (
@@ -79,6 +87,7 @@ export default function Shows() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -185,6 +194,13 @@ export default function Shows() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        filename={`shows_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

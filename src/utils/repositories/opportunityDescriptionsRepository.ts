@@ -64,6 +64,43 @@ class OpportunityDescriptionsRepository {
     }
   }
 
+  public async getCsv(
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterOpportunityDescriptions
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select("*")
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit);
+
+      if (filters) {
+        if (filters.name) {
+          query.ilike("name", `%${filters.name}%`);
+        }
+        if (filters.description) {
+          query.ilike("description", `%${filters.description}%`);
+        }
+      }
+
+      const {
+        data: opportunitiesData,
+        error: opportunitiesError,
+      } = await query.csv();
+
+      return { opportunitiesData, opportunitiesError };
+    } catch (error) {
+      console.error("Error fetching opportunity descriptions:", error);
+      return null;
+    }
+  }
+
   public async getWithoutFilters() {
     try {
       const { data: opportunitiesData, error: opportunitiesError } =

@@ -1,7 +1,7 @@
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
@@ -140,6 +140,8 @@ export function useViewInvoices() {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] =
     useState<ValuesFilterGeneratedInvoices>(initialFilters);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -283,6 +285,39 @@ export function useViewInvoices() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
+  async function getDataCsv() {
+    try {
+      if (id) {
+        const generatedInvoicesRepository = new GeneratedInvoicesRepository();
+        const rangeStart = rowsPerPage * page;
+        const rangeEnd = rangeStart + rowsPerPage;
+        const invoices = await generatedInvoicesRepository.getCsv(
+          id,
+          orderBy,
+          order === "asc",
+          rangeStart,
+          rangeEnd,
+          rowsPerPage,
+          filters
+        );
+        if (invoices) {
+          const { invoicesData, invoicesError } = invoices;
+          if (invoicesData && !invoicesError) {
+            setCsvData(invoicesData);
+            if (invoicesData.length > 0) {
+              setTimeout(() => {
+                csvLink?.current?.link?.click();
+              }, 2000);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching profiles:", e);
+      setLoading(false);
+    }
+  }
+
   async function validateFilters(values: ValuesFilterGeneratedInvoices) {
     const errors = {} as ValuesFilterGeneratedInvoices;
 
@@ -413,6 +448,9 @@ export function useViewInvoices() {
     resetFilters,
     fullName,
     markSelectedAsPaid,
-    markSelectedAsPending
+    markSelectedAsPending,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

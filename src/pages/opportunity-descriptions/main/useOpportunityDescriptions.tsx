@@ -1,7 +1,7 @@
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { initialRowsPerPage } from "utils/helpers";
@@ -45,6 +45,8 @@ export function useOpportunityDescriptions() {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] =
     useState<ValuesFilterOpportunityDescriptions>(initialFilters);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -161,6 +163,38 @@ export function useOpportunityDescriptions() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
+  async function getDataCsv() {
+    try {
+      const opportunityDescriptionsRepository =
+        new OpportunityDescriptionsRepository();
+      const rangeStart = rowsPerPage * page;
+      const rangeEnd = rangeStart + rowsPerPage;
+      const opportunities = await opportunityDescriptionsRepository.getCsv(
+        orderBy,
+        order === "asc",
+        rangeStart,
+        rangeEnd,
+        rowsPerPage,
+        filters
+      );
+      if (opportunities) {
+        const { opportunitiesData, opportunitiesError } =
+          opportunities;
+        if (opportunitiesData && !opportunitiesError) {
+          setCsvData(opportunitiesData);
+          if (opportunitiesData.length > 0) {
+            setTimeout(() => {
+              csvLink?.current?.link?.click();
+            }, 2000);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching opportunity descriptions:", e);
+      setLoading(false);
+    }
+  }
+
   async function validateFilters(values: ValuesFilterOpportunityDescriptions) {
     const errors = {} as ValuesFilterOpportunityDescriptions;
 
@@ -210,5 +244,8 @@ export function useOpportunityDescriptions() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

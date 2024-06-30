@@ -4,12 +4,13 @@ import ActionButton from "components/ActionButton";
 import { useWarehouses } from "./useWarehouses";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { australianStates, hasNonEmptyValue } from "utils/helpers";
+import { australianStates, getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
+import { CSVLink } from "react-csv";
 
 export default function Warehouses() {
   const {
@@ -40,6 +41,9 @@ export default function Warehouses() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useWarehouses();
 
   return (
@@ -79,6 +83,7 @@ export default function Warehouses() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -150,6 +155,13 @@ export default function Warehouses() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        filename={`warehouses_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

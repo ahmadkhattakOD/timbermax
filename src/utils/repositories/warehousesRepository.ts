@@ -72,6 +72,46 @@ class WarehousesRepository {
     }
   }
 
+  public async getCsv(
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterWarehouses
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select("*")
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit);
+
+      if (filters) {
+        if (filters.name) {
+          query.ilike("name", `%${filters.name}%`);
+        }
+        if (filters.address) {
+          query.ilike("address", `%${filters.address}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+      }
+
+      const { data: warehousesData, error: warehousesError } = await query.csv();
+
+      return { warehousesData, warehousesError };
+    } catch (error) {
+      console.error("Error fetching warehouses:", error);
+      return null;
+    }
+  }
+
   public async getWithoutFilters() {
     try {
       const { data: warehousesData, error: warehousesError } = await supabase

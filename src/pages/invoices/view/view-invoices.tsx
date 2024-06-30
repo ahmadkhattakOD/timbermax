@@ -4,7 +4,7 @@ import ActionButton from "components/ActionButton";
 import { useViewInvoices } from "./useViewInvoices";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { getInitials, hasNonEmptyValue, userRoles } from "utils/helpers";
+import { getDateTimeFormatted, getInitials, hasNonEmptyValue, userRoles } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
@@ -12,6 +12,7 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import ProfilePicture from "components/ProfilePicture";
 import { Typography } from "@mui/material";
+import { CSVLink } from "react-csv";
 
 export default function ViewInvoices() {
   const {
@@ -45,6 +46,9 @@ export default function ViewInvoices() {
     fullName,
     markSelectedAsPaid,
     markSelectedAsPending,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useViewInvoices();
 
   return (
@@ -131,6 +135,7 @@ export default function ViewInvoices() {
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
         clickable={false}
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -318,6 +323,13 @@ export default function ViewInvoices() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        filename={`invoices_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

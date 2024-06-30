@@ -92,6 +92,64 @@ class ShowsRepository {
     }
   }
 
+  public async getCsv(
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterShows
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select("*")
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit);
+
+      if (filters) {
+        if (filters.name) {
+          query.ilike("name", `%${filters.name}%`);
+        }
+        if (filters.startDateFrom) {
+          query.gte("start_date", filters.startDateFrom);
+        }
+        if (filters.startDateTo) {
+          query.lte("start_date", filters.startDateTo);
+        }
+        if (filters.endDateFrom) {
+          query.gte("end_date", filters.endDateFrom);
+        }
+        if (filters.endDateTo) {
+          query.lte("end_date", filters.endDateTo);
+        }
+        if (filters.address) {
+          query.ilike("address", `%${filters.address}%`);
+        }
+        if (filters.suburb) {
+          query.ilike("suburb", `%${filters.suburb}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+      }
+
+      const {
+        data: showsData,
+        error: showsError,
+      } = await query.csv();
+
+      return { showsData, showsError };
+    } catch (error) {
+      console.error("Error fetching shows:", error);
+      return null;
+    }
+  }
+
   public async getWithoutFilters() {
     try {
       const { data: showsData, error: showsError } = await supabase

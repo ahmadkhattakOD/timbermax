@@ -110,6 +110,54 @@ class StocksRepository {
     }
   }
 
+  public async getCsv(
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterStock
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select(
+          "id, item (id, name), warehouse (id, name), quantity, updated_at"
+        )
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit);
+
+      if (filters) {
+        if (filters.item) {
+          query.eq("item", filters.item);
+        }
+        if (filters.warehouse) {
+          query.eq("warehouse", filters.warehouse);
+        }
+        if (filters.minimumQuantity) {
+          query.gte("quantity", parseInt(filters.minimumQuantity));
+        }
+        if (filters.maximumQuantity) {
+          query.lte("quantity", parseInt(filters.maximumQuantity));
+        }
+        if (filters.updatedAtFrom) {
+          query.gte("updated_at", filters.updatedAtFrom);
+        }
+        if (filters.updatedAtTo) {
+          query.lte("updated_at", filters.updatedAtTo);
+        }
+      }
+
+      const { data: stocksData, error: stocksError } = await query.csv();
+
+      return { stocksData, stocksError };
+    } catch (error) {
+      console.error("Error fetching stocks:", error);
+      return null;
+    }
+  }
+
   public async getLowInStock() {
     try {
       const { data: stocksData, error: stocksError } = await supabase
@@ -118,7 +166,7 @@ class StocksRepository {
         .order("quantity", { ascending: true })
         .limit(5);
 
-        return { stocksData, stocksError };
+      return { stocksData, stocksError };
     } catch (error) {
       console.error("Error fetching stocks:", error);
       return null;

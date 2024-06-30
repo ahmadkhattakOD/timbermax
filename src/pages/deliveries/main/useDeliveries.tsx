@@ -2,7 +2,7 @@ import { Typography } from "@mui/material";
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
@@ -203,6 +203,8 @@ export function useDeliveries() {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] =
     useState<ValuesFilterDeliveries>(initialFilters);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -364,6 +366,28 @@ export function useDeliveries() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
+  function getDataCsv() {
+    try {
+      let csvString = "";
+
+      if (data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          let sale = data[i] as any;
+          csvString += `${sale?.contact_name ?? ""},${sale?.opportunity_descriptions ?? ""},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""} \n`;
+        }
+
+        setCsvData(csvString);
+
+        setTimeout(() => {
+          csvLink?.current?.link?.click();
+        }, 2000);
+      }
+    } catch (e) {
+      console.error("Error fetching invoices:", e);
+      setLoading(false);
+    }
+  }
+
   async function validateFilters(values: ValuesFilterDeliveries) {
     const errors = {} as ValuesFilterDeliveries;
 
@@ -465,5 +489,8 @@ export function useDeliveries() {
     shows,
     opportunities,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

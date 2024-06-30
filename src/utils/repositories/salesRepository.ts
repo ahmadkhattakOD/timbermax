@@ -113,10 +113,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.contains(
-            "opportunity_descriptions",
-            [filters.opportunityDescription]
-          );
+          query.contains("opportunity_descriptions", [
+            filters.opportunityDescription,
+          ]);
         }
         if (filters.closer) {
           query.eq("closer", filters.closer);
@@ -149,6 +148,102 @@ class SalesRepository {
       } = await query;
 
       return { salesData, salesCount, salesError };
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+      return null;
+    }
+  }
+
+  public async getCsv(
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterSales
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select(
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date"
+        )
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit);
+
+      if (filters) {
+        if (filters.contactName) {
+          query.ilike("contact_name", `%${filters.contactName}%`);
+        }
+        if (filters.salesPerson) {
+          query.eq("sales_person", filters.salesPerson);
+        }
+        if (filters.minimumDeposit) {
+          query.gte("deposit", parseFloat(filters.minimumDeposit));
+        }
+        if (filters.maximumDeposit) {
+          query.lte("deposit", parseFloat(filters.maximumDeposit));
+        }
+        if (filters.minimumTotal) {
+          query.gte("total", parseFloat(filters.minimumTotal));
+        }
+        if (filters.maximumTotal) {
+          query.gte("total", parseFloat(filters.maximumTotal));
+        }
+        if (filters.paymentMethod) {
+          query.eq("payment_method", filters.paymentMethod);
+        }
+        if (filters.phone) {
+          query.eq("phone", filters.phone);
+        }
+        if (filters.mobile) {
+          query.eq("mobile", filters.mobile);
+        }
+        if (filters.address) {
+          query.ilike("address", `%${filters.address}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+        if (filters.emailAddress) {
+          query.ilike("email_address", `%${filters.emailAddress}%`);
+        }
+        if (filters.opportunityDescription) {
+          query.contains("opportunity_descriptions", [
+            filters.opportunityDescription,
+          ]);
+        }
+        if (filters.closer) {
+          query.eq("closer", filters.closer);
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.show) {
+          query.eq("show", parseInt(filters.show));
+        }
+        if (filters.saleDateFrom) {
+          query.gte("sale_date", filters.saleDateFrom);
+        }
+        if (filters.saleDateTo) {
+          query.lte("sale_date", filters.saleDateTo);
+        }
+        if (filters.closed) {
+          if (filters.closed === "yes") {
+            query.eq("closed", true);
+          } else {
+            query.eq("closed", false);
+          }
+        }
+      }
+
+      const { data: salesData, error: salesError } = await query.csv();
+
+      return { salesData, salesError };
     } catch (error) {
       console.error("Error fetching sales:", error);
       return null;
@@ -233,10 +328,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.contains(
-            "opportunity_descriptions",
-            [filters.opportunityDescription]
-          );
+          query.contains("opportunity_descriptions", [
+            filters.opportunityDescription,
+          ]);
         }
         if (filters.status) {
           query.eq("status", filters.status);
@@ -326,10 +420,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.contains(
-            "opportunity_descriptions",
-            [filters.opportunityDescription]
-          );
+          query.contains("opportunity_descriptions", [
+            filters.opportunityDescription,
+          ]);
         }
         if (filters.closer) {
           query.eq("closer", filters.closer);
@@ -419,10 +512,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.contains(
-            "opportunity_descriptions",
-            [filters.opportunityDescription]
-          );
+          query.contains("opportunity_descriptions", [
+            filters.opportunityDescription,
+          ]);
         }
         if (filters.closer) {
           query.eq("closer", filters.closer);
@@ -445,6 +537,90 @@ class SalesRepository {
       } = await query;
 
       return { salesData, salesCount, salesError };
+    } catch (error) {
+      console.error("Error fetching deliveries:", error);
+      return null;
+    }
+  }
+
+  public async getDeliveredCsv(
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterDeliveries
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select(
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date"
+        )
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit)
+        .eq("status", "delivered");
+
+      if (filters) {
+        if (filters.contactName) {
+          query.ilike("contact_name", `%${filters.contactName}%`);
+        }
+        if (filters.salesPerson) {
+          query.eq("sales_person", filters.salesPerson);
+        }
+        if (filters.minimumDeposit) {
+          query.gte("deposit", parseFloat(filters.minimumDeposit));
+        }
+        if (filters.maximumDeposit) {
+          query.lte("deposit", parseFloat(filters.maximumDeposit));
+        }
+        if (filters.minimumTotal) {
+          query.gte("total", parseFloat(filters.minimumTotal));
+        }
+        if (filters.maximumTotal) {
+          query.gte("total", parseFloat(filters.maximumTotal));
+        }
+        if (filters.paymentMethod) {
+          query.eq("payment_method", filters.paymentMethod);
+        }
+        if (filters.phone) {
+          query.eq("phone", filters.phone);
+        }
+        if (filters.address) {
+          query.ilike("address", `%${filters.address}%`);
+        }
+        if (filters.state) {
+          query.eq("state", filters.state);
+        }
+        if (filters.postCode) {
+          query.eq("post_code", filters.postCode);
+        }
+        if (filters.emailAddress) {
+          query.ilike("email_address", `%${filters.emailAddress}%`);
+        }
+        if (filters.opportunityDescription) {
+          query.contains("opportunity_descriptions", [
+            filters.opportunityDescription,
+          ]);
+        }
+        if (filters.closer) {
+          query.eq("closer", filters.closer);
+        }
+        if (filters.show) {
+          query.eq("show", parseInt(filters.show));
+        }
+        if (filters.saleDateFrom) {
+          query.gte("sale_date", filters.saleDateFrom);
+        }
+        if (filters.saleDateTo) {
+          query.lte("sale_date", filters.saleDateTo);
+        }
+      }
+
+      const { data: salesData, error: salesError } = await query.csv();
+
+      return { salesData, salesError };
     } catch (error) {
       console.error("Error fetching deliveries:", error);
       return null;
@@ -512,10 +688,9 @@ class SalesRepository {
           query.ilike("email_address", `%${filters.emailAddress}%`);
         }
         if (filters.opportunityDescription) {
-          query.contains(
-            "opportunity_descriptions",
-            [filters.opportunityDescription]
-          );
+          query.contains("opportunity_descriptions", [
+            filters.opportunityDescription,
+          ]);
         }
         if (filters.closer) {
           query.eq("closer", filters.closer);

@@ -107,6 +107,64 @@ class InvoicesRepository {
     }
   }
 
+  public async getCsv(
+    id: string,
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    saleDateFrom: string,
+    saleDateTo: string,
+    filters?: ValuesFilterInvoices
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select(
+          "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
+        )
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit)
+        .eq("beneficiary", id);
+
+      if (filters) {
+        if (filters.sale) {
+          query.eq("sale", filters.sale);
+        }
+        if (filters.minimumCommission) {
+          query.gte("commission", filters.minimumCommission);
+        }
+        if (filters.maximumCommission) {
+          query.lte("commission", filters.maximumCommission);
+        }
+        if (filters.invoiceDateFrom) {
+          query.gte("created_at", filters.invoiceDateFrom);
+        }
+        if (filters.invoiceDateTo) {
+          query.lte("created_at", filters.invoiceDateTo);
+        }
+        if (saleDateFrom !== "") {
+          query.gte("sale.sale_date", saleDateFrom);
+        }
+        if (saleDateTo !== "") {
+          query.lte("sale.sale_date", saleDateTo);
+        }
+      }
+
+      const {
+        data: invoicesData,
+        error: invoicesError,
+      } = await query.csv();
+
+      return { invoicesData, invoicesError };
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      return null;
+    }
+  }
+
   public async getBySale(
     id: number,
     orderBy: string,

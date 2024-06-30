@@ -13,8 +13,10 @@ import { Typography } from "@mui/material";
 import {
   australianStates,
   getDateFormattedForField,
+  getDateTimeFormatted,
   hasNonEmptyValue,
 } from "utils/helpers";
+import { CSVLink } from "react-csv";
 
 export default function Deliveries() {
   const {
@@ -49,6 +51,9 @@ export default function Deliveries() {
     shows,
     opportunities,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useDeliveries();
 
   return (
@@ -89,6 +94,7 @@ export default function Deliveries() {
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
         takeToOnClick="view"
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -281,6 +287,14 @@ export default function Deliveries() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        headers={headCells.map((cell) => cell.label)}
+        filename={`deliveries_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

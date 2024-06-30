@@ -16,7 +16,7 @@ import Checkbox from "@mui/material/Checkbox";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { visuallyHidden } from "@mui/utils";
-import { Filter, Trash } from "iconsax-react";
+import { DocumentDownload, Filter, Trash } from "iconsax-react";
 import { useDataTable } from "./useDataTable";
 import { FormattedMessage } from "react-intl";
 
@@ -46,6 +46,7 @@ interface EnhancedTableToolbarProps {
   openDeleteConfirmModal?: () => void;
   openFilterModal?: () => void;
   showFilter?: boolean;
+  onDownload?: () => void;
 }
 
 interface DataTableProps {
@@ -75,6 +76,7 @@ interface DataTableProps {
   takeToOnClick?: string;
   clickable?: boolean;
   showFilter?: boolean;
+  onDownload?: () => void;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
@@ -141,6 +143,7 @@ function EnhancedTableToolbar({
   openDeleteConfirmModal,
   openFilterModal,
   showFilter = true,
+  onDownload,
 }: EnhancedTableToolbarProps) {
   return (
     <Toolbar
@@ -174,6 +177,13 @@ function EnhancedTableToolbar({
         >
           <FormattedMessage id={tableTitle} />
         </Typography>
+      )}
+      {onDownload && (
+        <Tooltip title="Download CSV">
+          <IconButton onClick={onDownload}>
+            <DocumentDownload />
+          </IconButton>
+        </Tooltip>
       )}
       {numSelected > 0 ? (
         <Tooltip title="Delete">
@@ -217,6 +227,7 @@ export default function DataTable({
   takeToOnClick = "edit",
   clickable = true,
   showFilter = true,
+  onDownload,
 }: DataTableProps) {
   const {
     handleRequestSort,
@@ -252,6 +263,7 @@ export default function DataTable({
           openDeleteConfirmModal={openDeleteConfirmModal}
           openFilterModal={openFilterModal}
           showFilter={showFilter}
+          onDownload={onDownload}
         />
         <TableContainer>
           <Table

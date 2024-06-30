@@ -4,12 +4,13 @@ import ActionButton from "components/ActionButton";
 import { useStock } from "./useStock";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { hasNonEmptyValue } from "utils/helpers";
+import { getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
+import { CSVLink } from "react-csv";
 
 export default function Stock() {
   const {
@@ -43,6 +44,9 @@ export default function Stock() {
     items,
     warehouses,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useStock();
 
   return (
@@ -93,6 +97,7 @@ export default function Stock() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -188,6 +193,13 @@ export default function Stock() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        filename={`stock_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

@@ -1,7 +1,7 @@
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { initialRowsPerPage } from "utils/helpers";
@@ -29,7 +29,7 @@ export interface ValuesFilterItems {
 
 const initialFilters: ValuesFilterItems = {
   name: "",
-  description: ""
+  description: "",
 };
 
 export function useItems() {
@@ -44,6 +44,8 @@ export function useItems() {
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] = useState<ValuesFilterItems>(initialFilters);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -135,7 +137,7 @@ export function useItems() {
         rangeStart,
         rangeEnd,
         rowsPerPage,
-        filters,
+        filters
       );
       if (warehouses) {
         const { itemsData, itemsCount, itemsError } = warehouses;
@@ -154,6 +156,36 @@ export function useItems() {
   useEffect(() => {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
+
+  async function getDataCsv() {
+    try {
+      const itemsRepository = new ItemsRepository();
+      const rangeStart = rowsPerPage * page;
+      const rangeEnd = rangeStart + rowsPerPage;
+      const warehouses = await itemsRepository.getCsv(
+        orderBy,
+        order === "asc",
+        rangeStart,
+        rangeEnd,
+        rowsPerPage,
+        filters
+      );
+      if (warehouses) {
+        const { itemsData, itemsError } = warehouses;
+        if (itemsData && !itemsError) {
+          setCsvData(itemsData);
+          if (itemsData.length > 0) {
+            setTimeout(() => {
+              csvLink?.current?.link?.click();
+            }, 2000);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching items:", e);
+      setLoading(false);
+    }
+  }
 
   async function validateFilters(values: ValuesFilterItems) {
     const errors = {} as ValuesFilterItems;
@@ -202,5 +234,8 @@ export function useItems() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

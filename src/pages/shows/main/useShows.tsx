@@ -1,7 +1,7 @@
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { getDateFormatted, initialRowsPerPage } from "utils/helpers";
@@ -94,6 +94,8 @@ export function useShows() {
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] = useState<ValuesFilterShows>(initialFilters);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -206,6 +208,36 @@ export function useShows() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
+  async function getDataCsv() {
+    try {
+      const showsRepository = new ShowsRepository();
+      const rangeStart = rowsPerPage * page;
+      const rangeEnd = rangeStart + rowsPerPage;
+      const shows = await showsRepository.getCsv(
+        orderBy,
+        order === "asc",
+        rangeStart,
+        rangeEnd,
+        rowsPerPage,
+        filters
+      );
+      if (shows) {
+        const { showsData, showsError } = shows;
+        if (showsData && !showsError) {
+          setCsvData(showsData);
+          if (showsData.length > 0) {
+            setTimeout(() => {
+              csvLink?.current?.link?.click();
+            }, 2000);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching shows:", e);
+      setLoading(false);
+    }
+  }
+
   async function validateFilters(values: ValuesFilterShows) {
     const errors = {} as ValuesFilterShows;
 
@@ -253,5 +285,8 @@ export function useShows() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

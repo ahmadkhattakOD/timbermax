@@ -18,6 +18,7 @@ import { TableCell } from "@mui/material";
 import { FormattedMessage } from "react-intl";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
+import { Typography } from "@mui/material";
 
 const headCells: HeadCell[] = [
   {
@@ -191,8 +192,15 @@ export function useViewDelivery() {
     return (
       <React.Fragment>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.contact_name}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.opportunity_description}
+        <TableCell sx={{ minWidth: 500 }}>
+          {row.sale?.opportunity_descriptions &&
+            row.sale?.opportunity_descriptions.map(
+              (opportunity: string, idx: number) => (
+                <Typography key={idx}>
+                  - {opportunity} <br />
+                </Typography>
+              )
+            )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.sale?.deposit}

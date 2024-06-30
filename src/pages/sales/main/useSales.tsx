@@ -1,7 +1,7 @@
 import { Checkbox, TableCell, Typography } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
@@ -10,6 +10,7 @@ import OpportunityDescriptionsRepository from "utils/repositories/opportunityDes
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
+import { CSVLink } from "react-csv";
 
 const headCells: HeadCell[] = [
   {
@@ -184,6 +185,8 @@ export function useSales() {
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterSales>(initialFilters);
+  const [csvData, setCsvData] = useState<string>("");
+  const csvLink = useRef<any>();
   const navigate = useNavigate();
 
   function goToCreate() {
@@ -336,6 +339,36 @@ export function useSales() {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
+  async function getDataCsv() {
+    try {
+      const salesRepository = new SalesRepository();
+      const rangeStart = rowsPerPage * page;
+      const rangeEnd = rangeStart + rowsPerPage;
+      const sales = await salesRepository.getCsv(
+        orderBy,
+        order === "asc",
+        rangeStart,
+        rangeEnd,
+        rowsPerPage,
+        filters
+      );
+      if (sales) {
+        const { salesData, salesError } = sales;
+        if (salesData && !salesError) {
+          setCsvData(salesData.replace("\"", ''));
+          if (salesData.length > 0) {
+            setTimeout(() => {
+              csvLink?.current?.link?.click();
+            }, 2000);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching sales:", e);
+      setLoading(false);
+    }
+  }
+
   async function validateFilters(values: ValuesFilterSales) {
     const errors = {} as ValuesFilterSales;
 
@@ -437,5 +470,8 @@ export function useSales() {
     shows,
     opportunities,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   };
 }

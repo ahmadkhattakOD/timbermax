@@ -11,10 +11,10 @@ import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
 import {
   australianStates,
-  getDateFormattedForField,
+  getDateTimeFormatted,
   hasNonEmptyValue,
 } from "utils/helpers";
-import FormInputDropdown from "components/FormInputDropdown";
+import { CSVLink } from "react-csv";
 
 export default function Sales() {
   const {
@@ -49,6 +49,9 @@ export default function Sales() {
     shows,
     opportunities,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
   } = useSales();
 
   return (
@@ -88,6 +91,7 @@ export default function Sales() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -306,6 +310,14 @@ export default function Sales() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        separator={undefined}
+        filename={`sales_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );
