@@ -294,11 +294,11 @@ export function useViewInvoices() {
           let invoice = data[i] as any;
           csvString += `${invoice?.start_date ?? ""},${invoice?.end_date ?? ""},${
             invoice?.wages +
-              invoice?.travel_bonus +
-              invoice?.other_bonuses +
-              invoice?.total_commission -
-              invoice?.cancelled_sales -
-              invoice?.deductions ?? ""
+            invoice?.travel_bonus +
+            invoice?.other_bonuses +
+            invoice?.total_commission -
+            invoice?.cancelled_sales -
+            invoice?.deductions
           },${invoice?.wages ?? ""},${invoice?.travel_bonus ?? ""},${invoice?.other_bonuses ?? ""},${invoice?.total_commission ?? ""},${invoice?.cancelled_sales ?? ""},${invoice?.deductions ?? ""},${invoice?.status ?? ""},${invoice?.created_at}\n`;
         }
 

@@ -546,9 +546,9 @@ export function useCreateInvoice() {
             for (let i = 0; i < invoicesData.length; i++) {
               let sale = invoicesData[i].sale as any;
               salesMadeValue += invoicesData[i].commission;
-              if (!salesProcessed.includes(sale.id)) {
-                salesMadeValue -= 300;
-              }
+              // if (!salesProcessed.includes(sale.id)) {
+              //   salesMadeValue -= 300;
+              // }
               salesProcessed.push(sale.id);
             }
             setTotalCommission(salesMadeValue);

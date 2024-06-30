@@ -33,6 +33,7 @@ interface TableProps {
 }
 
 interface PDFInvoiceProps {
+  createdAt: string;
   fullName: string;
   wages: string;
   travelBonus: string;
@@ -48,6 +49,7 @@ interface PDFInvoiceProps {
 }
 
 interface TableHeaderProps {
+  createdAt: string;
   fullName: string;
   role: string;
   startDate: string;
@@ -255,6 +257,7 @@ const Table: React.FC<TableProps> = ({
 );
 
 const Header: React.FC<TableHeaderProps> = ({
+  createdAt,
   fullName,
   role,
   startDate,
@@ -262,9 +265,7 @@ const Header: React.FC<TableHeaderProps> = ({
 }) => (
   <View style={styles.headerWithBorderLayout}>
     <View style={styles.headerBorder}>
-      <Text style={styles.invoiceDateText}>
-        Invoice Date {getDateFormatted()}
-      </Text>
+      <Text style={styles.invoiceDateText}>Invoice Date {createdAt}</Text>
     </View>
     <View style={styles.headerLayout}>
       <View style={styles.logoWithColumnLayout}>
@@ -282,6 +283,7 @@ const Header: React.FC<TableHeaderProps> = ({
 );
 
 const PDFDownload: React.FC<PDFInvoiceProps> = ({
+  createdAt,
   fullName,
   wages,
   travelBonus,
@@ -302,6 +304,7 @@ const PDFDownload: React.FC<PDFInvoiceProps> = ({
           <View style={styles.allContent}>
             <View style={styles.topContent}>
               <Header
+                createdAt={createdAt}
                 fullName={fullName}
                 role={role}
                 startDate={startDate}

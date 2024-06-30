@@ -184,13 +184,14 @@ export function useCreateSale() {
               const newSalesPersonInvoice: InvoiceSupabase = {
                 sale: createdSale.id,
                 commission:
-                  parseFloat(values.total) * salesPersonCommissionPercentage,
+                  (parseFloat(values.total) - 300) *
+                  salesPersonCommissionPercentage,
                 beneficiary: values.salesPerson,
               };
               const newCloserInvoice: InvoiceSupabase = {
                 sale: createdSale.id,
                 commission:
-                  parseFloat(values.total) * closerCommissionPercentage,
+                  (parseFloat(values.total) - 300) * closerCommissionPercentage,
                 beneficiary: values.closer,
               };
 

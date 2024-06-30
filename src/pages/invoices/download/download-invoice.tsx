@@ -56,6 +56,7 @@ export default function DownloadInvoice() {
             <PDFDownloadLink
               document={
                 <PDFDownload
+                  createdAt={getDateFormatted(invoice.created_at)}
                   fullName={fullName}
                   wages={invoice.wages ? invoice.wages.toFixed(2) : "-"}
                   travelBonus={
@@ -100,22 +101,26 @@ export default function DownloadInvoice() {
         </Box>
       </Box>
       <Box sx={{ display: "flex", justifyContent: "center" }}>
-        {!loading && (
-          <Box
-            sx={{
-              paddingTop: "2rem",
-              paddingBottom: "2rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="h5" sx={{ fontWeight: 400 }}>
-              Total:{" "}
-              <span style={{ fontWeight: 700 }}>{grandTotal.toFixed(2)}</span>
-            </Typography>
-          </Box>
-        )}
+        <Box
+          sx={{
+            paddingTop: "2rem",
+            paddingBottom: "2rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <Typography>
+            {getDateFormatted(invoice.start_date)}&nbsp;&nbsp;&nbsp;{"-"}
+            &nbsp;&nbsp;&nbsp;
+            {getDateFormatted(invoice.end_date)}
+          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 400 }}>
+            Total:{" "}
+            <span style={{ fontWeight: 700 }}>{grandTotal.toFixed(2)}</span>
+          </Typography>
+        </Box>
       </Box>
       <Formik
         enableReinitialize
