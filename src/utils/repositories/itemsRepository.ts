@@ -64,43 +64,6 @@ class ItemsRepository {
     }
   }
 
-  public async getCsv(
-    orderBy: string,
-    ascending: boolean,
-    rangeStart: number,
-    rangeEnd: number,
-    limit: number,
-    filters?: ValuesFilterItems
-  ) {
-    try {
-      const query = supabase
-        .from(this.className)
-        .select("*")
-        .order(orderBy, { ascending: ascending })
-        .range(rangeStart, rangeEnd)
-        .limit(limit);
-
-      if (filters) {
-        if (filters.name) {
-          query.ilike("name", `%${filters.name}%`);
-        }
-        if (filters.description) {
-          query.ilike("description", `%${filters.description}%`);
-        }
-      }
-
-      const {
-        data: itemsData,
-        error: itemsError,
-      } = await query.csv();
-
-      return { itemsData, itemsError };
-    } catch (error) {
-      console.error("Error fetching items:", error);
-      return null;
-    }
-  }
-
   public async getWithoutFilters() {
     try {
       const { data: itemsData, error: itemsError } = await supabase

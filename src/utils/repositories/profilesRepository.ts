@@ -156,65 +156,6 @@ class ProfilesRepository {
     }
   }
 
-  public async getCsv(
-    orderBy: string,
-    ascending: boolean,
-    rangeStart: number,
-    rangeEnd: number,
-    limit: number,
-    filters?: ValuesFilterUsers
-  ) {
-    try {
-      const query = supabase
-        .from(this.className)
-        .select("*")
-        .order(orderBy, { ascending: ascending })
-        .range(rangeStart, rangeEnd)
-        .limit(limit)
-        .neq("role", UserRoles.Admin);
-
-      if (filters) {
-        if (filters.fullName) {
-          query.ilike("full_name", `%${filters.fullName}%`);
-        }
-        if (filters.email) {
-          query.ilike("email", `%${filters.email}%`);
-        }
-        if (filters.role) {
-          query.eq("role", filters.role);
-        }
-        if (filters.minimumDailyWage) {
-          query.gte("daily_wage", filters.minimumDailyWage);
-        }
-        if (filters.maximumDailyWage) {
-          query.lte("daily_wage", filters.maximumDailyWage);
-        }
-        if (filters.minimumCommission) {
-          query.gte("commission", filters.minimumCommission);
-        }
-        if (filters.maximumCommission) {
-          query.lte("commission", filters.maximumCommission);
-        }
-        if (filters.joinedAtFrom) {
-          query.gte("created_at", filters.joinedAtFrom);
-        }
-        if (filters.joinedAtTo) {
-          query.lte("created_at", filters.joinedAtTo);
-        }
-      }
-
-      const {
-        data: profilesData,
-        error: profilesError,
-      } = await query.csv();
-
-      return { profilesData, profilesError };
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      return null;
-    }
-  }
-
   public async getWithoutFilters() {
     try {
       const { data: profilesData, error: profilesError } = await supabase
