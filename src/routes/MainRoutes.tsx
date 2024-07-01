@@ -42,6 +42,8 @@ import ViewSales from "pages/view-sales/main/view-sales";
 import ViewSale from "pages/view-sales/view/view-sale";
 import CreateInvoice from "pages/invoices/create/create-invoice";
 import DownloadInvoice from "pages/invoices/download/download-invoice";
+import ViewInvoicesSalesCloser from "pages/view-invoices-sales-closer/main/view-invoices-sales-closer";
+import DownloadInvoiceSalesCloser from "pages/view-invoices-sales-closer/download/download-invoice-sales-closer";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -333,6 +335,26 @@ const MainRoutes = {
         {
           path: "invoices/users/:id/view/new",
           element: <CreateInvoice />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "view-invoices",
+          element: <ViewInvoicesSalesCloser />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "view-invoices/:id/download",
+          element: <DownloadInvoiceSalesCloser />,
         },
       ],
     },

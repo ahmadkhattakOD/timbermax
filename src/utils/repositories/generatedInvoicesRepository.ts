@@ -1,5 +1,9 @@
 import { ValuesFilterGeneratedInvoices } from "pages/invoices/view/useViewInvoices";
-import { getDateFormattedForField, getMonthName } from "utils/helpers";
+import {
+  extendedDataLimit,
+  getDateFormattedForField,
+  getMonthName,
+} from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface GeneratedInvoiceSupabase {
@@ -325,6 +329,38 @@ class GeneratedInvoicesRepository {
     } catch (error) {
       console.error("Error fetching invoices:", error);
       return [];
+    }
+  }
+
+  public async getPendingCommission(userId: string) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select("*")
+        .eq("beneficiary", userId)
+        .eq("status", "pending")
+        .limit(extendedDataLimit);
+
+      const { data: invoicesData, error: invoicesError } = await query;
+
+      let pendingCommission = 0;
+
+      if (invoicesData && !invoicesError) {
+        for (let i = 0; i < invoicesData.length; i++) {
+          pendingCommission +=
+            invoicesData[i].wages +
+            invoicesData[i].travel_bonus +
+            invoicesData[i].other_bonuses +
+            invoicesData[i].total_commission -
+            invoicesData[i].cancelled_sales -
+            invoicesData[i].deductions;
+        }
+      }
+
+      return pendingCommission;
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      return 0;
     }
   }
 

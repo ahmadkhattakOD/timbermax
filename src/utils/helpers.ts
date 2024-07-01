@@ -127,7 +127,7 @@ export function isRouteAllowed(
   if (role === UserRoles.Admin) {
     return true;
   } else if (role === UserRoles.Closer || role === UserRoles.Both) {
-    let whiteListedURLs = ["/dashboard", "/close", "/profile"];
+    let whiteListedURLs = ["/dashboard", "/close", "/profile", "view-invoices"];
     for (let i = 0; i < whiteListedURLs.length; i++) {
       if (window.location.href.includes(whiteListedURLs[i])) {
         return true;
@@ -135,7 +135,7 @@ export function isRouteAllowed(
     }
     return false;
   } else if (UserRoles.SalesPerson) {
-    let whiteListedURLs = ["/dashboard", "/profile", "/view-sales"];
+    let whiteListedURLs = ["/dashboard", "/profile", "/view-sales", "view-invoices"];
 
     for (let i = 0; i < whiteListedURLs.length; i++) {
       if (window.location.href.includes(whiteListedURLs[i])) {

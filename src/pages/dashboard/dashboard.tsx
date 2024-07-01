@@ -36,6 +36,7 @@ export default function Dashboard() {
     viewAllStock,
     viewShow,
     viewStock,
+    viewAllInvoices,
     yearOptions,
     handleSalesYearChange,
     handleCommissionYearChange,
@@ -44,6 +45,8 @@ export default function Dashboard() {
     loadingUpcomingShows,
     loadingLowInStock,
     role,
+    pendingCommission,
+    loadingPendingCommission,
   } = useDashboard();
   const theme = useTheme();
 
@@ -119,6 +122,38 @@ export default function Dashboard() {
           )}
         </MainCard>
       </Grid>
+      {role !== UserRoles.Admin && (
+        <Grid item xs={12} md={4}>
+          <MainCard
+            title="Pending Commission"
+            secondary={<Button onClick={viewAllInvoices}>View Invoices</Button>}
+          >
+            {loadingPendingCommission ? (
+              <Box sx={{ padding: "3rem" }}>
+                <CircularLoader />
+              </Box>
+            ) : pendingCommission > 0 ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "2rem",
+                }}
+              >
+                <Typography>
+                  Pending commission, awaiting admin approval and payment.
+                </Typography>
+                <Typography variant="h5" sx={{ textAlign: "center" }}>
+                  {pendingCommission.toFixed(2)} (A$)
+                </Typography>
+              </Box>
+            ) : (
+              <Box>All your commission has been paid out.</Box>
+            )}
+          </MainCard>
+        </Grid>
+      )}
       {role === UserRoles.Admin && (
         <Grid item xs={12} md={4}>
           <MainCard

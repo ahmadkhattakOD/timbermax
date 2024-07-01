@@ -85,6 +85,9 @@ export function useDashboard() {
 
   const [loadingLowInStock, setLoadingLowInStock] = useState(true);
   const [lowInStock, setLowInStock] = useState<any[]>([]);
+  const [pendingCommission, setPendingCommission] = useState(0);
+  const [loadingPendingCommission, setLoadingPendingCommission] =
+    useState(true);
 
   const { role } = useAuth();
 
@@ -106,6 +109,10 @@ export function useDashboard() {
 
   function viewStock(id: number) {
     navigate(`/stock/${id}/edit`);
+  }
+
+  function viewAllInvoices() {
+    navigate("/view-invoices");
   }
 
   async function getTotalSales() {
@@ -289,12 +296,35 @@ export function useDashboard() {
     }
   }
 
+  async function getPendingCommission() {
+    try {
+      setLoadingPendingCommission(true);
+      const profilesRepository = new ProfilesRepository();
+      const currentUser = await profilesRepository.getCurrentUser();
+      if (currentUser) {
+        const generatedInvoicesRepository = new GeneratedInvoicesRepository();
+        const allCommission =
+          await generatedInvoicesRepository.getPendingCommission(
+            currentUser.id
+          );
+        if (allCommission) {
+          setPendingCommission(allCommission);
+        }
+      }
+      setLoadingPendingCommission(false);
+    } catch (error) {
+      console.error("Error fetching pending commission:", error);
+    }
+  }
+
   useEffect(() => {
     if (role === UserRoles.Admin) {
       getUsers();
       getUpcomingShows();
       generateYearOptions();
       getLowInStock();
+    } else {
+      getPendingCommission();
     }
   }, []);
 
@@ -323,6 +353,7 @@ export function useDashboard() {
     viewAllStock,
     viewShow,
     viewStock,
+    viewAllInvoices,
     yearOptions,
     handleSalesYearChange,
     handleCommissionYearChange,
@@ -331,5 +362,7 @@ export function useDashboard() {
     loadingUpcomingShows,
     loadingLowInStock,
     role,
+    pendingCommission,
+    loadingPendingCommission
   };
 }

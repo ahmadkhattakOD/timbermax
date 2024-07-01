@@ -10,6 +10,7 @@ import {
   I24Support,
   MessageProgramming,
   Money,
+  MoneyTick,
   NoteSquare,
   Truck,
 } from "iconsax-react";
@@ -29,6 +30,7 @@ const icons = {
   warehouses: House2,
   opportunityDescriptions: NoteSquare,
   contactus: I24Support,
+  invoices: MoneyTick,
 };
 
 // ==============================|| MENU ITEMS - PAGES ||============================== //
@@ -86,6 +88,14 @@ const manageSalesPerson: NavItemType = {
       icon: icons.sales,
       target: false,
     },
+    {
+      id: "invoices",
+      title: <FormattedMessage id="invoices" />,
+      type: "item",
+      url: "/view-invoices",
+      icon: icons.invoices,
+      target: false,
+    },
   ],
 };
 
@@ -100,6 +110,14 @@ const manageCloser: NavItemType = {
       type: "item",
       url: "/close-sales",
       icon: icons.sales,
+      target: false,
+    },
+    {
+      id: "invoices",
+      title: <FormattedMessage id="invoices" />,
+      type: "item",
+      url: "/view-invoices",
+      icon: icons.invoices,
       target: false,
     },
   ],
