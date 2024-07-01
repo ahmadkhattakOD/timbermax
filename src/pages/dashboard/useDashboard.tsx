@@ -3,6 +3,7 @@ import useAuth from "hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { UserRoles } from "utils/helpers";
+import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -173,9 +174,9 @@ export function useDashboard() {
     const profilesRepository = new ProfilesRepository();
     const currentUser = await profilesRepository.getCurrentUser();
     if (currentUser) {
-      const invoicesRepository = new InvoicesRepository();
+      const generatedInvoicesRepository = new GeneratedInvoicesRepository();
       const totalCommissions =
-        await invoicesRepository.getTotalCommissionsForYear(
+        await generatedInvoicesRepository.getTotalCommissionsForYear(
           commissionYear,
           role !== UserRoles.Admin ? currentUser.id : undefined
         );
@@ -209,15 +210,6 @@ export function useDashboard() {
 
     setLoadingCommissions(false);
   }
-
-  // BUGS
-  // commission calculation check DONE
-  // Invoice generation PDF
-  // Cancelled sales calculation DONE
-  // Opportunity Descriptions DONE ALMOST (HANDLE THE NEW INPUT FIELD)
-  // daily wages calculation DONE
-  // Show other bonuses on the next line DONE
-  // new password to next line DONE
 
   async function getUsers() {
     try {
@@ -338,6 +330,6 @@ export function useDashboard() {
     loadingUsers,
     loadingUpcomingShows,
     loadingLowInStock,
-    role
+    role,
   };
 }
