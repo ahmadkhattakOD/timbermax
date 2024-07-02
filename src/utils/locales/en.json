@@ -180,5 +180,6 @@
   "mobile": "Mobile",
   "username": "Username",
   "required-username": "Please enter a valid username consisting of at least three characters, starting with a non-numeric character",
-  "wages": "Wages"
+  "wages": "Wages",
+  "cancelled-sales-table": "Cancelled Sales" 
 }

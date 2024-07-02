@@ -170,7 +170,6 @@ class SalesRepository {
 
   public async getForCloser(
     closerId: string,
-    closed: boolean,
     orderBy: string,
     ascending: boolean,
     rangeStart: number,
@@ -188,8 +187,7 @@ class SalesRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit)
-        .eq("closer", closerId)
-        .eq("closed", closed);
+        .eq("closer", closerId);
 
       if (filters) {
         if (filters.contactName) {
@@ -236,6 +234,13 @@ class SalesRepository {
             filters.opportunityDescription,
           ]);
         }
+        if (filters.closed) {
+          if (filters.closed === "yes") {
+            query.eq("closed", true);
+          } else {
+            query.eq("closed", false);
+          }
+        }
         if (filters.status) {
           query.eq("status", filters.status);
         }
@@ -265,7 +270,6 @@ class SalesRepository {
 
   public async getForSalesPerson(
     salesPersonId: string,
-    closed: boolean,
     orderBy: string,
     ascending: boolean,
     rangeStart: number,
@@ -283,8 +287,7 @@ class SalesRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit)
-        .eq("sales_person", salesPersonId)
-        .eq("closed", closed);
+        .eq("sales_person", salesPersonId);
 
       if (filters) {
         if (filters.contactName) {
@@ -330,6 +333,13 @@ class SalesRepository {
         }
         if (filters.closer) {
           query.eq("closer", filters.closer);
+        }
+        if (filters.closed) {
+          if (filters.closed === "yes") {
+            query.eq("closed", true);
+          } else if (filters.closed === "no") {
+            query.eq("closed", false);
+          }
         }
         if (filters.status) {
           query.eq("status", filters.status);

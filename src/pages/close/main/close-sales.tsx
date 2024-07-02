@@ -35,8 +35,6 @@ export default function CloseSales() {
     filterModalOpen,
     openFilterModal,
     closeFilterModal,
-    mode,
-    switchMode,
     handleFiltersSubmit,
     validateFilters,
     filters,
@@ -52,24 +50,6 @@ export default function CloseSales() {
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
-        actionButton={
-          <Box sx={{ display: "flex", gap: "1rem" }}>
-            <ActionButton
-              text={"unclosed"}
-              color={mode === "unclosed" ? "primary" : "secondary"}
-              onClick={() => {
-                switchMode("unclosed");
-              }}
-            />
-            <ActionButton
-              text={"closed"}
-              color={mode === "closed" ? "primary" : "secondary"}
-              onClick={() => {
-                switchMode("closed");
-              }}
-            />
-          </Box>
-        }
         filters={
           hasNonEmptyValue(filters) ? (
             <ActionButton
@@ -238,6 +218,12 @@ export default function CloseSales() {
                           value: opportunity.name,
                         };
                       })}
+                    />,
+                    <FormDropdown
+                      id={"closed"}
+                      name={"closed"}
+                      label={"closed"}
+                      options={["yes", "no"]}
                     />,
                     <FormDropdown
                       id={"status"}

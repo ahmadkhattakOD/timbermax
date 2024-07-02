@@ -135,6 +135,7 @@ export interface ValuesFilterCloseSales {
   postCode: string;
   emailAddress: string;
   opportunityDescription: string;
+  closed: string;
   status: string;
   show: string;
   saleDateFrom: string;
@@ -156,6 +157,7 @@ const initialFilters: ValuesFilterCloseSales = {
   postCode: "",
   emailAddress: "",
   opportunityDescription: "",
+  closed: "",
   status: "",
   show: "",
   saleDateFrom: "",
@@ -179,7 +181,6 @@ export function useCloseSales() {
     useState<ValuesFilterCloseSales>(initialFilters);
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
-  const [mode, setMode] = useState("unclosed");
 
   function generateTableCells(
     row: any,
@@ -250,10 +251,6 @@ export function useCloseSales() {
     setFilterModalOpen(false);
   }
 
-  function switchMode(newMode: string) {
-    setMode(newMode);
-  }
-
   async function getData() {
     try {
       setLoading(true);
@@ -265,7 +262,6 @@ export function useCloseSales() {
         const rangeEnd = rangeStart + rowsPerPage;
         const sales = await salesRepository.getForCloser(
           currentUser.id,
-          mode === "closed",
           orderBy,
           order === "asc",
           rangeStart,
@@ -290,7 +286,7 @@ export function useCloseSales() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage, mode, filters]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
 
   function getDataCsv() {
     try {
@@ -400,8 +396,6 @@ export function useCloseSales() {
     filterModalOpen,
     openFilterModal,
     closeFilterModal,
-    mode,
-    switchMode,
     handleFiltersSubmit,
     validateFilters,
     filters,

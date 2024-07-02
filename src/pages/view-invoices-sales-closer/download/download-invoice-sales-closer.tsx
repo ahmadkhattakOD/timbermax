@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import { useDownloadInvoiceSalesCloser } from "./useDownloadInvoiceSalesCloser";
-import { getDateFormatted, getInitials } from "utils/helpers";
+import { getDateFormatted, getInitials, hasNonEmptyValue } from "utils/helpers";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
@@ -9,10 +9,57 @@ import { Typography, useTheme } from "@mui/material";
 import CircularLoader from "components/CircularLoader";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import PDFDownload from "./pdf-download";
+import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
+import ActionButton from "components/ActionButton";
+import DataTable from "components/data-table/DataTable";
+import ModalFilters from "components/modal-filters/ModalFilters";
 
 export default function DownloadInvoiceSalesCloser() {
-  const { invoice, fullName, role, validate, loading, grandTotal } =
-    useDownloadInvoiceSalesCloser();
+  const {
+    invoice,
+    fullName,
+    role,
+    validate,
+    loading,
+    grandTotal,
+    dataSales,
+    dataCountSales,
+    loadingSales,
+    orderSales,
+    setOrderSales,
+    orderBySales,
+    setOrderBySales,
+    selectedSales,
+    setSelectedSales,
+    pageSales,
+    setPageSales,
+    rowsPerPageSales,
+    setRowsPerPageSales,
+    headCellsSales,
+    generateTableCellsSales,
+    filterModalOpenSales,
+    openFilterModalSales,
+    closeFilterModalSales,
+    handleFiltersSubmitSales,
+    validateFiltersSales,
+    filtersSales,
+    resetFiltersSales,
+    dataCancelled,
+    dataCountCancelled,
+    loadingCancelled,
+    orderCancelled,
+    setOrderCancelled,
+    orderByCancelled,
+    setOrderByCancelled,
+    selectedCancelled,
+    setSelectedCancelled,
+    pageCancelled,
+    setPageCancelled,
+    rowsPerPageCancelled,
+    setRowsPerPageCancelled,
+    headCellsCancelled,
+    generateTableCellsCancelled,
+  } = useDownloadInvoiceSalesCloser();
 
   const theme = useTheme();
 
@@ -200,7 +247,129 @@ export default function DownloadInvoiceSalesCloser() {
           </Form>
         )}
       </Formik>
-      
+      <CreateAndFiltersLayout
+        filters={
+          hasNonEmptyValue(filtersSales) ? (
+            <ActionButton
+              text={"reset-filters"}
+              color="secondary"
+              onClick={resetFiltersSales}
+            />
+          ) : (
+            <></>
+          )
+        }
+      />
+      <DataTable
+        data={dataSales}
+        dataCount={dataCountSales}
+        loading={loadingSales}
+        tableTitle="sales"
+        selected={selectedSales}
+        setSelected={setSelectedSales}
+        rowsPerPage={rowsPerPageSales}
+        setRowsPerPage={setRowsPerPageSales}
+        page={pageSales}
+        setPage={setPageSales}
+        orderBy={orderBySales}
+        setOrderBy={setOrderBySales}
+        order={orderSales}
+        setOrder={setOrderSales}
+        headCells={headCellsSales}
+        generateTableCells={generateTableCellsSales}
+        showFilter={false}
+        clickable={false}
+        selectable={false}
+      />
+      <ModalFilters
+        title="filter-sales"
+        open={filterModalOpenSales}
+        onClose={closeFilterModalSales}
+        form={
+          <Formik
+            enableReinitialize
+            initialValues={filtersSales}
+            validate={validateFiltersSales}
+            onSubmit={handleFiltersSubmitSales}
+          >
+            {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+              <Form onSubmit={handleSubmit}>
+                <FormLayout
+                  isSubmitting={isSubmitting}
+                  submitButtonText={"apply"}
+                  inputs={[
+                    <FormInput
+                      id={"minimumCommission"}
+                      name={"minimumCommission"}
+                      placeholder={"Minimum Commission"}
+                      label={"minimum-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumCommission"}
+                      name={"maximumCommission"}
+                      placeholder={"Maximum Commission"}
+                      label={"maximum-commission"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"invoiceDateFrom"}
+                      name={"invoiceDateFrom"}
+                      placeholder={"Invoice Date From"}
+                      label={"invoice-date-from"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"invoiceDateTo"}
+                      name={"invoiceDateTo"}
+                      placeholder={"Invoice Date To"}
+                      label={"invoice-date-to"}
+                      type={"date"}
+                    />,
+                  ]}
+                  showSubmitButton={false}
+                />
+                <Box
+                  display={"flex"}
+                  justifyContent={"center"}
+                  gap={"15px"}
+                  marginTop={"2rem"}
+                >
+                  <ActionButton
+                    onClick={closeFilterModalSales}
+                    color={"secondary"}
+                    text={"cancel"}
+                  />
+                  <ActionButton type="submit" text={"apply"} />
+                </Box>
+              </Form>
+            )}
+          </Formik>
+        }
+      />
+      <DataTable
+        data={dataCancelled}
+        dataCount={dataCountCancelled}
+        loading={loadingCancelled}
+        tableTitle="cancelled-sales-table"
+        selected={selectedCancelled}
+        setSelected={setSelectedCancelled}
+        rowsPerPage={rowsPerPageCancelled}
+        setRowsPerPage={setRowsPerPageCancelled}
+        page={pageCancelled}
+        setPage={setPageCancelled}
+        orderBy={orderByCancelled}
+        setOrderBy={setOrderByCancelled}
+        order={orderCancelled}
+        setOrder={setOrderCancelled}
+        headCells={headCellsCancelled}
+        generateTableCells={generateTableCellsCancelled}
+        showFilter={false}
+        clickable={false}
+        selectable={false}
+      />
     </Box>
   );
 }

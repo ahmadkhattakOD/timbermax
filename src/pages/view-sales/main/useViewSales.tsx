@@ -135,6 +135,7 @@ export interface ValuesFilterViewSales {
   emailAddress: string;
   opportunityDescription: string;
   closer: string;
+  closed: string;
   status: string;
   show: string;
   saleDateFrom: string;
@@ -156,6 +157,7 @@ const initialFilters: ValuesFilterViewSales = {
   emailAddress: "",
   opportunityDescription: "",
   closer: "",
+  closed: "",
   status: "",
   show: "",
   saleDateFrom: "",
@@ -178,7 +180,6 @@ export function useViewSales() {
   const [filters, setFilters] = useState<ValuesFilterViewSales>(initialFilters);
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
-  const [mode, setMode] = useState("unclosed");
 
   function generateTableCells(
     row: any,
@@ -249,10 +250,6 @@ export function useViewSales() {
     setFilterModalOpen(false);
   }
 
-  function switchMode(newMode: string) {
-    setMode(newMode);
-  }
-
   async function getData() {
     try {
       setLoading(true);
@@ -264,7 +261,6 @@ export function useViewSales() {
         const rangeEnd = rangeStart + rowsPerPage;
         const sales = await salesRepository.getForSalesPerson(
           currentUser.id,
-          mode === "closed",
           orderBy,
           order === "asc",
           rangeStart,
@@ -289,7 +285,7 @@ export function useViewSales() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage, mode, filters]);
+  }, [order, orderBy, page, rowsPerPage, filters]);
 
   function getDataCsv() {
     try {
@@ -399,8 +395,6 @@ export function useViewSales() {
     filterModalOpen,
     openFilterModal,
     closeFilterModal,
-    mode,
-    switchMode,
     handleFiltersSubmit,
     validateFilters,
     filters,
