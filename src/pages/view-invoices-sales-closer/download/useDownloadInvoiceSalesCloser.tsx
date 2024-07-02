@@ -12,7 +12,6 @@ import {
 import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
-import SalesRepository from "utils/repositories/salesRepository";
 
 const headCellsSales: HeadCell[] = [
   {

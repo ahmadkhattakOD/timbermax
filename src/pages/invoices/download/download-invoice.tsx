@@ -9,10 +9,48 @@ import { Typography, useTheme } from "@mui/material";
 import CircularLoader from "components/CircularLoader";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import PDFDownload from "./pdf-download";
+import DataTable from "components/data-table/DataTable";
+import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 
 export default function DownloadInvoice() {
-  const { invoice, fullName, role, validate, loading, grandTotal } =
-    useDownloadInvoice();
+  const {
+    invoice,
+    fullName,
+    role,
+    validate,
+    loading,
+    grandTotal,
+    dataSales,
+    dataCountSales,
+    loadingSales,
+    orderSales,
+    setOrderSales,
+    orderBySales,
+    setOrderBySales,
+    selectedSales,
+    setSelectedSales,
+    pageSales,
+    setPageSales,
+    rowsPerPageSales,
+    setRowsPerPageSales,
+    headCellsSales,
+    generateTableCellsSales,
+    dataCancelled,
+    dataCountCancelled,
+    loadingCancelled,
+    orderCancelled,
+    setOrderCancelled,
+    orderByCancelled,
+    setOrderByCancelled,
+    selectedCancelled,
+    setSelectedCancelled,
+    pageCancelled,
+    setPageCancelled,
+    rowsPerPageCancelled,
+    setRowsPerPageCancelled,
+    headCellsCancelled,
+    generateTableCellsCancelled,
+  } = useDownloadInvoice();
 
   const theme = useTheme();
 
@@ -200,6 +238,50 @@ export default function DownloadInvoice() {
           </Form>
         )}
       </Formik>
+      <CreateAndFiltersLayout />
+      <DataTable
+        data={dataSales}
+        dataCount={dataCountSales}
+        loading={loadingSales}
+        tableTitle="sales"
+        selected={selectedSales}
+        setSelected={setSelectedSales}
+        rowsPerPage={rowsPerPageSales}
+        setRowsPerPage={setRowsPerPageSales}
+        page={pageSales}
+        setPage={setPageSales}
+        orderBy={orderBySales}
+        setOrderBy={setOrderBySales}
+        order={orderSales}
+        setOrder={setOrderSales}
+        headCells={headCellsSales}
+        generateTableCells={generateTableCellsSales}
+        showFilter={false}
+        clickable={false}
+        selectable={false}
+      />
+      <CreateAndFiltersLayout />
+      <DataTable
+        data={dataCancelled}
+        dataCount={dataCountCancelled}
+        loading={loadingCancelled}
+        tableTitle="cancelled-sales-table"
+        selected={selectedCancelled}
+        setSelected={setSelectedCancelled}
+        rowsPerPage={rowsPerPageCancelled}
+        setRowsPerPage={setRowsPerPageCancelled}
+        page={pageCancelled}
+        setPage={setPageCancelled}
+        orderBy={orderByCancelled}
+        setOrderBy={setOrderByCancelled}
+        order={orderCancelled}
+        setOrder={setOrderCancelled}
+        headCells={headCellsCancelled}
+        generateTableCells={generateTableCellsCancelled}
+        showFilter={false}
+        clickable={false}
+        selectable={false}
+      />
     </Box>
   );
 }

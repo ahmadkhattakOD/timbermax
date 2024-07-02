@@ -349,6 +349,7 @@ export default function DownloadInvoiceSalesCloser() {
           </Formik>
         }
       />
+      <CreateAndFiltersLayout />
       <DataTable
         data={dataCancelled}
         dataCount={dataCountCancelled}
