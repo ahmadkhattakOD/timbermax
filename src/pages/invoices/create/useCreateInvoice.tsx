@@ -155,6 +155,45 @@ const headCells: HeadCell[] = [
   },
 ];
 
+const headCellsCancelled: HeadCell[] = [
+  {
+    id: "contact_name",
+    numeric: false,
+    disablePadding: true,
+    label: "Contact Name",
+  },
+  {
+    id: "deposit",
+    numeric: true,
+    disablePadding: true,
+    label: "Deposit (A$)",
+  },
+  {
+    id: "total",
+    numeric: true,
+    disablePadding: true,
+    label: "Total (A$)",
+  },
+  {
+    id: "commission",
+    numeric: true,
+    disablePadding: true,
+    label: "Commission (A$)",
+  },
+  {
+    id: "sale_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Sale Date",
+  },
+  {
+    id: "status_changed_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Cancellation Date",
+  },
+];
+
 export interface ValuesEditInvoice {
   showDays: string;
   travelBonus: string;
@@ -183,6 +222,22 @@ const initialFilters: ValuesFilterInvoices = {
   maximumCommission: "",
   invoiceDateFrom: "",
   invoiceDateTo: "",
+};
+
+export interface ValuesFilterCancelled {
+  sale: string;
+  minimumCommission: string;
+  maximumCommission: string;
+  cancelledDateFrom: string;
+  cancelledDateTo: string;
+}
+
+const initialFiltersCancelled: ValuesFilterCancelled = {
+  sale: "",
+  minimumCommission: "",
+  maximumCommission: "",
+  cancelledDateFrom: "",
+  cancelledDateTo: "",
 };
 
 export function useCreateInvoice() {
@@ -216,6 +271,24 @@ export function useCreateInvoice() {
   const [alreadyCreatedInvoice, setAlreadyCreatedInvoice] = useState<any>(null);
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
+  const [dataCancelled, setDataCancelled] = useState<any[]>([]);
+  const [dataCountCancelled, setDataCountCancelled] = useState<number>(0);
+  const [orderCancelled, setOrderCancelled] = useState<Order>("desc");
+  const [orderByCancelled, setOrderByCancelled] =
+    useState<string>("created_at");
+  const [selectedCancelled, setSelectedCancelled] = useState<readonly number[]>(
+    []
+  );
+  const [pageCancelled, setPageCancelled] = useState(0);
+  const [rowsPerPageCancelled, setRowsPerPageCancelled] =
+    useState(initialRowsPerPage);
+  const [loadingCancelled, setLoadingCancelled] = useState<boolean>(false);
+  const [filterModalOpenCancelled, setFilterModalOpenCancelled] =
+    useState(false);
+  const [filtersCancelled, setFiltersCancelled] =
+    useState<ValuesFilterCancelled>(initialFiltersCancelled);
+  const [csvDataCancelled, setCsvDataCancelled] = useState<string>("");
+  const csvLinkCancelled = useRef<any>();
   const navigate = useNavigate();
 
   function generateTableCells(
@@ -476,6 +549,136 @@ export function useCreateInvoice() {
     setFilters(initialFilters);
   }
 
+  function generateTableCellsCancelled(
+    row: any,
+    labelId: string,
+    isItemSelected: boolean
+  ) {
+    return (
+      <React.Fragment>
+        <TableCell
+          component="th"
+          id={labelId}
+          scope="row"
+          padding="none"
+          width={200}
+          align="left"
+        >
+          {row.sale?.contact_name}
+        </TableCell>
+        <TableCell align="right" sx={{ minWidth: 200 }}>
+          {row.sale?.deposit}
+        </TableCell>
+        <TableCell align="right">{row.sale?.total}</TableCell>
+        <TableCell align="right">{row.commission}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.sale_date && getDateFormatted(row.sale?.sale_date)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.status_changed_at &&
+            getDateFormatted(row.sale?.status_changed_at)}
+        </TableCell>
+      </React.Fragment>
+    );
+  }
+
+  async function getDataCancelled() {
+    try {
+      const profilesRepository = new ProfilesRepository();
+      const currentUser = await profilesRepository.getCurrentUser();
+      if (currentUser) {
+        setLoadingCancelled(true);
+        const invoicesRepository = new InvoicesRepository();
+        const rangeStart = rowsPerPageCancelled * pageCancelled;
+        const rangeEnd = rangeStart + rowsPerPageCancelled;
+        const invoices = await invoicesRepository.getCancelled(
+          currentUser.id,
+          orderByCancelled,
+          orderCancelled === "asc",
+          rangeStart,
+          rangeEnd,
+          rowsPerPageCancelled,
+          saleDateFrom,
+          saleDateTo,
+          filtersCancelled
+        );
+        if (invoices) {
+          const { invoicesData, invoicesCount, invoicesError } = invoices;
+          if (invoicesData && !invoicesError) {
+            setDataCancelled(invoicesData);
+            setDataCountCancelled(invoicesCount ?? 0);
+          }
+        }
+        setLoadingCancelled(false);
+      }
+      setLoading(false);
+    } catch (e) {
+      console.error("Error fetching sales:", e);
+      setLoadingCancelled(false);
+    }
+  }
+
+  useEffect(() => {
+    getDataCancelled();
+  }, [
+    orderCancelled,
+    orderByCancelled,
+    pageCancelled,
+    rowsPerPageCancelled,
+    filtersCancelled,
+    saleDateFrom,
+    saleDateTo,
+  ]);
+
+  function getDataCsvCancelled() {
+    try {
+      let csvString = "";
+
+      if (dataCancelled.length > 0) {
+        for (let i = 0; i < dataCancelled.length; i++) {
+          let invoice = dataCancelled[i] as any;
+          csvString += `${invoice.sale?.contact_name ?? ""},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.status_changed_at ?? ""}\n`;
+        }
+
+        setCsvDataCancelled(csvString);
+
+        setTimeout(() => {
+          csvLinkCancelled?.current?.link?.click();
+        }, 2000);
+      }
+    } catch (e) {
+      console.error("Error fetching invoices:", e);
+      setLoading(false);
+    }
+  }
+
+  function openFilterModalCancelled() {
+    setFilterModalOpenCancelled(true);
+  }
+
+  function closeFilterModalCancelled() {
+    setFilterModalOpenCancelled(false);
+  }
+
+  async function validateFiltersCancelled(values: ValuesFilterCancelled) {
+    const errors = {} as ValuesFilterCancelled;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmitCancelled(values: ValuesFilterCancelled) {
+    try {
+      setFiltersCancelled(values);
+      setFilterModalOpenCancelled(false);
+    } catch (error) {
+      console.error("Error filtering invoices:", error);
+    }
+  }
+
+  function resetFiltersCancelled() {
+    setFiltersCancelled(initialFiltersCancelled);
+  }
+
   async function validateSaleDates(values: ValuesSaleDates) {
     const errors = {} as ValuesSaleDates;
 
@@ -597,9 +800,6 @@ export function useCreateInvoice() {
 
   useEffect(() => {
     getProfileAndFigures();
-    if (saleDateFrom !== "" && saleDateTo !== "") {
-      // getAlreadyCreatedInvoice();
-    }
   }, [saleDateFrom, saleDateTo]);
 
   useEffect(() => {
@@ -656,5 +856,30 @@ export function useCreateInvoice() {
     getDataCsv,
     csvData,
     csvLink,
+    filterModalOpenCancelled,
+    openFilterModalCancelled,
+    closeFilterModalCancelled,
+    handleFiltersSubmitCancelled,
+    validateFiltersCancelled,
+    filtersCancelled,
+    resetFiltersCancelled,
+    dataCancelled,
+    dataCountCancelled,
+    loadingCancelled,
+    orderCancelled,
+    setOrderCancelled,
+    orderByCancelled,
+    setOrderByCancelled,
+    selectedCancelled,
+    setSelectedCancelled,
+    pageCancelled,
+    setPageCancelled,
+    rowsPerPageCancelled,
+    setRowsPerPageCancelled,
+    headCellsCancelled,
+    generateTableCellsCancelled,
+    getDataCsvCancelled,
+    csvDataCancelled,
+    csvLinkCancelled
   };
 }

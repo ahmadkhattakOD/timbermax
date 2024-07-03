@@ -1,4 +1,7 @@
-import { ValuesFilterInvoices } from "pages/invoices/create/useCreateInvoice";
+import {
+  ValuesFilterCancelled,
+  ValuesFilterInvoices,
+} from "pages/invoices/create/useCreateInvoice";
 import { ValuesFilterSales } from "pages/view-invoices-sales-closer/download/useDownloadInvoiceSalesCloser";
 import {
   extendedDataLimit,
@@ -144,12 +147,12 @@ class InvoicesRepository {
         if (filters.invoiceDateTo) {
           query.lte("created_at", filters.invoiceDateTo);
         }
-        if (saleDateFrom !== "") {
-          query.gte("sale.sale_date", saleDateFrom);
-        }
-        if (saleDateTo !== "") {
-          query.lte("sale.sale_date", saleDateTo);
-        }
+      }
+      if (saleDateFrom !== "") {
+        query.gte("sale.sale_date", saleDateFrom);
+      }
+      if (saleDateTo !== "") {
+        query.lte("sale.sale_date", saleDateTo);
       }
 
       const {
@@ -247,7 +250,8 @@ class InvoicesRepository {
     rangeEnd: number,
     limit: number,
     saleDateFrom: string,
-    saleDateTo: string
+    saleDateTo: string,
+    filters?: ValuesFilterCancelled
   ) {
     try {
       const query = supabase
@@ -267,6 +271,24 @@ class InvoicesRepository {
       }
       if (saleDateTo !== "") {
         query.lte("sale.status_changed_at", saleDateTo);
+      }
+
+      if (filters) {
+        if (filters.sale) {
+          query.eq("sale", filters.sale);
+        }
+        if (filters.minimumCommission) {
+          query.gte("commission", filters.minimumCommission);
+        }
+        if (filters.maximumCommission) {
+          query.lte("commission", filters.maximumCommission);
+        }
+        if (filters.cancelledDateFrom) {
+          query.gte("sale.status_changed_at", filters.cancelledDateFrom);
+        }
+        if (filters.cancelledDateTo) {
+          query.lte("sale.status_changed_at", filters.cancelledDateTo);
+        }
       }
 
       const {

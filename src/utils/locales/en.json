@@ -181,5 +181,8 @@
   "username": "Username",
   "required-username": "Please enter a valid username consisting of at least three characters, starting with a non-numeric character",
   "wages": "Wages",
-  "cancelled-sales-table": "Cancelled Sales" 
+  "cancelled-sales-table": "Cancelled Sales",
+  "filter-cancelled-sales": "Filter Cancelled Sales",
+  "cancelled-date-from": "Cancelled Date From",
+  "cancelled-date-to": "Cancelled Date To"
 }

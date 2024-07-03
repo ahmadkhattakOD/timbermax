@@ -66,6 +66,31 @@ export default function CreateInvoice() {
     getDataCsv,
     csvData,
     csvLink,
+    filterModalOpenCancelled,
+    openFilterModalCancelled,
+    closeFilterModalCancelled,
+    handleFiltersSubmitCancelled,
+    validateFiltersCancelled,
+    filtersCancelled,
+    resetFiltersCancelled,
+    dataCancelled,
+    dataCountCancelled,
+    loadingCancelled,
+    orderCancelled,
+    setOrderCancelled,
+    orderByCancelled,
+    setOrderByCancelled,
+    selectedCancelled,
+    setSelectedCancelled,
+    pageCancelled,
+    setPageCancelled,
+    rowsPerPageCancelled,
+    setRowsPerPageCancelled,
+    headCellsCancelled,
+    generateTableCellsCancelled,
+    getDataCsvCancelled,
+    csvDataCancelled,
+    csvLinkCancelled,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -476,6 +501,130 @@ export default function CreateInvoice() {
             filename={`commissioned_sales_${getDateTimeFormatted()}.csv`}
             className="hidden"
             ref={csvLink}
+            target="_blank"
+          />
+
+          <CreateAndFiltersLayout
+            filters={
+              hasNonEmptyValue(filtersCancelled) ? (
+                <ActionButton
+                  text={"reset-filters"}
+                  color="secondary"
+                  onClick={resetFiltersCancelled}
+                />
+              ) : (
+                <></>
+              )
+            }
+          />
+          <DataTable
+            data={dataCancelled}
+            dataCount={dataCountCancelled}
+            loading={loadingCancelled}
+            tableTitle="cancelled-sales-table"
+            selected={selectedCancelled}
+            setSelected={setSelectedCancelled}
+            rowsPerPage={rowsPerPageCancelled}
+            setRowsPerPage={setRowsPerPageCancelled}
+            page={pageCancelled}
+            setPage={setPageCancelled}
+            orderBy={orderByCancelled}
+            setOrderBy={setOrderByCancelled}
+            order={orderCancelled}
+            setOrder={setOrderCancelled}
+            headCells={headCellsCancelled}
+            generateTableCells={generateTableCellsCancelled}
+            openFilterModal={openFilterModalCancelled}
+            clickable={false}
+            selectable={false}
+            onDownload={getDataCsvCancelled}
+          />
+          <ModalFilters
+            title="filter-cancelled-sales"
+            open={filterModalOpenCancelled}
+            onClose={closeFilterModalCancelled}
+            form={
+              <Formik
+                enableReinitialize
+                initialValues={filtersCancelled}
+                validate={validateFiltersCancelled}
+                onSubmit={handleFiltersSubmitCancelled}
+              >
+                {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+                  <Form onSubmit={handleSubmit}>
+                    <FormLayout
+                      isSubmitting={isSubmitting}
+                      submitButtonText={"apply"}
+                      inputs={[
+                        <FormDropdown
+                          id={"sale"}
+                          name={"sale"}
+                          label={"sale"}
+                          useFormattedStrings={false}
+                          options={sales.map((sale) => {
+                            return {
+                              label: sale.contact_name,
+                              value: sale.id.toString(),
+                            };
+                          })}
+                        />,
+                        <FormInput
+                          id={"minimumCommission"}
+                          name={"minimumCommission"}
+                          placeholder={"Minimum Commission"}
+                          label={"minimum-commission"}
+                          type={"number"}
+                          min={0}
+                        />,
+                        <FormInput
+                          id={"maximumCommission"}
+                          name={"maximumCommission"}
+                          placeholder={"Maximum Commission"}
+                          label={"maximum-commission"}
+                          type={"number"}
+                          min={0}
+                        />,
+                        <FormInput
+                          id={"cancelledDateFrom"}
+                          name={"cancelledDateFrom"}
+                          placeholder={"Cancelled Date From"}
+                          label={"cancelled-date-from"}
+                          type={"date"}
+                        />,
+                        <FormInput
+                          id={"cancelledDateTo"}
+                          name={"cancelledDateTo"}
+                          placeholder={"Cancelled Date To"}
+                          label={"cancelled-date-to"}
+                          type={"date"}
+                        />,
+                      ]}
+                      showSubmitButton={false}
+                    />
+                    <Box
+                      display={"flex"}
+                      justifyContent={"center"}
+                      gap={"15px"}
+                      marginTop={"2rem"}
+                    >
+                      <ActionButton
+                        onClick={closeFilterModalCancelled}
+                        color={"secondary"}
+                        text={"cancel"}
+                      />
+                      <ActionButton type="submit" text={"apply"} />
+                    </Box>
+                  </Form>
+                )}
+              </Formik>
+            }
+          />
+          <CSVLink
+            data={csvDataCancelled}
+            headers={headCellsCancelled.map((cell) => cell.label)}
+            filename={`cancelled_sales_${getDateTimeFormatted()}.csv`}
+            className="hidden"
+            ref={csvLinkCancelled}
             target="_blank"
           />
         </Box>
