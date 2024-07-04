@@ -880,6 +880,6 @@ export function useCreateInvoice() {
     generateTableCellsCancelled,
     getDataCsvCancelled,
     csvDataCancelled,
-    csvLinkCancelled
+    csvLinkCancelled,
   };
 }

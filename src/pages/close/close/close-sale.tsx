@@ -216,6 +216,7 @@ export default function CloseSale() {
                   >
                     {selectedOpportunities.map((opportunity, idx) => (
                       <Box
+                        key={idx}
                         sx={{
                           display: "flex",
                           gap: "0.5rem",
@@ -224,7 +225,6 @@ export default function CloseSale() {
                         }}
                       >
                         <FormDropdown
-                          key={idx}
                           id={"opportunityDescription"}
                           name={"opportunityDescription"}
                           label={

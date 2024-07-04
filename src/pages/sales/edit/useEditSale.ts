@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { UserRoles, isNumeric } from "utils/helpers";
+import InvoicesRepository from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
@@ -43,6 +44,7 @@ export function useEditSale() {
   const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
     "",
   ]);
+  const [invoiceCreated, setInvoiceCreated] = useState(false);
   const { id } = useParams();
 
   function handleChangeSelectedOpportunities(
@@ -65,7 +67,6 @@ export function useEditSale() {
     temp.splice(idx, 1);
     setSelectedOpportunities(temp);
   }
-
 
   function validate(values: ValuesEditSale) {
     const errors = {} as ValuesEditSale;
@@ -201,6 +202,20 @@ export function useEditSale() {
     }
   }
 
+  async function getInvoice() {
+    setLoading(true);
+    if (id && isNumeric(id)) {
+      const invoicesRepository = new InvoicesRepository();
+      const existingInvoice = await invoicesRepository.checkExistenceBySale(parseInt(id));
+      if (existingInvoice) {
+        const { invoiceData, invoiceError } = existingInvoice;
+        if (invoiceData && !invoiceError) {
+          setInvoiceCreated(true);
+        }
+      }
+    }
+  }
+
   async function getProfilesShows() {
     setLoading(true);
     const profilesRepository = new ProfilesRepository();
@@ -251,6 +266,7 @@ export function useEditSale() {
 
   useEffect(() => {
     getSale();
+    getInvoice();
     getProfilesShows();
   }, []);
 
@@ -266,6 +282,7 @@ export function useEditSale() {
     selectedOpportunities,
     handleChangeSelectedOpportunities,
     addSelectedOpportunity,
-    removeSelectedOpportunity
+    removeSelectedOpportunity,
+    invoiceCreated
   };
 }

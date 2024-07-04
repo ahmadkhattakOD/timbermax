@@ -199,6 +199,22 @@ class InvoicesRepository {
     }
   }
 
+  public async checkExistenceBySale(id: number) {
+    try {
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from(this.className)
+        .select("id")
+        .eq("sale", id)
+        .limit(1)
+        .maybeSingle();
+
+      return { invoiceData, invoiceError };
+    } catch (error) {
+      console.error("Error fetching invoice:", error);
+      return null;
+    }
+  }
+
   public async getWithoutFilters() {
     try {
       const { data: invoicesData, error: invoicesError } = await supabase
@@ -221,21 +237,74 @@ class InvoicesRepository {
     try {
       const query = supabase
         .from(this.className)
-        .select("commission, sale!inner (id, status, total, deposit ) ")
+        .select(
+          "id, commission, sale!inner (id, status, total, deposit, status_changed_at, sale_date ) "
+        )
         .order("created_at", { ascending: false })
         .eq("beneficiary", id)
         .limit(extendedDataLimit);
 
       if (saleDateFrom !== "") {
         query.gte("sale.sale_date", saleDateFrom);
+        // query.or(`sale_date.gte.${saleDateFrom}`, { referencedTable: "sale" });
+        // query.or(
+        //   `status.eq.delivered,and(status_changed_at.gte.${saleDateFrom})`,
+        //   { referencedTable: "sale" }
+        // );
       }
       if (saleDateTo !== "") {
         query.lte("sale.sale_date", saleDateTo);
+        // query.or(`sale_date.lte.${saleDateFrom}`, { referencedTable: "sale" });
+        // query.or(
+        //   `status.eq.delivered,and(status_changed_at.lte.${saleDateFrom})`,
+        //   { referencedTable: "sale" }
+        // );
       }
 
       const { data: invoicesData, error: invoicesError } = await query;
 
-      return { invoicesData, invoicesError };
+      const secondQuery = supabase
+        .from(this.className)
+        .select(
+          "id, commission, sale!inner (id, status, total, deposit, status_changed_at, sale_date ) "
+        )
+        .order("created_at", { ascending: false })
+        .eq("beneficiary", id)
+        .limit(extendedDataLimit);
+
+      if (saleDateFrom !== "") {
+        secondQuery.eq("sale.status", "delivered");
+        secondQuery.gte("sale.status_changed_at", saleDateFrom);
+      }
+      if (saleDateTo !== "") {
+        secondQuery.eq("sale.status", "delivered");
+        secondQuery.lte("sale.status_changed_at", saleDateTo);
+      }
+
+      const { data: invoicesSecondData, error: invoicesSecondError } =
+        await query;
+
+      let resultData = [];
+      let processedIds: number[] = [];
+      if (invoicesData && !invoicesError) {
+        for (let i = 0; i < invoicesData.length; i++) {
+          if (!processedIds.includes(invoicesData[i].id)) {
+            processedIds.push(invoicesData[i].id);
+            resultData.push(invoicesData[i]);
+          }
+        }
+      }
+
+      if (invoicesSecondData && !invoicesSecondError) {
+        for (let i = 0; i < invoicesSecondData.length; i++) {
+          if (!processedIds.includes(invoicesSecondData[i].id)) {
+            processedIds.push(invoicesSecondData[i].id);
+            resultData.push(invoicesSecondData[i]);
+          }
+        }
+      }
+
+      return { invoicesData: resultData, invoicesError };
     } catch (error) {
       console.error("Error fetching invoices:", error);
       return null;

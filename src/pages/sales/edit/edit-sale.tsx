@@ -30,6 +30,7 @@ export default function EditSale() {
     handleChangeSelectedOpportunities,
     addSelectedOpportunity,
     removeSelectedOpportunity,
+    invoiceCreated,
   } = useEditSale();
 
   if (loading) {
@@ -366,6 +367,10 @@ export default function EditSale() {
                   })}
                   optional={false}
                   error={touched.salesPerson ? errors.salesPerson : ""}
+                  disabled={invoiceCreated}
+                  secondaryLabel={
+                    invoiceCreated ? "Can't Edit: Invoice Created" : ""
+                  }
                 />,
                 <FormInput
                   id={"deposit"}
@@ -471,6 +476,7 @@ export default function EditSale() {
                 >
                   {selectedOpportunities.map((opportunity, idx) => (
                     <Box
+                      key={idx}
                       sx={{
                         display: "flex",
                         gap: "0.5rem",
@@ -479,7 +485,6 @@ export default function EditSale() {
                       }}
                     >
                       <FormDropdown
-                        key={idx}
                         id={"opportunityDescription"}
                         name={"opportunityDescription"}
                         label={
@@ -528,6 +533,10 @@ export default function EditSale() {
                   })}
                   optional={false}
                   error={touched.closer ? errors.closer : ""}
+                  disabled={invoiceCreated}
+                  secondaryLabel={
+                    invoiceCreated ? "Can't Edit: Invoice Created" : ""
+                  }
                 />,
                 <FormDropdown
                   id={"status"}

@@ -227,6 +227,7 @@ export default function DeliverSale() {
                 >
                   {selectedOpportunities.map((opportunity, idx) => (
                     <Box
+                      key={idx}
                       sx={{
                         display: "flex",
                         gap: "0.5rem",
@@ -235,7 +236,6 @@ export default function DeliverSale() {
                       }}
                     >
                       <FormDropdown
-                        key={idx}
                         id={"opportunityDescription"}
                         name={"opportunityDescription"}
                         label={
