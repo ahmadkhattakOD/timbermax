@@ -43,6 +43,7 @@ export function useCreateSale() {
   const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
     "",
   ]);
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   function handleChangeSelectedOpportunities(
@@ -67,7 +68,7 @@ export function useCreateSale() {
   }
 
   function changeAddress(newValue: any, actionMeta: any) {
-    console.log(newValue);
+    setSelectedAddress(newValue?.value?.description ?? "");
   }
 
   function validate(values: ValuesCreateSale) {
@@ -122,7 +123,7 @@ export function useCreateSale() {
         payment_method: values.paymentMethod,
         phone: values.phone,
         mobile: values.mobile,
-        address: values.address,
+        address: selectedAddress,
         suburb: values.suburb,
         state: values.state,
         post_code: values.postCode,
@@ -356,5 +357,6 @@ export function useCreateSale() {
     addSelectedOpportunity,
     removeSelectedOpportunity,
     changeAddress,
+    selectedAddress,
   };
 }

@@ -1,4 +1,5 @@
 import { openSnackbar } from "api/snackbar";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import WarehousesRepository, {
@@ -14,7 +15,12 @@ export interface ValuesCreateWarehouse {
 }
 
 export function useCreateWarehouse() {
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
   const navigate = useNavigate();
+
+  function changeAddress(newValue: any, actionMeta: any) {
+    setSelectedAddress(newValue?.value?.description ?? "");
+  }
 
   function validate(values: ValuesCreateWarehouse) {
     const errors = {} as ValuesCreateWarehouse;
@@ -30,7 +36,7 @@ export function useCreateWarehouse() {
     try {
       const newWarehouse: WarehouseSupabase = {
         name: values.name,
-        address: values.address,
+        address: selectedAddress,
         suburb: values.suburb,
         state: values.state,
         post_code: values.postCode,
@@ -73,5 +79,5 @@ export function useCreateWarehouse() {
       navigate("/warehouses");
     }
   }
-  return { validate, onSubmit };
+  return { validate, onSubmit, changeAddress, selectedAddress };
 }

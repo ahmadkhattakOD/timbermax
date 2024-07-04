@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
-import ShowsRepository, { ShowSupabase } from "utils/repositories/showsRepository";
+import ShowsRepository, {
+  ShowSupabase,
+} from "utils/repositories/showsRepository";
 
 export interface ValuesEditShow {
   name: string;
@@ -20,7 +22,12 @@ export function useEditShow() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState<any>(null);
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
   const { id } = useParams();
+
+  function changeAddress(newValue: any, actionMeta: any) {
+    setSelectedAddress(newValue?.value?.description ?? "");
+  }
 
   function validate(values: ValuesEditShow) {
     const errors = {} as ValuesEditShow;
@@ -41,13 +48,14 @@ export function useEditShow() {
       if (id && isNumeric(id)) {
         const updatedShow: ShowSupabase = {
           name: values.name,
-          start_date: values.startDate !== "" ? new Date(values.startDate) : null,
+          start_date:
+            values.startDate !== "" ? new Date(values.startDate) : null,
           end_date: values.endDate !== "" ? new Date(values.endDate) : null,
-          address: values.address,
+          address: selectedAddress,
           suburb: values.suburb,
           state: values.state,
           post_code: values.postCode,
-          notes: values.notes
+          notes: values.notes,
         };
 
         const showsRepository = new ShowsRepository();
@@ -68,8 +76,7 @@ export function useEditShow() {
         } else {
           openSnackbar({
             open: true,
-            message:
-              "Show could not be edited successfully. Please try again.",
+            message: "Show could not be edited successfully. Please try again.",
             variant: "alert",
             alert: {
               color: "error",
@@ -81,8 +88,7 @@ export function useEditShow() {
       } else {
         openSnackbar({
           open: true,
-          message:
-            "Show could not be edited successfully. Please try again.",
+          message: "Show could not be edited successfully. Please try again.",
           variant: "alert",
           alert: {
             color: "error",
@@ -94,8 +100,7 @@ export function useEditShow() {
     } catch (e) {
       openSnackbar({
         open: true,
-        message:
-          "Show could not be edited successfully. Please try again.",
+        message: "Show could not be edited successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",
@@ -115,6 +120,7 @@ export function useEditShow() {
         const { showData, showError } = existingShow;
         if (showData && !showError) {
           setShow(showData);
+          setSelectedAddress(showData.address);
         }
       }
     }
@@ -125,5 +131,5 @@ export function useEditShow() {
     getShow();
   }, []);
 
-  return { validate, onSubmit, show, loading };
+  return { validate, onSubmit, show, loading, changeAddress, selectedAddress };
 }

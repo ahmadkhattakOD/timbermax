@@ -150,7 +150,9 @@ export function useCloseSale() {
         const { saleData, saleError } = existingSale;
         if (saleData && !saleError) {
           setSale(saleData);
-          setSelectedOpportunities(saleData.opportunity_descriptions);
+          if (saleData.opportunity_descriptions.length > 0) {
+            setSelectedOpportunities(saleData.opportunity_descriptions);
+          }
         }
       }
     }

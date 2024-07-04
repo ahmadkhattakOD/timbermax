@@ -1,7 +1,10 @@
 import { openSnackbar } from "api/snackbar";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import ShowsRepository, { ShowSupabase } from "utils/repositories/showsRepository";
+import ShowsRepository, {
+  ShowSupabase,
+} from "utils/repositories/showsRepository";
 
 export interface ValuesCreateShow {
   name: string;
@@ -15,7 +18,12 @@ export interface ValuesCreateShow {
 }
 
 export function useCreateShow() {
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
   const navigate = useNavigate();
+
+  function changeAddress(newValue: any, actionMeta: any) {
+    setSelectedAddress(newValue?.value?.description ?? "");
+  }
 
   function validate(values: ValuesCreateShow) {
     const errors = {} as ValuesCreateShow;
@@ -37,11 +45,11 @@ export function useCreateShow() {
         name: values.name,
         start_date: values.startDate !== "" ? new Date(values.startDate) : null,
         end_date: values.endDate !== "" ? new Date(values.endDate) : null,
-        address: values.address,
+        address: selectedAddress,
         suburb: values.suburb,
         state: values.state,
         post_code: values.postCode,
-        notes: values.notes
+        notes: values.notes,
       };
 
       const showsRepository = new ShowsRepository();
@@ -59,8 +67,7 @@ export function useCreateShow() {
       } else {
         openSnackbar({
           open: true,
-          message:
-            "Show could not be added successfully. Please try again.",
+          message: "Show could not be added successfully. Please try again.",
           variant: "alert",
           alert: {
             color: "error",
@@ -81,5 +88,5 @@ export function useCreateShow() {
       navigate("/shows");
     }
   }
-  return { validate, onSubmit };
+  return { validate, onSubmit, changeAddress, selectedAddress };
 }

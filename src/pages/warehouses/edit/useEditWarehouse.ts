@@ -20,6 +20,11 @@ export function useEditWarehouse() {
   const [loading, setLoading] = useState(true);
   const [warehouse, setWarehouse] = useState<any>(null);
   const { id } = useParams();
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
+
+  function changeAddress(newValue: any, actionMeta: any) {
+    setSelectedAddress(newValue?.value?.description ?? "");
+  }
 
   function validate(values: ValuesEditWarehouse) {
     const errors = {} as ValuesEditWarehouse;
@@ -36,7 +41,7 @@ export function useEditWarehouse() {
       if (id && isNumeric(id)) {
         const updatedWarehouse: WarehouseSupabase = {
           name: values.name,
-          address: values.address,
+          address: selectedAddress,
           suburb: values.suburb,
           state: values.state,
           post_code: values.postCode,
@@ -119,5 +124,12 @@ export function useEditWarehouse() {
     getWarehouse();
   }, []);
 
-  return { validate, onSubmit, warehouse, loading };
+  return {
+    validate,
+    onSubmit,
+    warehouse,
+    loading,
+    changeAddress,
+    selectedAddress,
+  };
 }

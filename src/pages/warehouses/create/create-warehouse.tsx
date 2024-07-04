@@ -5,11 +5,13 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateWarehouse } from "./useCreateWarehouse";
 import { australianStates } from "utils/helpers";
+import PlacesInput from "components/PlacesInput";
 
 // ==============================|| CREATE WAREHOUSE PAGE ||============================== //
 
 export default function CreateWarehouse() {
-  const { validate, onSubmit } = useCreateWarehouse();
+  const { validate, onSubmit, changeAddress, selectedAddress } =
+    useCreateWarehouse();
 
   return (
     <Formik
@@ -39,12 +41,13 @@ export default function CreateWarehouse() {
                 type={"text"}
                 error={touched.name ? errors.name : ""}
               />,
-              <FormInput
-                id={"address"}
-                name={"address"}
-                placeholder={"Address"}
-                label={"address"}
-                type={"text"}
+              <PlacesInput
+                id="address"
+                name="address"
+                placeholder="Address"
+                onChange={changeAddress}
+                value={selectedAddress}
+                label="address"
               />,
               <FormInput
                 id={"suburb"}

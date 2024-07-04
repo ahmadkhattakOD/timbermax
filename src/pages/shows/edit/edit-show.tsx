@@ -12,11 +12,13 @@ import {
   getDateFormattedForField,
   getDateTimeFormatted,
 } from "utils/helpers";
+import PlacesInput from "components/PlacesInput";
 
-// ==============================|| EDIT WAREHOUSE PAGE ||============================== //
+// ==============================|| EDIT SHOW PAGE ||============================== //
 
 export default function EditShow() {
-  const { validate, onSubmit, show, loading } = useEditShow();
+  const { validate, onSubmit, show, loading, changeAddress, selectedAddress } =
+    useEditShow();
 
   if (loading) {
     return (
@@ -38,13 +40,15 @@ export default function EditShow() {
       enableReinitialize
       initialValues={{
         name: show.name ?? "",
-        startDate: show.start_date ? getDateFormattedForField(show.start_date) : "",
+        startDate: show.start_date
+          ? getDateFormattedForField(show.start_date)
+          : "",
         endDate: show.end_date ? getDateFormattedForField(show.end_date) : "",
         address: show.address ?? "",
         suburb: show.suburb ?? "",
         state: show.state ?? "",
         postCode: show.post_code ?? "",
-        notes: show.notes ?? ""
+        notes: show.notes ?? "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -88,12 +92,13 @@ export default function EditShow() {
                 max={new Date()}
                 error={touched.endDate ? errors.endDate : ""}
               />,
-              <FormInput
-                id={"address"}
-                name={"address"}
-                placeholder={"Address"}
-                label={"address"}
-                type={"text"}
+              <PlacesInput
+                id="address"
+                name="address"
+                placeholder="Address"
+                onChange={changeAddress}
+                value={selectedAddress}
+                label="address"
               />,
               <FormInput
                 id={"suburb"}

@@ -45,6 +45,7 @@ export function useEditSale() {
   const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
     "",
   ]);
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const { id } = useParams();
 
@@ -67,6 +68,10 @@ export function useEditSale() {
     let temp = [...selectedOpportunities];
     temp.splice(idx, 1);
     setSelectedOpportunities(temp);
+  }
+
+  function changeAddress(newValue: any, actionMeta: any) {
+    setSelectedAddress(newValue?.value?.description ?? "");
   }
 
   function validate(values: ValuesEditSale) {
@@ -122,7 +127,7 @@ export function useEditSale() {
           payment_method: values.paymentMethod,
           phone: values.phone,
           mobile: values.mobile,
-          address: values.address,
+          address: selectedAddress,
           suburb: values.suburb,
           state: values.state,
           post_code: values.postCode,
@@ -198,7 +203,10 @@ export function useEditSale() {
         const { saleData, saleError } = existingSale;
         if (saleData && !saleError) {
           setSale(saleData);
-          setSelectedOpportunities(saleData.opportunity_descriptions);
+          if (saleData.opportunity_descriptions.length > 0) {
+            setSelectedOpportunities(saleData.opportunity_descriptions);
+          }
+          setSelectedAddress(saleData.address);
         }
       }
     }
@@ -288,5 +296,7 @@ export function useEditSale() {
     addSelectedOpportunity,
     removeSelectedOpportunity,
     invoiceCreated,
+    changeAddress,
+    selectedAddress,
   };
 }

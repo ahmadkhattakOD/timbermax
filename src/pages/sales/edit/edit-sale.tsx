@@ -13,6 +13,7 @@ import {
 } from "utils/helpers";
 import { IconButton } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
+import PlacesInput from "components/PlacesInput";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
@@ -31,6 +32,8 @@ export default function EditSale() {
     addSelectedOpportunity,
     removeSelectedOpportunity,
     invoiceCreated,
+    changeAddress,
+    selectedAddress,
   } = useEditSale();
 
   if (loading) {
@@ -432,12 +435,20 @@ export default function EditSale() {
                   label={"mobile"}
                   type={"text"}
                 />,
-                <FormInput
-                  id={"address"}
-                  name={"address"}
-                  placeholder={"Address"}
-                  label={"address"}
-                  type={"text"}
+                // <FormInput
+                //   id={"address"}
+                //   name={"address"}
+                //   placeholder={"Address"}
+                //   label={"address"}
+                //   type={"text"}
+                // />,
+                <PlacesInput
+                  id="address"
+                  name="address"
+                  placeholder="Address"
+                  onChange={changeAddress}
+                  value={selectedAddress}
+                  label="address"
                 />,
                 <FormInput
                   id={"suburb"}

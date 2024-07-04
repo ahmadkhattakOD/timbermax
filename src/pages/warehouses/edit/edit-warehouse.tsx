@@ -7,11 +7,19 @@ import FormDropdown from "components/FormDropdown";
 import { useEditWarehouse } from "./useEditWarehouse";
 import CircularLoader from "components/CircularLoader";
 import { australianStates } from "utils/helpers";
+import PlacesInput from "components/PlacesInput";
 
 // ==============================|| EDIT WAREHOUSE PAGE ||============================== //
 
 export default function EditWarehouse() {
-  const { validate, onSubmit, warehouse, loading } = useEditWarehouse();
+  const {
+    validate,
+    onSubmit,
+    warehouse,
+    loading,
+    changeAddress,
+    selectedAddress,
+  } = useEditWarehouse();
 
   if (loading) {
     return (
@@ -56,12 +64,13 @@ export default function EditWarehouse() {
                 type={"text"}
                 error={touched.name ? errors.name : ""}
               />,
-              <FormInput
-                id={"address"}
-                name={"address"}
-                placeholder={"Address"}
-                label={"address"}
-                type={"text"}
+              <PlacesInput
+                id="address"
+                name="address"
+                placeholder="Address"
+                onChange={changeAddress}
+                value={selectedAddress}
+                label="address"
               />,
               <FormInput
                 id={"suburb"}

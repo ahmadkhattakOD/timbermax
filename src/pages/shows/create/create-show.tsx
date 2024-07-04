@@ -4,12 +4,18 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateShow } from "./useCreateShow";
-import { australianStates, getDateFormatted, getDateTimeFormatted } from "utils/helpers";
+import {
+  australianStates,
+  getDateFormatted,
+  getDateTimeFormatted,
+} from "utils/helpers";
+import PlacesInput from "components/PlacesInput";
 
-// ==============================|| CREATE WAREHOUSE PAGE ||============================== //
+// ==============================|| CREATE SHOW PAGE ||============================== //
 
 export default function CreateShow() {
-  const { validate, onSubmit } = useCreateShow();
+  const { validate, onSubmit, changeAddress, selectedAddress } =
+    useCreateShow();
 
   return (
     <Formik
@@ -22,7 +28,7 @@ export default function CreateShow() {
         suburb: "",
         state: "",
         postCode: "",
-        notes: ""
+        notes: "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -66,12 +72,13 @@ export default function CreateShow() {
                 max={new Date()}
                 error={touched.endDate ? errors.endDate : ""}
               />,
-              <FormInput
-                id={"address"}
-                name={"address"}
-                placeholder={"Address"}
-                label={"address"}
-                type={"text"}
+              <PlacesInput
+                id="address"
+                name="address"
+                placeholder="Address"
+                onChange={changeAddress}
+                value={selectedAddress}
+                label="address"
               />,
               <FormInput
                 id={"suburb"}
