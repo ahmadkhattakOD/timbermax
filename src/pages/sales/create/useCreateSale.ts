@@ -21,6 +21,7 @@ export interface ValuesCreateSale {
   phone: string;
   mobile: string;
   address: string;
+  suburb: string;
   state: string;
   postCode: string;
   emailAddress: string;
@@ -122,6 +123,7 @@ export function useCreateSale() {
         phone: values.phone,
         mobile: values.mobile,
         address: values.address,
+        suburb: values.suburb,
         state: values.state,
         post_code: values.postCode,
         email_address: values.emailAddress,

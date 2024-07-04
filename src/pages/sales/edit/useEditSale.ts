@@ -21,6 +21,7 @@ export interface ValuesEditSale {
   phone: string;
   mobile: string;
   address: string;
+  suburb: string;
   state: string;
   postCode: string;
   emailAddress: string;
@@ -122,6 +123,7 @@ export function useEditSale() {
           phone: values.phone,
           mobile: values.mobile,
           address: values.address,
+          suburb: values.suburb,
           state: values.state,
           post_code: values.postCode,
           email_address: values.emailAddress,
@@ -206,7 +208,9 @@ export function useEditSale() {
     setLoading(true);
     if (id && isNumeric(id)) {
       const invoicesRepository = new InvoicesRepository();
-      const existingInvoice = await invoicesRepository.checkExistenceBySale(parseInt(id));
+      const existingInvoice = await invoicesRepository.checkExistenceBySale(
+        parseInt(id)
+      );
       if (existingInvoice) {
         const { invoiceData, invoiceError } = existingInvoice;
         if (invoiceData && !invoiceError) {
@@ -283,6 +287,6 @@ export function useEditSale() {
     handleChangeSelectedOpportunities,
     addSelectedOpportunity,
     removeSelectedOpportunity,
-    invoiceCreated
+    invoiceCreated,
   };
 }

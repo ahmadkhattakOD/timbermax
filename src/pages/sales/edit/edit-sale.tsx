@@ -325,6 +325,7 @@ export default function EditSale() {
           phone: sale.phone ?? "",
           mobile: sale.mobile ?? "",
           address: sale.address ?? "",
+          suburb: sale.suburb ?? "",
           state: sale.state ?? "",
           postCode: sale.post_code ?? "",
           emailAddress: sale.email_address ?? "",
@@ -436,6 +437,13 @@ export default function EditSale() {
                   name={"address"}
                   placeholder={"Address"}
                   label={"address"}
+                  type={"text"}
+                />,
+                <FormInput
+                  id={"suburb"}
+                  name={"suburb"}
+                  placeholder={"Suburb"}
+                  label={"suburb"}
                   type={"text"}
                 />,
                 <FormDropdown

@@ -17,6 +17,7 @@ export default function CreateWarehouse() {
       initialValues={{
         name: "",
         address: "",
+        suburb: "",
         state: "",
         postCode: "",
       }}
@@ -43,6 +44,13 @@ export default function CreateWarehouse() {
                 name={"address"}
                 placeholder={"Address"}
                 label={"address"}
+                type={"text"}
+              />,
+              <FormInput
+                id={"suburb"}
+                name={"suburb"}
+                placeholder={"Suburb"}
+                label={"suburb"}
                 type={"text"}
               />,
               <FormDropdown

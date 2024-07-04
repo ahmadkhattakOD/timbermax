@@ -4,6 +4,7 @@ import supabase from "utils/supabase";
 export interface WarehouseSupabase {
   name: string;
   address: string;
+  suburb: string;
   state: string;
   post_code: string;
 }

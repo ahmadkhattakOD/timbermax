@@ -66,7 +66,7 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
+          "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -126,7 +126,7 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
+          "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -184,7 +184,7 @@ class InvoicesRepository {
       } = await supabase
         .from(this.className)
         .select(
-          "id, sale ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ) ), commission, beneficiary( full_name )",
+          "id, sale ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ) ), commission, beneficiary( full_name )",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })

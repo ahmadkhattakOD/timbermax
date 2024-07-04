@@ -82,6 +82,12 @@ const headCells: HeadCell[] = [
     label: "Address",
   },
   {
+    id: "suburb",
+    numeric: false,
+    disablePadding: true,
+    label: "Suburb",
+  },
+  {
     id: "state",
     numeric: false,
     disablePadding: true,
@@ -222,6 +228,7 @@ export function useViewDelivery() {
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.phone}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.mobile}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.address}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.sale?.suburb}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.state}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.post_code}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.email_address}</TableCell>

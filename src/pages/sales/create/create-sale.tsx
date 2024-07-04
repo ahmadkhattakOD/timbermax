@@ -59,6 +59,7 @@ export default function CreateSale() {
         phone: "",
         mobile: "",
         address: "",
+        suburb: "",
         state: "",
         postCode: "",
         emailAddress: "",
@@ -168,49 +169,56 @@ export default function CreateSale() {
                 label={"address"}
                 type={"text"}
               />,
-              <GooglePlacesAutocomplete
-                apiKey="AIzaSyBG2LwRcoDo2fyVWPBi42LMaWuXjNC_YhQ"
-                autocompletionRequest={{
-                  componentRestrictions: { country: ["au"] },
-                }}
-                debounce={750}
-                minLengthAutocomplete={3}
-                selectProps={{
-                  onChange: changeAddress,
-                  styles: {
-                    control: (provided, state) => ({
-                      ...provided,
-                      borderRadius: "8px",
-                      border: "1px solid lightgray",
-                      ":focus": {
-                        border: `1px solid red`,
-                        boxShadow: `0 0 0 2px rgba(70, 128, 255, 0.1)`,
-                        outline: "none",
-                        backgroundColor: "transparent",
-                      },
-                    }),
-                    dropdownIndicator: (provided) => ({
-                      ...provided,
-                      display: "none",
-                    }),
-                    indicatorSeparator: (provided) => ({
-                      display: "none",
-                    }),
-                    input: (provided) => ({
-                      ...provided,
-                      color: "black",
-                      backgroundColor: "transparent !important",
-                      fontSize: "14px",
-                      paddingTop: "0.4rem",
-                      paddingBottom: "0.4rem",
-                      border: `none`,
-                      borderRadius: "8px",
-                      flex: 1,
-                      width: "100%",
-                    }),
-                  },
-                }}
+              <FormInput
+                id={"suburb"}
+                name={"suburb"}
+                placeholder={"Suburb"}
+                label={"suburb"}
+                type={"text"}
               />,
+              // <GooglePlacesAutocomplete
+              //   apiKey={import.meta.env.VITE_APP_MAPS_KEY}
+              //   autocompletionRequest={{
+              //     componentRestrictions: { country: ["au"] },
+              //   }}
+              //   debounce={750}
+              //   minLengthAutocomplete={3}
+              //   selectProps={{
+              //     onChange: changeAddress,
+              //     styles: {
+              //       control: (provided) => ({
+              //         ...provided,
+              //         borderRadius: "8px",
+              //         border: "1px solid lightgray",
+              //         ":focus": {
+              //           border: `1px solid red`,
+              //           boxShadow: `0 0 0 2px rgba(70, 128, 255, 0.1)`,
+              //           outline: "none",
+              //           backgroundColor: "transparent",
+              //         },
+              //       }),
+              //       dropdownIndicator: (provided) => ({
+              //         ...provided,
+              //         display: "none",
+              //       }),
+              //       indicatorSeparator: () => ({
+              //         display: "none",
+              //       }),
+              //       input: (provided) => ({
+              //         ...provided,
+              //         color: "black",
+              //         backgroundColor: "transparent !important",
+              //         fontSize: "14px",
+              //         paddingTop: "0.4rem",
+              //         paddingBottom: "0.4rem",
+              //         border: `none`,
+              //         borderRadius: "8px",
+              //         flex: 1,
+              //         width: "100%",
+              //       }),
+              //     },
+              //   }}
+              // />,
               <FormDropdown
                 id={"state"}
                 name={"state"}

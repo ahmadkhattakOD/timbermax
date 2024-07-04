@@ -34,6 +34,7 @@ export default function EditWarehouse() {
       initialValues={{
         name: warehouse.name ?? "",
         address: warehouse.address ?? "",
+        suburb: warehouse.suburb ?? "",
         state: warehouse.state ?? "",
         postCode: warehouse.post_code ?? "",
       }}
@@ -60,6 +61,13 @@ export default function EditWarehouse() {
                 name={"address"}
                 placeholder={"Address"}
                 label={"address"}
+                type={"text"}
+              />,
+              <FormInput
+                id={"suburb"}
+                name={"suburb"}
+                placeholder={"Suburb"}
+                label={"suburb"}
                 type={"text"}
               />,
               <FormDropdown

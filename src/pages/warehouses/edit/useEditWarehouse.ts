@@ -10,6 +10,7 @@ import WarehousesRepository, {
 export interface ValuesEditWarehouse {
   name: string;
   address: string;
+  suburb: string;
   state: string;
   postCode: string;
 }
@@ -36,6 +37,7 @@ export function useEditWarehouse() {
         const updatedWarehouse: WarehouseSupabase = {
           name: values.name,
           address: values.address,
+          suburb: values.suburb,
           state: values.state,
           post_code: values.postCode,
         };
@@ -100,7 +102,9 @@ export function useEditWarehouse() {
     setLoading(true);
     if (id && isNumeric(id)) {
       const warehousesRepository = new WarehousesRepository();
-      const existingWarehouse = await warehousesRepository.getSingle(parseInt(id));
+      const existingWarehouse = await warehousesRepository.getSingle(
+        parseInt(id)
+      );
       if (existingWarehouse) {
         const { warehouseData, warehouseError } = existingWarehouse;
         if (warehouseData && !warehouseError) {

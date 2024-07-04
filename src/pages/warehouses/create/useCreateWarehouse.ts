@@ -8,6 +8,7 @@ import WarehousesRepository, {
 export interface ValuesCreateWarehouse {
   name: string;
   address: string;
+  suburb: string;
   state: string;
   postCode: string;
 }
@@ -30,6 +31,7 @@ export function useCreateWarehouse() {
       const newWarehouse: WarehouseSupabase = {
         name: values.name,
         address: values.address,
+        suburb: values.suburb,
         state: values.state,
         post_code: values.postCode,
       };
