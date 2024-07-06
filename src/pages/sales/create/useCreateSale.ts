@@ -2,7 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles } from "utils/helpers";
+import { UserRoles, parseAddress } from "utils/helpers";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
@@ -44,6 +44,8 @@ export function useCreateSale() {
     "",
   ]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   function handleChangeSelectedOpportunities(
@@ -68,6 +70,9 @@ export function useCreateSale() {
   }
 
   function changeAddress(newValue: any, actionMeta: any) {
+    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedSuburb(addressComponents.suburb);
+    setSelectedState(addressComponents.state);
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
@@ -124,8 +129,8 @@ export function useCreateSale() {
         phone: values.phone,
         mobile: values.mobile,
         address: selectedAddress,
-        suburb: values.suburb,
-        state: values.state,
+        suburb: selectedSuburb,
+        state: selectedState,
         post_code: values.postCode,
         email_address: values.emailAddress,
         note: values.note,
@@ -358,5 +363,9 @@ export function useCreateSale() {
     removeSelectedOpportunity,
     changeAddress,
     selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
   };
 }

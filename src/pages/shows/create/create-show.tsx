@@ -14,8 +14,16 @@ import PlacesInput from "components/PlacesInput";
 // ==============================|| CREATE SHOW PAGE ||============================== //
 
 export default function CreateShow() {
-  const { validate, onSubmit, changeAddress, selectedAddress } =
-    useCreateShow();
+  const {
+    validate,
+    onSubmit,
+    changeAddress,
+    selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
+  } = useCreateShow();
 
   return (
     <Formik
@@ -86,6 +94,10 @@ export default function CreateShow() {
                 placeholder={"Suburb"}
                 label={"suburb"}
                 type={"text"}
+                value={selectedSuburb}
+                onChange={(e) => {
+                  setSelectedSuburb(e.target.value);
+                }}
               />,
               <FormDropdown
                 id={"state"}
@@ -93,6 +105,10 @@ export default function CreateShow() {
                 label={"state"}
                 useFormattedStrings={false}
                 options={australianStates}
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                }}
               />,
               <FormInput
                 id={"postCode"}

@@ -33,6 +33,10 @@ export default function CreateSale() {
     removeSelectedOpportunity,
     changeAddress,
     selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
   } = useCreateSale();
 
   if (loading) {
@@ -178,6 +182,10 @@ export default function CreateSale() {
                 placeholder={"Suburb"}
                 label={"suburb"}
                 type={"text"}
+                value={selectedSuburb}
+                onChange={(e) => {
+                  setSelectedSuburb(e.target.value);
+                }}
               />,
               <FormDropdown
                 id={"state"}
@@ -185,6 +193,10 @@ export default function CreateSale() {
                 label={"state"}
                 useFormattedStrings={false}
                 options={australianStates}
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                }}
               />,
               <FormInput
                 id={"postCode"}

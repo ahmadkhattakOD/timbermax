@@ -3,7 +3,7 @@ import { FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, isNumeric } from "utils/helpers";
+import { UserRoles, isNumeric, parseAddress } from "utils/helpers";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
@@ -46,6 +46,8 @@ export function useEditSale() {
     "",
   ]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const { id } = useParams();
 
@@ -71,6 +73,9 @@ export function useEditSale() {
   }
 
   function changeAddress(newValue: any, actionMeta: any) {
+    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedSuburb(addressComponents.suburb);
+    setSelectedState(addressComponents.state);
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
@@ -128,8 +133,8 @@ export function useEditSale() {
           phone: values.phone,
           mobile: values.mobile,
           address: selectedAddress,
-          suburb: values.suburb,
-          state: values.state,
+          suburb: selectedSuburb,
+          state: selectedState,
           post_code: values.postCode,
           email_address: values.emailAddress,
           note: values.note,
@@ -207,6 +212,8 @@ export function useEditSale() {
             setSelectedOpportunities(saleData.opportunity_descriptions);
           }
           setSelectedAddress(saleData.address);
+          setSelectedSuburb(saleData.suburb);
+          setSelectedState(saleData.state);
         }
       }
     }
@@ -298,5 +305,9 @@ export function useEditSale() {
     invoiceCreated,
     changeAddress,
     selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
   };
 }

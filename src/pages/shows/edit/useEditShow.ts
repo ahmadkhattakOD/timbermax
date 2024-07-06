@@ -2,7 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { isNumeric } from "utils/helpers";
+import { isNumeric, parseAddress } from "utils/helpers";
 import ShowsRepository, {
   ShowSupabase,
 } from "utils/repositories/showsRepository";
@@ -23,9 +23,14 @@ export function useEditShow() {
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState<any>(null);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
   const { id } = useParams();
 
   function changeAddress(newValue: any, actionMeta: any) {
+    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedSuburb(addressComponents.suburb);
+    setSelectedState(addressComponents.state);
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
@@ -52,8 +57,8 @@ export function useEditShow() {
             values.startDate !== "" ? new Date(values.startDate) : null,
           end_date: values.endDate !== "" ? new Date(values.endDate) : null,
           address: selectedAddress,
-          suburb: values.suburb,
-          state: values.state,
+          suburb: selectedSuburb,
+          state: selectedState,
           post_code: values.postCode,
           notes: values.notes,
         };
@@ -121,6 +126,8 @@ export function useEditShow() {
         if (showData && !showError) {
           setShow(showData);
           setSelectedAddress(showData.address);
+          setSelectedSuburb(showData.suburb);
+          setSelectedState(showData.state);
         }
       }
     }
@@ -131,5 +138,16 @@ export function useEditShow() {
     getShow();
   }, []);
 
-  return { validate, onSubmit, show, loading, changeAddress, selectedAddress };
+  return {
+    validate,
+    onSubmit,
+    show,
+    loading,
+    changeAddress,
+    selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
+  };
 }

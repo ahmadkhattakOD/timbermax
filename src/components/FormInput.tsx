@@ -98,6 +98,7 @@ const FormInput = ({
             id={id}
             name={name}
             placeholder={placeholder}
+            value={value}
             className="input"
             type={type}
             defaultValue={defaultValue}

@@ -2,6 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
+import { parseAddress } from "utils/helpers";
 import WarehousesRepository, {
   WarehouseSupabase,
 } from "utils/repositories/warehousesRepository";
@@ -16,9 +17,14 @@ export interface ValuesCreateWarehouse {
 
 export function useCreateWarehouse() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
   const navigate = useNavigate();
 
   function changeAddress(newValue: any, actionMeta: any) {
+    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedSuburb(addressComponents.suburb);
+    setSelectedState(addressComponents.state);
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
@@ -37,8 +43,8 @@ export function useCreateWarehouse() {
       const newWarehouse: WarehouseSupabase = {
         name: values.name,
         address: selectedAddress,
-        suburb: values.suburb,
-        state: values.state,
+        suburb: selectedSuburb,
+        state: selectedState,
         post_code: values.postCode,
       };
 
@@ -79,5 +85,14 @@ export function useCreateWarehouse() {
       navigate("/warehouses");
     }
   }
-  return { validate, onSubmit, changeAddress, selectedAddress };
+  return {
+    validate,
+    onSubmit,
+    changeAddress,
+    selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
+  };
 }

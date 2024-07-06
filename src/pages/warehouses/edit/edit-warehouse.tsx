@@ -19,6 +19,10 @@ export default function EditWarehouse() {
     loading,
     changeAddress,
     selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
   } = useEditWarehouse();
 
   if (loading) {
@@ -78,6 +82,10 @@ export default function EditWarehouse() {
                 placeholder={"Suburb"}
                 label={"suburb"}
                 type={"text"}
+                value={selectedSuburb}
+                onChange={(e) => {
+                  setSelectedSuburb(e.target.value);
+                }}
               />,
               <FormDropdown
                 id={"state"}
@@ -85,6 +93,10 @@ export default function EditWarehouse() {
                 label={"state"}
                 useFormattedStrings={false}
                 options={australianStates}
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                }}
               />,
               <FormInput
                 id={"postCode"}

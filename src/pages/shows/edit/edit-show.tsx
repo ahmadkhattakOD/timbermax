@@ -17,8 +17,18 @@ import PlacesInput from "components/PlacesInput";
 // ==============================|| EDIT SHOW PAGE ||============================== //
 
 export default function EditShow() {
-  const { validate, onSubmit, show, loading, changeAddress, selectedAddress } =
-    useEditShow();
+  const {
+    validate,
+    onSubmit,
+    show,
+    loading,
+    changeAddress,
+    selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
+  } = useEditShow();
 
   if (loading) {
     return (
@@ -106,6 +116,10 @@ export default function EditShow() {
                 placeholder={"Suburb"}
                 label={"suburb"}
                 type={"text"}
+                value={selectedSuburb}
+                onChange={(e) => {
+                  setSelectedSuburb(e.target.value);
+                }}
               />,
               <FormDropdown
                 id={"state"}
@@ -113,6 +127,10 @@ export default function EditShow() {
                 label={"state"}
                 useFormattedStrings={false}
                 options={australianStates}
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                }}
               />,
               <FormInput
                 id={"postCode"}

@@ -363,7 +363,8 @@ export function useDeliveries() {
         order === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage
+        rowsPerPage,
+        filters
       );
       if (sales) {
         const { salesData, salesCount, salesError } = sales;

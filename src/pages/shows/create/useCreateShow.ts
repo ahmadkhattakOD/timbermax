@@ -2,6 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
+import { parseAddress } from "utils/helpers";
 import ShowsRepository, {
   ShowSupabase,
 } from "utils/repositories/showsRepository";
@@ -19,9 +20,14 @@ export interface ValuesCreateShow {
 
 export function useCreateShow() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
   const navigate = useNavigate();
 
   function changeAddress(newValue: any, actionMeta: any) {
+    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedSuburb(addressComponents.suburb);
+    setSelectedState(addressComponents.state);
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
@@ -46,8 +52,8 @@ export function useCreateShow() {
         start_date: values.startDate !== "" ? new Date(values.startDate) : null,
         end_date: values.endDate !== "" ? new Date(values.endDate) : null,
         address: selectedAddress,
-        suburb: values.suburb,
-        state: values.state,
+        suburb: selectedSuburb,
+        state: selectedState,
         post_code: values.postCode,
         notes: values.notes,
       };
@@ -88,5 +94,14 @@ export function useCreateShow() {
       navigate("/shows");
     }
   }
-  return { validate, onSubmit, changeAddress, selectedAddress };
+  return {
+    validate,
+    onSubmit,
+    changeAddress,
+    selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
+  };
 }

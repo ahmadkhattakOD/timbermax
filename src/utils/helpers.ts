@@ -242,7 +242,10 @@ export function formEmail(email: string) {
   }
 }
 
-export const useDebouncedSearch = (callback: Function, delay: number = 1000) => {
+export const useDebouncedSearch = (
+  callback: Function,
+  delay: number = 1000
+) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   return (...args: any[]) => {
@@ -254,3 +257,59 @@ export const useDebouncedSearch = (callback: Function, delay: number = 1000) => 
     }, delay);
   };
 };
+
+const stateAbbreviations = {
+  ACT: "Australian Capital Territory",
+  NSW: "New South Wales",
+  NT: "Northern Territory",
+  QLD: "Queensland",
+  SA: "South Australia",
+  TAS: "Tasmania",
+  VIC: "Victoria",
+  WA: "Western Australia",
+};
+
+export function parseAddress(address: string): {
+  streetAddress: string;
+  suburb: string;
+  state: string;
+  country: string;
+} {
+  let streetAddress = "";
+  let suburb = "";
+  let state = "";
+  let country = "";
+
+  try {
+    const parts = address.split(",");
+    const trimmedParts = parts.map((part) => part.trim());
+    country = trimmedParts.pop() as string;
+    const suburbAndState = trimmedParts.pop() as string;
+    const stateMatch = suburbAndState.match(/(.*)\s(\S+)\s*$/);
+    if (stateMatch) {
+      suburb = stateMatch[1].trim();
+      state = stateMatch[2].trim();
+    }
+
+    state =
+      stateAbbreviations[
+        state as "ACT" | "NSW" | "NT" | "QLD" | "SA" | "TAS" | "VIC" | "WA"
+      ];
+
+    streetAddress = trimmedParts.join(", ");
+
+    return {
+      streetAddress,
+      suburb,
+      state,
+      country,
+    };
+  } catch (e) {
+    return {
+      streetAddress,
+      suburb,
+      state,
+      country,
+    };
+  }
+}

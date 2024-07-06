@@ -34,6 +34,10 @@ export default function EditSale() {
     invoiceCreated,
     changeAddress,
     selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
   } = useEditSale();
 
   if (loading) {
@@ -435,13 +439,6 @@ export default function EditSale() {
                   label={"mobile"}
                   type={"text"}
                 />,
-                // <FormInput
-                //   id={"address"}
-                //   name={"address"}
-                //   placeholder={"Address"}
-                //   label={"address"}
-                //   type={"text"}
-                // />,
                 <PlacesInput
                   id="address"
                   name="address"
@@ -456,6 +453,10 @@ export default function EditSale() {
                   placeholder={"Suburb"}
                   label={"suburb"}
                   type={"text"}
+                  value={selectedSuburb}
+                  onChange={(e) => {
+                    setSelectedSuburb(e.target.value);
+                  }}
                 />,
                 <FormDropdown
                   id={"state"}
@@ -463,6 +464,10 @@ export default function EditSale() {
                   label={"state"}
                   useFormattedStrings={false}
                   options={australianStates}
+                  value={selectedState}
+                  onChange={(e) => {
+                    setSelectedState(e.target.value);
+                  }}
                 />,
                 <FormInput
                   id={"postCode"}
