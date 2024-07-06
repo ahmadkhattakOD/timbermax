@@ -5,7 +5,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, getDateFormatted, initialRowsPerPage } from "utils/helpers";
+import {
+  UserRoles,
+  getDateFormatted,
+  initialRowsPerPage,
+  useDebouncedSearch,
+} from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -191,6 +196,7 @@ export function useSales() {
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] = useState<ValuesFilterSales>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
@@ -198,6 +204,14 @@ export function useSales() {
   function goToCreate() {
     navigate("/sales/new");
   }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.contactName = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -390,6 +404,7 @@ export function useSales() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -478,5 +493,8 @@ export function useSales() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue, 
+    setSearchValue
   };
 }

@@ -4,7 +4,11 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { getDateTimeFormatted, initialRowsPerPage } from "utils/helpers";
+import {
+  getDateTimeFormatted,
+  initialRowsPerPage,
+  useDebouncedSearch,
+} from "utils/helpers";
 import ItemsRepository from "utils/repositories/itemsRepository";
 import StocksRepository from "utils/repositories/stocksRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";

@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 export function isNumeric(value: string): boolean {
   return /^\d+$/.test(value);
 }
@@ -135,7 +137,12 @@ export function isRouteAllowed(
     }
     return false;
   } else if (UserRoles.SalesPerson) {
-    let whiteListedURLs = ["/dashboard", "/profile", "/view-sales", "view-invoices"];
+    let whiteListedURLs = [
+      "/dashboard",
+      "/profile",
+      "/view-sales",
+      "view-invoices",
+    ];
 
     for (let i = 0; i < whiteListedURLs.length; i++) {
       if (window.location.href.includes(whiteListedURLs[i])) {
@@ -234,3 +241,16 @@ export function formEmail(email: string) {
     return email.split("@")[0] + "@ultramaticreports.com.au";
   }
 }
+
+export const useDebouncedSearch = (callback: Function, delay: number = 1000) => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  return (...args: any[]) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  };
+};

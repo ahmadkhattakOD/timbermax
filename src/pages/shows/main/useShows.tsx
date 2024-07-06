@@ -4,7 +4,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { getDateFormatted, initialRowsPerPage } from "utils/helpers";
+import { getDateFormatted, initialRowsPerPage, useDebouncedSearch } from "utils/helpers";
 import ShowsRepository from "utils/repositories/showsRepository";
 
 const headCells: HeadCell[] = [
@@ -94,6 +94,7 @@ export function useShows() {
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] = useState<ValuesFilterShows>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
@@ -101,6 +102,14 @@ export function useShows() {
   function goToCreate() {
     navigate("/shows/new");
   }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.name = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -246,6 +255,7 @@ export function useShows() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -280,5 +290,8 @@ export function useShows() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   };
 }

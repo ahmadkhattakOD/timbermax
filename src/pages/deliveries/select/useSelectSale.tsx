@@ -6,7 +6,12 @@ import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, getDateFormatted, initialRowsPerPage } from "utils/helpers";
+import {
+  UserRoles,
+  getDateFormatted,
+  initialRowsPerPage,
+  useDebouncedSearch,
+} from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -191,6 +196,15 @@ export function useSelectSale() {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] =
     useState<ValuesFilterSelectSales>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.contactName = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -312,6 +326,7 @@ export function useSelectSale() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -392,5 +407,8 @@ export function useSelectSale() {
     shows,
     opportunities,
     resetFilters,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   };
 }

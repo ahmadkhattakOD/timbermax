@@ -15,6 +15,7 @@ import {
   hasNonEmptyValue,
 } from "utils/helpers";
 import { CSVLink } from "react-csv";
+import SearchInput from "components/SearchInput";
 
 export default function Sales() {
   const {
@@ -52,6 +53,9 @@ export default function Sales() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   } = useSales();
 
   return (
@@ -61,15 +65,33 @@ export default function Sales() {
           <ActionButton text={"add-new-sale"} onClick={goToCreate} />
         }
         filters={
-          hasNonEmptyValue(filters) ? (
-            <ActionButton
-              text={"reset-filters"}
-              color="secondary"
-              onClick={resetFilters}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              width: "100%",
+              alignItems: "flex-end",
+            }}
+          >
+            <SearchInput
+              placeholder="Search Contact"
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                handleSearchDebounced(e);
+              }}
             />
-          ) : (
-            <></>
-          )
+            {hasNonEmptyValue(filters) ? (
+              <ActionButton
+                text={"reset-filters"}
+                color="secondary"
+                onClick={resetFilters}
+              />
+            ) : (
+              <></>
+            )}
+          </Box>
         }
       />
       <DataTable

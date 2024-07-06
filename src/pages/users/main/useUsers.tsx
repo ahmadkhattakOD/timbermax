@@ -8,6 +8,7 @@ import {
   getDateTimeFormatted,
   initialRowsPerPage,
   stripEmail,
+  useDebouncedSearch,
 } from "utils/helpers";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 
@@ -86,6 +87,7 @@ export function useUsers() {
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] = useState<ValuesFilterUsers>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
@@ -93,6 +95,14 @@ export function useUsers() {
   function goToCreate() {
     navigate("/users/new");
   }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.fullName = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -253,6 +263,7 @@ export function useUsers() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -287,5 +298,8 @@ export function useUsers() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   };
 }

@@ -10,6 +10,7 @@ import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
+import SearchInput from "components/SearchInput";
 
 export default function Invoices() {
   const {
@@ -39,21 +40,42 @@ export default function Invoices() {
     validateFilters,
     filters,
     resetFilters,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   } = useInvoices();
 
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         filters={
-          hasNonEmptyValue(filters) ? (
-            <ActionButton
-              text={"reset-filters"}
-              color="secondary"
-              onClick={resetFilters}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              width: "100%",
+              alignItems: "flex-end",
+            }}
+          >
+            <SearchInput
+              placeholder="Search User"
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                handleSearchDebounced(e);
+              }}
             />
-          ) : (
-            <></>
-          )
+            {hasNonEmptyValue(filters) ? (
+              <ActionButton
+                text={"reset-filters"}
+                color="secondary"
+                onClick={resetFilters}
+              />
+            ) : (
+              <></>
+            )}
+          </Box>
         }
       />
       <DataTable

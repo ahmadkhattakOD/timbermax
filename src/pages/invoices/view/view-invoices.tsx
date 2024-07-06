@@ -102,7 +102,6 @@ export default function ViewInvoices() {
                 onClick={markSelectedAsPending}
               />
             )}
-
             {hasNonEmptyValue(filters) ? (
               <ActionButton
                 text={"reset-filters"}

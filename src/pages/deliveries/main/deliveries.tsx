@@ -17,6 +17,7 @@ import {
   hasNonEmptyValue,
 } from "utils/helpers";
 import { CSVLink } from "react-csv";
+import SearchInput from "components/SearchInput";
 
 export default function Deliveries() {
   const {
@@ -54,6 +55,9 @@ export default function Deliveries() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   } = useDeliveries();
 
   return (
@@ -63,15 +67,33 @@ export default function Deliveries() {
           <ActionButton text={"add-new-delivery"} onClick={goToCreate} />
         }
         filters={
-          hasNonEmptyValue(filters) ? (
-            <ActionButton
-              text={"reset-filters"}
-              color="secondary"
-              onClick={resetFilters}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              width: "100%",
+              alignItems: "flex-end",
+            }}
+          >
+            <SearchInput
+              placeholder="Search Contact"
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                handleSearchDebounced(e);
+              }}
             />
-          ) : (
-            <></>
-          )
+            {hasNonEmptyValue(filters) ? (
+              <ActionButton
+                text={"reset-filters"}
+                color="secondary"
+                onClick={resetFilters}
+              />
+            ) : (
+              <></>
+            )}
+          </Box>
         }
       />
       <DataTable

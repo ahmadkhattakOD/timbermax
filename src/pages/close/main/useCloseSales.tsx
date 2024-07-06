@@ -3,7 +3,7 @@ import { TableCell } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
-import { UserRoles, getDateFormatted, initialRowsPerPage } from "utils/helpers";
+import { UserRoles, getDateFormatted, initialRowsPerPage, useDebouncedSearch } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -185,8 +185,17 @@ export function useCloseSales() {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] =
     useState<ValuesFilterCloseSales>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.contactName = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -339,6 +348,7 @@ export function useCloseSales() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -413,5 +423,8 @@ export function useCloseSales() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue, 
+    setSearchValue
   };
 }

@@ -11,6 +11,7 @@ import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { CSVLink } from "react-csv";
+import SearchInput from "components/SearchInput";
 
 export default function Stock() {
   const {

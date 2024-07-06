@@ -11,6 +11,7 @@ import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
 import { Typography } from "@mui/material";
 import { australianStates, hasNonEmptyValue } from "utils/helpers";
+import SearchInput from "components/SearchInput";
 
 export default function SelectSale() {
   const {
@@ -40,6 +41,9 @@ export default function SelectSale() {
     shows,
     opportunities,
     resetFilters,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   } = useSelectSale();
 
   return (
@@ -52,15 +56,33 @@ export default function SelectSale() {
           </Typography>
         }
         filters={
-          hasNonEmptyValue(filters) ? (
-            <ActionButton
-              text={"reset-filters"}
-              color="secondary"
-              onClick={resetFilters}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              width: "100%",
+              alignItems: "flex-end",
+            }}
+          >
+            <SearchInput
+              placeholder="Search Contact"
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                handleSearchDebounced(e);
+              }}
             />
-          ) : (
-            <></>
-          )
+            {hasNonEmptyValue(filters) ? (
+              <ActionButton
+                text={"reset-filters"}
+                color="secondary"
+                onClick={resetFilters}
+              />
+            ) : (
+              <></>
+            )}
+          </Box>
         }
       />
       <DataTable

@@ -4,13 +4,18 @@ import ActionButton from "components/ActionButton";
 import { useWarehouses } from "./useWarehouses";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { australianStates, getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
+import {
+  australianStates,
+  getDateTimeFormatted,
+  hasNonEmptyValue,
+} from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { CSVLink } from "react-csv";
+import SearchInput from "components/SearchInput";
 
 export default function Warehouses() {
   const {
@@ -44,6 +49,9 @@ export default function Warehouses() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   } = useWarehouses();
 
   return (
@@ -53,15 +61,33 @@ export default function Warehouses() {
           <ActionButton text={"add-new-warehouse"} onClick={goToCreate} />
         }
         filters={
-          hasNonEmptyValue(filters) ? (
-            <ActionButton
-              text={"reset-filters"}
-              color="secondary"
-              onClick={resetFilters}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              width: "100%",
+              alignItems: "flex-end",
+            }}
+          >
+            <SearchInput
+              placeholder="Search Warehouse"
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                handleSearchDebounced(e);
+              }}
             />
-          ) : (
-            <></>
-          )
+            {hasNonEmptyValue(filters) ? (
+              <ActionButton
+                text={"reset-filters"}
+                color="secondary"
+                onClick={resetFilters}
+              />
+            ) : (
+              <></>
+            )}
+          </Box>
         }
       />
       <DataTable

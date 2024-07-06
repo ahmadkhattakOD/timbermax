@@ -4,7 +4,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { initialRowsPerPage } from "utils/helpers";
+import { initialRowsPerPage, useDebouncedSearch } from "utils/helpers";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
 
 const headCells: HeadCell[] = [
@@ -61,6 +61,7 @@ export function useWarehouses() {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] =
     useState<ValuesFilterWarehouses>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
@@ -68,6 +69,14 @@ export function useWarehouses() {
   function goToCreate() {
     navigate("/warehouses/new");
   }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.name = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -215,6 +224,7 @@ export function useWarehouses() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -249,5 +259,8 @@ export function useWarehouses() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   };
 }

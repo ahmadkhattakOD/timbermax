@@ -11,6 +11,7 @@ import {
   getDateFormatted,
   getDateTimeFormatted,
   initialRowsPerPage,
+  useDebouncedSearch,
 } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
@@ -209,6 +210,7 @@ export function useDeliveries() {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filters, setFilters] =
     useState<ValuesFilterDeliveries>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
@@ -216,6 +218,14 @@ export function useDeliveries() {
   function goToCreate() {
     navigate("/deliveries/new");
   }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.contactName = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -417,6 +427,7 @@ export function useDeliveries() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -505,5 +516,8 @@ export function useDeliveries() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue,
+    setSearchValue,
   };
 }

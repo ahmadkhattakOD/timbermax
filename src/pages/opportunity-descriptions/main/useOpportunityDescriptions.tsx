@@ -4,7 +4,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { initialRowsPerPage } from "utils/helpers";
+import { initialRowsPerPage, useDebouncedSearch } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 
 const headCells: HeadCell[] = [
@@ -45,6 +45,7 @@ export function useOpportunityDescriptions() {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] =
     useState<ValuesFilterOpportunityDescriptions>(initialFilters);
+  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
@@ -52,6 +53,14 @@ export function useOpportunityDescriptions() {
   function goToCreate() {
     navigate("/opportunity-descriptions/new");
   }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let temp = { ...filters };
+    temp.name = e.target.value;
+    setFilters(temp);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
   function generateTableCells(
     row: any,
@@ -203,6 +212,7 @@ export function useOpportunityDescriptions() {
   }
 
   function resetFilters() {
+    setSearchValue("");
     setFilters(initialFilters);
   }
 
@@ -237,5 +247,8 @@ export function useOpportunityDescriptions() {
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
+    searchValue, 
+    setSearchValue
   };
 }
