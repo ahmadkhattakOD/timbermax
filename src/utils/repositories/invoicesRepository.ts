@@ -75,7 +75,15 @@ class InvoicesRepository {
       //   .eq("beneficiary", id);
 
       const query = supabase
-        .rpc("fetch_invoices", { p_beneficiary_id: id, p_start_date: saleDateFrom, p_end_date: saleDateTo }, { count: "exact" })
+        .rpc(
+          "fetch_invoices",
+          {
+            p_beneficiary_id: id,
+            p_start_date: saleDateFrom,
+            p_end_date: saleDateTo,
+          },
+          { count: "exact" }
+        )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
@@ -152,7 +160,15 @@ class InvoicesRepository {
       //   .eq("beneficiary", id);
 
       const query = supabase
-        .rpc("fetch_invoices", { p_beneficiary_id: id, p_start_date: saleDateFrom, p_end_date: saleDateTo }, { count: "exact" })
+        .rpc(
+          "fetch_invoices",
+          {
+            p_beneficiary_id: id,
+            p_start_date: saleDateFrom,
+            p_end_date: saleDateTo,
+          },
+          { count: "exact" }
+        )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
@@ -365,11 +381,11 @@ class InvoicesRepository {
           "id, commission, sale!inner ( contact_name, status, total, deposit, status_changed_at, sale_date )",
           { count: "exact" }
         )
+        .eq("beneficiary", id)
+        .eq("sale.status", "cancelled")
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
-        .limit(limit)
-        .eq("beneficiary", id)
-        .eq("sale.status", "cancelled");
+        .limit(limit);
 
       if (saleDateFrom !== "") {
         query.gte("sale.status_changed_at", saleDateFrom);

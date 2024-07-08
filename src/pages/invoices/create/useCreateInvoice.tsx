@@ -282,8 +282,7 @@ export function useCreateInvoice() {
     []
   );
   const [pageCancelled, setPageCancelled] = useState(0);
-  const [rowsPerPageCancelled, setRowsPerPageCancelled] =
-    useState(5);
+  const [rowsPerPageCancelled, setRowsPerPageCancelled] = useState(5);
   const [loadingCancelled, setLoadingCancelled] = useState<boolean>(false);
   const [filterModalOpenCancelled, setFilterModalOpenCancelled] =
     useState(false);
@@ -321,9 +320,7 @@ export function useCreateInvoice() {
           {row.commission}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.payment_method && (
-            <FormattedMessage id={row.payment_method} />
-          )}
+          {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
@@ -335,19 +332,13 @@ export function useCreateInvoice() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.sales_person_full_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.closer_full_name}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.show_name}
-        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.closer_full_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.show_name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.follow_up_notes}
-        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale_date)}
         </TableCell>
@@ -587,15 +578,13 @@ export function useCreateInvoice() {
 
   async function getDataCancelled() {
     try {
-      const profilesRepository = new ProfilesRepository();
-      const currentUser = await profilesRepository.getCurrentUser();
-      if (currentUser) {
+      if (id) {
         setLoadingCancelled(true);
         const invoicesRepository = new InvoicesRepository();
         const rangeStart = rowsPerPageCancelled * pageCancelled;
         const rangeEnd = rangeStart + rowsPerPageCancelled;
         const invoices = await invoicesRepository.getCancelled(
-          currentUser.id,
+          id,
           orderByCancelled,
           orderCancelled === "asc",
           rangeStart,
@@ -614,7 +603,6 @@ export function useCreateInvoice() {
         }
         setLoadingCancelled(false);
       }
-      setLoading(false);
     } catch (e) {
       console.error("Error fetching sales:", e);
       setLoadingCancelled(false);
