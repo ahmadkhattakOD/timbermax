@@ -317,7 +317,7 @@ export default function DataTable({
           </Table>
         </TableContainer>
         <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 75, 100]}
+          rowsPerPageOptions={[5, 10, 25, 50, 75, 100]}
           component="div"
           count={dataCount}
           rowsPerPage={rowsPerPage}

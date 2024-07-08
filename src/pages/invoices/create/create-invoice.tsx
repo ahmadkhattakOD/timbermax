@@ -584,20 +584,6 @@ export default function CreateInvoice() {
                           type={"number"}
                           min={0}
                         />,
-                        <FormInput
-                          id={"cancelledDateFrom"}
-                          name={"cancelledDateFrom"}
-                          placeholder={"Cancelled Date From"}
-                          label={"cancelled-date-from"}
-                          type={"date"}
-                        />,
-                        <FormInput
-                          id={"cancelledDateTo"}
-                          name={"cancelledDateTo"}
-                          placeholder={"Cancelled Date To"}
-                          label={"cancelled-date-to"}
-                          type={"date"}
-                        />,
                       ]}
                       showSubmitButton={false}
                     />

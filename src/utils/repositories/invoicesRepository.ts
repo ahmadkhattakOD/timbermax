@@ -63,20 +63,26 @@ class InvoicesRepository {
     filters?: ValuesFilterInvoices
   ) {
     try {
+      // const query = supabase
+      //   .from(this.className)
+      //   .select(
+      //     "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, status_changed_at, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
+      //     { count: "exact" }
+      //   )
+      //   .order(orderBy, { ascending: ascending })
+      //   .range(rangeStart, rangeEnd)
+      //   .limit(limit)
+      //   .eq("beneficiary", id);
+
       const query = supabase
-        .from(this.className)
-        .select(
-          "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
-          { count: "exact" }
-        )
+        .rpc("fetch_invoices", { p_beneficiary_id: id, p_start_date: saleDateFrom, p_end_date: saleDateTo }, { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
-        .limit(limit)
-        .eq("beneficiary", id);
+        .limit(limit);
 
       if (filters) {
         if (filters.sale) {
-          query.eq("sale", filters.sale);
+          query.eq("sale_id", filters.sale);
         }
         if (filters.minimumCommission) {
           query.gte("commission", filters.minimumCommission);
@@ -90,12 +96,23 @@ class InvoicesRepository {
         if (filters.invoiceDateTo) {
           query.lte("created_at", filters.invoiceDateTo);
         }
-        if (saleDateFrom !== "") {
-          query.gte("sale.sale_date", saleDateFrom);
-        }
-        if (saleDateTo !== "") {
-          query.lte("sale.sale_date", saleDateTo);
-        }
+        // if (saleDateFrom !== "" && saleDateTo !== "") {
+        //   query.gte("sale.sale_date", saleDateFrom);
+        // }
+        // if (saleDateTo !== "") {
+        //   query.lte("sale.sale_date", saleDateTo);
+        // }
+
+        // if (saleDateFrom !== "" && saleDateTo !== "") {
+        //   query.or(
+        //     `sale_date.gte.${saleDateFrom},and(sale_date.lte.${saleDateTo}),and(status.eq.'deposited-twenty-plus')`,
+        //     { referencedTable: "sale" }
+        //   );
+        //   // query.or(
+        //   //   `status.eq.'delivered',and(status_changed_at.gte.${saleDateFrom}),and(status_changed_at.lte.${saleDateTo})`,
+        //   //   { referencedTable: "sale" }
+        //   // );
+        // }
       }
 
       const {
@@ -123,16 +140,22 @@ class InvoicesRepository {
     filters?: ValuesFilterSales
   ) {
     try {
+      // const query = supabase
+      //   .from(this.className)
+      //   .select(
+      //     "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
+      //     { count: "exact" }
+      //   )
+      //   .order(orderBy, { ascending: ascending })
+      //   .range(rangeStart, rangeEnd)
+      //   .limit(limit)
+      //   .eq("beneficiary", id);
+
       const query = supabase
-        .from(this.className)
-        .select(
-          "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
-          { count: "exact" }
-        )
+        .rpc("fetch_invoices", { p_beneficiary_id: id, p_start_date: saleDateFrom, p_end_date: saleDateTo }, { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
-        .limit(limit)
-        .eq("beneficiary", id);
+        .limit(limit);
 
       if (filters) {
         if (filters.minimumCommission) {
@@ -148,12 +171,12 @@ class InvoicesRepository {
           query.lte("created_at", filters.invoiceDateTo);
         }
       }
-      if (saleDateFrom !== "") {
-        query.gte("sale.sale_date", saleDateFrom);
-      }
-      if (saleDateTo !== "") {
-        query.lte("sale.sale_date", saleDateTo);
-      }
+      // if (saleDateFrom !== "") {
+      //   query.gte("sale.sale_date", saleDateFrom);
+      // }
+      // if (saleDateTo !== "") {
+      //   query.lte("sale.sale_date", saleDateTo);
+      // }
 
       const {
         data: invoicesData,
@@ -244,8 +267,20 @@ class InvoicesRepository {
         .eq("beneficiary", id)
         .limit(extendedDataLimit);
 
+      // if (saleDateTo !== "" && saleDateFrom !== "") {
+      //   query.or(
+      //     `sale_date.gte.${saleDateFrom},and(sale_date.lte.${saleDateTo})`,
+      //     { referencedTable: "sale" }
+      //   );
+      //   query.or(
+      //     `status.eq.delivered,and(status_changed_at.gte.${saleDateFrom}),and(status_changed_at.lte.${saleDateFrom})`,
+      //     { referencedTable: "sale" }
+      //   );
+      // }
+
       if (saleDateFrom !== "") {
         query.gte("sale.sale_date", saleDateFrom);
+        query.eq("sale.status", "deposited-twenty-plus");
         // query.or(`sale_date.gte.${saleDateFrom}`, { referencedTable: "sale" });
         // query.or(
         //   `status.eq.delivered,and(status_changed_at.gte.${saleDateFrom})`,
@@ -254,6 +289,7 @@ class InvoicesRepository {
       }
       if (saleDateTo !== "") {
         query.lte("sale.sale_date", saleDateTo);
+        query.eq("sale.status", "deposited-twenty-plus");
         // query.or(`sale_date.lte.${saleDateFrom}`, { referencedTable: "sale" });
         // query.or(
         //   `status.eq.delivered,and(status_changed_at.lte.${saleDateFrom})`,
@@ -351,12 +387,6 @@ class InvoicesRepository {
         }
         if (filters.maximumCommission) {
           query.lte("commission", filters.maximumCommission);
-        }
-        if (filters.cancelledDateFrom) {
-          query.gte("sale.status_changed_at", filters.cancelledDateFrom);
-        }
-        if (filters.cancelledDateTo) {
-          query.lte("sale.status_changed_at", filters.cancelledDateTo);
         }
       }
 

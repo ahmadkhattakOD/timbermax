@@ -233,10 +233,10 @@ export function useDownloadInvoice() {
   ) {
     return (
       <React.Fragment>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.contact_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.contact_name}</TableCell>
         <TableCell sx={{ minWidth: 500 }}>
-          {row.sale?.opportunity_descriptions &&
-            row.sale?.opportunity_descriptions.map(
+          {row.opportunity_descriptions &&
+            row.opportunity_descriptions.map(
               (opportunity: string, idx: number) => (
                 <Typography key={idx}>
                   - {opportunity} <br />
@@ -245,48 +245,48 @@ export function useDownloadInvoice() {
             )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.sale?.deposit}
+          {row.deposit}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.sale?.total}
+          {row.total}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.commission}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.payment_method && (
-            <FormattedMessage id={row.sale?.payment_method} />
+          {row.payment_method && (
+            <FormattedMessage id={row.payment_method} />
           )}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.phone}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.mobile}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.address}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.suburb}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.state}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.post_code}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.email_address}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.suburb}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.email_address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.sales_person && row.sale?.sales_person.full_name}
+          {row.sales_person_full_name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.closer && row.sale?.closer.full_name}
+          {row.closer_full_name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.show && row.sale?.show.name}
+          {row.show_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.notes}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.status && <FormattedMessage id={row.sale?.status} />}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.follow_up_notes}
+          {row.status && <FormattedMessage id={row.status} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {getDateFormatted(row.sale?.sale_date)}
+          {row.follow_up_notes}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.delivery_date_time &&
-            getDateTimeFormatted(row.sale?.delivery_date_time, true)}
+          {getDateFormatted(row.sale_date)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.delivery_date_time &&
+            getDateTimeFormatted(row.delivery_date_time, true)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.created_at && getDateFormatted(row.created_at)}
@@ -381,7 +381,7 @@ export function useDownloadInvoice() {
           rangeEnd,
           rowsPerPageCancelled,
           invoice.start_date,
-          invoice.end_date
+          invoice.end_date,
         );
         if (invoices) {
           const { invoicesData, invoicesCount, invoicesError } = invoices;

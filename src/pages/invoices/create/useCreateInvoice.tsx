@@ -28,7 +28,7 @@ const headCells: HeadCell[] = [
     label: "Contact Name",
   },
   {
-    id: "opportunity_description",
+    id: "opportunity_descriptions",
     numeric: false,
     disablePadding: true,
     label: "Opportunity Description",
@@ -100,19 +100,19 @@ const headCells: HeadCell[] = [
     label: "Email Address",
   },
   {
-    id: "sales_person",
+    id: "sales_person_full_name",
     numeric: false,
     disablePadding: true,
     label: "Sales Person",
   },
   {
-    id: "closer",
+    id: "closer_full_name",
     numeric: false,
     disablePadding: true,
     label: "Closer",
   },
   {
-    id: "show",
+    id: "show_name",
     numeric: false,
     disablePadding: true,
     label: "Show",
@@ -148,7 +148,7 @@ const headCells: HeadCell[] = [
     label: "Delivery Date Time",
   },
   {
-    id: "stock_from_warehouse",
+    id: "stock_from_warehouse_name",
     numeric: false,
     disablePadding: true,
     label: "Stock from Warehouse",
@@ -234,16 +234,12 @@ export interface ValuesFilterCancelled {
   sale: string;
   minimumCommission: string;
   maximumCommission: string;
-  cancelledDateFrom: string;
-  cancelledDateTo: string;
 }
 
 const initialFiltersCancelled: ValuesFilterCancelled = {
   sale: "",
   minimumCommission: "",
   maximumCommission: "",
-  cancelledDateFrom: "",
-  cancelledDateTo: "",
 };
 
 export function useCreateInvoice() {
@@ -253,7 +249,7 @@ export function useCreateInvoice() {
   const [orderBy, setOrderBy] = useState<string>("created_at");
   const [selected, setSelected] = useState<readonly number[]>([]);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [loading, setLoading] = useState<boolean>(false);
   const [fullName, setFullName] = useState<string>("");
   const [profilePicture, setProfilePicture] = useState<string>("");
@@ -287,7 +283,7 @@ export function useCreateInvoice() {
   );
   const [pageCancelled, setPageCancelled] = useState(0);
   const [rowsPerPageCancelled, setRowsPerPageCancelled] =
-    useState(initialRowsPerPage);
+    useState(5);
   const [loadingCancelled, setLoadingCancelled] = useState<boolean>(false);
   const [filterModalOpenCancelled, setFilterModalOpenCancelled] =
     useState(false);
@@ -304,10 +300,10 @@ export function useCreateInvoice() {
   ) {
     return (
       <React.Fragment>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.contact_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.contact_name}</TableCell>
         <TableCell sx={{ minWidth: 500 }}>
-          {row.sale?.opportunity_descriptions &&
-            row.sale?.opportunity_descriptions.map(
+          {row.opportunity_descriptions &&
+            row.opportunity_descriptions.map(
               (opportunity: string, idx: number) => (
                 <Typography key={idx}>
                   - {opportunity} <br />
@@ -316,51 +312,51 @@ export function useCreateInvoice() {
             )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.sale?.deposit}
+          {row.deposit}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.sale?.total}
+          {row.total}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.commission}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.payment_method && (
-            <FormattedMessage id={row.sale?.payment_method} />
+          {row.payment_method && (
+            <FormattedMessage id={row.payment_method} />
           )}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.phone}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.mobile}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.address}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.suburb}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.state}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.post_code}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.email_address}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.suburb}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.email_address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.sales_person && row.sale?.sales_person.full_name}
+          {row.sales_person_full_name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.closer && row.sale?.closer.full_name}
+          {row.closer_full_name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.show && row.sale?.show.name}
+          {row.show_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.notes}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.status && <FormattedMessage id={row.sale?.status} />}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.follow_up_notes}
+          {row.status && <FormattedMessage id={row.status} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {getDateFormatted(row.sale?.sale_date)}
+          {row.follow_up_notes}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.delivery_date_time &&
-            getDateTimeFormatted(row.sale?.delivery_date_time, true)}
+          {getDateFormatted(row.sale_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.stock_from_warehouse?.name}
+          {row.delivery_date_time &&
+            getDateTimeFormatted(row.delivery_date_time, true)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.stock_from_warehouse_name}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.created_at && getDateFormatted(row.created_at)}
