@@ -122,6 +122,12 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "status_changed_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Status Changed At",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -292,6 +298,9 @@ export function useDeliveries() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.status_changed_at && getDateFormatted(row.status_changed_at)}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale_date && getDateFormatted(row.sale_date)}
@@ -397,7 +406,7 @@ export function useDeliveries() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.contact_name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""}\n`;
+          csvString += `${sale?.contact_name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);

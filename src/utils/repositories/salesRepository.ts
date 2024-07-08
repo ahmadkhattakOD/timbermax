@@ -66,7 +66,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -182,7 +182,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -282,7 +282,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -381,7 +381,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -470,7 +470,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date"
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date"
         )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
@@ -554,7 +554,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -706,7 +706,7 @@ class SalesRepository {
       const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date"
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, status_changed_at, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date"
         )
         .eq("id", id)
         .limit(1)

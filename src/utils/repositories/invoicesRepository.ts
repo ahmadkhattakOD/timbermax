@@ -207,7 +207,7 @@ class InvoicesRepository {
       } = await supabase
         .from(this.className)
         .select(
-          "id, sale ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ) ), commission, beneficiary( full_name )",
+          "id, sale ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, status_changed_at, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ) ), commission, beneficiary( full_name )",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })

@@ -121,6 +121,12 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "status_changed_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Status Changed At",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -261,6 +267,9 @@ export function useSelectSale() {
         <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
