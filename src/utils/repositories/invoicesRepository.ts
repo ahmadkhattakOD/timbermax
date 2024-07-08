@@ -334,7 +334,7 @@ class InvoicesRepository {
       }
 
       const { data: invoicesSecondData, error: invoicesSecondError } =
-        await query;
+        await secondQuery;
 
       let resultData = [];
       let processedIds: number[] = [];
