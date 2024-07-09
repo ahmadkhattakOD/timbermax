@@ -451,7 +451,7 @@ export function useDownloadInvoiceSalesCloser() {
     if (invoice) {
       getDataCancelled();
     }
-  }, [orderCancelled, orderByCancelled, pageCancelled, rowsPerPageCancelled]);
+  }, [orderCancelled, orderByCancelled, pageCancelled, rowsPerPageCancelled, invoice]);
 
   async function getInvoiceProfile() {
     try {

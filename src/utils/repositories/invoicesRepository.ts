@@ -24,13 +24,23 @@ class InvoicesRepository {
       const { data: existingInvoiceData, error: existingInvoiceError } =
         await supabase
           .from(this.className)
-          .select()
+          .select("sale (id, sales_person, closer) ")
           .eq("sale", invoice.sale)
           .eq("beneficiary", invoice.beneficiary);
 
+      let limit = 2;
+      if (existingInvoiceData && !existingInvoiceError) {
+        for (let i = 0; i < existingInvoiceData.length; i++) {
+          const sale = existingInvoiceData[i].sale as any;
+          if (sale.sales_person !== sale.closer) {
+            limit = 1;
+          }
+        }
+      }
+
       if (
         existingInvoiceData &&
-        existingInvoiceData.length >= 2 &&
+        existingInvoiceData.length >= limit &&
         !existingInvoiceError
       ) {
         return existingInvoiceData[0];
