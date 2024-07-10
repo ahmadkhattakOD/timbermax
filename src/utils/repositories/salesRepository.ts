@@ -809,6 +809,50 @@ class SalesRepository {
       return 0;
     }
   }
+
+  public async markAsInvoiced(
+    startDate: string,
+    endDate: string,
+    userId: string
+  ) {
+    try {
+      const { data, error } = await supabase.rpc("update_invoiced_sales", {
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_beneficiary_id: userId,
+      });
+
+      if (error === null) {
+        return true;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error delivering sale:", error);
+      return null;
+    }
+  }
+
+  public async markCancelledAsInvoiced(
+    startDate: string,
+    endDate: string,
+    userId: string
+  ) {
+    try {
+      const { data, error } = await supabase.rpc("update_invoiced_cancelled_sales", {
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_beneficiary_id: userId,
+      });
+
+      if (error === null) {
+        return true;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error delivering sale:", error);
+      return null;
+    }
+  }
 }
 
 export default SalesRepository;

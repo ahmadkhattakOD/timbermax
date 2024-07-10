@@ -418,14 +418,42 @@ export function useCreateInvoice() {
           await generatedInvoicesRepository.create(newGeneratedInvoice);
 
         if (createdInvoice) {
-          openSnackbar({
-            open: true,
-            message: "Invoice generated successfully.",
-            variant: "alert",
-            alert: {
-              color: "success",
-            },
-          } as SnackbarProps);
+          const salesRepository = new SalesRepository();
+          const changeToInvoiced = await salesRepository.markAsInvoiced(
+            saleDateFrom,
+            saleDateTo,
+            id
+          );
+
+          const changeCancelledToInvoiced =
+            await salesRepository.markCancelledAsInvoiced(
+              saleDateFrom,
+              saleDateTo,
+              id
+            );
+
+          if (changeToInvoiced && changeCancelledToInvoiced) {
+            openSnackbar({
+              open: true,
+              message: "Invoice generated successfully.",
+              variant: "alert",
+              alert: {
+                color: "success",
+              },
+            } as SnackbarProps);
+          } else {
+            const idsToDelete = [createdInvoice.id];
+            await generatedInvoicesRepository.delete(idsToDelete);
+            openSnackbar({
+              open: true,
+              message:
+                "Invoice could not be generated successfully. Please try again.",
+              variant: "alert",
+              alert: {
+                color: "error",
+              },
+            } as SnackbarProps);
+          }
         } else {
           openSnackbar({
             open: true,

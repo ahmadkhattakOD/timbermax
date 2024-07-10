@@ -321,6 +321,13 @@ export default function EditSale() {
           </Typography>
         </Box>
       )}
+      {!loading && invoiceCreated && (
+        <Box display={"flex"} paddingBottom={"2rem"}>
+          <Typography>
+            This sale has been invoiced, so it is no longer editable.
+          </Typography>
+        </Box>
+      )}
       <Formik
         enableReinitialize
         initialValues={{
@@ -361,6 +368,7 @@ export default function EditSale() {
                   optional={false}
                   type={"text"}
                   error={touched.contactName ? errors.contactName : ""}
+                  disabled={invoiceCreated}
                 />,
                 <FormDropdown
                   id={"salesPerson"}
@@ -376,9 +384,6 @@ export default function EditSale() {
                   optional={false}
                   error={touched.salesPerson ? errors.salesPerson : ""}
                   disabled={invoiceCreated}
-                  secondaryLabel={
-                    invoiceCreated ? "Can't Edit: Invoice Created" : ""
-                  }
                 />,
                 <FormInput
                   id={"deposit"}
@@ -394,6 +399,7 @@ export default function EditSale() {
                   type={"number"}
                   min={0}
                   error={touched.deposit ? errors.deposit : ""}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"total"}
@@ -409,6 +415,7 @@ export default function EditSale() {
                   type={"number"}
                   min={0}
                   error={touched.total ? errors.total : ""}
+                  disabled={invoiceCreated}
                 />,
                 <FormDropdown
                   id={"paymentMethod"}
@@ -424,6 +431,7 @@ export default function EditSale() {
                     "care-package",
                   ]}
                   error={touched.paymentMethod ? errors.paymentMethod : ""}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"phone"}
@@ -431,6 +439,7 @@ export default function EditSale() {
                   placeholder={"Phone"}
                   label={"phone"}
                   type={"text"}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"mobile"}
@@ -438,6 +447,7 @@ export default function EditSale() {
                   placeholder={"Mobile"}
                   label={"mobile"}
                   type={"text"}
+                  disabled={invoiceCreated}
                 />,
                 <PlacesInput
                   id="address"
@@ -446,6 +456,7 @@ export default function EditSale() {
                   onChange={changeAddress}
                   value={selectedAddress}
                   label="address"
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"suburb"}
@@ -457,6 +468,7 @@ export default function EditSale() {
                   onChange={(e) => {
                     setSelectedSuburb(e.target.value);
                   }}
+                  disabled={invoiceCreated}
                 />,
                 <FormDropdown
                   id={"state"}
@@ -468,6 +480,7 @@ export default function EditSale() {
                   onChange={(e) => {
                     setSelectedState(e.target.value);
                   }}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"postCode"}
@@ -475,6 +488,7 @@ export default function EditSale() {
                   placeholder={"Post Code"}
                   label={"post-code"}
                   type={"text"}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"emailAddress"}
@@ -482,6 +496,7 @@ export default function EditSale() {
                   placeholder={"Email Address"}
                   label={"email-address"}
                   type={"email"}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"note"}
@@ -490,6 +505,7 @@ export default function EditSale() {
                   label={"note"}
                   type={"text"}
                   isTextArea
+                  disabled={invoiceCreated}
                 />,
                 <Box
                   sx={{
@@ -525,14 +541,16 @@ export default function EditSale() {
                             value: opportunity.name,
                           };
                         })}
+                        disabled={invoiceCreated}
                       />
                       {idx === selectedOpportunities.length - 1 &&
-                        opportunity !== "" && (
+                        opportunity !== "" &&
+                        !invoiceCreated && (
                           <IconButton onClick={addSelectedOpportunity}>
                             <Add />
                           </IconButton>
                         )}
-                      {idx !== 0 && (
+                      {idx !== 0 && !invoiceCreated && (
                         <IconButton
                           onClick={() => {
                             removeSelectedOpportunity(idx);
@@ -558,23 +576,24 @@ export default function EditSale() {
                   optional={false}
                   error={touched.closer ? errors.closer : ""}
                   disabled={invoiceCreated}
-                  secondaryLabel={
-                    invoiceCreated ? "Can't Edit: Invoice Created" : ""
-                  }
                 />,
                 <FormDropdown
                   id={"status"}
                   name={"status"}
                   label={"status"}
                   optional={false}
-                  options={[
-                    "delivered",
-                    "cancelled",
-                    "deposited-twenty-plus",
-                    "scheduled-for-delivery",
-                    "on-hold",
-                    "ready-for-delivery",
-                  ]}
+                  options={
+                    invoiceCreated
+                      ? ["cancelled"]
+                      : [
+                          "delivered",
+                          "cancelled",
+                          "deposited-twenty-plus",
+                          "scheduled-for-delivery",
+                          "on-hold",
+                          "ready-for-delivery",
+                        ]
+                  }
                   disabledValues={["delivered"]}
                   error={touched.status ? errors.status : ""}
                 />,
@@ -591,6 +610,7 @@ export default function EditSale() {
                   })}
                   optional={false}
                   error={touched.show ? errors.show : ""}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"saleDate"}
@@ -601,6 +621,7 @@ export default function EditSale() {
                   type={"date"}
                   max={getDateFormattedForField()}
                   error={touched.saleDate ? errors.saleDate : ""}
+                  disabled={invoiceCreated}
                 />,
                 <FormInput
                   id={"followUpNotes"}
@@ -609,6 +630,7 @@ export default function EditSale() {
                   label={"follow-up-notes"}
                   type={"text"}
                   isTextArea
+                  disabled={invoiceCreated}
                 />,
               ]}
             />

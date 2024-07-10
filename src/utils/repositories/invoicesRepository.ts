@@ -28,12 +28,12 @@ class InvoicesRepository {
           .eq("sale", invoice.sale)
           .eq("beneficiary", invoice.beneficiary);
 
-      let limit = 2;
+      let limit = 1;
       if (existingInvoiceData && !existingInvoiceError) {
         for (let i = 0; i < existingInvoiceData.length; i++) {
           const sale = existingInvoiceData[i].sale as any;
-          if (sale.sales_person !== sale.closer) {
-            limit = 1;
+          if (sale && sale.sales_person == sale.closer) {
+            limit = 2;
           }
         }
       }
@@ -171,7 +171,7 @@ class InvoicesRepository {
 
       const query = supabase
         .rpc(
-          "fetch_invoices",
+          "fetch_invoiced_invoices",
           {
             p_beneficiary_id: id,
             p_start_date: saleDateFrom,
@@ -287,10 +287,11 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, commission, sale!inner (id, status, total, deposit, status_changed_at, sale_date ) "
+          "id, commission, sale!inner (id, status, total, deposit, status_changed_at, sale_date, invoiced ) "
         )
         .order("created_at", { ascending: false })
         .eq("beneficiary", id)
+        .eq("sale.invoiced", false)
         .limit(extendedDataLimit);
 
       // if (saleDateTo !== "" && saleDateFrom !== "") {
@@ -328,10 +329,11 @@ class InvoicesRepository {
       const secondQuery = supabase
         .from(this.className)
         .select(
-          "id, commission, sale!inner (id, status, total, deposit, status_changed_at, sale_date ) "
+          "id, commission, sale!inner (id, status, total, deposit, status_changed_at, sale_date, invoiced ) "
         )
         .order("created_at", { ascending: false })
         .eq("beneficiary", id)
+        .eq("sale.invoiced", false)
         .limit(extendedDataLimit);
 
       if (saleDateFrom !== "") {
@@ -388,11 +390,12 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, commission, sale!inner ( contact_name, status, total, deposit, status_changed_at, sale_date )",
+          "id, commission, sale!inner ( contact_name, status, total, deposit, status_changed_at, sale_date, invoiced )",
           { count: "exact" }
         )
         .eq("beneficiary", id)
         .eq("sale.status", "cancelled")
+        .eq("sale.invoiced", true)
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
@@ -438,11 +441,12 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "commission, sale!inner ( status, total, deposit, status_changed_at ) "
+          "commission, sale!inner ( status, total, deposit, status_changed_at, invoiced ) "
         )
         .order("created_at", { ascending: false })
         .eq("beneficiary", id)
         .eq("sale.status", "cancelled")
+        .eq("sale.invoiced", true)
         .limit(extendedDataLimit);
 
       if (saleDateFrom !== "") {
