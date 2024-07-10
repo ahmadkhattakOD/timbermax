@@ -314,17 +314,10 @@ export default function EditSale() {
   // }
   return (
     <>
-      {!loading && sale?.closed && (
-        <Box display={"flex"} paddingBottom={"2rem"}>
-          <Typography>
-            Warning: This sale has been closed and should not be edited.
-          </Typography>
-        </Box>
-      )}
       {!loading && invoiceCreated && (
         <Box display={"flex"} paddingBottom={"2rem"}>
           <Typography>
-            This sale has been invoiced, so it is no longer editable.
+            This sale has been invoiced, and is no longer editable.
           </Typography>
         </Box>
       )}
@@ -585,14 +578,23 @@ export default function EditSale() {
                   options={
                     invoiceCreated
                       ? ["cancelled"]
-                      : [
-                          "delivered",
-                          "cancelled",
-                          "deposited-twenty-plus",
-                          "scheduled-for-delivery",
-                          "on-hold",
-                          "ready-for-delivery",
-                        ]
+                      : parseFloat(values.deposit) >=
+                          parseFloat(values.total) * 0.2
+                        ? [
+                            "delivered",
+                            "cancelled",
+                            "deposited-twenty-plus",
+                            "scheduled-for-delivery",
+                            "on-hold",
+                            "ready-for-delivery",
+                          ]
+                        : [
+                            "delivered",
+                            "cancelled",
+                            "scheduled-for-delivery",
+                            "on-hold",
+                            "ready-for-delivery",
+                          ]
                   }
                   disabledValues={["delivered"]}
                   error={touched.status ? errors.status : ""}

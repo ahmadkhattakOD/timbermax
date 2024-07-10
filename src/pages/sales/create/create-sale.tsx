@@ -286,14 +286,24 @@ export default function CreateSale() {
                 name={"status"}
                 label={"status"}
                 optional={false}
-                options={[
-                  "delivered",
-                  "cancelled",
-                  "deposited-twenty-plus",
-                  "scheduled-for-delivery",
-                  "on-hold",
-                  "ready-for-delivery",
-                ]}
+                options={
+                  parseFloat(values.deposit) >= parseFloat(values.total) * 0.2
+                    ? [
+                        "delivered",
+                        "cancelled",
+                        "deposited-twenty-plus",
+                        "scheduled-for-delivery",
+                        "on-hold",
+                        "ready-for-delivery",
+                      ]
+                    : [
+                        "delivered",
+                        "cancelled",
+                        "scheduled-for-delivery",
+                        "on-hold",
+                        "ready-for-delivery",
+                      ]
+                }
                 disabledValues={["delivered"]}
                 error={touched.status ? errors.status : ""}
               />,

@@ -214,26 +214,27 @@ export function useEditSale() {
           setSelectedAddress(saleData.address);
           setSelectedSuburb(saleData.suburb);
           setSelectedState(saleData.state);
+          setInvoiceCreated(saleData.invoiced);
         }
       }
     }
   }
 
-  async function getInvoice() {
-    setLoading(true);
-    if (id && isNumeric(id)) {
-      const invoicesRepository = new InvoicesRepository();
-      const existingInvoice = await invoicesRepository.checkExistenceBySale(
-        parseInt(id)
-      );
-      if (existingInvoice) {
-        const { invoiceData, invoiceError } = existingInvoice;
-        if (invoiceData && !invoiceError) {
-          setInvoiceCreated(true);
-        }
-      }
-    }
-  }
+  // async function getInvoice() {
+  //   setLoading(true);
+  //   if (id && isNumeric(id)) {
+  //     const invoicesRepository = new InvoicesRepository();
+  //     const existingInvoice = await invoicesRepository.checkExistenceBySale(
+  //       parseInt(id)
+  //     );
+  //     if (existingInvoice) {
+  //       const { invoiceData, invoiceError } = existingInvoice;
+  //       if (invoiceData && !invoiceError) {
+  //         setInvoiceCreated(true);
+  //       }
+  //     }
+  //   }
+  // }
 
   async function getProfilesShows() {
     setLoading(true);
@@ -285,7 +286,7 @@ export function useEditSale() {
 
   useEffect(() => {
     getSale();
-    getInvoice();
+    // getInvoice();
     getProfilesShows();
   }, []);
 
