@@ -813,13 +813,15 @@ class SalesRepository {
   public async markAsInvoiced(
     startDate: string,
     endDate: string,
-    userId: string
+    userId: string,
+    generatedInvoiceId: number
   ) {
     try {
       const { data, error } = await supabase.rpc("update_invoiced_sales", {
         p_start_date: startDate,
         p_end_date: endDate,
         p_beneficiary_id: userId,
+        p_generated_invoice_id: generatedInvoiceId
       });
 
       if (error === null) {
@@ -835,14 +837,18 @@ class SalesRepository {
   public async markCancelledAsInvoiced(
     startDate: string,
     endDate: string,
-    userId: string
+    userId: string,
+    generatedInvoiceId: number
   ) {
     try {
       const { data, error } = await supabase.rpc("update_invoiced_cancelled_sales", {
         p_start_date: startDate,
         p_end_date: endDate,
         p_beneficiary_id: userId,
+        p_generated_invoice_id: generatedInvoiceId
       });
+
+      console.log("DATA", data, "ERROR", error);
 
       if (error === null) {
         return true;

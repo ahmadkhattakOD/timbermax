@@ -422,17 +422,20 @@ export function useCreateInvoice() {
           const changeToInvoiced = await salesRepository.markAsInvoiced(
             saleDateFrom,
             saleDateTo,
-            id
+            id,
+            createdInvoice.id,
           );
 
           const changeCancelledToInvoiced =
             await salesRepository.markCancelledAsInvoiced(
               saleDateFrom,
               saleDateTo,
-              id
+              id,
+              createdInvoice.id
             );
 
-          if (changeToInvoiced && changeCancelledToInvoiced) {
+
+          if (changeToInvoiced) {
             openSnackbar({
               open: true,
               message: "Invoice generated successfully.",

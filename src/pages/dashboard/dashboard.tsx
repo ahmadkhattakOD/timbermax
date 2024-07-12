@@ -148,6 +148,22 @@ export default function Dashboard() {
                   {pendingCommission.toFixed(2)} (A$)
                 </Typography>
               </Box>
+            ) : pendingCommission < 0 ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "2rem",
+                }}
+              >
+                <Typography>
+                  Negative commission balance which would be re-adjusted.
+                </Typography>
+                <Typography variant="h5" sx={{ textAlign: "center" }}>
+                  {Math.abs(pendingCommission).toFixed(2)} (A$)
+                </Typography>
+              </Box>
             ) : (
               <Box>All your commission has been paid out.</Box>
             )}

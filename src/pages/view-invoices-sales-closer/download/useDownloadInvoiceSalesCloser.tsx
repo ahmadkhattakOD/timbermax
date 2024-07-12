@@ -10,6 +10,7 @@ import {
   isNumeric,
 } from "utils/helpers";
 import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
+import InvoicedSalesRepository from "utils/repositories/invoicedSalesRepository";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 
@@ -281,9 +282,9 @@ export function useDownloadInvoiceSalesCloser() {
         <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.email_address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sales_person_full_name}
+          {row.sales_person?.full_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.closer_full_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.closer?.full_name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.show_name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
@@ -306,29 +307,24 @@ export function useDownloadInvoiceSalesCloser() {
 
   async function getDataSales() {
     try {
-      const profilesRepository = new ProfilesRepository();
-      const currentUser = await profilesRepository.getCurrentUser();
-      if (currentUser) {
+      if (id) {
         setLoadingSales(true);
-        const invoicesRepository = new InvoicesRepository();
+        const invoicedSalesRepository = new InvoicedSalesRepository();
         const rangeStart = rowsPerPageSales * pageSales;
         const rangeEnd = rangeStart + rowsPerPageSales;
-        const invoices = await invoicesRepository.getForSalesCloser(
-          currentUser.id,
+        const sales = await invoicedSalesRepository.getInvoicable(
+          parseInt(id),
           orderBySales,
           orderSales === "asc",
           rangeStart,
           rangeEnd,
           rowsPerPageSales,
-          invoice.start_date,
-          invoice.end_date,
-          filtersSales
         );
-        if (invoices) {
-          const { invoicesData, invoicesCount, invoicesError } = invoices;
-          if (invoicesData && !invoicesError) {
-            setDataSales(invoicesData);
-            setDataCountSales(invoicesCount ?? 0);
+        if (sales) {
+          const { salesData, salesCount, salesError } = sales;
+          if (salesData && !salesError) {
+            setDataSales(salesData);
+            setDataCountSales(salesCount ?? 0);
           }
         }
         setLoadingSales(false);
@@ -394,19 +390,19 @@ export function useDownloadInvoiceSalesCloser() {
           width={200}
           align="left"
         >
-          {row.sale?.contact_name}
+          {row.contact_name}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.sale?.deposit}
+          {row.deposit}
         </TableCell>
-        <TableCell align="right">{row.sale?.total}</TableCell>
+        <TableCell align="right">{row.total}</TableCell>
         <TableCell align="right">{row.commission}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.sale_date && getDateFormatted(row.sale?.sale_date)}
+          {row.sale_date && getDateFormatted(row.sale_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.status_changed_at &&
-            getDateFormatted(row.sale?.status_changed_at)}
+          {row.status_changed_at &&
+            getDateFormatted(row.status_changed_at)}
         </TableCell>
       </React.Fragment>
     );
@@ -414,28 +410,24 @@ export function useDownloadInvoiceSalesCloser() {
 
   async function getDataCancelled() {
     try {
-      const profilesRepository = new ProfilesRepository();
-      const currentUser = await profilesRepository.getCurrentUser();
-      if (currentUser) {
+      if (id) {
         setLoadingCancelled(true);
-        const invoicesRepository = new InvoicesRepository();
+        const invoicedSalesRepository = new InvoicedSalesRepository();
         const rangeStart = rowsPerPageCancelled * pageCancelled;
         const rangeEnd = rangeStart + rowsPerPageCancelled;
-        const invoices = await invoicesRepository.getCancelled(
-          currentUser.id,
+        const sales = await invoicedSalesRepository.getCancelled(
+          parseInt(id),
           orderByCancelled,
           orderCancelled === "asc",
           rangeStart,
           rangeEnd,
           rowsPerPageCancelled,
-          invoice.start_date,
-          invoice.end_date
         );
-        if (invoices) {
-          const { invoicesData, invoicesCount, invoicesError } = invoices;
-          if (invoicesData && !invoicesError) {
-            setDataCancelled(invoicesData);
-            setDataCountCancelled(invoicesCount ?? 0);
+        if (sales) {
+          const { salesData, salesCount, salesError } = sales;
+          if (salesData && !salesError) {
+            setDataCancelled(salesData);
+            setDataCountCancelled(salesCount ?? 0);
           }
         }
         setLoadingCancelled(false);
