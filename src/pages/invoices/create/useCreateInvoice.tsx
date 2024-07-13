@@ -764,17 +764,15 @@ export function useCreateInvoice() {
           saleDateTo
         );
         let salesMadeValue = 0;
-        let salesProcessed: string[] = [];
+        console.log("ALL INVOICES", allInvoices);
         if (allInvoices) {
           const { invoicesData, invoicesError } = allInvoices;
           if (invoicesData && !invoicesError) {
             for (let i = 0; i < invoicesData.length; i++) {
-              let sale = invoicesData[i].sale as any;
               salesMadeValue += invoicesData[i].commission;
               // if (!salesProcessed.includes(sale.id)) {
               //   salesMadeValue -= 300;
               // }
-              salesProcessed.push(sale.id);
             }
             setTotalCommission(salesMadeValue);
           }

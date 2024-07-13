@@ -848,8 +848,6 @@ class SalesRepository {
         p_generated_invoice_id: generatedInvoiceId
       });
 
-      console.log("DATA", data, "ERROR", error);
-
       if (error === null) {
         return true;
       }
