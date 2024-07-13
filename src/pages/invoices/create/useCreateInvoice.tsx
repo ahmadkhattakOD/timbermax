@@ -764,7 +764,6 @@ export function useCreateInvoice() {
           saleDateTo
         );
         let salesMadeValue = 0;
-        console.log("ALL INVOICES", allInvoices);
         if (allInvoices) {
           const { invoicesData, invoicesError } = allInvoices;
           if (invoicesData && !invoicesError) {
