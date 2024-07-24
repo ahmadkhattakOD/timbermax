@@ -108,3 +108,5 @@ dist
 .bak
 
 .env
+
+deploy.sh

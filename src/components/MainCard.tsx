@@ -70,6 +70,7 @@ function MainCard(
       ref={ref}
       {...others}
       sx={{
+        height: '100%',
         position: 'relative',
         border: border ? '1px solid' : 'none',
         borderRadius: 1.5,

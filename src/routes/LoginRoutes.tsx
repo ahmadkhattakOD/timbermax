@@ -22,13 +22,17 @@ const LoginRoutes = {
       element: <AuthLayout />,
       children: [
         {
-          path: 'login',
+          path: '/',
           element: <AuthLogin />
         },
         {
-          path: 'register',
-          element: <AuthRegister />
+          path: 'login',
+          element: <AuthLogin />
         },
+        // {
+        //   path: 'register',
+        //   element: <AuthRegister />
+        // },
         {
           path: 'forgot-password',
           element: <AuthForgotPassword />

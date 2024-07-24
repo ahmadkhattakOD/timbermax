@@ -3,23 +3,21 @@ import { forwardRef, Ref, ReactElement } from "react";
 // types
 import { KeyedObject } from "types/root";
 import { Box, Grid } from "@mui/material";
-import useConfig from "hooks/useConfig";
 import ActionButton from "./ActionButton";
-import Loader from "./Loader";
 
 export interface FormLayoutProps extends KeyedObject {
   inputs: ReactElement[];
   submitButtonText: string;
   isSubmitting: boolean;
+  showSubmitButton?: boolean;
 }
 
 // ==============================|| FORM LAYOUT - FORMIK ||============================== //
 
 function FormLayout(
-  { inputs, submitButtonText, isSubmitting }: FormLayoutProps,
+  { inputs, submitButtonText, isSubmitting, showSubmitButton = true }: FormLayoutProps,
   ref: Ref<HTMLDivElement>
 ) {
-  console.log("ISSUBMITTING", isSubmitting);
 
   return (
     <>
@@ -30,7 +28,7 @@ function FormLayout(
           </Grid>
         ))}
       </Grid>
-      <Box
+      {showSubmitButton && <Box
         sx={{
           width: "100%",
           display: "flex",
@@ -43,7 +41,7 @@ function FormLayout(
         ) : (
           <ActionButton text={submitButtonText} type="submit" />
         )}
-      </Box>
+      </Box>}
     </>
   );
 }

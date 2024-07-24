@@ -1,42 +1,43 @@
 // action - state management
-import { REGISTER, LOGIN, LOGOUT } from './actions';
+import { LOGIN, LOGOUT, UPDATE } from "./actions";
 
 // types
-import { AuthProps, AuthActionProps } from 'types/auth';
+import { AuthProps, AuthActionProps } from "types/auth";
 
 // initial state
 export const initialState: AuthProps = {
   isLoggedIn: false,
-  isInitialized: false,
-  user: null
+  role: "",
+  fullName: "",
+  isInitialized: undefined
 };
 
 // ==============================|| AUTH REDUCER ||============================== //
 
 const auth = (state = initialState, action: AuthActionProps) => {
   switch (action.type) {
-    case REGISTER: {
-      const { user } = action.payload!;
+    case LOGIN: {
+      const { role, isInitialized, fullName } = action.payload!;
       return {
-        ...state,
-        user
+        isLoggedIn: true,
+        role: role,
+        fullName: fullName,
+        isInitialized: isInitialized
       };
     }
-    case LOGIN: {
-      const { user } = action.payload!;
+    case UPDATE: {
+      const { fullName } = action.payload!;
       return {
         ...state,
-        isLoggedIn: true,
-        isInitialized: true,
-        user
+        fullName: fullName,
       };
     }
     case LOGOUT: {
       return {
-        ...state,
-        isInitialized: true,
         isLoggedIn: false,
-        user: null
+        role: "",
+        fullName: "",
+        isInitialized: undefined
       };
     }
     default: {

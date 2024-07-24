@@ -1,33 +1,71 @@
-// material-ui
-import Typography from "@mui/material/Typography";
-import AnimateButton from "components/@extended/AnimateButton";
-import ActionButton from "components/ActionButton";
-
 // project-imports
-import { Box } from "@mui/material";
 import FormLayout from "components/FormLayout";
-import { Field, Form, Formik, FormikHelpers } from "formik";
+import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { ValuesCreateSale, useCreateSale } from "./useCreateSale";
+import { useCreateSale } from "./useCreateSale";
+import {
+  australianStates,
+  getDateFormatted,
+  getDateFormattedForField,
+} from "utils/helpers";
+import { Box } from "@mui/material";
+import CircularLoader from "components/CircularLoader";
+import { IconButton } from "@mui/material";
+import { Add, NoteRemove, Trash } from "iconsax-react";
+import GooglePlacesAutocomplete from "react-google-places-autocomplete";
+import PlacesInput from "components/PlacesInput";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
 
 export default function CreateSale() {
-  const { australianStates, getTodaysDateFormatted, validate, onSubmit } =
-    useCreateSale();
+  const {
+    validate,
+    onSubmit,
+    salesPersons,
+    closers,
+    shows,
+    opportunities,
+    loading,
+    selectedOpportunities,
+    handleChangeSelectedOpportunities,
+    addSelectedOpportunity,
+    removeSelectedOpportunity,
+    changeAddress,
+    selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
+  } = useCreateSale();
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularLoader />
+      </Box>
+    );
+  }
   return (
     <Formik
       enableReinitialize
       initialValues={{
         contactName: "",
-        opportunityDescription: "",
         deposit: "",
         total: "",
         paymentMethod: "",
         phone: "",
+        mobile: "",
         address: "",
+        suburb: "",
         state: "",
         postCode: "",
         emailAddress: "",
@@ -37,12 +75,12 @@ export default function CreateSale() {
         status: "",
         show: "",
         followUpNotes: "",
-        saleDate: getTodaysDateFormatted(),
+        saleDate: getDateFormattedForField(),
       }}
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting }) => (
+      {({ handleSubmit, errors, touched, isSubmitting, values }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
@@ -62,7 +100,12 @@ export default function CreateSale() {
                 name={"salesPerson"}
                 label={"sales-person"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={salesPersons.map((salesPerson) => {
+                  return {
+                    label: salesPerson.full_name,
+                    value: salesPerson.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.salesPerson ? errors.salesPerson : ""}
               />,
@@ -71,6 +114,11 @@ export default function CreateSale() {
                 name={"deposit"}
                 placeholder={"Deposit"}
                 label={"deposit"}
+                secondaryLabel={
+                  values.deposit && values.total
+                    ? `${((parseFloat(values.deposit) / parseFloat(values.total)) * 100).toFixed(2)}%`
+                    : null
+                }
                 optional={false}
                 type={"number"}
                 min={0}
@@ -81,6 +129,11 @@ export default function CreateSale() {
                 name={"total"}
                 placeholder={"Total"}
                 label={"total"}
+                secondaryLabel={
+                  values.deposit && values.total
+                    ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                    : null
+                }
                 optional={false}
                 type={"number"}
                 min={0}
@@ -109,11 +162,30 @@ export default function CreateSale() {
                 type={"text"}
               />,
               <FormInput
-                id={"address"}
-                name={"address"}
-                placeholder={"Address"}
-                label={"address"}
+                id={"mobile"}
+                name={"mobile"}
+                placeholder={"Mobile"}
+                label={"mobile"}
                 type={"text"}
+              />,
+              <PlacesInput
+                id="address"
+                name="address"
+                placeholder="Address"
+                onChange={changeAddress}
+                value={selectedAddress}
+                label="address"
+              />,
+              <FormInput
+                id={"suburb"}
+                name={"suburb"}
+                placeholder={"Suburb"}
+                label={"suburb"}
+                type={"text"}
+                value={selectedSuburb}
+                onChange={(e) => {
+                  setSelectedSuburb(e.target.value);
+                }}
               />,
               <FormDropdown
                 id={"state"}
@@ -121,6 +193,10 @@ export default function CreateSale() {
                 label={"state"}
                 useFormattedStrings={false}
                 options={australianStates}
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                }}
               />,
               <FormInput
                 id={"postCode"}
@@ -144,20 +220,64 @@ export default function CreateSale() {
                 type={"text"}
                 isTextArea
               />,
-              <FormInput
-                id={"opportunityDescription"}
-                name={"opportunityDescription"}
-                placeholder={"Opportunity Description"}
-                label={"opportunity-description"}
-                type={"text"}
-                isTextArea
-              />,
+              <Box
+                sx={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+              >
+                {selectedOpportunities.map((opportunity, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      flexDirection: "row",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    <FormDropdown
+                      id={"opportunityDescription"}
+                      name={"opportunityDescription"}
+                      label={idx === 0 ? "opportunity-description" : undefined}
+                      useFormattedStrings={false}
+                      value={opportunity}
+                      onChange={(e) => {
+                        handleChangeSelectedOpportunities(e, idx);
+                      }}
+                      options={opportunities.map((opportunity) => {
+                        return {
+                          label: opportunity.name,
+                          value: opportunity.name,
+                        };
+                      })}
+                    />
+                    {idx === selectedOpportunities.length - 1 &&
+                      opportunity !== "" && (
+                        <IconButton onClick={addSelectedOpportunity}>
+                          <Add />
+                        </IconButton>
+                      )}
+                    {idx !== 0 && (
+                      <IconButton
+                        onClick={() => {
+                          removeSelectedOpportunity(idx);
+                        }}
+                      >
+                        <Trash />
+                      </IconButton>
+                    )}
+                  </Box>
+                ))}
+              </Box>,
               <FormDropdown
                 id={"closer"}
                 name={"closer"}
                 label={"closer"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={closers.map((closer) => {
+                  return {
+                    label: closer.full_name,
+                    value: closer.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.closer ? errors.closer : ""}
               />,
@@ -166,14 +286,25 @@ export default function CreateSale() {
                 name={"status"}
                 label={"status"}
                 optional={false}
-                options={[
-                  "delivered",
-                  "cancelled",
-                  "deposited-twenty-plus",
-                  "scheduled-for-delivery",
-                  "on-hold",
-                  "ready-for-delivery",
-                ]}
+                options={
+                  parseFloat(values.deposit) >= parseFloat(values.total) * 0.2
+                    ? [
+                        "delivered",
+                        "cancelled",
+                        "deposited-twenty-plus",
+                        "scheduled-for-delivery",
+                        "on-hold",
+                        "ready-for-delivery",
+                      ]
+                    : [
+                        "delivered",
+                        "cancelled",
+                        "scheduled-for-delivery",
+                        "on-hold",
+                        "ready-for-delivery",
+                      ]
+                }
+                disabledValues={["delivered"]}
                 error={touched.status ? errors.status : ""}
               />,
               <FormDropdown
@@ -181,7 +312,12 @@ export default function CreateSale() {
                 name={"show"}
                 label={"show"}
                 useFormattedStrings={false}
-                options={[0, 1, 2, 3]}
+                options={shows.map((show) => {
+                  return {
+                    label: show.name,
+                    value: show.id.toString(),
+                  };
+                })}
                 optional={false}
                 error={touched.show ? errors.show : ""}
               />,
@@ -192,7 +328,7 @@ export default function CreateSale() {
                 label={"sale-date"}
                 optional={false}
                 type={"date"}
-                max={getTodaysDateFormatted()}
+                max={getDateFormattedForField()}
                 error={touched.saleDate ? errors.saleDate : ""}
               />,
               <FormInput

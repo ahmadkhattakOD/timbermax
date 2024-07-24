@@ -4,10 +4,9 @@ import { To } from 'history';
 // material-ui
 import ButtonBase from '@mui/material/ButtonBase';
 import { SxProps } from '@mui/system';
+import logo from '../../assets/images/icons/ultramatic.png';
 
-// project-imports
-import Logo from './LogoMain';
-import LogoIcon from './LogoIcon';
+
 import useAuth from 'hooks/useAuth';
 import { APP_DEFAULT_PATH } from 'config';
 
@@ -24,7 +23,7 @@ export default function LogoSection({ isIcon, sx, to }: Props) {
 
   return (
     <ButtonBase disableRipple {...(isLoggedIn && { component: Link, to: !to ? APP_DEFAULT_PATH : to, sx })}>
-      {isIcon ? <LogoIcon /> : <Logo />}
+      <img src={logo} alt="icon logo" width="80" />
     </ButtonBase>
   );
 }

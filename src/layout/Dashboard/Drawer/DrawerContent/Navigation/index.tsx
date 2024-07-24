@@ -19,10 +19,13 @@ import { useGetMenuMaster } from 'api/menu';
 
 // types
 import { NavItemType } from 'types/menu';
+import useAuth from 'hooks/useAuth';
+import { UserRoles } from 'utils/helpers';
 
 // ==============================|| DRAWER CONTENT - NAVIGATION ||============================== //
 
 export default function Navigation() {
+  const { role } = useAuth();
   const { menuOrientation } = useConfig();
   const { menuMaster } = useGetMenuMaster();
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
@@ -34,8 +37,16 @@ export default function Navigation() {
   const [menuItems, setMenuItems] = useState<{ items: NavItemType[] }>({ items: [] });
 
   useLayoutEffect(() => {
-    setMenuItems(menuItem);
-    // eslint-disable-next-line
+    if (role === UserRoles.Admin) {
+      setMenuItems(menuItem.menuItemsAdmin);
+    }
+    else if (role === UserRoles.Closer || role === UserRoles.Both) {
+      setMenuItems(menuItem.menuItemsCloser);
+    }
+    else if (role === UserRoles.SalesPerson) {
+      setMenuItems(menuItem.menuItemsSalesPerson);
+    }
+    
   }, [menuItem]);
 
   const isHorizontal = menuOrientation === MenuOrientation.HORIZONTAL && !downLG;

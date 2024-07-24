@@ -2,11 +2,13 @@ import { Box, Typography, styled, Checkbox, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Field, useField } from "formik";
 import { FormattedMessage } from "react-intl";
+import { Eye, EyeSlash } from "iconsax-react";
 
 interface FieldInputProps {
   id: string;
   name: string;
   label?: string;
+  secondaryLabel?: string | null;
   placeholder?: string;
   value?: string;
   optional?: true | false;
@@ -17,10 +19,14 @@ interface FieldInputProps {
   defaultValue?: string;
   disabled?: boolean;
   isTextArea?: boolean;
+  isPasswordField?: boolean;
+  onChangePasswordVisibility?: () => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const FormInput = ({
   label,
+  secondaryLabel,
   placeholder,
   value,
   name,
@@ -32,13 +38,16 @@ const FormInput = ({
   error,
   defaultValue,
   disabled,
-  isTextArea = false
+  isTextArea = false,
+  isPasswordField,
+  onChangePasswordVisibility,
+  onChange,
 }: FieldInputProps) => {
-  const [field, __, helpers] = useField(name);
+  const [_, __, helpers] = useField(name);
   const theme = useTheme();
 
   useEffect(() => {
-    if (value) {
+    if (value && value.length > 0) {
       helpers.setValue(value);
     }
   }, []);
@@ -48,31 +57,88 @@ const FormInput = ({
       <Box
         sx={{
           display: "flex",
-          justifyContent: optional ? "space-between" : "",
+          justifyContent: "space-between",
           gap: "10px",
           mb: label && "0.5rem",
         }}
       >
-        <Typography
-          sx={{ color: theme.palette.secondary.main, fontSize: "16px" }}
+        <Box
+          sx={{
+            display: "flex",
+            gap: "10px",
+          }}
         >
-          <FormattedMessage id={label} />
-        </Typography>
-        {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
+          <Typography
+            sx={{
+              color: disabled
+                ? theme.palette.text.disabled
+                : theme.palette.text.primary,
+              fontSize: "16px",
+            }}
+          >
+            <FormattedMessage id={label} />
+          </Typography>
+          {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
+        </Box>
+        {secondaryLabel && (
+          <Typography
+            sx={{ color: theme.palette.secondary.dark, fontSize: "16px" }}
+          >
+            {secondaryLabel}
+          </Typography>
+        )}
       </Box>
+
       <div className={"group-input"}>
-        <Field
-          as={isTextArea ? 'textarea' : 'input'}
-          min={min}
-          max={max}
-          id={id}
-          name={name}
-          placeholder={placeholder}
-          className="input"
-          type={type}
-          defaultValue={defaultValue}
-          disabled={disabled}
-        />
+        {onChange ? (
+          <Field
+            as={isTextArea ? "textarea" : "input"}
+            min={min}
+            max={max}
+            id={id}
+            name={name}
+            placeholder={placeholder}
+            value={value}
+            className="input"
+            type={type}
+            defaultValue={defaultValue}
+            disabled={disabled}
+            autoComplete={type === "password" ? "new-password" : undefined}
+            onChange={onChange}
+          />
+        ) : (
+          <Field
+            as={isTextArea ? "textarea" : "input"}
+            min={min}
+            max={max}
+            id={id}
+            name={name}
+            placeholder={placeholder}
+            className="input"
+            type={type}
+            defaultValue={defaultValue}
+            disabled={disabled}
+            autoComplete={type === "password" ? "new-password" : undefined}
+          />
+        )}
+
+        {isPasswordField && (
+          <Box sx={{ paddingRight: "0.5rem" }}>
+            {type === "password" ? (
+              <Eye
+                color={theme.palette.primary.main}
+                onClick={onChangePasswordVisibility}
+                size="1rem"
+              />
+            ) : (
+              <EyeSlash
+                color={theme.palette.primary.main}
+                onClick={onChangePasswordVisibility}
+                size="1rem"
+              />
+            )}
+          </Box>
+        )}
       </div>
 
       {error && (
