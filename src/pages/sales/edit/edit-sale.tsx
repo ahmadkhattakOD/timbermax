@@ -317,7 +317,7 @@ export default function EditSale() {
       {!loading && invoiceCreated && (
         <Box display={"flex"} paddingBottom={"2rem"}>
           <Typography>
-            This sale has been invoiced, and is no longer editable.
+            This sale has been invoiced, and is no longer editable. Only the status can be changed.
           </Typography>
         </Box>
       )}

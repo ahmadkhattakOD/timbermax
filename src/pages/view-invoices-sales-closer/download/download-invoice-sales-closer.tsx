@@ -132,6 +132,8 @@ export default function DownloadInvoiceSalesCloser() {
                   startDate={getDateFormatted(invoice.start_date)}
                   endDate={getDateFormatted(invoice.end_date)}
                   status={invoice.status ?? ""}
+                  salesData={dataSales}
+                  cancelledData={dataCancelled}
                 />
               }
               fileName={`invoice_${getInitials(fullName)}_${getDateFormatted()}.pdf`}

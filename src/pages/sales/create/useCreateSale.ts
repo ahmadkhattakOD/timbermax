@@ -95,6 +95,10 @@ export function useCreateSale() {
       errors.total = "required-valid-number";
     }
 
+    if (values.total && values.deposit && parseFloat(values.deposit) > parseFloat(values.total)) {
+      errors.deposit = "deposit-greater-than-total";
+    }
+
     if (!values.paymentMethod.trim()) {
       errors.paymentMethod = "required";
     }

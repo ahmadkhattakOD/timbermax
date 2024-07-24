@@ -589,19 +589,19 @@ export function useCreateInvoice() {
           width={200}
           align="left"
         >
-          {row.sale?.contact_name}
+          {row.contact_name}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.sale?.deposit}
         </TableCell>
-        <TableCell align="right">{row.sale?.total}</TableCell>
+        <TableCell align="right">{row.total}</TableCell>
         <TableCell align="right">{row.commission}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.sale_date && getDateFormatted(row.sale?.sale_date)}
+          {row.sale?.sale_date && getDateFormatted(row.sale_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.status_changed_at &&
-            getDateFormatted(row.sale?.status_changed_at)}
+          {row.status_changed_at &&
+            getDateFormatted(row.status_changed_at)}
         </TableCell>
       </React.Fragment>
     );

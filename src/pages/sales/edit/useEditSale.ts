@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { UserRoles, isNumeric, parseAddress } from "utils/helpers";
-import InvoicesRepository from "utils/repositories/invoicesRepository";
+import InvoicesRepository, {
+  InvoiceSupabase,
+} from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository, {
@@ -98,6 +100,10 @@ export function useEditSale() {
       errors.total = "required-valid-number";
     }
 
+    if (values.total && values.deposit && parseFloat(values.deposit) > parseFloat(values.total)) {
+      errors.deposit = "deposit-greater-than-total";
+    }
+
     if (!values.paymentMethod.trim()) {
       errors.paymentMethod = "required";
     }
@@ -153,14 +159,245 @@ export function useEditSale() {
         );
 
         if (editedSale) {
-          openSnackbar({
-            open: true,
-            message: "Sale edited successfully.",
-            variant: "alert",
-            alert: {
-              color: "success",
-            },
-          } as SnackbarProps);
+          // openSnackbar({
+          //   open: true,
+          //   message: "Sale edited successfully.",
+          //   variant: "alert",
+          //   alert: {
+          //     color: "success",
+          //   },
+          // } as SnackbarProps);
+
+          if (values.status !== "cancelled") {
+            if (parseFloat(values.deposit) / parseFloat(values.total) >= 0.2) {
+              const profilesRepository = new ProfilesRepository();
+              const salesPersonProfile = await profilesRepository.getSingle(
+                values.salesPerson
+              );
+              const closerProfile = await profilesRepository.getSingle(
+                values.closer
+              );
+
+              if (salesPersonProfile && closerProfile) {
+                const {
+                  profileData: salesProfileData,
+                  profileError: salesProfileError,
+                } = salesPersonProfile;
+                const {
+                  profileData: closerProfileData,
+                  profileError: closerProfileError,
+                } = closerProfile;
+
+                if (
+                  salesProfileData &&
+                  closerProfileData &&
+                  !salesProfileError &&
+                  !closerProfileError
+                ) {
+                  let salesPersonCommissionPercentage =
+                    salesProfileData.commissions &&
+                    salesProfileData.commissions.length > 0
+                      ? salesProfileData.commissions[0] / 100
+                      : 0;
+
+                  let closerCommissionPercentage = 0;
+
+                  if (closerProfileData.role === UserRoles.Both) {
+                    closerCommissionPercentage =
+                      closerProfileData.commissions &&
+                      closerProfileData.commissions.length > 1
+                        ? closerProfileData.commissions[1] / 100
+                        : 0;
+                  } else {
+                    closerCommissionPercentage =
+                      closerProfileData.commissions &&
+                      closerProfileData.commissions.length > 0
+                        ? closerProfileData.commissions[0] / 100
+                        : 0;
+                  }
+
+                  const newSalesPersonInvoice: InvoiceSupabase = {
+                    sale: editedSale.id,
+                    commission:
+                      (parseFloat(values.total) - 300) *
+                      salesPersonCommissionPercentage,
+                    beneficiary: values.salesPerson,
+                  };
+                  const newCloserInvoice: InvoiceSupabase = {
+                    sale: editedSale.id,
+                    commission:
+                      (parseFloat(values.total) - 300) *
+                      closerCommissionPercentage,
+                    beneficiary: values.closer,
+                  };
+
+                  const invoicesRepository = new InvoicesRepository();
+
+                  await invoicesRepository.findAndDelete(
+                    parseInt(id),
+                    values.salesPerson
+                  );
+                  await invoicesRepository.findAndDelete(
+                    parseInt(id),
+                    values.closer
+                  );
+                  const createdSalesPersonInvoice =
+                    await invoicesRepository.create(newSalesPersonInvoice);
+                  const createdCloserInvoice =
+                    await invoicesRepository.create(newCloserInvoice);
+
+                  if (createdSalesPersonInvoice && createdCloserInvoice) {
+                    openSnackbar({
+                      open: true,
+                      message: "Sale edited and invoice created successfully.",
+                      variant: "alert",
+                      alert: {
+                        color: "success",
+                      },
+                    } as SnackbarProps);
+                  } else {
+                    const idToDelete = [editedSale.id];
+                    await salesRepository.delete(idToDelete);
+                    openSnackbar({
+                      open: true,
+                      message:
+                        "Sale could not be edited successfully. Please try again.",
+                      variant: "alert",
+                      alert: {
+                        color: "error",
+                      },
+                    } as SnackbarProps);
+                  }
+                }
+              } else {
+                openSnackbar({
+                  open: true,
+                  message:
+                    "Sale could not be edited successfully. Please try again.",
+                  variant: "alert",
+                  alert: {
+                    color: "error",
+                  },
+                } as SnackbarProps);
+              }
+            } else {
+              const profilesRepository = new ProfilesRepository();
+              const salesPersonProfile = await profilesRepository.getSingle(
+                values.salesPerson
+              );
+              const closerProfile = await profilesRepository.getSingle(
+                values.closer
+              );
+
+              if (salesPersonProfile && closerProfile) {
+                const {
+                  profileData: salesProfileData,
+                  profileError: salesProfileError,
+                } = salesPersonProfile;
+                const {
+                  profileData: closerProfileData,
+                  profileError: closerProfileError,
+                } = closerProfile;
+
+                if (
+                  salesProfileData &&
+                  closerProfileData &&
+                  !salesProfileError &&
+                  !closerProfileError
+                ) {
+                  let salesPersonCommissionPercentage =
+                    salesProfileData.commissions &&
+                    salesProfileData.commissions.length > 0
+                      ? salesProfileData.commissions[0] / 100
+                      : 0;
+
+                  let closerCommissionPercentage = 0;
+
+                  if (closerProfileData.role === UserRoles.Both) {
+                    closerCommissionPercentage =
+                      closerProfileData.commissions &&
+                      closerProfileData.commissions.length > 1
+                        ? closerProfileData.commissions[1] / 100
+                        : 0;
+                  } else {
+                    closerCommissionPercentage =
+                      closerProfileData.commissions &&
+                      closerProfileData.commissions.length > 0
+                        ? closerProfileData.commissions[0] / 100
+                        : 0;
+                  }
+
+                  const newSalesPersonInvoice: InvoiceSupabase = {
+                    sale: editedSale.id,
+                    commission:
+                      (parseFloat(values.total) - 300) *
+                      salesPersonCommissionPercentage,
+                    beneficiary: values.salesPerson,
+                  };
+                  const newCloserInvoice: InvoiceSupabase = {
+                    sale: editedSale.id,
+                    commission:
+                      (parseFloat(values.total) - 300) *
+                      closerCommissionPercentage,
+                    beneficiary: values.closer,
+                  };
+
+                  const invoicesRepository = new InvoicesRepository();
+
+                  const deletedSalesPersonInvoice = await invoicesRepository.findAndDelete(
+                    parseInt(id),
+                    values.salesPerson
+                  );
+                  const deletedCloserInvoice = await invoicesRepository.findAndDelete(
+                    parseInt(id),
+                    values.closer
+                  );
+
+                  if (deletedSalesPersonInvoice && deletedCloserInvoice) {
+                    openSnackbar({
+                      open: true,
+                      message: "Sale edited and invoice managed successfully.",
+                      variant: "alert",
+                      alert: {
+                        color: "success",
+                      },
+                    } as SnackbarProps);
+                  } else {
+                    const idToDelete = [editedSale.id];
+                    await salesRepository.delete(idToDelete);
+                    openSnackbar({
+                      open: true,
+                      message:
+                        "Sale could not be edited successfully. Please try again.",
+                      variant: "alert",
+                      alert: {
+                        color: "error",
+                      },
+                    } as SnackbarProps);
+                  }
+                }
+              } else {
+                openSnackbar({
+                  open: true,
+                  message:
+                    "Sale could not be edited successfully. Please try again.",
+                  variant: "alert",
+                  alert: {
+                    color: "error",
+                  },
+                } as SnackbarProps);
+              }
+            }
+          } else {
+            openSnackbar({
+              open: true,
+              message: "Sale edited successfully.",
+              variant: "alert",
+              alert: {
+                color: "success",
+              },
+            } as SnackbarProps);
+          }
         } else {
           openSnackbar({
             open: true,
@@ -214,7 +451,7 @@ export function useEditSale() {
           setSelectedAddress(saleData.address);
           setSelectedSuburb(saleData.suburb);
           setSelectedState(saleData.state);
-          setInvoiceCreated(saleData.invoiced);
+          setInvoiceCreated(saleData.invoiced_sales_person || saleData.invoiced_closer);
         }
       }
     }

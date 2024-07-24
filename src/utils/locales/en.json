@@ -184,5 +184,6 @@
   "cancelled-sales-table": "Cancelled Sales",
   "filter-cancelled-sales": "Filter Cancelled Sales",
   "cancelled-date-from": "Cancelled Date From",
-  "cancelled-date-to": "Cancelled Date To"
+  "cancelled-date-to": "Cancelled Date To",
+  "deposit-greater-than-total": "Deposit should be lesser than or equal to total"
 }

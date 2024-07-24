@@ -12,6 +12,7 @@ import logo from "../../../assets/images/icons/ultramatic.png";
 import paidStamp from "../../../assets/images/icons/paid-stamp.png";
 import pendingStamp from "../../../assets/images/icons/pending-stamp.png";
 import { getDateFormatted } from "utils/helpers";
+import { FormattedMessage } from "react-intl";
 
 export interface PDFInvoiceData {
   wages: string;
@@ -32,6 +33,22 @@ interface TableProps {
   total: string;
 }
 
+// export interface PDFSalesData {
+//   contactName: string;
+//   deposit: string;
+//   total: string;
+//   sales_person: any;
+//   closer: string;
+//   status: string;
+//   show: string;
+//   comms: string;
+//   saleDate: string;
+// }
+
+interface SalesTableProps {
+  data: any[];
+}
+
 interface PDFInvoiceProps {
   createdAt: string;
   fullName: string;
@@ -46,6 +63,8 @@ interface PDFInvoiceProps {
   startDate: string;
   endDate: string;
   status: string;
+  salesData: any[];
+  cancelledData: any[];
 }
 
 interface TableHeaderProps {
@@ -194,6 +213,32 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#787878",
   },
+  verticalTable: {
+    display: "flex",
+    flexDirection: "column",
+    borderWidth: 0.5,
+    borderColor: "#D3D3D3",
+  },
+  verticalTableRow: {
+    flexDirection: "row",
+  },
+  verticalTableCol: {
+    flex: 1,
+    borderWidth: 0.5,
+    borderColor: "#D3D3D3",
+    padding: 5,
+  },
+  verticalTableCell: {
+    fontSize: 10,
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    whiteSpace: "nowrap",
+  },
+  secondaryTitle: {
+    fontSize: 12,
+    color: "#0A5394",
+    paddingBottom: 20,
+  },
 });
 
 const Table: React.FC<TableProps> = ({
@@ -256,6 +301,146 @@ const Table: React.FC<TableProps> = ({
   </View>
 );
 
+const VerticalTableSales: React.FC<SalesTableProps> = ({ data }) => (
+  <View style={styles.verticalTable}>
+    {/* Table Header */}
+    <View style={styles.verticalTableRow}>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Contact Name</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Deposit</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Total</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Sales Person</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Closer</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Status</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Show</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Comms</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Sale Date</Text>
+      </View>
+    </View>
+    {/* Table Content */}
+    {data.map((row, index) => (
+      <View style={styles.verticalTableRow} key={index}>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.contact_name}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.deposit}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.total}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>
+            {row.sales_person?.full_name}
+          </Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.closer?.full_name}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>
+            <FormattedMessage id={row.status} />
+          </Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.show_name}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.commission}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>
+            {row.sale_date && getDateFormatted(row.sale_date)}
+          </Text>
+        </View>
+      </View>
+    ))}
+  </View>
+);
+
+const VerticalTableCancelled: React.FC<SalesTableProps> = ({ data }) => (
+  <View style={styles.verticalTable}>
+    {/* Table Header */}
+    <View style={styles.verticalTableRow}>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Contact Name</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Deposit</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Total</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Sales Person</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Closer</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Comms</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Sale Date</Text>
+      </View>
+      <View style={styles.verticalTableCol}>
+        <Text style={styles.verticalTableCell}>Cancellation Date</Text>
+      </View>
+    </View>
+    {/* Table Content */}
+    {data.map((row, index) => (
+      <View style={styles.verticalTableRow} key={index}>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.contact_name}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.deposit}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.total}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>
+            {row.sales_person?.full_name}
+          </Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.closer?.full_name}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>{row.commission}</Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>
+            {row.sale_date && getDateFormatted(row.sale_date)}
+          </Text>
+        </View>
+        <View style={styles.verticalTableCol}>
+          <Text style={styles.verticalTableCell}>
+            {row.status_changed_at && getDateFormatted(row.status_changed_at)}
+          </Text>
+        </View>
+      </View>
+    ))}
+  </View>
+);
+
 const Header: React.FC<TableHeaderProps> = ({
   createdAt,
   fullName,
@@ -296,6 +481,8 @@ const PDFDownload: React.FC<PDFInvoiceProps> = ({
   startDate,
   endDate,
   status,
+  salesData,
+  cancelledData,
 }) => {
   return (
     <Locales>
@@ -339,6 +526,18 @@ const PDFDownload: React.FC<PDFInvoiceProps> = ({
             </View>
           </View>
         </Page>
+        {salesData.length > 0 && (
+          <Page size="A4" style={{ padding: 30 }} orientation="portrait">
+            <Text style={styles.secondaryTitle}>Sales</Text>
+            <VerticalTableSales data={salesData} />
+          </Page>
+        )}
+        {cancelledData.length > 0 && (
+          <Page size="A4" style={{ padding: 30 }} orientation="portrait">
+            <Text style={styles.secondaryTitle}>Cancelled Sales</Text>
+            <VerticalTableCancelled data={cancelledData} />
+          </Page>
+        )}
       </Document>
     </Locales>
   );

@@ -380,7 +380,6 @@ export function useDownloadInvoice() {
           rangeEnd,
           rowsPerPageCancelled,
         );
-        console.log("SALES", sales);
         if (sales) {
           const { salesData, salesCount, salesError } = sales;
           if (salesData && !salesError) {

@@ -61,6 +61,35 @@ class InvoicesRepository {
     }
   }
 
+  public async findAndDelete(saleId: number, beneficiaryId: string) {
+    try {
+      const { data: existingInvoiceData, error: existingInvoiceError } =
+        await supabase
+          .from(this.className)
+          .select("id, sale (id, sales_person, closer) ")
+          .eq("sale", saleId)
+          .eq("beneficiary", beneficiaryId);
+
+      if (existingInvoiceData && !existingInvoiceError) {
+        const idsToDelete: number[] = [];
+        for (let i = 0; i < existingInvoiceData.length; i++) {
+          idsToDelete.push(existingInvoiceData[i].id);
+        }
+        const deleted = await this.delete(idsToDelete);
+        if (deleted === idsToDelete.length) {
+          return true;
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Error updating previous invoice:", error);
+      return null;
+    }
+  }
+
   public async get(
     id: string,
     orderBy: string,
@@ -121,7 +150,7 @@ class InvoicesRepository {
   public async getWithExtendedLimit(
     id: string,
     saleDateFrom: string,
-    saleDateTo: string,
+    saleDateTo: string
   ) {
     try {
       const query = supabase
@@ -294,25 +323,32 @@ class InvoicesRepository {
     filters?: ValuesFilterCancelled
   ) {
     try {
+      // const query = supabase
+      //   .from(this.className)
+      //   .select(
+      //     "id, commission, sale!inner ( contact_name, status, total, deposit, status_changed_at, sale_date, invoiced )",
+      //     { count: "exact" }
+      //   )
+      //   .eq("beneficiary", id)
+      //   .eq("sale.status", "cancelled")
+      //   .eq("sale.invoiced", true)
+      //   .order(orderBy, { ascending: ascending })
+      //   .range(rangeStart, rangeEnd)
+      //   .limit(limit);
+
       const query = supabase
-        .from(this.className)
-        .select(
-          "id, commission, sale!inner ( contact_name, status, total, deposit, status_changed_at, sale_date, invoiced )",
+        .rpc(
+          "fetch_invoices_cancelled",
+          {
+            p_beneficiary_id: id,
+            p_start_date: saleDateFrom,
+            p_end_date: saleDateTo,
+          },
           { count: "exact" }
         )
-        .eq("beneficiary", id)
-        .eq("sale.status", "cancelled")
-        .eq("sale.invoiced", true)
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
-
-      if (saleDateFrom !== "") {
-        query.gte("sale.status_changed_at", saleDateFrom);
-      }
-      if (saleDateTo !== "") {
-        query.lte("sale.status_changed_at", saleDateTo);
-      }
 
       if (filters) {
         if (filters.sale) {
@@ -345,23 +381,36 @@ class InvoicesRepository {
     saleDateTo: string
   ) {
     try {
+      // const query = supabase
+      //   .from(this.className)
+      //   .select(
+      //     "commission, sale!inner ( status, total, deposit, status_changed_at, invoiced ) "
+      //   )
+      //   .order("created_at", { ascending: false })
+      //   .eq("beneficiary", id)
+      //   .eq("sale.status", "cancelled")
+      //   .eq("sale.invoiced", true)
+      //   .limit(extendedDataLimit);
+
       const query = supabase
-        .from(this.className)
-        .select(
-          "commission, sale!inner ( status, total, deposit, status_changed_at, invoiced ) "
+        .rpc(
+          "fetch_invoices_cancelled",
+          {
+            p_beneficiary_id: id,
+            p_start_date: saleDateFrom,
+            p_end_date: saleDateTo,
+          },
+          { count: "exact" }
         )
-        .order("created_at", { ascending: false })
-        .eq("beneficiary", id)
-        .eq("sale.status", "cancelled")
-        .eq("sale.invoiced", true)
+        .order("created_at", { ascending: true })
         .limit(extendedDataLimit);
 
-      if (saleDateFrom !== "") {
-        query.gte("sale.status_changed_at", saleDateFrom);
-      }
-      if (saleDateTo !== "") {
-        query.lte("sale.status_changed_at", saleDateTo);
-      }
+      // if (saleDateFrom !== "") {
+      //   query.gte("sale.status_changed_at", saleDateFrom);
+      // }
+      // if (saleDateTo !== "") {
+      //   query.lte("sale.status_changed_at", saleDateTo);
+      // }
 
       const { data: invoicesData, error: invoicesError } = await query;
 

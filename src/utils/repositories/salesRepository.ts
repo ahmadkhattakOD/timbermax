@@ -560,7 +560,8 @@ class SalesRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit)
-        .neq("status", "delivered");
+        .neq("status", "delivered")
+        .neq("status", "cancelled");
 
       if (filters) {
         if (filters.contactName) {
@@ -706,7 +707,7 @@ class SalesRepository {
       const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, status_changed_at, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date, invoiced"
+          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, status_changed_at, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date, invoiced, invoiced_sales_person, invoiced_closer"
         )
         .eq("id", id)
         .limit(1)

@@ -160,7 +160,7 @@ class InvoicedSalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_descriptions, deposit, total, commission, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show_name, note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_descriptions, deposit, total, commission, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show_name, note, status, status_changed_at, follow_up_notes, sale_date, created_at",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -264,7 +264,7 @@ class InvoicedSalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_descriptions, deposit, total, commission, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show_name, note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, opportunity_descriptions, deposit, total, commission, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show_name, note, status, status_changed_at, follow_up_notes, sale_date, created_at",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
