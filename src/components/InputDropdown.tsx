@@ -1,6 +1,14 @@
-import { Box, Typography, styled, Checkbox, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
-import { Field, useField } from "formik";
+import {
+  Box,
+  Typography,
+  styled,
+  useTheme,
+  Autocomplete,
+  TextField,
+  CircularProgress,
+  Chip,
+} from "@mui/material";
+import React, { useState } from "react";
 import { FormattedMessage } from "react-intl";
 
 interface LabelValue {
@@ -13,17 +21,20 @@ interface FieldInputProps {
   name: string;
   label?: string;
   secondaryLabel?: string | null;
-  value?: string;
+  value?: any;
   optional?: true | false;
   error?: string;
   disabled?: boolean;
   defaultValue?: string;
-  options: string[] | number[] | LabelValue[];
+  options: readonly any[];
   useFormattedStrings?: boolean;
   disabledValues?: any[];
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSelect: (e: any) => void;
+  loading: boolean;
 }
 
-const FormInputDropdown = ({
+const InputDropdown = ({
   label,
   secondaryLabel,
   value,
@@ -32,27 +43,13 @@ const FormInputDropdown = ({
   optional = true,
   error,
   disabled,
-  defaultValue,
   options,
-  useFormattedStrings = true,
-  disabledValues
+  onChange,
+  onSelect,
+  loading,
 }: FieldInputProps) => {
-  const [field, __, helpers] = useField(name);
   const theme = useTheme();
-
-  function isLabelValueArray(options: any[]): options is LabelValue[] {
-    // Check if every element in the array has 'label' and 'value' properties
-    return options.every(
-      (option) =>
-        typeof option === "object" && "label" in option && "value" in option
-    );
-  }
-
-  useEffect(() => {
-    if (value) {
-      helpers.setValue(value);
-    }
-  }, []);
+  const [open, setOpen] = useState(false);
 
   return (
     <FieldInputStyle primaryColor={theme.palette.primary.main}>
@@ -71,9 +68,14 @@ const FormInputDropdown = ({
           }}
         >
           <Typography
-            sx={{ color: disabled ? theme.palette.text.disabled : theme.palette.text.primary, fontSize: "16px" }}
+            sx={{
+              color: disabled
+                ? theme.palette.text.disabled
+                : theme.palette.text.primary,
+              fontSize: "16px",
+            }}
           >
-            <FormattedMessage id={label} />
+            {label && <FormattedMessage id={label} />}
           </Typography>
           {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
         </Box>
@@ -86,14 +88,54 @@ const FormInputDropdown = ({
         )}
       </Box>
       <div className={"group-input"}>
-        <Field
+        <Autocomplete
           id={id}
-          name={name}
-          className="input"
-          disabled={disabled}
-        >
-          
-        </Field>
+          sx={{ width: "100%", border: "none" }}
+          open={open}
+          onOpen={() => {
+            setOpen(true);
+          }}
+          onClose={() => {
+            setOpen(false);
+          }}
+          onChange={onSelect}
+          value={value}
+          isOptionEqualToValue={(option, value) => option.id == value}
+          filterOptions={(x) => x}
+          getOptionLabel={(option) => option.name}
+          getOptionKey={(option) => option.id}
+          options={options}
+          loading={loading}
+          renderOption={(props, option) => {
+            const { key, ...restProps } = props as any;
+            const prop = { ...restProps };
+            return (
+              <li key={key} {...prop} value={option.id}>
+                {option.name}
+              </li>
+            );
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              name={name}
+              onChange={onChange}
+              sx={{ border: "none", borderRadius: 0 }}
+              InputProps={{
+                ...params.InputProps,
+                sx: { border: "none" },
+                endAdornment: (
+                  <React.Fragment>
+                    {loading ? (
+                      <CircularProgress color="inherit" size={20} />
+                    ) : null}
+                    {params.InputProps.endAdornment}
+                  </React.Fragment>
+                ),
+              }}
+            />
+          )}
+        />
       </div>
 
       {error && (
@@ -118,13 +160,20 @@ const FieldInputStyle = styled("div")<{ primaryColor: string }>((props) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: "1rem",
-    "& .input": {
+    "& .MuiAutocomplete-root": {
+      border: "none",
+    },
+    "& .Mui-focused": {
+      boxShadow: "none",
+    },
+    "& input": {
       padding: "0.8rem",
       color: "black",
       backgroundColor: "transparent !important",
       fontSize: "14px",
       border: "none",
       borderRadius: "8px",
+      boxShadow: "none",
       width: "100%",
       "&:focus": {
         outline: "none",
@@ -152,10 +201,13 @@ const FieldInputStyle = styled("div")<{ primaryColor: string }>((props) => ({
         backgroundColor: "transparent",
       },
     },
+    "& fieldset": {
+      border: "none !important",
+    },
   },
   ".error": {
     color: "red",
   },
 }));
 
-export default FormInputDropdown;
+export default InputDropdown;

@@ -3,7 +3,13 @@ import { FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, isNumeric, parseAddress } from "utils/helpers";
+import {
+  UserRoles,
+  isNumeric,
+  parseAddress,
+  useDebouncedSearch,
+} from "utils/helpers";
+import CustomersRepository from "utils/repositories/customersRepository";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
@@ -39,6 +45,7 @@ export interface ValuesEditSale {
 export function useEditSale() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
@@ -51,6 +58,9 @@ export function useEditSale() {
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
   const [invoiceCreated, setInvoiceCreated] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
+  const [customerSearch, setCustomerSearch] = useState<string>("");
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
   const { id } = useParams();
 
   function handleChangeSelectedOpportunities(
@@ -81,10 +91,16 @@ export function useEditSale() {
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setCustomerSearch(e.target.value);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+
   function validate(values: ValuesEditSale) {
     const errors = {} as ValuesEditSale;
 
-    if (!values.contactName.trim()) {
+    if (!selectedCustomer) {
       errors.contactName = "required";
     }
 
@@ -100,7 +116,11 @@ export function useEditSale() {
       errors.total = "required-valid-number";
     }
 
-    if (values.total && values.deposit && parseFloat(values.deposit) > parseFloat(values.total)) {
+    if (
+      values.total &&
+      values.deposit &&
+      parseFloat(values.deposit) > parseFloat(values.total)
+    ) {
       errors.deposit = "deposit-greater-than-total";
     }
 
@@ -131,7 +151,8 @@ export function useEditSale() {
     try {
       if (id && isNumeric(id)) {
         const updatedSale: SaleSupabase = {
-          contact_name: values.contactName,
+          contact_name: "Hello",
+          customer: selectedCustomer,
           opportunity_descriptions: selectedOpportunities,
           deposit: parseFloat(values.deposit) ?? 0,
           total: parseFloat(values.total) ?? 0,
@@ -344,14 +365,16 @@ export function useEditSale() {
 
                   const invoicesRepository = new InvoicesRepository();
 
-                  const deletedSalesPersonInvoice = await invoicesRepository.findAndDelete(
-                    parseInt(id),
-                    values.salesPerson
-                  );
-                  const deletedCloserInvoice = await invoicesRepository.findAndDelete(
-                    parseInt(id),
-                    values.closer
-                  );
+                  const deletedSalesPersonInvoice =
+                    await invoicesRepository.findAndDelete(
+                      parseInt(id),
+                      values.salesPerson
+                    );
+                  const deletedCloserInvoice =
+                    await invoicesRepository.findAndDelete(
+                      parseInt(id),
+                      values.closer
+                    );
 
                   if (deletedSalesPersonInvoice && deletedCloserInvoice) {
                     openSnackbar({
@@ -451,7 +474,11 @@ export function useEditSale() {
           setSelectedAddress(saleData.address);
           setSelectedSuburb(saleData.suburb);
           setSelectedState(saleData.state);
-          setInvoiceCreated(saleData.invoiced_sales_person || saleData.invoiced_closer);
+          setInvoiceCreated(
+            saleData.invoiced_sales_person || saleData.invoiced_closer
+          );
+          const customer = saleData.customer as any;
+          setSelectedCustomer(customer.id);
         }
       }
     }
@@ -521,17 +548,35 @@ export function useEditSale() {
     setLoading(false);
   }
 
+  async function getCustomers() {
+    setLoadingCustomers(true);
+    const customersRepository = new CustomersRepository();
+    const allCustomers = await customersRepository.getByName(customerSearch);
+    if (allCustomers) {
+      const { customersData, customersError } = allCustomers;
+      if (customersData && !customersError) {
+        setCustomers(customersData);
+      }
+    }
+    setLoadingCustomers(false);
+  }
+
   useEffect(() => {
     getSale();
     // getInvoice();
     getProfilesShows();
   }, []);
 
+  useEffect(() => {
+    getCustomers();
+  }, [customerSearch]);
+
   return {
     validate,
     onSubmit,
     sale,
     loading,
+    customers,
     salesPersons,
     closers,
     shows,
@@ -547,5 +592,10 @@ export function useEditSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
+    selectedCustomer,
+    setSelectedCustomer,
+    customerSearch,
+    handleSearchDebounced,
+    loadingCustomers,
   };
 }

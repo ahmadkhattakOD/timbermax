@@ -3,7 +3,9 @@ import { FormattedMessage } from "react-intl";
 
 // assets
 import {
+  BookSaved,
   Briefcase,
+  BrifecaseTick,
   ClipboardTick,
   ForwardItem,
   House2,
@@ -23,6 +25,7 @@ import { NavItemType } from "types/menu";
 const icons = {
   maintenance: MessageProgramming,
   sales: Money,
+  customers: BookSaved,
   deliveries: Truck,
   items: ForwardItem,
   stock: ClipboardTick,
@@ -46,6 +49,14 @@ const manageAdmin: NavItemType = {
       type: "item",
       url: "/sales",
       icon: icons.sales,
+      target: false,
+    },
+    {
+      id: "customers",
+      title: <FormattedMessage id="customers" />,
+      type: "item",
+      url: "/customers",
+      icon: icons.customers,
       target: false,
     },
     {

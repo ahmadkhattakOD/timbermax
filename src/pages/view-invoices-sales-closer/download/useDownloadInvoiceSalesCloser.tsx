@@ -16,7 +16,7 @@ import ProfilesRepository from "utils/repositories/profilesRepository";
 
 const headCellsSales: HeadCell[] = [
   {
-    id: "contact_name",
+    id: "name",
     numeric: false,
     disablePadding: true,
     label: "Contact Name",
@@ -151,7 +151,7 @@ const headCellsSales: HeadCell[] = [
 
 const headCellsCancelled: HeadCell[] = [
   {
-    id: "contact_name",
+    id: "name",
     numeric: false,
     disablePadding: true,
     label: "Contact Name",
@@ -251,7 +251,7 @@ export function useDownloadInvoiceSalesCloser() {
   ) {
     return (
       <React.Fragment>
-        <TableCell sx={{ minWidth: 200 }}>{row.contact_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.customer?.name}</TableCell>
         <TableCell sx={{ minWidth: 500 }}>
           {row.opportunity_descriptions &&
             row.opportunity_descriptions.map(
@@ -390,7 +390,7 @@ export function useDownloadInvoiceSalesCloser() {
           width={200}
           align="left"
         >
-          {row.contact_name}
+          {row.customer?.name}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}

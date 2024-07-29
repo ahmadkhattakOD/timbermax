@@ -22,7 +22,7 @@ import { Typography } from "@mui/material";
 
 const headCells: HeadCell[] = [
   {
-    id: "contact_name",
+    id: "customer?.name",
     numeric: false,
     disablePadding: true,
     label: "Contact Name",
@@ -197,7 +197,7 @@ export function useViewDelivery() {
   ) {
     return (
       <React.Fragment>
-        <TableCell sx={{ minWidth: 200 }}>{row.sale?.contact_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.sale?.customer?.name}</TableCell>
         <TableCell sx={{ minWidth: 500 }}>
           {row.sale?.opportunity_descriptions &&
             row.sale?.opportunity_descriptions.map(

@@ -12,6 +12,7 @@ import supabase from "utils/supabase";
 
 export interface SaleSupabase {
   contact_name: string;
+  customer: number;
   opportunity_descriptions: string[];
   deposit: number;
   total: number;
@@ -66,7 +67,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -96,10 +97,10 @@ class SalesRepository {
           query.eq("payment_method", filters.paymentMethod);
         }
         if (filters.phone) {
-          query.eq("phone", filters.phone);
+          query.ilike("phone", `${filters.phone}%`);
         }
         if (filters.mobile) {
-          query.eq("mobile", filters.mobile);
+          query.ilike("mobile", `${filters.mobile}%`);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -182,7 +183,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -213,10 +214,10 @@ class SalesRepository {
           query.eq("payment_method", filters.paymentMethod);
         }
         if (filters.phone) {
-          query.eq("phone", filters.phone);
+          query.ilike("phone", `${filters.phone}%`);
         }
         if (filters.mobile) {
-          query.eq("mobile", filters.mobile);
+          query.ilike("mobile", `${filters.mobile}%`);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -282,7 +283,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -310,10 +311,10 @@ class SalesRepository {
           query.eq("payment_method", filters.paymentMethod);
         }
         if (filters.phone) {
-          query.eq("phone", filters.phone);
+          query.ilike("phone", `${filters.phone}%`);
         }
         if (filters.mobile) {
-          query.eq("mobile", filters.mobile);
+          query.ilike("mobile", `${filters.mobile}%`);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -381,7 +382,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -412,7 +413,7 @@ class SalesRepository {
           query.eq("payment_method", filters.paymentMethod);
         }
         if (filters.phone) {
-          query.eq("phone", filters.phone);
+          query.ilike("phone", `${filters.phone}%`);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -470,7 +471,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date"
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date"
         )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
@@ -500,7 +501,7 @@ class SalesRepository {
           query.eq("payment_method", filters.paymentMethod);
         }
         if (filters.phone) {
-          query.eq("phone", filters.phone);
+          query.ilike("phone", `${filters.phone}%`);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -554,7 +555,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -586,10 +587,10 @@ class SalesRepository {
           query.eq("payment_method", filters.paymentMethod);
         }
         if (filters.phone) {
-          query.eq("phone", filters.phone);
+          query.ilike("phone", `${filters.phone}%`);
         }
         if (filters.mobile) {
-          query.eq("mobile", filters.mobile);
+          query.ilike("mobile", `${filters.mobile}%`);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);
@@ -707,7 +708,7 @@ class SalesRepository {
       const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
-          "id, contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, status_changed_at, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date, invoiced, invoiced_sales_person, invoiced_closer"
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, status_changed_at, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date, invoiced, invoiced_sales_person, invoiced_closer"
         )
         .eq("id", id)
         .limit(1)
@@ -822,7 +823,7 @@ class SalesRepository {
         p_start_date: startDate,
         p_end_date: endDate,
         p_beneficiary_id: userId,
-        p_generated_invoice_id: generatedInvoiceId
+        p_generated_invoice_id: generatedInvoiceId,
       });
 
       if (error === null) {
@@ -842,12 +843,15 @@ class SalesRepository {
     generatedInvoiceId: number
   ) {
     try {
-      const { data, error } = await supabase.rpc("update_invoiced_cancelled_sales", {
-        p_start_date: startDate,
-        p_end_date: endDate,
-        p_beneficiary_id: userId,
-        p_generated_invoice_id: generatedInvoiceId
-      });
+      const { data, error } = await supabase.rpc(
+        "update_invoiced_cancelled_sales",
+        {
+          p_start_date: startDate,
+          p_end_date: endDate,
+          p_beneficiary_id: userId,
+          p_generated_invoice_id: generatedInvoiceId,
+        }
+      );
 
       if (error === null) {
         return true;

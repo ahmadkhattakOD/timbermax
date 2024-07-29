@@ -57,7 +57,7 @@ export default function DeliverSale() {
       <Formik
         enableReinitialize
         initialValues={{
-          contactName: sale.contact_name ?? "",
+          contactName: sale.customer?.name ?? "",
           deposit: sale.deposit ?? "",
           total: sale.total ?? "",
           paymentMethod: sale.payment_method ?? "",

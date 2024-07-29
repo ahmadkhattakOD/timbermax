@@ -337,7 +337,7 @@ const VerticalTableSales: React.FC<SalesTableProps> = ({ data }) => (
     {data.map((row, index) => (
       <View style={styles.verticalTableRow} key={index}>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.contact_name}</Text>
+          <Text style={styles.verticalTableCell}>{row.customer?.name ?? ""}</Text>
         </View>
         <View style={styles.verticalTableCol}>
           <Text style={styles.verticalTableCell}>{row.deposit}</Text>
@@ -407,7 +407,7 @@ const VerticalTableCancelled: React.FC<SalesTableProps> = ({ data }) => (
     {data.map((row, index) => (
       <View style={styles.verticalTableRow} key={index}>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.contact_name}</Text>
+          <Text style={styles.verticalTableCell}>{row.customer?.name ?? ""}</Text>
         </View>
         <View style={styles.verticalTableCol}>
           <Text style={styles.verticalTableCell}>{row.deposit}</Text>

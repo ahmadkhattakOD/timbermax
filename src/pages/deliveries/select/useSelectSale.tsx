@@ -19,7 +19,7 @@ import ShowsRepository from "utils/repositories/showsRepository";
 
 const headCells: HeadCell[] = [
   {
-    id: "contact_name",
+    id: "name",
     numeric: false,
     disablePadding: true,
     label: "Contact Name",
@@ -227,7 +227,7 @@ export function useSelectSale() {
           width={200}
           align="left"
         >
-          {row.contact_name}
+          {row.customer?.name}
         </TableCell>
         <TableCell sx={{ minWidth: 500 }}>
           {row.opportunity_descriptions &&

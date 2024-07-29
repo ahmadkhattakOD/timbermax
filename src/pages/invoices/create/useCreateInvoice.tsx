@@ -22,7 +22,7 @@ import SalesRepository from "utils/repositories/salesRepository";
 
 const headCells: HeadCell[] = [
   {
-    id: "contact_name",
+    id: "name",
     numeric: false,
     disablePadding: true,
     label: "Contact Name",
@@ -163,7 +163,7 @@ const headCells: HeadCell[] = [
 
 const headCellsCancelled: HeadCell[] = [
   {
-    id: "contact_name",
+    id: "name",
     numeric: false,
     disablePadding: true,
     label: "Contact Name",
@@ -540,7 +540,7 @@ export function useCreateInvoice() {
               }
             );
           }
-          csvString += `${invoice.sale?.contact_name ?? ""},${opportunityDescriptions},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.payment_method ?? ""},${invoice.sale?.phone ?? ""},${invoice.sale?.mobile ?? ""},${invoice.sale?.address ?? ""},${invoice.sale?.state ?? ""},${invoice.sale?.post_code ?? ""},${invoice.sale?.email_address ?? ""},${invoice.sale?.sales_person?.full_name ?? ""},${invoice.sale?.closer?.full_name ?? ""},${invoice.sale?.show?.name ?? ""},${invoice.sale?.note ?? ""},${invoice.sale?.status ?? ""},${invoice.sale?.follow_up_notes ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.delivery_date_time ?? ""},${invoice.sale?.stock_from_warehose?.name ?? ""},${invoice.sale?.invoice_date ?? ""}\n`;
+          csvString += `${invoice.contact_name ?? ""},${opportunityDescriptions},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.payment_method ?? ""},${invoice.sale?.phone ?? ""},${invoice.sale?.mobile ?? ""},${invoice.sale?.address ?? ""},${invoice.sale?.state ?? ""},${invoice.sale?.post_code ?? ""},${invoice.sale?.email_address ?? ""},${invoice.sale?.sales_person?.full_name ?? ""},${invoice.sale?.closer?.full_name ?? ""},${invoice.sale?.show?.name ?? ""},${invoice.sale?.note ?? ""},${invoice.sale?.status ?? ""},${invoice.sale?.follow_up_notes ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.delivery_date_time ?? ""},${invoice.sale?.stock_from_warehose?.name ?? ""},${invoice.sale?.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);
@@ -659,7 +659,7 @@ export function useCreateInvoice() {
       if (dataCancelled.length > 0) {
         for (let i = 0; i < dataCancelled.length; i++) {
           let invoice = dataCancelled[i] as any;
-          csvString += `${invoice.sale?.contact_name ?? ""},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.status_changed_at ?? ""}\n`;
+          csvString += `${invoice.contact_name ?? ""},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.status_changed_at ?? ""}\n`;
         }
 
         setCsvDataCancelled(csvString);

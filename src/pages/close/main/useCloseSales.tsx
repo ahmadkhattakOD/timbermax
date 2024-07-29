@@ -16,7 +16,7 @@ import ShowsRepository from "utils/repositories/showsRepository";
 
 const headCells: HeadCell[] = [
   {
-    id: "contact_name",
+    id: "name",
     numeric: false,
     disablePadding: true,
     label: "Contact Name",
@@ -223,7 +223,7 @@ export function useCloseSales() {
           width={200}
           align="left"
         >
-          {row.contact_name}
+          {row.customer?.name}
         </TableCell>
         <TableCell sx={{ minWidth: 500 }}>
           {row.opportunity_descriptions &&
@@ -331,7 +331,7 @@ export function useCloseSales() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.contact_name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
         }
 
         setCsvData(csvString);

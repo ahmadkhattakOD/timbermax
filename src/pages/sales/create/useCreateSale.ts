@@ -2,7 +2,8 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, parseAddress } from "utils/helpers";
+import { UserRoles, parseAddress, useDebouncedSearch } from "utils/helpers";
+import CustomersRepository from "utils/repositories/customersRepository";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
@@ -36,6 +37,7 @@ export interface ValuesCreateSale {
 
 export function useCreateSale() {
   const navigate = useNavigate();
+  const [customers, setCustomers] = useState<any[]>([]);
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
@@ -46,7 +48,10 @@ export function useCreateSale() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
+  const [customerSearch, setCustomerSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
 
   function handleChangeSelectedOpportunities(
     e: React.ChangeEvent<HTMLSelectElement>,
@@ -76,10 +81,16 @@ export function useCreateSale() {
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setCustomerSearch(e.target.value);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+
   function validate(values: ValuesCreateSale) {
     const errors = {} as ValuesCreateSale;
 
-    if (!values.contactName.trim()) {
+    if (!selectedCustomer) {
       errors.contactName = "required";
     }
 
@@ -95,7 +106,11 @@ export function useCreateSale() {
       errors.total = "required-valid-number";
     }
 
-    if (values.total && values.deposit && parseFloat(values.deposit) > parseFloat(values.total)) {
+    if (
+      values.total &&
+      values.deposit &&
+      parseFloat(values.deposit) > parseFloat(values.total)
+    ) {
       errors.deposit = "deposit-greater-than-total";
     }
 
@@ -125,7 +140,8 @@ export function useCreateSale() {
   async function onSubmit(values: ValuesCreateSale) {
     try {
       const newSale: SaleSupabase = {
-        contact_name: values.contactName,
+        contact_name: "Hello",
+        customer: selectedCustomer,
         opportunity_descriptions: selectedOpportunities.filter((i) => i !== ""),
         deposit: parseFloat(values.deposit) ?? 0,
         total: parseFloat(values.total) ?? 0,
@@ -349,13 +365,31 @@ export function useCreateSale() {
     setLoading(false);
   }
 
+  async function getCustomers() {
+    setLoadingCustomers(true);
+    const customersRepository = new CustomersRepository();
+    const allCustomers = await customersRepository.getByName(customerSearch);
+    if (allCustomers) {
+      const { customersData, customersError } = allCustomers;
+      if (customersData && !customersError) {
+        setCustomers(customersData);
+      }
+    }
+    setLoadingCustomers(false);
+  }
+
   useEffect(() => {
     getProfilesShows();
   }, []);
 
+  useEffect(() => {
+    getCustomers();
+  }, [customerSearch]);
+
   return {
     validate,
     onSubmit,
+    customers,
     salesPersons,
     closers,
     shows,
@@ -371,5 +405,10 @@ export function useCreateSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
+    selectedCustomer,
+    setSelectedCustomer,
+    customerSearch,
+    handleSearchDebounced,
+    loadingCustomers,
   };
 }

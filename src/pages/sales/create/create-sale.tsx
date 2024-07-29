@@ -1,6 +1,6 @@
 // project-imports
 import FormLayout from "components/FormLayout";
-import { Form, Formik } from "formik";
+import { Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateSale } from "./useCreateSale";
@@ -9,12 +9,14 @@ import {
   getDateFormatted,
   getDateFormattedForField,
 } from "utils/helpers";
-import { Box } from "@mui/material";
+import { Autocomplete, Box, CircularProgress, TextField } from "@mui/material";
 import CircularLoader from "components/CircularLoader";
 import { IconButton } from "@mui/material";
 import { Add, NoteRemove, Trash } from "iconsax-react";
 import GooglePlacesAutocomplete from "react-google-places-autocomplete";
 import PlacesInput from "components/PlacesInput";
+import React, { useState } from "react";
+import InputDropdown from "components/InputDropdown";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
 
@@ -22,6 +24,7 @@ export default function CreateSale() {
   const {
     validate,
     onSubmit,
+    customers,
     salesPersons,
     closers,
     shows,
@@ -37,7 +40,14 @@ export default function CreateSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
+    selectedCustomer,
+    setSelectedCustomer,
+    customerSearch,
+    handleSearchDebounced,
+    loadingCustomers,
   } = useCreateSale();
+
+  const [openName, setOpenName] = useState(false);
 
   if (loading) {
     return (
@@ -86,14 +96,28 @@ export default function CreateSale() {
             isSubmitting={isSubmitting}
             submitButtonText={"add"}
             inputs={[
-              <FormInput
-                id={"contactName"}
-                name={"contactName"}
-                placeholder={"Contact Name"}
-                label={"contact-name"}
+              // <FormInput
+              //   id={"contactName"}
+              //   name={"contactName"}
+              //   placeholder={"Contact Name"}
+              //   label={"contact-name"}
+              //   optional={false}
+              //   type={"text"}
+              //   error={touched.contactName ? errors.contactName : ""}
+              // />,
+
+              <InputDropdown
+                id="contactName"
+                name="contactName"
+                label="contact-name"
+                options={customers}
+                loading={loadingCustomers}
                 optional={false}
-                type={"text"}
-                error={touched.contactName ? errors.contactName : ""}
+                onChange={handleSearchDebounced}
+                onSelect={(e) => {
+                  setSelectedCustomer(e.target.value);
+                }}
+                error={errors.contactName}
               />,
               <FormDropdown
                 id={"salesPerson"}

@@ -14,6 +14,7 @@ import {
 import { IconButton } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
+import InputDropdown from "components/InputDropdown";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
@@ -23,6 +24,7 @@ export default function EditSale() {
     onSubmit,
     sale,
     loading,
+    customers,
     salesPersons,
     closers,
     shows,
@@ -38,6 +40,11 @@ export default function EditSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
+    selectedCustomer,
+    setSelectedCustomer,
+    customerSearch,
+    handleSearchDebounced,
+    loadingCustomers,
   } = useEditSale();
 
   if (loading) {
@@ -317,14 +324,15 @@ export default function EditSale() {
       {!loading && invoiceCreated && (
         <Box display={"flex"} paddingBottom={"2rem"}>
           <Typography>
-            This sale has been invoiced, and is no longer editable. Only the status can be changed.
+            This sale has been invoiced, and is no longer editable. Only the
+            status can be changed.
           </Typography>
         </Box>
       )}
       <Formik
         enableReinitialize
         initialValues={{
-          contactName: sale.contact_name ?? "",
+          contactName: sale.customer?.name ?? "",
           opportunityDescription: sale.opportunity_description ?? "",
           deposit: sale.deposit ?? "",
           total: sale.total ?? "",
@@ -353,15 +361,30 @@ export default function EditSale() {
               isSubmitting={isSubmitting}
               submitButtonText={"submit"}
               inputs={[
-                <FormInput
-                  id={"contactName"}
-                  name={"contactName"}
-                  placeholder={"Contact Name"}
-                  label={"contact-name"}
+                // <FormInput
+                //   id={"contactName"}
+                //   name={"contactName"}
+                //   placeholder={"Contact Name"}
+                //   label={"contact-name"}
+                //   optional={false}
+                //   type={"text"}
+                //   error={touched.contactName ? errors.contactName : ""}
+                //   disabled={invoiceCreated}
+                // />,
+                !loadingCustomers && <InputDropdown
+                  id="contactName"
+                  name="contactName"
+                  label="contact-name"
+                  options={customers}
+                  loading={loadingCustomers}
                   optional={false}
-                  type={"text"}
-                  error={touched.contactName ? errors.contactName : ""}
-                  disabled={invoiceCreated}
+                  value={customers.find((c) => c.id === selectedCustomer)}
+                  onChange={handleSearchDebounced}
+                  onSelect={(e) => {
+                    console.log(e.target.value);
+                    setSelectedCustomer(e.target.value);
+                  }}
+                  error={errors.contactName}
                 />,
                 <FormDropdown
                   id={"salesPerson"}

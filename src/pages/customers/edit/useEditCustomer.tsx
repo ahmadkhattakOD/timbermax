@@ -1,22 +1,27 @@
 import { Checkbox, TableCell, Typography } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
   UserRoles,
   getDateFormatted,
   initialRowsPerPage,
+  isNumeric,
+  parseAddress,
   useDebouncedSearch,
 } from "utils/helpers";
+import CustomersRepository, {
+  CustomerSupabase,
+} from "utils/repositories/customersRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 
-const headCells: HeadCell[] = [
+const headCellsSales: HeadCell[] = [
   {
     id: "name",
     numeric: false,
@@ -185,40 +190,180 @@ const initialFilters: ValuesFilterSales = {
   closed: "",
 };
 
-export function useSales() {
-  const [data, setData] = useState<any[]>([]);
-  const [dataCount, setDataCount] = useState<number>(0);
-  const [order, setOrder] = useState<Order>("desc");
-  const [orderBy, setOrderBy] = useState<string>("created_at");
-  const [selected, setSelected] = useState<readonly number[]>([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
+export interface ValuesEditCustomer {
+  name: string;
+  milestone: string;
+  expectedCloseDate: string;
+  email: string;
+  phone: string;
+  mobile: string;
+  address: string;
+  suburb: string;
+  state: string;
+  postCode: string;
+  lostReason: string;
+  notes: string;
+}
+
+export function useEditCustomer() {
+  const navigate = useNavigate();
+  const [loadingInfo, setLoadingInfo] = useState(true);
+  const [customer, setCustomer] = useState<any>(null);
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedTab, setSelectedTab] = useState<string>("Information");
+
+  const [dataSales, setDataSales] = useState<any[]>([]);
+  const [dataCountSales, setDataCountSales] = useState<number>(0);
+  const [orderSales, setOrderSales] = useState<Order>("desc");
+  const [orderBySales, setOrderBySales] = useState<string>("created_at");
+  const [selectedSales, setSelectedSales] = useState<readonly number[]>([]);
+  const [pageSales, setPageSales] = useState(0);
+  const [rowsPerPageSales, setRowsPerPageSales] = useState(initialRowsPerPage);
+  const [loadingSales, setLoadingSales] = useState<boolean>(false);
+  const [deleteConfirmModalOpenSales, setDeleteConfirmModalOpenSales] =
+    useState(false);
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [filters, setFilters] = useState<ValuesFilterSales>(initialFilters);
-  const [searchValue, setSearchValue] = useState("");
-  const [csvData, setCsvData] = useState<string>("");
-  const csvLink = useRef<any>();
-  const navigate = useNavigate();
+  const [filterModalOpenSales, setFilterModalOpenSales] = useState(false);
+  const [filtersSales, setFiltersSales] =
+    useState<ValuesFilterSales>(initialFilters);
+  const [csvDataSales, setCsvDataSales] = useState<string>("");
+  const csvLinkSales = useRef<any>();
 
-  function goToCreate() {
+  const { id } = useParams();
+
+  /* INFO START */
+
+  function changeAddress(newValue: any, actionMeta: any) {
+    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedSuburb(addressComponents.suburb);
+    setSelectedState(addressComponents.state);
+    setSelectedAddress(newValue?.value?.description ?? "");
+  }
+
+  function validate(values: ValuesEditCustomer) {
+    const errors = {} as ValuesEditCustomer;
+
+    if (!values.name.trim()) {
+      errors.name = "required";
+    }
+
+    return errors;
+  }
+
+  async function onSubmit(values: ValuesEditCustomer) {
+    try {
+      if (id && isNumeric(id)) {
+        const updatedCustomer: CustomerSupabase = {
+          name: values.name,
+          milestone: values.milestone,
+          expected_close_date:
+            values.expectedCloseDate !== ""
+              ? new Date(values.expectedCloseDate)
+              : null,
+          email: values.email,
+          phone: values.phone,
+          mobile: values.mobile,
+          address: selectedAddress,
+          suburb: selectedSuburb,
+          state: selectedState,
+          post_code: values.postCode,
+          notes: values.notes,
+          lost_reason: values.lostReason,
+        };
+
+        const customersRepository = new CustomersRepository();
+        const editedCustomer = await customersRepository.edit(
+          parseInt(id),
+          updatedCustomer
+        );
+
+        if (editedCustomer) {
+          openSnackbar({
+            open: true,
+            message: "Customer edited successfully.",
+            variant: "alert",
+            alert: {
+              color: "success",
+            },
+          } as SnackbarProps);
+        } else {
+          openSnackbar({
+            open: true,
+            message:
+              "Customer could not be edited successfully. Please try again.",
+            variant: "alert",
+            alert: {
+              color: "error",
+            },
+          } as SnackbarProps);
+        }
+
+        navigate("/customers");
+      } else {
+        openSnackbar({
+          open: true,
+          message:
+            "Customer could not be edited successfully. Please try again.",
+          variant: "alert",
+          alert: {
+            color: "error",
+          },
+        } as SnackbarProps);
+
+        navigate("/customers");
+      }
+    } catch (e) {
+      openSnackbar({
+        open: true,
+        message: "Customer could not be edited successfully. Please try again.",
+        variant: "alert",
+        alert: {
+          color: "error",
+        },
+      } as SnackbarProps);
+
+      navigate("/customers");
+    }
+  }
+
+  async function getCustomer() {
+    setLoadingInfo(true);
+    if (id && isNumeric(id)) {
+      const customersRepository = new CustomersRepository();
+      const existingCustomer = await customersRepository.getSingle(
+        parseInt(id)
+      );
+      if (existingCustomer) {
+        const { customerData, customerError } = existingCustomer;
+        if (customerData && !customerError) {
+          setCustomer(customerData);
+          setSelectedAddress(customerData.address);
+          setSelectedSuburb(customerData.suburb);
+          setSelectedState(customerData.state);
+        }
+      }
+    }
+    setLoadingInfo(false);
+  }
+
+  useEffect(() => {
+    getCustomer();
+  }, []);
+
+  /* INFO ENDS */
+
+  // SALES START
+
+  function goToCreateSales() {
     navigate("/sales/new");
   }
 
-  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    let temp = { ...filters };
-    temp.contactName = e.target.value;
-    setFilters(temp);
-  }
-
-  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
-
-  function generateTableCells(
+  function generateTableCellsSales(
     row: any,
     labelId: string,
     isItemSelected: boolean
@@ -239,7 +384,7 @@ export function useSales() {
           id={labelId}
           scope="row"
           padding="none"
-          sx={{ minWidth: 200 }}
+          width={200}
           align="left"
         >
           {row.customer?.name}
@@ -294,13 +439,13 @@ export function useSales() {
     );
   }
 
-  function openDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(true);
+  function openDeleteConfirmModalSales() {
+    setDeleteConfirmModalOpenSales(true);
   }
 
-  async function onDelete() {
+  async function onDeleteSales() {
     const salesRepository = new SalesRepository();
-    const deletedSales = await salesRepository.delete(selected);
+    const deletedSales = await salesRepository.delete(selectedSales);
     if (deletedSales > 0) {
       openSnackbar({
         open: true,
@@ -310,8 +455,8 @@ export function useSales() {
           color: "success",
         },
       } as SnackbarProps);
-      setSelected([]);
-      await getData();
+      setSelectedSales([]);
+      await getDataSales();
     } else {
       openSnackbar({
         open: true,
@@ -324,57 +469,57 @@ export function useSales() {
     }
   }
 
-  function closeDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(false);
+  function closeDeleteConfirmModalSales() {
+    setDeleteConfirmModalOpenSales(false);
   }
 
-  function openFilterModal() {
-    setFilterModalOpen(true);
+  function openFilterModalSales() {
+    setFilterModalOpenSales(true);
   }
 
-  function closeFilterModal() {
-    setFilterModalOpen(false);
+  function closeFilterModalSales() {
+    setFilterModalOpenSales(false);
   }
 
-  async function getData() {
+  async function getDataSales() {
     try {
-      setLoading(true);
+      setLoadingSales(true);
       const salesRepository = new SalesRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
+      const rangeStart = rowsPerPageSales * pageSales;
+      const rangeEnd = rangeStart + rowsPerPageSales;
       const sales = await salesRepository.get(
-        orderBy,
-        order === "asc",
+        orderBySales,
+        orderSales === "asc",
         rangeStart,
         rangeEnd,
-        rowsPerPage,
-        filters
+        rowsPerPageSales,
+        filtersSales
       );
       if (sales) {
         const { salesData, salesCount, salesError } = sales;
         if (salesData && !salesError) {
-          setData(salesData);
-          setDataCount(salesCount ?? 0);
+          setDataSales(salesData);
+          setDataCountSales(salesCount ?? 0);
         }
       }
-      setLoading(false);
+      setLoadingSales(false);
     } catch (e) {
       console.error("Error fetching sales:", e);
-      setLoading(false);
+      setLoadingSales(false);
     }
   }
 
   useEffect(() => {
-    getData();
-  }, [order, orderBy, page, rowsPerPage, filters]);
+    getDataSales();
+  }, [orderSales, orderBySales, pageSales, rowsPerPageSales, filtersSales]);
 
-  function getDataCsv() {
+  function getDataCsvSales() {
     try {
       let csvString = "";
 
-      if (data.length > 0) {
-        for (let i = 0; i < data.length; i++) {
-          let sale = data[i] as any;
+      if (dataSales.length > 0) {
+        for (let i = 0; i < dataSales.length; i++) {
+          let sale = dataSales[i] as any;
           let opportunityDescriptions = "";
           if (sale?.opportunity_descriptions) {
             sale?.opportunity_descriptions.forEach((opportunity: string) => {
@@ -384,39 +529,38 @@ export function useSales() {
           csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
         }
 
-        setCsvData(csvString);
+        setCsvDataSales(csvString);
 
         setTimeout(() => {
-          csvLink?.current?.link?.click();
+          csvLinkSales?.current?.link?.click();
         }, 2000);
       }
     } catch (e) {
       console.error("Error fetching sales:", e);
-      setLoading(false);
+      setLoadingSales(false);
     }
   }
 
-  async function validateFilters(values: ValuesFilterSales) {
+  async function validateFiltersSales(values: ValuesFilterSales) {
     const errors = {} as ValuesFilterSales;
 
     return errors;
   }
 
-  async function handleFiltersSubmit(values: ValuesFilterSales) {
+  async function handleFiltersSubmitSales(values: ValuesFilterSales) {
     try {
-      setFilters(values);
-      setFilterModalOpen(false);
+      setFiltersSales(values);
+      setFilterModalOpenSales(false);
     } catch (error) {
       console.error("Error filtering sales:", error);
     }
   }
 
-  function resetFilters() {
-    setSearchValue("");
-    setFilters(initialFilters);
+  function resetFiltersSales() {
+    setFiltersSales(initialFilters);
   }
 
-  async function getFilterData() {
+  async function getFilterDataSales() {
     const profilesRepository = new ProfilesRepository();
     const allProfiles = await profilesRepository.getWithoutFilters();
     if (allProfiles) {
@@ -463,46 +607,58 @@ export function useSales() {
   }
 
   useEffect(() => {
-    getFilterData();
+    getFilterDataSales();
   }, []);
 
+  // SALES END
+
   return {
-    data,
-    dataCount,
-    loading,
-    goToCreate,
-    order,
-    setOrder,
-    orderBy,
-    setOrderBy,
-    selected,
-    setSelected,
-    page,
-    setPage,
-    rowsPerPage,
-    setRowsPerPage,
-    headCells,
-    generateTableCells,
-    onDelete,
-    deleteConfirmModalOpen,
-    openDeleteConfirmModal,
-    closeDeleteConfirmModal,
-    filterModalOpen,
-    openFilterModal,
-    closeFilterModal,
-    handleFiltersSubmit,
-    validateFilters,
-    filters,
+    validate,
+    onSubmit,
+    customer,
+    loadingInfo,
+    changeAddress,
+    selectedAddress,
+    selectedSuburb,
+    setSelectedSuburb,
+    selectedState,
+    setSelectedState,
+    selectedTab,
+    setSelectedTab,
+    // SALES
+    dataSales,
+    dataCountSales,
+    loadingSales,
+    goToCreateSales,
+    orderSales,
+    setOrderSales,
+    orderBySales,
+    setOrderBySales,
+    selectedSales,
+    setSelectedSales,
+    pageSales,
+    setPageSales,
+    rowsPerPageSales,
+    setRowsPerPageSales,
+    headCellsSales,
+    generateTableCellsSales,
+    onDeleteSales,
+    deleteConfirmModalOpenSales,
+    openDeleteConfirmModalSales,
+    closeDeleteConfirmModalSales,
+    filterModalOpenSales,
+    openFilterModalSales,
+    closeFilterModalSales,
+    handleFiltersSubmitSales,
+    validateFiltersSales,
+    filtersSales,
     salesPersons,
     closers,
     shows,
     opportunities,
-    resetFilters,
-    getDataCsv,
-    csvData,
-    csvLink,
-    handleSearchDebounced,
-    searchValue,
-    setSearchValue,
+    resetFiltersSales,
+    getDataCsvSales,
+    csvDataSales,
+    csvLinkSales,
   };
 }

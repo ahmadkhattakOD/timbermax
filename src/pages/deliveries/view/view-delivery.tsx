@@ -90,7 +90,7 @@ export default function ViewDelivery() {
       <Formik
         enableReinitialize
         initialValues={{
-          contactName: sale?.contact_name ?? "",
+          contactName: sale?.customer?.name ?? "",
           opportunityDescription: sale?.opportunity_description ?? "",
           deposit: sale?.deposit ?? "",
           total: sale?.total ?? "",

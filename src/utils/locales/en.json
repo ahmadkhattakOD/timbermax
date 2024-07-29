@@ -185,5 +185,21 @@
   "filter-cancelled-sales": "Filter Cancelled Sales",
   "cancelled-date-from": "Cancelled Date From",
   "cancelled-date-to": "Cancelled Date To",
-  "deposit-greater-than-total": "Deposit should be lesser than or equal to total"
+  "deposit-greater-than-total": "Deposit should be lesser than or equal to total",
+  "customers": "Customers",
+  "filter-customers": "Filter Customers",
+  "add-new-customer": "Add New Customer",
+  "milestone": "Milestone",
+  "won": "Won",
+  "in-progress": "In Progress",
+  "lost": "Lost",
+  "expected-close-date": "Expected Close Date",
+  "actual-close-date": "Actual Close Date",
+  "lost-reason": "Lost Reason",
+  "expected-close-date-from": "Expected Close Date From",
+  "expected-close-date-to": "Expected Close Date To",
+  "actual-close-date-from": "Actual Close Date From",
+  "actual-close-date-to": "Actual Close Date To",
+  "information": "Info",
+  "history": "History"
 }

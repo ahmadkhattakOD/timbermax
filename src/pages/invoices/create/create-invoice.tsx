@@ -439,7 +439,7 @@ export default function CreateInvoice() {
                           useFormattedStrings={false}
                           options={sales.map((sale) => {
                             return {
-                              label: sale.contact_name,
+                              label: sale.customer?.name,
                               value: sale.id.toString(),
                             };
                           })}
@@ -563,7 +563,7 @@ export default function CreateInvoice() {
                           useFormattedStrings={false}
                           options={sales.map((sale) => {
                             return {
-                              label: sale.contact_name,
+                              label: sale.customer?.name,
                               value: sale.id.toString(),
                             };
                           })}
