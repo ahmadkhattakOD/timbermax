@@ -72,18 +72,50 @@ export default function EditCustomer() {
     getDataCsvSales,
     csvDataSales,
     csvLinkSales,
+    dataCommunication,
+    dataCountCommunication,
+    loadingCommunication,
+    goToCreateCommunication,
+    orderCommunication,
+    setOrderCommunication,
+    orderByCommunication,
+    setOrderByCommunication,
+    selectedCommunication,
+    setSelectedCommunication,
+    pageCommunication,
+    setPageCommunication,
+    rowsPerPageCommunication,
+    setRowsPerPageCommunication,
+    headCellsCommunication,
+    generateTableCellsCommunication,
+    onDeleteCommunication,
+    deleteConfirmModalOpenCommunication,
+    openDeleteConfirmModalCommunication,
+    closeDeleteConfirmModalCommunication,
+    filterModalOpenCommunication,
+    openFilterModalCommunication,
+    closeFilterModalCommunication,
+    handleFiltersSubmitCommunication,
+    validateFiltersCommunication,
+    filtersCommunication,
+    resetFiltersCommunication,
+    getDataCsvCommunication,
+    csvDataCommunication,
+    csvLinkCommunication,
+    setSearchParams
   } = useEditCustomer();
 
   return (
     <>
       <CreateAndFiltersLayout
-        actionButton={
+        filters={
           <Box sx={{ display: "flex", gap: "1rem" }}>
             <ActionButton
               text={"information"}
               color={selectedTab === "Information" ? "primary" : "secondary"}
               onClick={() => {
                 setSelectedTab("Information");
+                setSearchParams({ tab: "Information" });
               }}
             />
             <ActionButton
@@ -91,6 +123,7 @@ export default function EditCustomer() {
               color={selectedTab === "Sales" ? "primary" : "secondary"}
               onClick={() => {
                 setSelectedTab("Sales");
+                setSearchParams({ tab: "Sales" });
               }}
             />
             <ActionButton
@@ -98,6 +131,7 @@ export default function EditCustomer() {
               color={selectedTab === "History" ? "primary" : "secondary"}
               onClick={() => {
                 setSelectedTab("History");
+                setSearchParams({ tab: "History" });
               }}
             />
           </Box>
@@ -292,7 +326,6 @@ export default function EditCustomer() {
                       alignItems: "flex-end",
                     }}
                   >
-                    
                     {hasNonEmptyValue(filtersSales) ? (
                       <ActionButton
                         text={"reset-filters"}
@@ -325,6 +358,8 @@ export default function EditCustomer() {
                 openDeleteConfirmModal={openDeleteConfirmModalSales}
                 openFilterModal={openFilterModalSales}
                 onDownload={getDataCsvSales}
+                takeToRelativePath={false}
+                takeToOnClick="/sales/$id/edit"
               />
               <ModalDeleteConfirm
                 open={deleteConfirmModalOpenSales}
@@ -562,7 +597,160 @@ export default function EditCustomer() {
           )}
         </>
       )}
-      {selectedTab === "History" && <></>}
+      {selectedTab === "History" && (
+        <>
+          {loadingSales ? (
+            <Box
+              sx={{
+                height: "100%",
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <CircularLoader />
+            </Box>
+          ) : (
+            <Box sx={{ width: "100%" }}>
+              <CreateAndFiltersLayout
+                actionButton={
+                  <ActionButton
+                    text={"record-communication"}
+                    onClick={goToCreateCommunication}
+                  />
+                }
+                filters={
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                      width: "100%",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    {hasNonEmptyValue(filtersCommunication) ? (
+                      <ActionButton
+                        text={"reset-filters"}
+                        color="secondary"
+                        onClick={resetFiltersCommunication}
+                      />
+                    ) : (
+                      <></>
+                    )}
+                  </Box>
+                }
+              />
+              <DataTable
+                data={dataCommunication}
+                dataCount={dataCountCommunication}
+                loading={loadingCommunication}
+                tableTitle="communication"
+                selected={selectedCommunication}
+                setSelected={setSelectedCommunication}
+                rowsPerPage={rowsPerPageCommunication}
+                setRowsPerPage={setRowsPerPageCommunication}
+                page={pageCommunication}
+                setPage={setPageCommunication}
+                orderBy={orderByCommunication}
+                setOrderBy={setOrderByCommunication}
+                order={orderCommunication}
+                setOrder={setOrderCommunication}
+                headCells={headCellsCommunication}
+                generateTableCells={generateTableCellsCommunication}
+                openDeleteConfirmModal={openDeleteConfirmModalCommunication}
+                openFilterModal={openFilterModalCommunication}
+                onDownload={getDataCsvCommunication}
+                takeToRelativePath={false}
+                takeToOnClick="communication/$id/edit"
+              />
+              <ModalDeleteConfirm
+                open={deleteConfirmModalOpenCommunication}
+                onClose={closeDeleteConfirmModalCommunication}
+                onDelete={onDeleteCommunication}
+              />
+              <ModalFilters
+                title="filter-communication"
+                open={filterModalOpenCommunication}
+                onClose={closeFilterModalCommunication}
+                form={
+                  <Formik
+                    enableReinitialize
+                    initialValues={filtersCommunication}
+                    validate={validateFiltersCommunication}
+                    onSubmit={handleFiltersSubmitCommunication}
+                  >
+                    {({
+                      handleSubmit,
+                      errors,
+                      touched,
+                      isSubmitting,
+                      values,
+                    }) => (
+                      <Form onSubmit={handleSubmit}>
+                        <FormLayout
+                          isSubmitting={isSubmitting}
+                          submitButtonText={"apply"}
+                          inputs={[
+                            <FormDropdown
+                              id={"method"}
+                              name={"method"}
+                              label={"method"}
+                              options={[
+                                "call",
+                                "in-person-meeting",
+                                "email",
+                                "other",
+                              ]}
+                            />,
+                            <FormInput
+                              id={"dateFrom"}
+                              name={"dateFrom"}
+                              placeholder={"Date From"}
+                              label={"date-from"}
+                              type={"date"}
+                            />,
+                            <FormInput
+                              id={"dateTo"}
+                              name={"dateTo"}
+                              placeholder={"Date To"}
+                              label={"date-to"}
+                              type={"date"}
+                            />,
+                          ]}
+                          showSubmitButton={false}
+                        />
+                        <Box
+                          display={"flex"}
+                          justifyContent={"center"}
+                          gap={"15px"}
+                          marginTop={"2rem"}
+                        >
+                          <ActionButton
+                            onClick={closeFilterModalCommunication}
+                            color={"secondary"}
+                            text={"cancel"}
+                          />
+                          <ActionButton type="submit" text={"apply"} />
+                        </Box>
+                      </Form>
+                    )}
+                  </Formik>
+                }
+              />
+              <CSVLink
+                data={csvDataCommunication}
+                headers={headCellsCommunication.map((cell) => cell.label)}
+                filename={`communication_${getDateTimeFormatted()}.csv`}
+                className="hidden"
+                ref={csvLinkCommunication}
+                target="_blank"
+              />
+            </Box>
+          )}
+        </>
+      )}
     </>
   );
 }

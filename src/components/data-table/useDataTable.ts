@@ -16,6 +16,7 @@ interface UseDataTableProps {
   order: Order;
   setOrder: (value: Order) => void;
   takeToOnClick: string;
+  takeToRelativePath: boolean;
   clickable?: boolean;
 }
 
@@ -33,6 +34,7 @@ export function useDataTable({
   order,
   setOrder,
   takeToOnClick,
+  takeToRelativePath,
   clickable = true,
 }: UseDataTableProps) {
   const navigate = useNavigate();
@@ -79,7 +81,13 @@ export function useDataTable({
       setSelected(newSelected);
     } else {
       if (clickable) {
-        navigate(`${id}/${takeToOnClick}`);
+        if (takeToRelativePath) {
+          navigate(`${id}/${takeToOnClick}`);
+        }
+        else {
+          let formattedTakeToOnClick = takeToOnClick.replace('$id', id);
+          navigate(formattedTakeToOnClick);
+        }
       }
     }
   };

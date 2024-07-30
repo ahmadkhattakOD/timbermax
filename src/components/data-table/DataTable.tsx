@@ -74,6 +74,7 @@ interface DataTableProps {
   openFilterModal?: () => void;
   selectable?: boolean;
   takeToOnClick?: string;
+  takeToRelativePath?: boolean;
   clickable?: boolean;
   showFilter?: boolean;
   onDownload?: () => void;
@@ -225,6 +226,7 @@ export default function DataTable({
   openFilterModal,
   selectable = true,
   takeToOnClick = "edit",
+  takeToRelativePath = true,
   clickable = true,
   showFilter = true,
   onDownload,
@@ -251,6 +253,7 @@ export default function DataTable({
     order: order,
     setOrder: setOrder,
     takeToOnClick: takeToOnClick,
+    takeToRelativePath: takeToRelativePath,
     clickable: clickable,
   });
 

@@ -4,6 +4,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import { useNavigate, useParams } from "react-router";
+import { useSearchParams } from "react-router-dom";
 import { SnackbarProps } from "types/snackbar";
 import {
   UserRoles,
@@ -13,6 +14,7 @@ import {
   parseAddress,
   useDebouncedSearch,
 } from "utils/helpers";
+import CommunicationRepository from "utils/repositories/communicationRepository";
 import CustomersRepository, {
   CustomerSupabase,
 } from "utils/repositories/customersRepository";
@@ -144,6 +146,33 @@ const headCellsSales: HeadCell[] = [
   },
 ];
 
+const headCellsCommunication: HeadCell[] = [
+  {
+    id: "method",
+    numeric: false,
+    disablePadding: true,
+    label: "Method",
+  },
+  {
+    id: "notes",
+    numeric: false,
+    disablePadding: true,
+    label: "Notes",
+  },
+  {
+    id: "date",
+    numeric: false,
+    disablePadding: true,
+    label: "Date",
+  },
+  {
+    id: "created_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Recorded At",
+  },
+];
+
 export interface ValuesFilterSales {
   contactName: string;
   salesPerson: string;
@@ -167,7 +196,7 @@ export interface ValuesFilterSales {
   closed: string;
 }
 
-const initialFilters: ValuesFilterSales = {
+const initialFiltersSales: ValuesFilterSales = {
   contactName: "",
   salesPerson: "",
   minimumDeposit: "",
@@ -188,6 +217,18 @@ const initialFilters: ValuesFilterSales = {
   saleDateFrom: "",
   saleDateTo: "",
   closed: "",
+};
+
+export interface ValuesFilterCommunication {
+  method: string;
+  dateFrom: string;
+  dateTo: string;
+}
+
+const initialFiltersCommunication: ValuesFilterCommunication = {
+  method: "",
+  dateFrom: "",
+  dateTo: "",
 };
 
 export interface ValuesEditCustomer {
@@ -212,7 +253,7 @@ export function useEditCustomer() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
-  const [selectedTab, setSelectedTab] = useState<string>("Information");
+  const [selectedTab, setSelectedTab] = useState<string>("");
 
   const [dataSales, setDataSales] = useState<any[]>([]);
   const [dataCountSales, setDataCountSales] = useState<number>(0);
@@ -230,11 +271,50 @@ export function useEditCustomer() {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [filterModalOpenSales, setFilterModalOpenSales] = useState(false);
   const [filtersSales, setFiltersSales] =
-    useState<ValuesFilterSales>(initialFilters);
+    useState<ValuesFilterSales>(initialFiltersSales);
   const [csvDataSales, setCsvDataSales] = useState<string>("");
   const csvLinkSales = useRef<any>();
 
+  const [dataCommunication, setDataCommunication] = useState<any[]>([]);
+  const [dataCountCommunication, setDataCountCommunication] =
+    useState<number>(0);
+  const [orderCommunication, setOrderCommunication] = useState<Order>("desc");
+  const [orderByCommunication, setOrderByCommunication] =
+    useState<string>("created_at");
+  const [selectedCommunication, setSelectedCommunication] = useState<
+    readonly number[]
+  >([]);
+  const [pageCommunication, setPageCommunication] = useState(0);
+  const [rowsPerPageCommunication, setRowsPerPageCommunication] =
+    useState(initialRowsPerPage);
+  const [loadingCommunication, setLoadingCommunication] =
+    useState<boolean>(false);
+  const [
+    deleteConfirmModalOpenCommunication,
+    setDeleteConfirmModalOpenCommunication,
+  ] = useState(false);
+  const [filterModalOpenCommunication, setFilterModalOpenCommunication] =
+    useState(false);
+  const [filtersCommunication, setFiltersCommunication] =
+    useState<ValuesFilterCommunication>(initialFiltersCommunication);
+  const [csvDataCommunication, setCsvDataCommunication] = useState<string>("");
+  const csvLinkCommunication = useRef<any>();
+
   const { id } = useParams();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (
+      tab &&
+      (tab === "Information" || tab === "Sales" || tab === "History")
+    ) {
+      setSelectedTab(tab);
+    } else {
+      setSelectedTab("Information");
+    }
+  }, [searchParams]);
 
   /* INFO START */
 
@@ -483,26 +563,29 @@ export function useEditCustomer() {
 
   async function getDataSales() {
     try {
-      setLoadingSales(true);
-      const salesRepository = new SalesRepository();
-      const rangeStart = rowsPerPageSales * pageSales;
-      const rangeEnd = rangeStart + rowsPerPageSales;
-      const sales = await salesRepository.get(
-        orderBySales,
-        orderSales === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPageSales,
-        filtersSales
-      );
-      if (sales) {
-        const { salesData, salesCount, salesError } = sales;
-        if (salesData && !salesError) {
-          setDataSales(salesData);
-          setDataCountSales(salesCount ?? 0);
+      if (id && isNumeric(id)) {
+        setLoadingSales(true);
+        const salesRepository = new SalesRepository();
+        const rangeStart = rowsPerPageSales * pageSales;
+        const rangeEnd = rangeStart + rowsPerPageSales;
+        const sales = await salesRepository.getByCustomer(
+          parseInt(id),
+          orderBySales,
+          orderSales === "asc",
+          rangeStart,
+          rangeEnd,
+          rowsPerPageSales,
+          filtersSales
+        );
+        if (sales) {
+          const { salesData, salesCount, salesError } = sales;
+          if (salesData && !salesError) {
+            setDataSales(salesData);
+            setDataCountSales(salesCount ?? 0);
+          }
         }
+        setLoadingSales(false);
       }
-      setLoadingSales(false);
     } catch (e) {
       console.error("Error fetching sales:", e);
       setLoadingSales(false);
@@ -557,7 +640,7 @@ export function useEditCustomer() {
   }
 
   function resetFiltersSales() {
-    setFiltersSales(initialFilters);
+    setFiltersSales(initialFiltersSales);
   }
 
   async function getFilterDataSales() {
@@ -612,6 +695,231 @@ export function useEditCustomer() {
 
   // SALES END
 
+  // HISTORY START
+
+  function goToCreateCommunication() {
+    navigate("communication/new");
+  }
+
+  function generateTableCellsCommunication(
+    row: any,
+    labelId: string,
+    isItemSelected: boolean
+  ) {
+    return (
+      <React.Fragment>
+        <TableCell padding="checkbox">
+          <Checkbox
+            color="primary"
+            checked={isItemSelected}
+            inputProps={{
+              "aria-labelledby": labelId,
+            }}
+          />
+        </TableCell>
+        <TableCell
+          component="th"
+          id={labelId}
+          scope="row"
+          padding="none"
+          width={200}
+          align="left"
+        >
+          <FormattedMessage id={row.method} />
+        </TableCell>
+        <TableCell sx={{ minWidth: 250 }}>{row.notes}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.date && getDateFormatted(row.date)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {getDateFormatted(row.created_at)}
+        </TableCell>
+      </React.Fragment>
+    );
+  }
+
+  function openDeleteConfirmModalCommunication() {
+    setDeleteConfirmModalOpenCommunication(true);
+  }
+
+  async function onDeleteCommunication() {
+    const salesRepository = new SalesRepository();
+    const deletedSales = await salesRepository.delete(selectedSales);
+    if (deletedSales > 0) {
+      openSnackbar({
+        open: true,
+        message: `${deletedSales} sale(s) deleted successfully.`,
+        variant: "alert",
+        alert: {
+          color: "success",
+        },
+      } as SnackbarProps);
+      setSelectedSales([]);
+      await getDataSales();
+    } else {
+      openSnackbar({
+        open: true,
+        message: "Sale(s) could not be deleted successfully. Please try again.",
+        variant: "alert",
+        alert: {
+          color: "error",
+        },
+      } as SnackbarProps);
+    }
+  }
+
+  function closeDeleteConfirmModalCommunication() {
+    setDeleteConfirmModalOpenCommunication(false);
+  }
+
+  function openFilterModalCommunication() {
+    setFilterModalOpenCommunication(true);
+  }
+
+  function closeFilterModalCommunication() {
+    setFilterModalOpenCommunication(false);
+  }
+
+  async function getDataCommunication() {
+    try {
+      if (id && isNumeric(id)) {
+        setLoadingCommunication(true);
+        const communicationRepository = new CommunicationRepository();
+        const rangeStart = rowsPerPageSales * pageSales;
+        const rangeEnd = rangeStart + rowsPerPageSales;
+        const communication = await communicationRepository.get(
+          parseInt(id),
+          orderBySales,
+          orderSales === "asc",
+          rangeStart,
+          rangeEnd,
+          rowsPerPageSales,
+          filtersCommunication
+        );
+        if (communication) {
+          const { communicationData, communicationCount, communicationError } =
+            communication;
+          if (communicationData && !communicationError) {
+            setDataCommunication(communicationData);
+            setDataCountCommunication(communicationCount ?? 0);
+          }
+        }
+        setLoadingCommunication(false);
+      }
+    } catch (e) {
+      console.error("Error fetching communication:", e);
+      setLoadingCommunication(false);
+    }
+  }
+
+  useEffect(() => {
+    getDataCommunication();
+  }, [
+    orderCommunication,
+    orderByCommunication,
+    pageCommunication,
+    rowsPerPageCommunication,
+    filtersCommunication,
+  ]);
+
+  function getDataCsvCommunication() {
+    try {
+      let csvString = "";
+
+      if (dataCommunication.length > 0) {
+        for (let i = 0; i < dataCommunication.length; i++) {
+          let communication = dataCommunication[i] as any;
+
+          // csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+        }
+
+        setCsvDataCommunication(csvString);
+
+        setTimeout(() => {
+          csvLinkCommunication?.current?.link?.click();
+        }, 2000);
+      }
+    } catch (e) {
+      console.error("Error fetching communication:", e);
+      setLoadingCommunication(false);
+    }
+  }
+
+  async function validateFiltersCommunication(
+    values: ValuesFilterCommunication
+  ) {
+    const errors = {} as ValuesFilterCommunication;
+
+    return errors;
+  }
+
+  async function handleFiltersSubmitCommunication(
+    values: ValuesFilterCommunication
+  ) {
+    try {
+      setFiltersCommunication(values);
+      setFilterModalOpenCommunication(false);
+    } catch (error) {
+      console.error("Error filtering communications:", error);
+    }
+  }
+
+  function resetFiltersCommunication() {
+    setFiltersCommunication(initialFiltersCommunication);
+  }
+
+  // async function getFilterDataCommunication() {
+  //   const profilesRepository = new ProfilesRepository();
+  //   const allProfiles = await profilesRepository.getWithoutFilters();
+  //   if (allProfiles) {
+  //     const { profilesData, profilesError } = allProfiles;
+  //     if (profilesData && !profilesError) {
+  //       let temp = [];
+  //       let temp2 = [];
+  //       for (let i = 0; i < profilesData.length; i++) {
+  //         if (
+  //           profilesData[i].role === UserRoles.SalesPerson ||
+  //           profilesData[i].role === UserRoles.Both
+  //         ) {
+  //           temp.push(profilesData[i]);
+  //         }
+  //         if (
+  //           profilesData[i].role === UserRoles.Closer ||
+  //           profilesData[i].role === UserRoles.Both
+  //         ) {
+  //           temp2.push(profilesData[i]);
+  //         }
+  //       }
+  //       setSalesPersons(temp);
+  //       setClosers(temp2);
+  //     }
+  //   }
+  //   const showsRepository = new ShowsRepository();
+  //   const allShows = await showsRepository.getWithoutFilters();
+  //   if (allShows) {
+  //     const { showsData, showsError } = allShows;
+  //     if (showsData && !showsError) {
+  //       setShows(showsData);
+  //     }
+  //   }
+  //   const opportunityDescriptionsRepository =
+  //     new OpportunityDescriptionsRepository();
+  //   const allOpportunities =
+  //     await opportunityDescriptionsRepository.getWithoutFilters();
+  //   if (allOpportunities) {
+  //     const { opportunitiesData, opportunitiesError } = allOpportunities;
+  //     if (opportunitiesData && !opportunitiesError) {
+  //       setOpportunities(opportunitiesData);
+  //     }
+  //   }
+  // }
+
+  // useEffect(() => {
+  //   getFilterDataCommunication();
+  // }, []);
+
+  // HISTORY END
+
   return {
     validate,
     onSubmit,
@@ -660,5 +968,37 @@ export function useEditCustomer() {
     getDataCsvSales,
     csvDataSales,
     csvLinkSales,
+    // COMMUNICATION
+    dataCommunication,
+    dataCountCommunication,
+    loadingCommunication,
+    goToCreateCommunication,
+    orderCommunication,
+    setOrderCommunication,
+    orderByCommunication,
+    setOrderByCommunication,
+    selectedCommunication,
+    setSelectedCommunication,
+    pageCommunication,
+    setPageCommunication,
+    rowsPerPageCommunication,
+    setRowsPerPageCommunication,
+    headCellsCommunication,
+    generateTableCellsCommunication,
+    onDeleteCommunication,
+    deleteConfirmModalOpenCommunication,
+    openDeleteConfirmModalCommunication,
+    closeDeleteConfirmModalCommunication,
+    filterModalOpenCommunication,
+    openFilterModalCommunication,
+    closeFilterModalCommunication,
+    handleFiltersSubmitCommunication,
+    validateFiltersCommunication,
+    filtersCommunication,
+    resetFiltersCommunication,
+    getDataCsvCommunication,
+    csvDataCommunication,
+    csvLinkCommunication,
+    setSearchParams,
   };
 }

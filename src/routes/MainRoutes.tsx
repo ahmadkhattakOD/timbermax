@@ -47,6 +47,8 @@ import DownloadInvoiceSalesCloser from "pages/view-invoices-sales-closer/downloa
 import Customers from "pages/customers/main/customers";
 import CreateCustomer from "pages/customers/create/create-customer";
 import EditCustomer from "pages/customers/edit/edit-customer";
+import CreateCommunication from "pages/communication/create/create-communication";
+import EditCommunication from "pages/communication/edit/edit-communication";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -468,6 +470,26 @@ const MainRoutes = {
         {
           path: "customers/:id/edit",
           element: <EditCustomer />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "customers/:id/edit/communication/new",
+          element: <CreateCommunication />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "customers/:id/edit/communication/:iid/edit",
+          element: <EditCommunication />,
         },
       ],
     },
