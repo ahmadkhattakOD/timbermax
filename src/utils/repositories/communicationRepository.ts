@@ -1,10 +1,12 @@
 import { ValuesFilterCommunication } from "pages/customers/edit/useEditCustomer";
 import supabase from "utils/supabase";
+import ProfilesRepository from "./profilesRepository";
+import { downloadFile } from "utils/helpers";
 
 export interface CommunicationSupabase {
   customer: number;
   method: string;
-  date?: Date | null; 
+  date?: Date | null;
   notes: string;
   files: string[];
 }
@@ -141,6 +143,78 @@ class CommunicationRepository {
     } catch (error) {
       console.error("Error deleting communication:", error);
       return 0;
+    }
+  }
+
+  public async uploadAttachmentsAndReturnUrls(
+    files: File[]
+  ): Promise<string[]> {
+    try {
+      const profilesRepository = new ProfilesRepository();
+      const currentUser = await profilesRepository.getCurrentUser();
+      if (currentUser) {
+        let result = [];
+        for (let i = 0; i < files.length; i++) {
+          try {
+            const fileName = files[i].name;
+            const fileParts = fileName.split(".");
+            const extension = fileParts.pop()?.toLowerCase();
+            const baseName = fileParts.join(".");
+            const timestamp = Date.now();
+            const newFileName = `${baseName}_${timestamp}.${extension}`;
+            const { data, error } = await supabase.storage
+              .from("gallery")
+              .upload(`${currentUser.id}/${newFileName}`, files[i], {
+                upsert: true,
+              });
+            if (data && !error) {
+              result.push(data.path);
+            }
+          } catch (error) {
+            console.error("Error uploading attachment:", error);
+            continue;
+          }
+        }
+        return result;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error uploading attachments:", error);
+      return [];
+    }
+  }
+
+  public async downloadAttachment(url: string) {
+    try {
+      const { data } = supabase.storage.from("gallery").getPublicUrl(url);
+
+      if (data) {
+        const fileName = url.split("/").pop();
+        if (fileName) {
+          await downloadFile(data.publicUrl, fileName);
+          return true;
+        }
+        return false;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error downloading attachment:", error);
+      return false;
+    }
+  }
+
+  public async deleteAttachments(urls: string[]) {
+    try {
+      const { data, error } = await supabase.storage
+        .from("gallery")
+        .remove(urls);
+      if (data && !error) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
+      return false;
     }
   }
 }

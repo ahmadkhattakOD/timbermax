@@ -313,3 +313,57 @@ export function parseAddress(address: string): {
     };
   }
 }
+
+export const confirmFileSize = (file: File, limit: number = 5) => {
+  const maxSizeInBytes = limit * 1000 * 1000;
+  return file.size <= maxSizeInBytes;
+};
+
+export const acceptedFileTypes = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".pdf",
+  ".csv",
+  ".xlsx",
+  ".doc",
+  ".docx",
+  ".txt",
+  ".ppt",
+  ".pptx",
+  ".odt",
+  ".ods",
+  ".rtf",
+];
+
+export const downloadFile = async (fileUrl: string, fileName: string) => {
+  const response = await fetch(fileUrl);
+  if (!response.ok) {
+    throw new Error("Network response was not ok");
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName || "download";
+
+  document.body.appendChild(link);
+
+  link.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(link);
+};
+
+export const cleanFileName = (fileUrl: string) => {
+  const underscoreIndex = fileUrl.lastIndexOf('_');
+  const dotIndex = fileUrl.lastIndexOf('.');
+
+  if (underscoreIndex !== -1 && dotIndex !== -1 && dotIndex > underscoreIndex) {
+    const baseName = fileUrl.substring(0, underscoreIndex);
+    const extension = fileUrl.substring(dotIndex);
+    const newFileName = `${baseName}${extension}`;
+    return newFileName;
+  }
+};

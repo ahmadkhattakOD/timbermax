@@ -9,6 +9,7 @@ import { SnackbarProps } from "types/snackbar";
 import {
   UserRoles,
   getDateFormatted,
+  getDateTimeFormatted,
   initialRowsPerPage,
   isNumeric,
   parseAddress,
@@ -732,7 +733,7 @@ export function useEditCustomer() {
           {row.date && getDateFormatted(row.date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {getDateFormatted(row.created_at)}
+          {getDateTimeFormatted(row.created_at, true)}
         </TableCell>
       </React.Fragment>
     );
@@ -867,56 +868,6 @@ export function useEditCustomer() {
   function resetFiltersCommunication() {
     setFiltersCommunication(initialFiltersCommunication);
   }
-
-  // async function getFilterDataCommunication() {
-  //   const profilesRepository = new ProfilesRepository();
-  //   const allProfiles = await profilesRepository.getWithoutFilters();
-  //   if (allProfiles) {
-  //     const { profilesData, profilesError } = allProfiles;
-  //     if (profilesData && !profilesError) {
-  //       let temp = [];
-  //       let temp2 = [];
-  //       for (let i = 0; i < profilesData.length; i++) {
-  //         if (
-  //           profilesData[i].role === UserRoles.SalesPerson ||
-  //           profilesData[i].role === UserRoles.Both
-  //         ) {
-  //           temp.push(profilesData[i]);
-  //         }
-  //         if (
-  //           profilesData[i].role === UserRoles.Closer ||
-  //           profilesData[i].role === UserRoles.Both
-  //         ) {
-  //           temp2.push(profilesData[i]);
-  //         }
-  //       }
-  //       setSalesPersons(temp);
-  //       setClosers(temp2);
-  //     }
-  //   }
-  //   const showsRepository = new ShowsRepository();
-  //   const allShows = await showsRepository.getWithoutFilters();
-  //   if (allShows) {
-  //     const { showsData, showsError } = allShows;
-  //     if (showsData && !showsError) {
-  //       setShows(showsData);
-  //     }
-  //   }
-  //   const opportunityDescriptionsRepository =
-  //     new OpportunityDescriptionsRepository();
-  //   const allOpportunities =
-  //     await opportunityDescriptionsRepository.getWithoutFilters();
-  //   if (allOpportunities) {
-  //     const { opportunitiesData, opportunitiesError } = allOpportunities;
-  //     if (opportunitiesData && !opportunitiesError) {
-  //       setOpportunities(opportunitiesData);
-  //     }
-  //   }
-  // }
-
-  // useEffect(() => {
-  //   getFilterDataCommunication();
-  // }, []);
 
   // HISTORY END
 

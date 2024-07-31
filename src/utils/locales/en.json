@@ -211,5 +211,6 @@
   "other": "Other",
   "date-from": "Date From",
   "date-to": "Date To",
-  "date": "Date"
+  "date": "Date",
+  "crm": "CRM"
 }

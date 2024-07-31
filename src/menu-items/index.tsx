@@ -6,11 +6,12 @@ import manage from './manage';
 import dashboard from './dashboard';
 import edit from './edit';
 import inventory from './inventory';
+import crm from './crm';
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItemsAdmin: { items: NavItemType[] } = {
-  items: [dashboard, manage.manageAdmin, inventory, users, edit]
+  items: [dashboard, manage.manageAdmin, crm, inventory, users, edit]
 };
 
 const menuItemsSalesPerson: { items: NavItemType[] } = {
