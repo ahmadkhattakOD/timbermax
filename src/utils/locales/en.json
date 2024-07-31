@@ -201,7 +201,6 @@
   "actual-close-date-from": "Actual Close Date From",
   "actual-close-date-to": "Actual Close Date To",
   "information": "Info",
-  "history": "History",
   "record-communication": "Record Communication",
   "communication": "Communication",
   "filter-communication": "Filter Communication",
@@ -212,5 +211,6 @@
   "date-from": "Date From",
   "date-to": "Date To",
   "date": "Date",
-  "crm": "CRM"
+  "crm": "CRM",
+  "settings": "Settings"
 }

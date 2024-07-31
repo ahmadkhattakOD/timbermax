@@ -127,11 +127,12 @@ export default function EditCustomer() {
               }}
             />
             <ActionButton
-              text={"history"}
-              color={selectedTab === "History" ? "primary" : "secondary"}
+              text={"communication"}
+              minWidth={"130px"}
+              color={selectedTab === "Communication" ? "primary" : "secondary"}
               onClick={() => {
-                setSelectedTab("History");
-                setSearchParams({ tab: "History" });
+                setSelectedTab("Communication");
+                setSearchParams({ tab: "Communication" });
               }}
             />
           </Box>
@@ -597,7 +598,7 @@ export default function EditCustomer() {
           )}
         </>
       )}
-      {selectedTab === "History" && (
+      {selectedTab === "Communication" && (
         <>
           {loadingSales ? (
             <Box

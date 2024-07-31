@@ -185,7 +185,7 @@ export function useEditCommunication() {
           } as SnackbarProps);
         }
 
-        navigate(`/customers/${id}/edit?tab=History`);
+        navigate(`/customers/${id}/edit?tab=Communication`);
       } else {
         openSnackbar({
           open: true,
@@ -197,7 +197,7 @@ export function useEditCommunication() {
           },
         } as SnackbarProps);
 
-        navigate(`/customers/${id}/edit?tab=History`);
+        navigate(`/customers/${id}/edit?tab=Communication`);
       }
     } catch (e) {
       openSnackbar({
@@ -210,7 +210,7 @@ export function useEditCommunication() {
         },
       } as SnackbarProps);
 
-      navigate(`/customers/${id}/edit?tab=History`);
+      navigate(`/customers/${id}/edit?tab=Communication`);
     }
   }
 

@@ -381,7 +381,6 @@ export default function EditSale() {
                   value={customers.find((c) => c.id === selectedCustomer)}
                   onChange={handleSearchDebounced}
                   onSelect={(e) => {
-                    console.log(e.target.value);
                     setSelectedCustomer(e.target.value);
                   }}
                   error={errors.contactName}

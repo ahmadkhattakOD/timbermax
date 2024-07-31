@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { UserRoles } from "utils/helpers";
 import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
-import InvoicesRepository from "utils/repositories/invoicesRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";

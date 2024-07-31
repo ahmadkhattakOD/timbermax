@@ -309,7 +309,7 @@ export function useEditCustomer() {
     const tab = searchParams.get("tab");
     if (
       tab &&
-      (tab === "Information" || tab === "Sales" || tab === "History")
+      (tab === "Information" || tab === "Sales" || tab === "Communication")
     ) {
       setSelectedTab(tab);
     } else {

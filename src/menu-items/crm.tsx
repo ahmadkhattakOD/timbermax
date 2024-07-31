@@ -2,7 +2,7 @@
 import { FormattedMessage } from "react-intl";
 
 // assets
-import { BookSaved } from "iconsax-react";
+import { BookSaved, People } from "iconsax-react";
 
 // type
 import { NavItemType } from "types/menu";
@@ -10,6 +10,7 @@ import { NavItemType } from "types/menu";
 // icons
 // icons
 const icons = {
+  crm: People,
   customers: BookSaved,
 };
 
@@ -17,16 +18,23 @@ const icons = {
 
 const crm: NavItemType = {
   id: "crm-pages",
-  title: <FormattedMessage id="crm" />,
   type: "group",
   children: [
     {
-      id: "customers",
-      title: <FormattedMessage id="customers" />,
-      type: "item",
-      url: "/customers",
-      icon: icons.customers,
-      target: false,
+      id: 'crm',
+      title: <FormattedMessage id="crm" />,
+      type: 'collapse',
+      icon: icons.crm,
+      children: [
+        {
+          id: "customers",
+          title: <FormattedMessage id="customers" />,
+          type: "item",
+          url: "/customers",
+          icon: icons.customers,
+          target: false,
+        },
+      ]
     },
   ],
 };

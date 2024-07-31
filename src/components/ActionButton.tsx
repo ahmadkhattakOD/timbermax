@@ -17,12 +17,13 @@ export interface ActionButtonProps extends KeyedObject {
   type?: "button" | "reset" | "submit" | undefined;
   disabled?: boolean;
   color?: "primary" | "inherit" | "secondary" | "success" | "error" | "info" | "warning";
+  minWidth?: string;
 }
 
 // ==============================|| ACTION BUTTON ||============================== //
 
 function ActionButton(
-  { text, onClick, type, disabled = false, color = "primary" }: ActionButtonProps,
+  { text, onClick, type, disabled = false, color = "primary", minWidth }: ActionButtonProps,
   ref: Ref<HTMLDivElement>
 ) {
   return (
@@ -32,6 +33,7 @@ function ActionButton(
       color={color}
       sx={{
         maxWidth: { xs: "auto", sm: "250px" },
+        minWidth: minWidth,
         width: "100%",
       }}
       type={type}

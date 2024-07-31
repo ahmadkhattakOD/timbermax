@@ -112,7 +112,7 @@ export function useCreateCommunication() {
           } as SnackbarProps);
         }
 
-        navigate(`/customers/${id}/edit?tab=History`);
+        navigate(`/customers/${id}/edit?tab=Communication`);
       }
     } catch (e) {
       openSnackbar({
@@ -124,7 +124,7 @@ export function useCreateCommunication() {
           color: "error",
         },
       } as SnackbarProps);
-      navigate(`/customers/${id}/edit?tab=History`);
+      navigate(`/customers/${id}/edit?tab=Communication`);
     }
   }
   return {
