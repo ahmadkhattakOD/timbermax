@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import { Typography, useTheme } from "@mui/material";
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -238,6 +238,7 @@ export function useDeliveries() {
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   function goToCreate() {
     navigate("/deliveries/new");
@@ -287,6 +288,24 @@ export function useDeliveries() {
               )
             )}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && (
+            <Typography
+              sx={{
+                color:
+                  row.milestone === "won"
+                    ? theme.palette.success.main
+                    : row.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : row.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={row.milestone} />
+            </Typography>
+          )}
+        </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}
         </TableCell>
@@ -318,9 +337,6 @@ export function useDeliveries() {
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.status_changed_at && getDateFormatted(row.status_changed_at)}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.milestone && <FormattedMessage id={row.milestone} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.expected_close_date && getDateFormatted(row.expected_close_date)}
@@ -430,7 +446,7 @@ export function useDeliveries() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.milestone},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""}\n`;
+          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.milestone ?? ""},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);

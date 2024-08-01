@@ -9,9 +9,7 @@ import InvoicesRepository, {
 } from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
-import SalesRepository, {
-  SaleSupabase,
-} from "utils/repositories/salesRepository";
+import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
 
@@ -30,6 +28,9 @@ export interface ValuesDeliverSale {
   salesPerson: string;
   closer: string;
   status: string;
+  milestone: string;
+  expectedCloseDate: string;
+  lostReason: string;
   show: string;
   followUpNotes: string;
   saleDate: string;

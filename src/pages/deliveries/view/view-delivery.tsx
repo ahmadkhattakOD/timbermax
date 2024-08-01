@@ -1,5 +1,5 @@
 // project-imports
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
@@ -13,6 +13,7 @@ import {
 } from "utils/helpers";
 import DataTable from "components/data-table/DataTable";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
+import { FormattedMessage } from "react-intl";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
@@ -42,6 +43,8 @@ export default function ViewDelivery() {
     headCells,
     generateTableCells,
   } = useViewDelivery();
+
+  const theme = useTheme();
 
   if (loading) {
     return (
@@ -87,6 +90,36 @@ export default function ViewDelivery() {
           This delivery has been closed and is no longer editable.
         </Typography>
       </Box>
+      {sale && sale.milestone && (
+        <CreateAndFiltersLayout
+          filters={
+            <Box
+              sx={{
+                width: "30%",
+                padding: "0.5rem",
+                paddingLeft: "1rem",
+                paddingRight: "1rem",
+                borderRadius: "0.5rem",
+                color: theme.palette.primary.contrastText,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                textTransform: "uppercase",
+                backgroundColor:
+                  sale.milestone === "won"
+                    ? theme.palette.success.main
+                    : sale.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : sale.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={sale.milestone} />
+            </Box>
+          }
+        />
+      )}
       <Formik
         enableReinitialize
         initialValues={{

@@ -1,5 +1,5 @@
 // project-imports
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
@@ -13,6 +13,8 @@ import {
 } from "utils/helpers";
 import { Trash } from "iconsax-react";
 import { IconButton } from "@mui/material";
+import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
+import { FormattedMessage } from "react-intl";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
@@ -29,6 +31,8 @@ export default function DeliverSale() {
     opportunities,
     selectedOpportunities,
   } = useDeliverSale();
+
+  const theme = useTheme();
 
   if (loading) {
     return (
@@ -54,6 +58,36 @@ export default function DeliverSale() {
             : "This sale has not been closed yet. Press the button below to close it and mark it as delivered."}
         </Typography>
       </Box>
+      {sale && sale.milestone && (
+        <CreateAndFiltersLayout
+          filters={
+            <Box
+              sx={{
+                width: "30%",
+                padding: "0.5rem",
+                paddingLeft: "1rem",
+                paddingRight: "1rem",
+                borderRadius: "0.5rem",
+                color: theme.palette.primary.contrastText,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                textTransform: "uppercase",
+                backgroundColor:
+                  sale.milestone === "won"
+                    ? theme.palette.success.main
+                    : sale.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : sale.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={sale.milestone} />
+            </Box>
+          }
+        />
+      )}
       <Formik
         enableReinitialize
         initialValues={{
@@ -71,6 +105,11 @@ export default function DeliverSale() {
           salesPerson: sale.sales_person.id ?? "",
           closer: sale.closer.id ?? "",
           status: sale.status ?? "",
+          milestone: sale.milestone ?? "",
+          expectedCloseDate: sale.expected_close_date
+            ? getDateFormattedForField(sale.expected_close_date)
+            : "",
+          lostReason: sale.lost_reason ?? "",
           show: sale.show?.id ?? "",
           followUpNotes: sale.follow_up_notes ?? "",
           saleDate: getDateFormattedForField(sale.sale_date) ?? "",
@@ -286,6 +325,32 @@ export default function DeliverSale() {
                   disabled
                   disabledValues={["delivered"]}
                   error={touched.status ? errors.status : ""}
+                />,
+                <FormDropdown
+                  id={"milestone"}
+                  name={"milestone"}
+                  label={"milestone"}
+                  disabled
+                  options={["won", "in-progress", "lost"]}
+                />,
+                values.milestone === "lost" ? (
+                  <FormInput
+                    id={"lostReason"}
+                    name={"lostReason"}
+                    placeholder={"Lost Reason"}
+                    label={"lost-reason"}
+                    type={"text"}
+                    disabled
+                    isTextArea
+                  />
+                ) : null,
+                <FormInput
+                  id={"expectedCloseDate"}
+                  name={"expectedCloseDate"}
+                  placeholder={"Expected Close Date"}
+                  label={"expected-close-date"}
+                  type={"date"}
+                  disabled
                 />,
                 <FormDropdown
                   id={"show"}

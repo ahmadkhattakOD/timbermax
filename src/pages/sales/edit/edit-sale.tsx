@@ -1,5 +1,5 @@
 // project-imports
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
@@ -15,6 +15,8 @@ import { IconButton } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
+import { FormattedMessage } from "react-intl";
+import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 
 // ==============================|| EDIT SALE PAGE ||============================== //
 
@@ -46,6 +48,8 @@ export default function EditSale() {
     handleSearchDebounced,
     loadingCustomers,
   } = useEditSale();
+
+  const theme = useTheme();
 
   if (loading) {
     return (
@@ -328,6 +332,36 @@ export default function EditSale() {
             status can be changed.
           </Typography>
         </Box>
+      )}
+      {sale && sale.milestone && (
+        <CreateAndFiltersLayout
+          filters={
+            <Box
+              sx={{
+                width: "30%",
+                padding: "0.5rem",
+                paddingLeft: "1rem",
+                paddingRight: "1rem",
+                borderRadius: "0.5rem",
+                color: theme.palette.primary.contrastText,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                textTransform: "uppercase",
+                backgroundColor:
+                  sale.milestone === "won"
+                    ? theme.palette.success.main
+                    : sale.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : sale.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={sale.milestone} />
+            </Box>
+          }
+        />
       )}
       <Formik
         enableReinitialize

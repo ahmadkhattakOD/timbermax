@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import { Typography, useTheme } from "@mui/material";
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -29,6 +29,12 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Opportunity Description",
+  },
+  {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
   },
   {
     id: "deposit",
@@ -127,12 +133,6 @@ const headCells: HeadCell[] = [
     label: "Status Changed At",
   },
   {
-    id: "milestone",
-    numeric: false,
-    disablePadding: true,
-    label: "Milestone",
-  },
-  {
     id: "expected_close_date",
     numeric: false,
     disablePadding: true,
@@ -221,6 +221,7 @@ export function useSelectSale() {
   const [filters, setFilters] =
     useState<ValuesFilterSelectSales>(initialFilters);
   const [searchValue, setSearchValue] = useState("");
+  const theme = useTheme();
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     let temp = { ...filters };
@@ -257,6 +258,24 @@ export function useSelectSale() {
               )
             )}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && (
+            <Typography
+              sx={{
+                color:
+                  row.milestone === "won"
+                    ? theme.palette.success.main
+                    : row.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : row.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={row.milestone} />
+            </Typography>
+          )}
+        </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}
         </TableCell>
@@ -288,9 +307,6 @@ export function useSelectSale() {
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.status_changed_at && getDateFormatted(row.status_changed_at)}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.milestone && <FormattedMessage id={row.milestone} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.expected_close_date && getDateFormatted(row.expected_close_date)}

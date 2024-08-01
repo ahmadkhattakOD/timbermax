@@ -14,7 +14,7 @@ import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
-import { TableCell } from "@mui/material";
+import { TableCell, useTheme } from "@mui/material";
 import { FormattedMessage } from "react-intl";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
@@ -32,6 +32,12 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Opportunity Description",
+  },
+  {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
   },
   {
     id: "deposit",
@@ -136,12 +142,6 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
-    id: "milestone",
-    numeric: false,
-    disablePadding: true,
-    label: "Milestone",
-  },
-  {
     id: "expected_close_date",
     numeric: false,
     disablePadding: true,
@@ -203,6 +203,7 @@ export function useViewDelivery() {
   const [selected, setSelected] = useState<readonly number[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
+  const theme = useTheme();
 
   function generateTableCells(
     row: any,
@@ -221,6 +222,24 @@ export function useViewDelivery() {
                 </Typography>
               )
             )}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.milestone && (
+            <Typography
+              sx={{
+                color:
+                  row.sale?.milestone === "won"
+                    ? theme.palette.success.main
+                    : row.sale?.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : row.sale?.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={row.sale?.milestone} />
+            </Typography>
+          )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.sale?.deposit}
@@ -258,9 +277,6 @@ export function useViewDelivery() {
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.status && <FormattedMessage id={row.sale?.status} />}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.milestone && <FormattedMessage id={row.sale?.milestone} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.expected_close_date &&

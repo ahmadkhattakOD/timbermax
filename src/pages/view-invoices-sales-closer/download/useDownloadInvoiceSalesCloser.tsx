@@ -1,4 +1,4 @@
-import { TableCell, Typography } from "@mui/material";
+import { TableCell, Typography, useTheme } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
@@ -26,6 +26,12 @@ const headCellsSales: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Opportunity Description",
+  },
+  {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
   },
   {
     id: "deposit",
@@ -122,12 +128,6 @@ const headCellsSales: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Status",
-  },
-  {
-    id: "milestone",
-    numeric: false,
-    disablePadding: true,
-    label: "Milestone",
   },
   {
     id: "expected_close_date",
@@ -235,6 +235,7 @@ export function useDownloadInvoiceSalesCloser() {
   const [filterModalOpenSales, setFilterModalOpenSales] = useState(false);
   const [filtersSales, setFiltersSales] =
     useState<ValuesFilterSales>(initialFiltersSales);
+  const theme = useTheme();
 
   const [dataCancelled, setDataCancelled] = useState<any[]>([]);
   const [dataCountCancelled, setDataCountCancelled] = useState<number>(0);
@@ -274,6 +275,24 @@ export function useDownloadInvoiceSalesCloser() {
               )
             )}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && (
+            <Typography
+              sx={{
+                color:
+                  row.milestone === "won"
+                    ? theme.palette.success.main
+                    : row.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : row.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={row.milestone} />
+            </Typography>
+          )}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.deposit}
         </TableCell>
@@ -301,9 +320,6 @@ export function useDownloadInvoiceSalesCloser() {
         <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.milestone && <FormattedMessage id={row.milestone} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.expected_close_date && getDateFormatted(row.expected_close_date)}

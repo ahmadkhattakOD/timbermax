@@ -1,3 +1,4 @@
+import { useTheme } from "@mui/material";
 import { Checkbox, TableCell, Typography } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -36,6 +37,12 @@ const headCellsSales: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Opportunity Description",
+  },
+  {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
   },
   {
     id: "deposit",
@@ -134,12 +141,6 @@ const headCellsSales: HeadCell[] = [
     label: "Status Changed At",
   },
   {
-    id: "milestone",
-    numeric: false,
-    disablePadding: true,
-    label: "Milestone",
-  },
-  {
     id: "expected_close_date",
     numeric: false,
     disablePadding: true,
@@ -203,6 +204,9 @@ export interface ValuesFilterSales {
   opportunityDescription: string;
   closer: string;
   status: string;
+  milestone: string;
+  expectedCloseDateFrom: string;
+  expectedCloseDateTo: string;
   show: string;
   saleDateFrom: string;
   saleDateTo: string;
@@ -226,6 +230,9 @@ const initialFiltersSales: ValuesFilterSales = {
   opportunityDescription: "",
   closer: "",
   status: "",
+  milestone: "",
+  expectedCloseDateFrom: "",
+  expectedCloseDateTo: "",
   show: "",
   saleDateFrom: "",
   saleDateTo: "",
@@ -285,6 +292,7 @@ export function useEditCustomer() {
     useState<ValuesFilterSales>(initialFiltersSales);
   const [csvDataSales, setCsvDataSales] = useState<string>("");
   const csvLinkSales = useRef<any>();
+  const theme = useTheme();
 
   const [dataCommunication, setDataCommunication] = useState<any[]>([]);
   const [dataCountCommunication, setDataCountCommunication] =
@@ -485,6 +493,24 @@ export function useEditCustomer() {
               )
             )}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && (
+            <Typography
+              sx={{
+                color:
+                  row.milestone === "won"
+                    ? theme.palette.success.main
+                    : row.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : row.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={row.milestone} />
+            </Typography>
+          )}
+        </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.deposit}
         </TableCell>
@@ -517,9 +543,7 @@ export function useEditCustomer() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.milestone && <FormattedMessage id={row.milestone} />}
-        </TableCell>
+
         <TableCell sx={{ minWidth: 200 }}>
           {row.expected_close_date && getDateFormatted(row.expected_close_date)}
         </TableCell>
@@ -621,7 +645,7 @@ export function useEditCustomer() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.milestone},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.milestone ?? ""},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
         }
 
         setCsvDataSales(csvString);

@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import { Typography, useTheme } from "@mui/material";
 import { Checkbox, TableCell } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -32,6 +32,12 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Opportunity Description",
+  },
+  {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
   },
   {
     id: "deposit",
@@ -128,12 +134,6 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Status",
-  },
-  {
-    id: "milestone",
-    numeric: false,
-    disablePadding: true,
-    label: "Milestone",
   },
   {
     id: "expected_close_date",
@@ -303,6 +303,7 @@ export function useCreateInvoice() {
   const [csvDataCancelled, setCsvDataCancelled] = useState<string>("");
   const csvLinkCancelled = useRef<any>();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   function generateTableCells(
     row: any,
@@ -321,6 +322,24 @@ export function useCreateInvoice() {
                 </Typography>
               )
             )}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && (
+            <Typography
+              sx={{
+                color:
+                  row.milestone === "won"
+                    ? theme.palette.success.main
+                    : row.milestone === "in-progress"
+                      ? theme.palette.warning.main
+                      : row.milestone === "lost"
+                        ? theme.palette.error.main
+                        : theme.palette.secondary.main,
+              }}
+            >
+              <FormattedMessage id={row.milestone} />
+            </Typography>
+          )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.deposit}
@@ -349,9 +368,6 @@ export function useCreateInvoice() {
         <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.milestone && <FormattedMessage id={row.milestone} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.expected_close_date && getDateFormatted(row.expected_close_date)}
@@ -557,7 +573,7 @@ export function useCreateInvoice() {
               }
             );
           }
-          csvString += `${invoice.contact_name ?? ""},${opportunityDescriptions},${invoice.deposit ?? ""},${invoice.total ?? ""},${invoice.commission ?? ""},${invoice.payment_method ?? ""},${invoice.phone ?? ""},${invoice.mobile ?? ""},${invoice.address ?? ""},${invoice.state ?? ""},${invoice.post_code ?? ""},${invoice.email_address ?? ""},${invoice.sales_person_full_name ?? ""},${invoice.closer_full_name ?? ""},${invoice.show_name ?? ""},${invoice.note ?? ""},${invoice.status ?? ""},${invoice.milestone},${invoice.expected_close_date},${invoice.follow_up_notes ?? ""},${invoice.sale_date ?? ""},${invoice.delivery_date_time ?? ""},${invoice.stock_from_warehose_name ?? ""},${invoice.invoice_date ?? ""}\n`;
+          csvString += `${invoice.contact_name ?? ""},${opportunityDescriptions},${invoice.milestone},${invoice.deposit ?? ""},${invoice.total ?? ""},${invoice.commission ?? ""},${invoice.payment_method ?? ""},${invoice.phone ?? ""},${invoice.mobile ?? ""},${invoice.address ?? ""},${invoice.state ?? ""},${invoice.post_code ?? ""},${invoice.email_address ?? ""},${invoice.sales_person_full_name ?? ""},${invoice.closer_full_name ?? ""},${invoice.show_name ?? ""},${invoice.note ?? ""},${invoice.status ?? ""},${invoice.expected_close_date},${invoice.follow_up_notes ?? ""},${invoice.sale_date ?? ""},${invoice.delivery_date_time ?? ""},${invoice.stock_from_warehose_name ?? ""},${invoice.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);
