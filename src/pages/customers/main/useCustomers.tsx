@@ -20,12 +20,6 @@ const headCells: HeadCell[] = [
     label: "Name",
   },
   {
-    id: "milestone",
-    numeric: false,
-    disablePadding: true,
-    label: "Milestone",
-  },
-  {
     id: "email",
     numeric: false,
     disablePadding: true,
@@ -42,18 +36,6 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Mobile",
-  },
-  {
-    id: "expected_close_date",
-    numeric: false,
-    disablePadding: true,
-    label: "Expected Close Date",
-  },
-  {
-    id: "actual_close_date",
-    numeric: false,
-    disablePadding: true,
-    label: "Actual Close Date",
   },
   {
     id: "address",
@@ -89,14 +71,9 @@ const headCells: HeadCell[] = [
 
 export interface ValuesFilterCustomers {
   name: string;
-  milestone: string;
   email: string;
   phone: string;
   mobile: string;
-  expectedCloseDateFrom: string;
-  expectedCloseDateTo: string;
-  actualCloseDateFrom: string;
-  actualCloseDateTo: string;
   address: string;
   suburb: string;
   state: string;
@@ -105,14 +82,9 @@ export interface ValuesFilterCustomers {
 
 const initialFilters: ValuesFilterCustomers = {
   name: "",
-  milestone: "",
   email: "",
   phone: "",
   mobile: "",
-  expectedCloseDateFrom: "",
-  expectedCloseDateTo: "",
-  actualCloseDateFrom: "",
-  actualCloseDateTo: "",
   address: "",
   suburb: "",
   state: "",
@@ -165,18 +137,9 @@ export function useCustomers() {
           />
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.name}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.milestone && <FormattedMessage id={row.milestone} />}
-        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.email}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.actual_close_date && getDateFormatted(row.actual_close_date)}
-        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.suburb}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>

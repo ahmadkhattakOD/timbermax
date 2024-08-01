@@ -189,24 +189,7 @@ export default function EditCustomer() {
                         type={"text"}
                         error={touched.name ? errors.name : ""}
                       />,
-                      <FormDropdown
-                        id={"milestone"}
-                        name={"milestone"}
-                        label={"milestone"}
-                        options={["won", "in-progress", "lost"]}
-                      />,
-                      <FormInput
-                        id={"expectedCloseDate"}
-                        name={"expectedCloseDate"}
-                        placeholder={"Expected Close Date"}
-                        label={"expected-close-date"}
-                        type={"date"}
-                        error={
-                          touched.expectedCloseDate
-                            ? errors.expectedCloseDate
-                            : ""
-                        }
-                      />,
+                      
                       <FormInput
                         id={"email"}
                         name={"email"}
@@ -276,16 +259,6 @@ export default function EditCustomer() {
                         type={"text"}
                         isTextArea
                       />,
-                      values.milestone === "lost" && (
-                        <FormInput
-                          id={"lostReason"}
-                          name={"lostReason"}
-                          placeholder={"Lost Reason"}
-                          label={"lost-reason"}
-                          type={"text"}
-                          isTextArea
-                        />
-                      ),
                     ]}
                   />
                 </Form>

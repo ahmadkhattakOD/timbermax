@@ -9,8 +9,6 @@ import CustomersRepository, {
 
 export interface ValuesCreateCustomer {
   name: string;
-  milestone: string;
-  expectedCloseDate: string;
   email: string;
   phone: string;
   mobile: string;
@@ -49,11 +47,6 @@ export function useCreateCustomer() {
     try {
       const newCustomer: CustomerSupabase = {
         name: values.name,
-        milestone: values.milestone,
-        expected_close_date:
-          values.expectedCloseDate !== ""
-            ? new Date(values.expectedCloseDate)
-            : null,
         email: values.email,
         phone: values.phone,
         mobile: values.mobile,

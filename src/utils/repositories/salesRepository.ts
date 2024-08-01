@@ -3,11 +3,7 @@ import { ValuesFilterDeliveries } from "pages/deliveries/main/useDeliveries";
 import { ValuesFilterSelectSales } from "pages/deliveries/select/useSelectSale";
 import { ValuesFilterSales } from "pages/sales/main/useSales";
 import { ValuesFilterViewSales } from "pages/view-sales/main/useViewSales";
-import {
-  getDateFormatted,
-  getDateFormattedForField,
-  getMonthName,
-} from "utils/helpers";
+import { getDateFormattedForField, getMonthName } from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface SaleSupabase {
@@ -28,6 +24,9 @@ export interface SaleSupabase {
   sales_person?: string;
   closer?: string;
   status: string;
+  milestone: string;
+  expected_close_date?: Date | null;
+  lost_reason: string;
   show?: number;
   follow_up_notes: string;
   sale_date: Date;
@@ -67,7 +66,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -125,6 +124,15 @@ class SalesRepository {
         if (filters.status) {
           query.eq("status", filters.status);
         }
+        if (filters.milestone) {
+          query.eq("milestone", filters.milestone);
+        }
+        if (filters.expectedCloseDateFrom) {
+          query.gte("expected_close_date", filters.expectedCloseDateFrom);
+        }
+        if (filters.expectedCloseDateTo) {
+          query.lte("expected_close_date", filters.expectedCloseDateTo);
+        }
         if (filters.show) {
           query.eq("show", parseInt(filters.show));
         }
@@ -169,7 +177,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -227,6 +235,15 @@ class SalesRepository {
         }
         if (filters.status) {
           query.eq("status", filters.status);
+        }
+        if (filters.milestone) {
+          query.eq("milestone", filters.milestone);
+        }
+        if (filters.expectedCloseDateFrom) {
+          query.gte("expected_close_date", filters.expectedCloseDateFrom);
+        }
+        if (filters.expectedCloseDateTo) {
+          query.lte("expected_close_date", filters.expectedCloseDateTo);
         }
         if (filters.show) {
           query.eq("show", parseInt(filters.show));
@@ -286,7 +303,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -349,6 +366,15 @@ class SalesRepository {
         if (filters.status) {
           query.eq("status", filters.status);
         }
+        if (filters.milestone) {
+          query.eq("milestone", filters.milestone);
+        }
+        if (filters.expectedCloseDateFrom) {
+          query.gte("expected_close_date", filters.expectedCloseDateFrom);
+        }
+        if (filters.expectedCloseDateTo) {
+          query.lte("expected_close_date", filters.expectedCloseDateTo);
+        }
         if (filters.show) {
           query.eq("show", parseInt(filters.show));
         }
@@ -386,7 +412,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -449,6 +475,15 @@ class SalesRepository {
         if (filters.status) {
           query.eq("status", filters.status);
         }
+        if (filters.milestone) {
+          query.eq("milestone", filters.milestone);
+        }
+        if (filters.expectedCloseDateFrom) {
+          query.gte("expected_close_date", filters.expectedCloseDateFrom);
+        }
+        if (filters.expectedCloseDateTo) {
+          query.lte("expected_close_date", filters.expectedCloseDateTo);
+        }
         if (filters.show) {
           query.eq("show", parseInt(filters.show));
         }
@@ -485,7 +520,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
+          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -538,6 +573,15 @@ class SalesRepository {
         if (filters.closer) {
           query.eq("closer", filters.closer);
         }
+        if (filters.milestone) {
+          query.eq("milestone", filters.milestone);
+        }
+        if (filters.expectedCloseDateFrom) {
+          query.gte("expected_close_date", filters.expectedCloseDateFrom);
+        }
+        if (filters.expectedCloseDateTo) {
+          query.lte("expected_close_date", filters.expectedCloseDateTo);
+        }
         if (filters.show) {
           query.eq("show", parseInt(filters.show));
         }
@@ -562,90 +606,6 @@ class SalesRepository {
     }
   }
 
-  public async getDeliveredCsv(
-    orderBy: string,
-    ascending: boolean,
-    rangeStart: number,
-    rangeEnd: number,
-    limit: number,
-    filters?: ValuesFilterDeliveries
-  ) {
-    try {
-      const query = supabase
-        .from(this.className)
-        .select(
-          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date, stock_from_warehouse ( name ), delivery_date_time, invoice_date"
-        )
-        .order(orderBy, { ascending: ascending })
-        .range(rangeStart, rangeEnd)
-        .limit(limit)
-        .eq("status", "delivered");
-
-      if (filters) {
-        if (filters.contactName) {
-          query.ilike("customer.name", `%${filters.contactName}%`);
-        }
-        if (filters.salesPerson) {
-          query.eq("sales_person", filters.salesPerson);
-        }
-        if (filters.minimumDeposit) {
-          query.gte("deposit", parseFloat(filters.minimumDeposit));
-        }
-        if (filters.maximumDeposit) {
-          query.lte("deposit", parseFloat(filters.maximumDeposit));
-        }
-        if (filters.minimumTotal) {
-          query.gte("total", parseFloat(filters.minimumTotal));
-        }
-        if (filters.maximumTotal) {
-          query.gte("total", parseFloat(filters.maximumTotal));
-        }
-        if (filters.paymentMethod) {
-          query.eq("payment_method", filters.paymentMethod);
-        }
-        if (filters.phone) {
-          query.ilike("phone", `${filters.phone}%`);
-        }
-        if (filters.address) {
-          query.ilike("address", `%${filters.address}%`);
-        }
-        if (filters.state) {
-          query.eq("state", filters.state);
-        }
-        if (filters.postCode) {
-          query.eq("post_code", filters.postCode);
-        }
-        if (filters.emailAddress) {
-          query.ilike("email_address", `%${filters.emailAddress}%`);
-        }
-        if (filters.opportunityDescription) {
-          query.contains("opportunity_descriptions", [
-            filters.opportunityDescription,
-          ]);
-        }
-        if (filters.closer) {
-          query.eq("closer", filters.closer);
-        }
-        if (filters.show) {
-          query.eq("show", parseInt(filters.show));
-        }
-        if (filters.saleDateFrom) {
-          query.gte("sale_date", filters.saleDateFrom);
-        }
-        if (filters.saleDateTo) {
-          query.lte("sale_date", filters.saleDateTo);
-        }
-      }
-
-      const { data: salesData, error: salesError } = await query.csv();
-
-      return { salesData, salesError };
-    } catch (error) {
-      console.error("Error fetching deliveries:", error);
-      return null;
-    }
-  }
-
   public async getUndelivered(
     orderBy: string,
     ascending: boolean,
@@ -658,7 +618,7 @@ class SalesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, status_changed_at, follow_up_notes, sale_date",
+          "id, contact_name, customer!inner ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( full_name ), closer ( full_name ), show ( name ), note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date",
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -717,6 +677,15 @@ class SalesRepository {
         }
         if (filters.status) {
           query.eq("status", filters.status);
+        }
+        if (filters.milestone) {
+          query.eq("milestone", filters.milestone);
+        }
+        if (filters.expectedCloseDateFrom) {
+          query.gte("expected_close_date", filters.expectedCloseDateFrom);
+        }
+        if (filters.expectedCloseDateTo) {
+          query.lte("expected_close_date", filters.expectedCloseDateTo);
         }
         if (filters.show) {
           query.eq("show", parseInt(filters.show));
@@ -811,7 +780,7 @@ class SalesRepository {
       const { data: saleData, error: saleError } = await supabase
         .from(this.className)
         .select(
-          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, status_changed_at, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date, invoiced, invoiced_sales_person, invoiced_closer"
+          "id, contact_name, customer ( id, name ), opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, sales_person ( id, full_name ), closer ( id, full_name ), show ( id, name ), note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date, closed, stock_from_warehouse ( id, name ), delivery_date_time, invoice_date, invoiced, invoiced_sales_person, invoiced_closer"
         )
         .eq("id", id)
         .limit(1)

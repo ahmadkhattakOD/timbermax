@@ -8,7 +8,7 @@ import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
 
-export interface ValuesEditSale {
+export interface ValuesCloseSale {
   contactName: string;
   opportunityDescription: string;
   deposit: string;
@@ -24,6 +24,9 @@ export interface ValuesEditSale {
   salesPerson: string;
   closer: string;
   status: string;
+  milestone: string;
+  expectedCloseDate: string;
+  lostReason: string;
   show: string;
   followUpNotes: string;
   saleDate: string;
@@ -43,8 +46,8 @@ export function useCloseSale() {
   const [sale, setSale] = useState<any>(null);
   const { id } = useParams();
 
-  function validate(values: ValuesEditSale) {
-    const errors = {} as ValuesEditSale;
+  function validate(values: ValuesCloseSale) {
+    const errors = {} as ValuesCloseSale;
 
     if (!values.contactName.trim()) {
       errors.contactName = "required";
@@ -85,7 +88,7 @@ export function useCloseSale() {
     return errors;
   }
 
-  async function onSubmit(values: ValuesEditSale) {
+  async function onSubmit(values: ValuesCloseSale) {
     try {
       if (id && isNumeric(id)) {
         const salesRepository = new SalesRepository();

@@ -134,6 +134,18 @@ const headCellsSales: HeadCell[] = [
     label: "Status Changed At",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
+    id: "expected_close_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Expected Close Date",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -234,8 +246,6 @@ const initialFiltersCommunication: ValuesFilterCommunication = {
 
 export interface ValuesEditCustomer {
   name: string;
-  milestone: string;
-  expectedCloseDate: string;
   email: string;
   phone: string;
   mobile: string;
@@ -341,11 +351,6 @@ export function useEditCustomer() {
       if (id && isNumeric(id)) {
         const updatedCustomer: CustomerSupabase = {
           name: values.name,
-          milestone: values.milestone,
-          expected_close_date:
-            values.expectedCloseDate !== ""
-              ? new Date(values.expectedCloseDate)
-              : null,
           email: values.email,
           phone: values.phone,
           mobile: values.mobile,
@@ -512,6 +517,12 @@ export function useEditCustomer() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && <FormattedMessage id={row.milestone} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale_date)}
@@ -610,7 +621,7 @@ export function useEditCustomer() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.milestone},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
         }
 
         setCsvDataSales(csvString);
@@ -831,7 +842,7 @@ export function useEditCustomer() {
         for (let i = 0; i < dataCommunication.length; i++) {
           let communication = dataCommunication[i] as any;
 
-          // csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+          csvString += `${communication?.method ?? ""},${communication?.notes ?? ""},${communication?.date ?? ""},${communication?.created_at ?? ""}\n`;
         }
 
         setCsvDataCommunication(csvString);

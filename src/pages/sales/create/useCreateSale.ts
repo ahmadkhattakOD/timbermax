@@ -30,6 +30,9 @@ export interface ValuesCreateSale {
   salesPerson: string;
   closer: string;
   status: string;
+  milestone: string;
+  expectedCloseDate: string;
+  lostReason: string;
   show: string;
   followUpNotes: string;
   saleDate: string;
@@ -140,7 +143,7 @@ export function useCreateSale() {
   async function onSubmit(values: ValuesCreateSale) {
     try {
       const newSale: SaleSupabase = {
-        contact_name: "Hello",
+        contact_name: "REPORT IF YOU SEE THIS",
         customer: selectedCustomer,
         opportunity_descriptions: selectedOpportunities.filter((i) => i !== ""),
         deposit: parseFloat(values.deposit) ?? 0,
@@ -157,6 +160,11 @@ export function useCreateSale() {
         sales_person: values.salesPerson,
         closer: values.closer,
         status: values.status,
+        milestone: values.milestone,
+        expected_close_date: values.expectedCloseDate
+          ? new Date(values.expectedCloseDate)
+          : null,
+        lost_reason: values.milestone !== "lost" ? "" : values.lostReason,
         show: parseInt(values.show),
         follow_up_notes: values.followUpNotes,
         sale_date: new Date(values.saleDate),

@@ -261,6 +261,26 @@ export default function CloseSales() {
                       ]}
                     />,
                     <FormDropdown
+                      id={"milestone"}
+                      name={"milestone"}
+                      label={"milestone"}
+                      options={["won", "in-progress", "lost"]}
+                    />,
+                    <FormInput
+                      id={"expectedCloseDateFrom"}
+                      name={"expectedCloseDateFrom"}
+                      placeholder={"Expected Close Date From"}
+                      label={"expected-close-date-from"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"expectedCloseDateTo"}
+                      name={"expectedCloseDateTo"}
+                      placeholder={"Expected Close Date To"}
+                      label={"expected-close-date-to"}
+                      type={"date"}
+                    />,
+                    <FormDropdown
                       id={"show"}
                       name={"show"}
                       label={"show"}

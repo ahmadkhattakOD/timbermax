@@ -4,9 +4,6 @@ import supabase from "utils/supabase";
 
 export interface CustomerSupabase {
   name: string;
-  milestone: string;
-  actual_close_date?: Date | null;
-  expected_close_date?: Date | null;
   email: string;
   phone: string;
   mobile: string;
@@ -59,9 +56,6 @@ class CustomersRepository {
         if (filters.name) {
           query.ilike("name", `%${filters.name}%`);
         }
-        if (filters.milestone) {
-          query.eq("milestone", filters.milestone);
-        }
         if (filters.email) {
           query.ilike("email", `%${filters.email}%`);
         }
@@ -70,18 +64,6 @@ class CustomersRepository {
         }
         if (filters.mobile) {
           query.ilike("mobile", `${filters.mobile}%`);
-        }
-        if (filters.expectedCloseDateFrom) {
-          query.gte("expected_close_date", filters.expectedCloseDateFrom);
-        }
-        if (filters.expectedCloseDateTo) {
-          query.lte("expected_close_date", filters.expectedCloseDateTo);
-        }
-        if (filters.actualCloseDateFrom) {
-          query.gte("actual_close_date", filters.actualCloseDateFrom);
-        }
-        if (filters.actualCloseDateTo) {
-          query.lte("actual_close_date", filters.actualCloseDateTo);
         }
         if (filters.address) {
           query.ilike("address", `%${filters.address}%`);

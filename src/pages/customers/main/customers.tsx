@@ -140,12 +140,6 @@ export default function Customers() {
                       label={"name"}
                       type={"text"}
                     />,
-                    <FormDropdown
-                      id={"milestone"}
-                      name={"milestone"}
-                      label={"milestone"}
-                      options={["won", "in-progress", "lost"]}
-                    />,
                     <FormInput
                       id={"email"}
                       name={"email"}
@@ -166,35 +160,6 @@ export default function Customers() {
                       placeholder={"Mobile"}
                       label={"mobile"}
                       type={"text"}
-                    />,
-
-                    <FormInput
-                      id={"expectedCloseDateFrom"}
-                      name={"expectedCloseDateFrom"}
-                      placeholder={"Expected Close Date From"}
-                      label={"expected-close-date-from"}
-                      type={"date"}
-                    />,
-                    <FormInput
-                      id={"expectedCloseDateTo"}
-                      name={"expectedCloseDateTo"}
-                      placeholder={"Expected Close Date To"}
-                      label={"expected-close-date-to"}
-                      type={"date"}
-                    />,
-                    <FormInput
-                      id={"actualCloseDateFrom"}
-                      name={"actualCloseDateFrom"}
-                      placeholder={"Actual Close Date From"}
-                      label={"actual-close-date-from"}
-                      type={"date"}
-                    />,
-                    <FormInput
-                      id={"actualCloseDateTo"}
-                      name={"actualCloseDateTo"}
-                      placeholder={"Actual Close Date To"}
-                      label={"actual-close-date-to"}
-                      type={"date"}
                     />,
                     <FormInput
                       id={"address"}

@@ -136,6 +136,18 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
+    id: "expected_close_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Expected Close Date",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -164,6 +176,9 @@ export interface ValuesViewDelivery {
   salesPerson: string;
   closer: string;
   status: string;
+  milestone: string;
+  expectedCloseDate: string;
+  lostReason: string;
   show: string;
   followUpNotes: string;
   saleDate: string;
@@ -173,7 +188,6 @@ export interface ValuesViewDelivery {
 }
 
 export function useViewDelivery() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
   const [closers, setClosers] = useState<any[]>([]);
@@ -244,6 +258,13 @@ export function useViewDelivery() {
         <TableCell sx={{ minWidth: 200 }}>{row.sale?.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.status && <FormattedMessage id={row.sale?.status} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.milestone && <FormattedMessage id={row.sale?.milestone} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.sale?.expected_close_date &&
+            getDateFormatted(row.sale?.expected_close_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale?.follow_up_notes}

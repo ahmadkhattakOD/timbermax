@@ -3,7 +3,12 @@ import { TableCell } from "@mui/material";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
-import { UserRoles, getDateFormatted, initialRowsPerPage, useDebouncedSearch } from "utils/helpers";
+import {
+  UserRoles,
+  getDateFormatted,
+  initialRowsPerPage,
+  useDebouncedSearch,
+} from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -119,6 +124,18 @@ const headCells: HeadCell[] = [
     label: "Status Changed At",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
+    id: "expected_close_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Expected Close Date",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -149,6 +166,9 @@ export interface ValuesFilterViewSales {
   closer: string;
   closed: string;
   status: string;
+  milestone: string;
+  expectedCloseDateFrom: string;
+  expectedCloseDateTo: string;
   show: string;
   saleDateFrom: string;
   saleDateTo: string;
@@ -171,6 +191,9 @@ const initialFilters: ValuesFilterViewSales = {
   closer: "",
   closed: "",
   status: "",
+  milestone: "",
+  expectedCloseDateFrom: "",
+  expectedCloseDateTo: "",
   show: "",
   saleDateFrom: "",
   saleDateTo: "",
@@ -259,6 +282,12 @@ export function useViewSales() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && <FormattedMessage id={row.milestone} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale_date)}
@@ -325,7 +354,7 @@ export function useViewSales() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.milestone},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
         }
 
         setCsvData(csvString);
@@ -432,7 +461,7 @@ export function useViewSales() {
     csvData,
     csvLink,
     handleSearchDebounced,
-    searchValue, 
-    setSearchValue
+    searchValue,
+    setSearchValue,
   };
 }

@@ -348,6 +348,11 @@ export default function EditSale() {
           salesPerson: sale.sales_person?.id ?? "",
           closer: sale.closer?.id ?? "",
           status: sale.status ?? "",
+          milestone: sale.milestone ?? "",
+          expectedCloseDate: sale.expected_close_date
+            ? getDateFormattedForField(sale.expected_close_date)
+            : "",
+          lostReason: sale.lost_reason ?? "",
           show: sale.show?.id ?? "",
           followUpNotes: sale.follow_up_notes ?? "",
           saleDate: getDateFormattedForField(sale.sale_date) ?? "",
@@ -361,30 +366,22 @@ export default function EditSale() {
               isSubmitting={isSubmitting}
               submitButtonText={"submit"}
               inputs={[
-                // <FormInput
-                //   id={"contactName"}
-                //   name={"contactName"}
-                //   placeholder={"Contact Name"}
-                //   label={"contact-name"}
-                //   optional={false}
-                //   type={"text"}
-                //   error={touched.contactName ? errors.contactName : ""}
-                //   disabled={invoiceCreated}
-                // />,
-                !loadingCustomers && <InputDropdown
-                  id="contactName"
-                  name="contactName"
-                  label="contact-name"
-                  options={customers}
-                  loading={loadingCustomers}
-                  optional={false}
-                  value={customers.find((c) => c.id === selectedCustomer)}
-                  onChange={handleSearchDebounced}
-                  onSelect={(e) => {
-                    setSelectedCustomer(e.target.value);
-                  }}
-                  error={errors.contactName}
-                />,
+                !loadingCustomers && (
+                  <InputDropdown
+                    id="contactName"
+                    name="contactName"
+                    label="contact-name"
+                    options={customers}
+                    loading={loadingCustomers}
+                    optional={false}
+                    value={customers.find((c) => c.id === selectedCustomer)}
+                    onChange={handleSearchDebounced}
+                    onSelect={(e) => {
+                      setSelectedCustomer(e.target.value);
+                    }}
+                    error={errors.contactName}
+                  />
+                ),
                 <FormDropdown
                   id={"salesPerson"}
                   name={"salesPerson"}
@@ -620,6 +617,32 @@ export default function EditSale() {
                   }
                   disabledValues={["delivered"]}
                   error={touched.status ? errors.status : ""}
+                />,
+                <FormDropdown
+                  id={"milestone"}
+                  name={"milestone"}
+                  label={"milestone"}
+                  options={["won", "in-progress", "lost"]}
+                />,
+                values.milestone === "lost" ? (
+                  <FormInput
+                    id={"lostReason"}
+                    name={"lostReason"}
+                    placeholder={"Lost Reason"}
+                    label={"lost-reason"}
+                    type={"text"}
+                    isTextArea
+                  />
+                ) : null,
+                <FormInput
+                  id={"expectedCloseDate"}
+                  name={"expectedCloseDate"}
+                  placeholder={"Expected Close Date"}
+                  label={"expected-close-date"}
+                  type={"date"}
+                  error={
+                    touched.expectedCloseDate ? errors.expectedCloseDate : ""
+                  }
                 />,
                 <FormDropdown
                   id={"show"}

@@ -104,6 +104,11 @@ export default function ViewDelivery() {
           salesPerson: sale?.sales_person.id ?? "",
           closer: sale?.closer.id ?? "",
           status: sale?.status ?? "",
+          milestone: sale?.milestone ?? "",
+          expectedCloseDate: sale?.expected_close_date
+            ? getDateFormattedForField(sale?.expected_close_date)
+            : "",
+          lostReason: sale?.lost_reason ?? "",
           show: sale?.show?.id ?? "",
           followUpNotes: sale?.follow_up_notes ?? "",
           saleDate: getDateFormattedForField(sale?.sale_date) ?? "",
@@ -287,6 +292,35 @@ export default function ViewDelivery() {
                   disabled
                   disabledValues={["delivered"]}
                   error={touched.status ? errors.status : ""}
+                />,
+                <FormDropdown
+                  id={"milestone"}
+                  name={"milestone"}
+                  label={"milestone"}
+                  disabled
+                  options={["won", "in-progress", "lost"]}
+                />,
+                values.milestone === "lost" ? (
+                  <FormInput
+                    id={"lostReason"}
+                    name={"lostReason"}
+                    placeholder={"Lost Reason"}
+                    label={"lost-reason"}
+                    type={"text"}
+                    disabled
+                    isTextArea
+                  />
+                ) : null,
+                <FormInput
+                  id={"expectedCloseDate"}
+                  name={"expectedCloseDate"}
+                  placeholder={"Expected Close Date"}
+                  label={"expected-close-date"}
+                  type={"date"}
+                  disabled
+                  error={
+                    touched.expectedCloseDate ? errors.expectedCloseDate : ""
+                  }
                 />,
                 <FormDropdown
                   id={"show"}

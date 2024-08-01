@@ -128,6 +128,18 @@ const headCells: HeadCell[] = [
     label: "Status Changed At",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
+    id: "expected_close_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Expected Close Date",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -174,6 +186,9 @@ export interface ValuesFilterDeliveries {
   emailAddress: string;
   opportunityDescription: string;
   closer: string;
+  milestone: string;
+  expectedCloseDateFrom: string;
+  expectedCloseDateTo: string;
   show: string;
   saleDateFrom: string;
   saleDateTo: string;
@@ -194,6 +209,9 @@ const initialFilters: ValuesFilterDeliveries = {
   emailAddress: "",
   opportunityDescription: "",
   closer: "",
+  milestone: "",
+  expectedCloseDateFrom: "",
+  expectedCloseDateTo: "",
   show: "",
   saleDateFrom: "",
   saleDateTo: "",
@@ -301,6 +319,12 @@ export function useDeliveries() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && <FormattedMessage id={row.milestone} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale_date && getDateFormatted(row.sale_date)}
@@ -406,7 +430,7 @@ export function useDeliveries() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""}\n`;
+          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.milestone},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""},${sale?.delivery_date_time ?? ""},${sale?.stock_from_warehose?.name ?? ""},${sale?.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);

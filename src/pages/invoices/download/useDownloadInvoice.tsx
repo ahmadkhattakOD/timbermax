@@ -124,6 +124,18 @@ const headCellsSales: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
+    id: "expected_close_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Expected Close Date",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -255,9 +267,7 @@ export function useDownloadInvoice() {
           {row.commission}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.payment_method && (
-            <FormattedMessage id={row.payment_method} />
-          )}
+          {row.payment_method && <FormattedMessage id={row.payment_method} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
@@ -269,19 +279,19 @@ export function useDownloadInvoice() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.sales_person?.full_name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.closer?.full_name}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.show_name}
-        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.closer?.full_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.show_name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.follow_up_notes}
+          {row.milestone && <FormattedMessage id={row.milestone} />}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale_date)}
         </TableCell>
@@ -309,7 +319,7 @@ export function useDownloadInvoice() {
           orderSales === "asc",
           rangeStart,
           rangeEnd,
-          rowsPerPageSales,
+          rowsPerPageSales
         );
         if (sales) {
           const { salesData, salesCount, salesError } = sales;
@@ -358,8 +368,7 @@ export function useDownloadInvoice() {
           {row.sale_date && getDateFormatted(row.sale_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.status_changed_at &&
-            getDateFormatted(row.status_changed_at)}
+          {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
       </React.Fragment>
     );
@@ -378,7 +387,7 @@ export function useDownloadInvoice() {
           orderCancelled === "asc",
           rangeStart,
           rangeEnd,
-          rowsPerPageCancelled,
+          rowsPerPageCancelled
         );
         if (sales) {
           const { salesData, salesCount, salesError } = sales;
@@ -400,7 +409,13 @@ export function useDownloadInvoice() {
     if (invoice) {
       getDataCancelled();
     }
-  }, [orderCancelled, orderByCancelled, pageCancelled, rowsPerPageCancelled, invoice]);
+  }, [
+    orderCancelled,
+    orderByCancelled,
+    pageCancelled,
+    rowsPerPageCancelled,
+    invoice,
+  ]);
 
   async function getInvoiceProfile() {
     try {

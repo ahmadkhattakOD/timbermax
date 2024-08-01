@@ -130,6 +130,18 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
+    id: "expected_close_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Expected Close Date",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -338,6 +350,12 @@ export function useCreateInvoice() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && <FormattedMessage id={row.milestone} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale_date)}
@@ -423,7 +441,7 @@ export function useCreateInvoice() {
             saleDateFrom,
             saleDateTo,
             id,
-            createdInvoice.id,
+            createdInvoice.id
           );
 
           const changeCancelledToInvoiced =
@@ -433,7 +451,6 @@ export function useCreateInvoice() {
               id,
               createdInvoice.id
             );
-
 
           if (changeToInvoiced) {
             openSnackbar({
@@ -540,7 +557,7 @@ export function useCreateInvoice() {
               }
             );
           }
-          csvString += `${invoice.contact_name ?? ""},${opportunityDescriptions},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.payment_method ?? ""},${invoice.sale?.phone ?? ""},${invoice.sale?.mobile ?? ""},${invoice.sale?.address ?? ""},${invoice.sale?.state ?? ""},${invoice.sale?.post_code ?? ""},${invoice.sale?.email_address ?? ""},${invoice.sale?.sales_person?.full_name ?? ""},${invoice.sale?.closer?.full_name ?? ""},${invoice.sale?.show?.name ?? ""},${invoice.sale?.note ?? ""},${invoice.sale?.status ?? ""},${invoice.sale?.follow_up_notes ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.delivery_date_time ?? ""},${invoice.sale?.stock_from_warehose?.name ?? ""},${invoice.sale?.invoice_date ?? ""}\n`;
+          csvString += `${invoice.contact_name ?? ""},${opportunityDescriptions},${invoice.deposit ?? ""},${invoice.total ?? ""},${invoice.commission ?? ""},${invoice.payment_method ?? ""},${invoice.phone ?? ""},${invoice.mobile ?? ""},${invoice.address ?? ""},${invoice.state ?? ""},${invoice.post_code ?? ""},${invoice.email_address ?? ""},${invoice.sales_person_full_name ?? ""},${invoice.closer_full_name ?? ""},${invoice.show_name ?? ""},${invoice.note ?? ""},${invoice.status ?? ""},${invoice.milestone},${invoice.expected_close_date},${invoice.follow_up_notes ?? ""},${invoice.sale_date ?? ""},${invoice.delivery_date_time ?? ""},${invoice.stock_from_warehose_name ?? ""},${invoice.invoice_date ?? ""}\n`;
         }
 
         setCsvData(csvString);
@@ -600,8 +617,7 @@ export function useCreateInvoice() {
           {row.sale?.sale_date && getDateFormatted(row.sale_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.status_changed_at &&
-            getDateFormatted(row.status_changed_at)}
+          {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
       </React.Fragment>
     );
@@ -659,7 +675,7 @@ export function useCreateInvoice() {
       if (dataCancelled.length > 0) {
         for (let i = 0; i < dataCancelled.length; i++) {
           let invoice = dataCancelled[i] as any;
-          csvString += `${invoice.contact_name ?? ""},${invoice.sale?.deposit ?? ""},${invoice.sale?.total ?? ""},${invoice.commission ?? ""},${invoice.sale?.sale_date ?? ""},${invoice.sale?.status_changed_at ?? ""}\n`;
+          csvString += `${invoice.contact_name ?? ""},${invoice.deposit ?? ""},${invoice.total ?? ""},${invoice.commission ?? ""},${invoice.sale_date ?? ""},${invoice.status_changed_at ?? ""}\n`;
         }
 
         setCsvDataCancelled(csvString);

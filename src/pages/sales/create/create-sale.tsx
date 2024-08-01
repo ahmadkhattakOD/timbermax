@@ -83,6 +83,9 @@ export default function CreateSale() {
         salesPerson: "",
         closer: "",
         status: "",
+        milestone: "",
+        expectedCloseDate: "",
+        lostReason: "",
         show: "",
         followUpNotes: "",
         saleDate: getDateFormattedForField(),
@@ -96,16 +99,6 @@ export default function CreateSale() {
             isSubmitting={isSubmitting}
             submitButtonText={"add"}
             inputs={[
-              // <FormInput
-              //   id={"contactName"}
-              //   name={"contactName"}
-              //   placeholder={"Contact Name"}
-              //   label={"contact-name"}
-              //   optional={false}
-              //   type={"text"}
-              //   error={touched.contactName ? errors.contactName : ""}
-              // />,
-
               <InputDropdown
                 id="contactName"
                 name="contactName"
@@ -330,6 +323,32 @@ export default function CreateSale() {
                 }
                 disabledValues={["delivered"]}
                 error={touched.status ? errors.status : ""}
+              />,
+              <FormDropdown
+                id={"milestone"}
+                name={"milestone"}
+                label={"milestone"}
+                options={["won", "in-progress", "lost"]}
+              />,
+              values.milestone === "lost" ? (
+                <FormInput
+                  id={"lostReason"}
+                  name={"lostReason"}
+                  placeholder={"Lost Reason"}
+                  label={"lost-reason"}
+                  type={"text"}
+                  isTextArea
+                />
+              ) : null,
+              <FormInput
+                id={"expectedCloseDate"}
+                name={"expectedCloseDate"}
+                placeholder={"Expected Close Date"}
+                label={"expected-close-date"}
+                type={"date"}
+                error={
+                  touched.expectedCloseDate ? errors.expectedCloseDate : ""
+                }
               />,
               <FormDropdown
                 id={"show"}

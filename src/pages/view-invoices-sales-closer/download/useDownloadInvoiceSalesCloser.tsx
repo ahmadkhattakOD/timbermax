@@ -124,6 +124,18 @@ const headCellsSales: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
+    id: "expected_close_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Expected Close Date",
+  },
+  {
     id: "follow_up_notes",
     numeric: false,
     disablePadding: true,
@@ -290,6 +302,12 @@ export function useDownloadInvoiceSalesCloser() {
         <TableCell sx={{ minWidth: 200 }}>
           {row.status && <FormattedMessage id={row.status} />}
         </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.milestone && <FormattedMessage id={row.milestone} />}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
+        </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {getDateFormatted(row.sale_date)}
@@ -318,7 +336,7 @@ export function useDownloadInvoiceSalesCloser() {
           orderSales === "asc",
           rangeStart,
           rangeEnd,
-          rowsPerPageSales,
+          rowsPerPageSales
         );
         if (sales) {
           const { salesData, salesCount, salesError } = sales;
@@ -401,8 +419,7 @@ export function useDownloadInvoiceSalesCloser() {
           {row.sale_date && getDateFormatted(row.sale_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
-          {row.status_changed_at &&
-            getDateFormatted(row.status_changed_at)}
+          {row.status_changed_at && getDateFormatted(row.status_changed_at)}
         </TableCell>
       </React.Fragment>
     );
@@ -421,7 +438,7 @@ export function useDownloadInvoiceSalesCloser() {
           orderCancelled === "asc",
           rangeStart,
           rangeEnd,
-          rowsPerPageCancelled,
+          rowsPerPageCancelled
         );
         if (sales) {
           const { salesData, salesCount, salesError } = sales;
@@ -443,7 +460,13 @@ export function useDownloadInvoiceSalesCloser() {
     if (invoice) {
       getDataCancelled();
     }
-  }, [orderCancelled, orderByCancelled, pageCancelled, rowsPerPageCancelled, invoice]);
+  }, [
+    orderCancelled,
+    orderByCancelled,
+    pageCancelled,
+    rowsPerPageCancelled,
+    invoice,
+  ]);
 
   async function getInvoiceProfile() {
     try {
