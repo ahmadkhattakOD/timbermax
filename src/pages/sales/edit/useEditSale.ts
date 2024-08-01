@@ -59,6 +59,10 @@ export function useEditSale() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedEmail, setSelectedEmail] = useState<string>("");
+  const [selectedPhone, setSelectedPhone] = useState<string>("");
+  const [selectedMobile, setSelectedMobile] = useState<string>("");
+  const [selectedPostCode, setSelectedPostCode] = useState<string>("");
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
   const [customerSearch, setCustomerSearch] = useState<string>("");
@@ -98,6 +102,16 @@ export function useEditSale() {
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+
+  function resetCustomerData() {
+    setSelectedEmail("");
+    setSelectedPhone("");
+    setSelectedMobile("");
+    setSelectedAddress("");
+    setSelectedSuburb("");
+    setSelectedState("");
+    setSelectedPostCode("");
+  }
 
   function validate(values: ValuesEditSale) {
     const errors = {} as ValuesEditSale;
@@ -159,13 +173,13 @@ export function useEditSale() {
           deposit: parseFloat(values.deposit) ?? 0,
           total: parseFloat(values.total) ?? 0,
           payment_method: values.paymentMethod,
-          phone: values.phone,
-          mobile: values.mobile,
+          phone: selectedPhone,
+          mobile: selectedMobile,
           address: selectedAddress,
           suburb: selectedSuburb,
           state: selectedState,
-          post_code: values.postCode,
-          email_address: values.emailAddress,
+          post_code: selectedPostCode,
+          email_address: selectedEmail,
           note: values.note,
           sales_person: values.salesPerson,
           closer: values.closer,
@@ -481,6 +495,10 @@ export function useEditSale() {
           setSelectedAddress(saleData.address);
           setSelectedSuburb(saleData.suburb);
           setSelectedState(saleData.state);
+          setSelectedEmail(saleData.email_address);
+          setSelectedPhone(saleData.phone);
+          setSelectedMobile(saleData.mobile);
+          setSelectedPostCode(saleData.post_code);
           setInvoiceCreated(
             saleData.invoiced_sales_person || saleData.invoiced_closer
           );
@@ -578,6 +596,23 @@ export function useEditSale() {
     getCustomers();
   }, [customerSearch]);
 
+  useEffect(() => {
+    if (selectedCustomer) {
+      const customer = customers.find((c) => c.id === selectedCustomer);
+      if (customer) {
+        setSelectedEmail(customer.email);
+        setSelectedPhone(customer.phone);
+        setSelectedMobile(customer.mobile);
+        setSelectedAddress(customer.address);
+        setSelectedSuburb(customer.suburb);
+        setSelectedState(customer.state);
+        setSelectedPostCode(customer.post_code);
+      }
+    } else {
+      resetCustomerData();
+    }
+  }, [selectedCustomer]);
+
   return {
     validate,
     onSubmit,
@@ -599,6 +634,14 @@ export function useEditSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
+    selectedEmail,
+    setSelectedEmail,
+    selectedPhone,
+    setSelectedPhone,
+    selectedMobile,
+    setSelectedMobile,
+    selectedPostCode,
+    setSelectedPostCode,
     selectedCustomer,
     setSelectedCustomer,
     customerSearch,

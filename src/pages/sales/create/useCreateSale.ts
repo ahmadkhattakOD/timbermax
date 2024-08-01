@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { UserRoles, parseAddress, useDebouncedSearch } from "utils/helpers";
-import CustomersRepository from "utils/repositories/customersRepository";
+import CustomersRepository, {
+  CustomerSupabase,
+} from "utils/repositories/customersRepository";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
@@ -16,6 +18,7 @@ import ShowsRepository from "utils/repositories/showsRepository";
 
 export interface ValuesCreateSale {
   contactName: string;
+  inlineCustomerName: string;
   deposit: string;
   total: string;
   paymentMethod: string;
@@ -51,10 +54,15 @@ export function useCreateSale() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedEmail, setSelectedEmail] = useState<string>("");
+  const [selectedPhone, setSelectedPhone] = useState<string>("");
+  const [selectedMobile, setSelectedMobile] = useState<string>("");
+  const [selectedPostCode, setSelectedPostCode] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
   const [customerSearch, setCustomerSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
 
   function handleChangeSelectedOpportunities(
     e: React.ChangeEvent<HTMLSelectElement>,
@@ -90,11 +98,25 @@ export function useCreateSale() {
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
+  function resetCustomerData() {
+    setSelectedEmail("");
+    setSelectedPhone("");
+    setSelectedMobile("");
+    setSelectedAddress("");
+    setSelectedSuburb("");
+    setSelectedState("");
+    setSelectedPostCode("");
+  }
+
   function validate(values: ValuesCreateSale) {
     const errors = {} as ValuesCreateSale;
 
-    if (!selectedCustomer) {
+    if (!createInlineCustomer && !selectedCustomer) {
       errors.contactName = "required";
+    }
+
+    if (createInlineCustomer && !values.inlineCustomerName.trim()) {
+      errors.inlineCustomerName = "required";
     }
 
     if (!values.salesPerson.trim()) {
@@ -142,20 +164,62 @@ export function useCreateSale() {
 
   async function onSubmit(values: ValuesCreateSale) {
     try {
+      let customerToAdd = selectedCustomer;
+
+      if (createInlineCustomer) {
+        const newCustomer: CustomerSupabase = {
+          name: values.inlineCustomerName,
+          phone: selectedPhone,
+          mobile: selectedMobile,
+          address: selectedAddress,
+          suburb: selectedSuburb,
+          state: selectedState,
+          post_code: selectedPostCode,
+          email: selectedEmail,
+        };
+        const customersRepository = new CustomersRepository();
+        const createdCustomer = await customersRepository.create(newCustomer);
+        if (createdCustomer) {
+          customerToAdd = createdCustomer.id;
+        } else if (createdCustomer === false) {
+          openSnackbar({
+            open: true,
+            message:
+              "Another customer already exists with the same name and address. Please select the customer to continue.",
+            variant: "alert",
+            alert: {
+              color: "error",
+            },
+          } as SnackbarProps);
+          return;
+        } else {
+          openSnackbar({
+            open: true,
+            message:
+              "Customer could not be added successfully. Please try again.",
+            variant: "alert",
+            alert: {
+              color: "error",
+            },
+          } as SnackbarProps);
+          return;
+        }
+      }
+
       const newSale: SaleSupabase = {
         contact_name: "REPORT IF YOU SEE THIS",
-        customer: selectedCustomer,
+        customer: customerToAdd,
         opportunity_descriptions: selectedOpportunities.filter((i) => i !== ""),
         deposit: parseFloat(values.deposit) ?? 0,
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
-        phone: values.phone,
-        mobile: values.mobile,
+        phone: selectedPhone,
+        mobile: selectedMobile,
         address: selectedAddress,
         suburb: selectedSuburb,
         state: selectedState,
-        post_code: values.postCode,
-        email_address: values.emailAddress,
+        post_code: selectedPostCode,
+        email_address: selectedEmail,
         note: values.note,
         sales_person: values.salesPerson,
         closer: values.closer,
@@ -391,8 +455,27 @@ export function useCreateSale() {
   }, []);
 
   useEffect(() => {
-    getCustomers();
-  }, [customerSearch]);
+    if (!createInlineCustomer) {
+      getCustomers();
+    }
+  }, [customerSearch, createInlineCustomer]);
+
+  useEffect(() => {
+    if (selectedCustomer) {
+      const customer = customers.find((c) => c.id === selectedCustomer);
+      if (customer) {
+        setSelectedEmail(customer.email);
+        setSelectedPhone(customer.phone);
+        setSelectedMobile(customer.mobile);
+        setSelectedAddress(customer.address);
+        setSelectedSuburb(customer.suburb);
+        setSelectedState(customer.state);
+        setSelectedPostCode(customer.post_code);
+      }
+    } else {
+      resetCustomerData();
+    }
+  }, [selectedCustomer]);
 
   return {
     validate,
@@ -413,10 +496,20 @@ export function useCreateSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
+    selectedEmail,
+    setSelectedEmail,
+    selectedPhone,
+    setSelectedPhone,
+    selectedMobile,
+    setSelectedMobile,
+    selectedPostCode,
+    setSelectedPostCode,
     selectedCustomer,
     setSelectedCustomer,
     customerSearch,
     handleSearchDebounced,
     loadingCustomers,
+    createInlineCustomer,
+    setCreateInlineCustomer,
   };
 }

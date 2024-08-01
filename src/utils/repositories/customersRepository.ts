@@ -4,16 +4,16 @@ import supabase from "utils/supabase";
 
 export interface CustomerSupabase {
   name: string;
-  email: string;
-  phone: string;
-  mobile: string;
-  address: string;
-  suburb: string;
-  state: string;
-  post_code: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  address?: string;
+  suburb?: string;
+  state?: string;
+  post_code?: string;
   // tags: string[];
-  lost_reason: string;
-  notes: string;
+  lost_reason?: string;
+  notes?: string;
 }
 
 class CustomersRepository {
@@ -21,6 +21,19 @@ class CustomersRepository {
 
   public async create(customer: CustomerSupabase) {
     try {
+      const query = supabase.from(this.className).select();
+
+      if (customer.address) {
+        query.eq("name", customer.name);
+        query.eq("address", customer.address);
+
+        const { data: existingData, error: existingError } = await query;
+
+        if (existingData && existingData.length > 0 && !existingError) {
+          return false;
+        }
+      }
+
       const { data, error } = await supabase
         .from(this.className)
         .insert(customer)
@@ -110,7 +123,9 @@ class CustomersRepository {
     try {
       const { data: customersData, error: customersError } = await supabase
         .from(this.className)
-        .select("id, name")
+        .select(
+          "id, name, email, phone, mobile, address, suburb, state, post_code"
+        )
         .order("name", { ascending: true })
         .ilike("name", `%${name}%`);
 
@@ -139,6 +154,19 @@ class CustomersRepository {
 
   public async edit(id: number, customer: CustomerSupabase) {
     try {
+      const query = supabase.from(this.className).select();
+
+      if (customer.address) {
+        query.eq("name", customer.name);
+        query.eq("address", customer.address);
+
+        const { data: existingData, error: existingError } = await query;
+
+        if (existingData && existingData.length > 0 && !existingError) {
+          return false;
+        }
+      }
+
       const { data, error } = await supabase
         .from(this.className)
         .update(customer)

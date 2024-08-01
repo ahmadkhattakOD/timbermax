@@ -42,9 +42,16 @@ export default function EditSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
+    selectedEmail,
+    setSelectedEmail,
+    selectedPhone,
+    setSelectedPhone,
+    selectedMobile,
+    setSelectedMobile,
+    selectedPostCode,
+    setSelectedPostCode,
     selectedCustomer,
     setSelectedCustomer,
-    customerSearch,
     handleSearchDebounced,
     loadingCustomers,
   } = useEditSale();
@@ -486,6 +493,10 @@ export default function EditSale() {
                   label={"phone"}
                   type={"text"}
                   disabled={invoiceCreated}
+                  value={selectedPhone}
+                  onChange={(e) => {
+                    setSelectedPhone(e.target.value);
+                  }}
                 />,
                 <FormInput
                   id={"mobile"}
@@ -494,6 +505,10 @@ export default function EditSale() {
                   label={"mobile"}
                   type={"text"}
                   disabled={invoiceCreated}
+                  value={selectedMobile}
+                  onChange={(e) => {
+                    setSelectedMobile(e.target.value);
+                  }}
                 />,
                 <PlacesInput
                   id="address"
@@ -534,7 +549,11 @@ export default function EditSale() {
                   placeholder={"Post Code"}
                   label={"post-code"}
                   type={"text"}
+                  value={selectedPostCode}
                   disabled={invoiceCreated}
+                  onChange={(e) => {
+                    setSelectedPostCode(e.target.value);
+                  }}
                 />,
                 <FormInput
                   id={"emailAddress"}
@@ -542,7 +561,11 @@ export default function EditSale() {
                   placeholder={"Email Address"}
                   label={"email-address"}
                   type={"email"}
+                  value={selectedEmail}
                   disabled={invoiceCreated}
+                  onChange={(e) => {
+                    setSelectedEmail(e.target.value);
+                  }}
                 />,
                 <FormInput
                   id={"note"}

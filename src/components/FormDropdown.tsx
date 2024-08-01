@@ -66,24 +66,26 @@ const FormDropdown = ({
           mb: label && "0.5rem",
         }}
       >
-        {label && <Box
-          sx={{
-            display: "flex",
-            gap: "10px",
-          }}
-        >
-          <Typography
+        {label && (
+          <Box
             sx={{
-              color: disabled
-                ? theme.palette.text.disabled
-                : theme.palette.text.primary,
-              fontSize: "16px",
+              display: "flex",
+              gap: "10px",
             }}
           >
-            <FormattedMessage id={label} />
-          </Typography>
-          {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
-        </Box>}
+            <Typography
+              sx={{
+                color: disabled
+                  ? theme.palette.text.disabled
+                  : theme.palette.text.primary,
+                fontSize: "16px",
+              }}
+            >
+              <FormattedMessage id={label} />
+            </Typography>
+            {!optional && <Typography sx={{ color: "red" }}>*</Typography>}
+          </Box>
+        )}
         {secondaryLabel && (
           <Typography
             sx={{ color: theme.palette.secondary.dark, fontSize: "16px" }}

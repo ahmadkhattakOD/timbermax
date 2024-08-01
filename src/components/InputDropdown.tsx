@@ -6,21 +6,15 @@ import {
   Autocomplete,
   TextField,
   CircularProgress,
-  Chip,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { ReactNode, useState } from "react";
 import { FormattedMessage } from "react-intl";
-
-interface LabelValue {
-  label: string;
-  value: string;
-}
 
 interface FieldInputProps {
   id: string;
   name: string;
   label?: string;
-  secondaryLabel?: string | null;
+  secondaryLabel?: ReactNode | string | null;
   value?: any;
   optional?: true | false;
   error?: string;
@@ -32,6 +26,7 @@ interface FieldInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSelect: (e: any) => void;
   loading: boolean;
+  onClickCreateNew?: () => void;
 }
 
 const InputDropdown = ({
@@ -47,6 +42,7 @@ const InputDropdown = ({
   onChange,
   onSelect,
   loading,
+  onClickCreateNew,
 }: FieldInputProps) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -104,8 +100,27 @@ const InputDropdown = ({
           filterOptions={(x) => x}
           getOptionLabel={(option) => option.name}
           getOptionKey={(option) => option.id}
+          noOptionsText={
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              Not found. Try searching again.{" "}
+              {onClickCreateNew && (
+                <Box
+                  sx={{
+                    color: theme.palette.primary.main,
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    fontWeight: 600
+                  }}
+                  onClick={onClickCreateNew}
+                >
+                  Create?
+                </Box>
+              )}
+            </Box>
+          }
           options={options}
           loading={loading}
+          autoComplete={false}
           renderOption={(props, option) => {
             const { key, ...restProps } = props as any;
             const prop = { ...restProps };
@@ -120,6 +135,8 @@ const InputDropdown = ({
               {...params}
               name={name}
               onChange={onChange}
+              autoComplete="off"
+              type="search"
               sx={{ border: "none", borderRadius: 0 }}
               InputProps={{
                 ...params.InputProps,

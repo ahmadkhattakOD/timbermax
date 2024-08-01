@@ -1,21 +1,14 @@
 // project-imports
 import FormLayout from "components/FormLayout";
-import { Field, Form, Formik } from "formik";
+import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateSale } from "./useCreateSale";
-import {
-  australianStates,
-  getDateFormatted,
-  getDateFormattedForField,
-} from "utils/helpers";
-import { Autocomplete, Box, CircularProgress, TextField } from "@mui/material";
+import { australianStates, getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
-import { IconButton } from "@mui/material";
-import { Add, NoteRemove, Trash } from "iconsax-react";
-import GooglePlacesAutocomplete from "react-google-places-autocomplete";
+import { Box, IconButton, useTheme } from "@mui/material";
+import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
-import React, { useState } from "react";
 import InputDropdown from "components/InputDropdown";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
@@ -40,14 +33,22 @@ export default function CreateSale() {
     setSelectedSuburb,
     selectedState,
     setSelectedState,
-    selectedCustomer,
+    selectedEmail,
+    setSelectedEmail,
+    selectedPhone,
+    setSelectedPhone,
+    selectedMobile,
+    setSelectedMobile,
+    selectedPostCode,
+    setSelectedPostCode,
     setSelectedCustomer,
-    customerSearch,
     handleSearchDebounced,
     loadingCustomers,
+    createInlineCustomer,
+    setCreateInlineCustomer,
   } = useCreateSale();
 
-  const [openName, setOpenName] = useState(false);
+  const theme = useTheme();
 
   if (loading) {
     return (
@@ -69,6 +70,7 @@ export default function CreateSale() {
       enableReinitialize
       initialValues={{
         contactName: "",
+        inlineCustomerName: "",
         deposit: "",
         total: "",
         paymentMethod: "",
@@ -99,19 +101,66 @@ export default function CreateSale() {
             isSubmitting={isSubmitting}
             submitButtonText={"add"}
             inputs={[
-              <InputDropdown
-                id="contactName"
-                name="contactName"
-                label="contact-name"
-                options={customers}
-                loading={loadingCustomers}
-                optional={false}
-                onChange={handleSearchDebounced}
-                onSelect={(e) => {
-                  setSelectedCustomer(e.target.value);
-                }}
-                error={errors.contactName}
-              />,
+              !createInlineCustomer ? (
+                <InputDropdown
+                  id="contactName"
+                  name="contactName"
+                  label="contact-name"
+                  options={customers}
+                  secondaryLabel={
+                    <Box
+                      sx={{
+                        color: theme.palette.primary.main,
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => {
+                        setCreateInlineCustomer(true);
+                      }}
+                    >
+                      Create Manually
+                    </Box>
+                  }
+                  loading={loadingCustomers}
+                  optional={false}
+                  onChange={handleSearchDebounced}
+                  onSelect={(e) => {
+                    setSelectedCustomer(e.target.value);
+                  }}
+                  onClickCreateNew={() => {
+                    setCreateInlineCustomer(true);
+                  }}
+                  error={errors.contactName}
+                />
+              ) : null,
+              createInlineCustomer ? (
+                <FormInput
+                  id={"inlineCustomerName"}
+                  name={"inlineCustomerName"}
+                  placeholder={"Contact Name"}
+                  label={"contact-name"}
+                  type={"text"}
+                  secondaryLabel={
+                    <Box
+                      sx={{
+                        color: theme.palette.primary.main,
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => {
+                        setCreateInlineCustomer(false);
+                      }}
+                    >
+                      Cancel Manual
+                    </Box>
+                  }
+                  error={
+                    touched.inlineCustomerName ? errors.inlineCustomerName : ""
+                  }
+                />
+              ) : null,
               <FormDropdown
                 id={"salesPerson"}
                 name={"salesPerson"}
@@ -177,6 +226,10 @@ export default function CreateSale() {
                 placeholder={"Phone"}
                 label={"phone"}
                 type={"text"}
+                value={selectedPhone}
+                onChange={(e) => {
+                  setSelectedPhone(e.target.value);
+                }}
               />,
               <FormInput
                 id={"mobile"}
@@ -184,6 +237,10 @@ export default function CreateSale() {
                 placeholder={"Mobile"}
                 label={"mobile"}
                 type={"text"}
+                value={selectedMobile}
+                onChange={(e) => {
+                  setSelectedMobile(e.target.value);
+                }}
               />,
               <PlacesInput
                 id="address"
@@ -221,6 +278,10 @@ export default function CreateSale() {
                 placeholder={"Post Code"}
                 label={"post-code"}
                 type={"text"}
+                value={selectedPostCode}
+                onChange={(e) => {
+                  setSelectedPostCode(e.target.value);
+                }}
               />,
               <FormInput
                 id={"emailAddress"}
@@ -228,6 +289,10 @@ export default function CreateSale() {
                 placeholder={"Email Address"}
                 label={"email-address"}
                 type={"email"}
+                value={selectedEmail}
+                onChange={(e) => {
+                  setSelectedEmail(e.target.value);
+                }}
               />,
               <FormInput
                 id={"note"}

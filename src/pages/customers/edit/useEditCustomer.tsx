@@ -385,11 +385,21 @@ export function useEditCustomer() {
               color: "success",
             },
           } as SnackbarProps);
+        } else if (editedCustomer === false) {
+          openSnackbar({
+            open: true,
+            message:
+              "Another customer already exists with the same name and address. Please try again.",
+            variant: "alert",
+            alert: {
+              color: "error",
+            },
+          } as SnackbarProps);
         } else {
           openSnackbar({
             open: true,
             message:
-              "Customer could not be edited successfully. Please try again.",
+              "Customer could not be added successfully. Please try again.",
             variant: "alert",
             alert: {
               color: "error",
