@@ -159,6 +159,7 @@ class CustomersRepository {
       if (customer.address) {
         query.eq("name", customer.name);
         query.eq("address", customer.address);
+        query.neq("id", id);
 
         const { data: existingData, error: existingError } = await query;
 
