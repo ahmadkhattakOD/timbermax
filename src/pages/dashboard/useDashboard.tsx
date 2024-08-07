@@ -3,6 +3,7 @@ import useAuth from "hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { UserRoles } from "utils/helpers";
+import CommunicationRepository from "utils/repositories/communicationRepository";
 import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -87,6 +88,8 @@ export function useDashboard() {
   const [pendingCommission, setPendingCommission] = useState(0);
   const [loadingPendingCommission, setLoadingPendingCommission] =
     useState(true);
+  const [loadingReminders, setLoadingReminders] = useState(true);
+  const [reminders, setReminders] = useState<any[]>([]);
 
   const { role } = useAuth();
 
@@ -112,6 +115,10 @@ export function useDashboard() {
 
   function viewAllInvoices() {
     navigate("/view-invoices");
+  }
+
+  function viewReminder(customerId: number, id: number) {
+    navigate(`/customers/${customerId}/edit/communication/${id}/edit`)
   }
 
   async function getTotalSales() {
@@ -295,6 +302,24 @@ export function useDashboard() {
     }
   }
 
+  async function getReminders() {
+    try {
+      setLoadingReminders(true);
+      const communicationRepository = new CommunicationRepository();
+      const allCommunication =
+        await communicationRepository.getTodaysReminders();
+      if (allCommunication) {
+        const { communicationData, communicationError } = allCommunication;
+        if (communicationData && !communicationError) {
+          setReminders(communicationData);
+        }
+      }
+      setLoadingReminders(false);
+    } catch (error) {
+      console.error("Error fetching reminders:", error);
+    }
+  }
+
   async function getPendingCommission() {
     try {
       setLoadingPendingCommission(true);
@@ -322,6 +347,7 @@ export function useDashboard() {
       getUpcomingShows();
       generateYearOptions();
       getLowInStock();
+      getReminders();
     } else {
       getPendingCommission();
     }
@@ -353,6 +379,7 @@ export function useDashboard() {
     viewShow,
     viewStock,
     viewAllInvoices,
+    viewReminder,
     yearOptions,
     handleSalesYearChange,
     handleCommissionYearChange,
@@ -362,6 +389,8 @@ export function useDashboard() {
     loadingLowInStock,
     role,
     pendingCommission,
-    loadingPendingCommission
+    loadingPendingCommission,
+    reminders,
+    loadingReminders
   };
 }

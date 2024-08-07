@@ -1,7 +1,12 @@
 import { ValuesFilterCommunication } from "pages/customers/edit/useEditCustomer";
 import supabase from "utils/supabase";
 import ProfilesRepository from "./profilesRepository";
-import { downloadFile } from "utils/helpers";
+import {
+  downloadFile,
+  getDateFormatted,
+  getDateFormattedForField,
+  getDateTimeFormattedForField,
+} from "utils/helpers";
 
 export interface CommunicationSupabase {
   customer: number;
@@ -81,6 +86,31 @@ class CommunicationRepository {
           .from(this.className)
           .select("*")
           .order("created_at", { ascending: false });
+
+      return { communicationData, communicationError };
+    } catch (error) {
+      console.error("Error fetching communication:", error);
+      return null;
+    }
+  }
+
+  public async getTodaysReminders() {
+    try {
+      const date = new Date();
+      const startDateToday = new Date(date);
+      startDateToday.setHours(0, 0, 0, 0);
+
+      const endDateToday = new Date(date);
+      endDateToday.setHours(23, 59, 59, 999);
+
+      const { data: communicationData, error: communicationError } =
+        await supabase
+          .from(this.className)
+          .select("id, method, customer (id, name), date, notes")
+          .order("created_at", { ascending: false })
+          .eq("method", "reminder")
+          .gte("date", getDateTimeFormattedForField(startDateToday))
+          .lte("date", getDateTimeFormattedForField(endDateToday));
 
       return { communicationData, communicationError };
     } catch (error) {

@@ -207,6 +207,7 @@
   "method": "Method",
   "call": "Call",
   "in-person-meeting": "In-Person Meeting",
+  "reminder": "Reminder",
   "other": "Other",
   "date-from": "Date From",
   "date-to": "Date To",

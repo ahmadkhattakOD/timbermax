@@ -50,7 +50,13 @@ export default function CreateCommunication() {
                 name={"method"}
                 label={"method"}
                 optional={false}
-                options={["call", "in-person-meeting", "email", "other"]}
+                options={[
+                  "call",
+                  "in-person-meeting",
+                  "email",
+                  "reminder",
+                  "other",
+                ]}
                 error={touched.method ? errors.method : ""}
               />,
               <FormInput
