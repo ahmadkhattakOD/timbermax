@@ -28,11 +28,16 @@ function FormLayout(
       <Grid container rowSpacing={"1.5rem"} columnSpacing={"1rem"}>
         {inputs.map(
           (input, idx) =>
-            input !== null && (
+            input !== null &&
+            (input.props["fullWidth"] ? (
+              <Grid key={idx} item xs={12} md={12} sx={{ width: "100%" }}>
+                {input}
+              </Grid>
+            ) : (
               <Grid key={idx} item xs={12} md={6} sx={{ width: "100%" }}>
                 {input}
               </Grid>
-            )
+            ))
         )}
       </Grid>
       {showSubmitButton && (
