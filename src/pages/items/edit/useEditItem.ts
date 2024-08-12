@@ -3,11 +3,14 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
-import ItemsRepository, { ItemSupabase } from "utils/repositories/itemsRepository";
+import ItemsRepository, {
+  ItemSupabase,
+} from "utils/repositories/itemsRepository";
 
 export interface ValuesEditItem {
   name: string;
   description: string;
+  committed: string;
 }
 
 export function useEditItem() {
@@ -23,6 +26,10 @@ export function useEditItem() {
       errors.name = "required";
     }
 
+    if (values.committed && parseInt(values.committed) < 0) {
+      errors.committed = "required-valid-number-positive";
+    }
+
     return errors;
   }
 
@@ -31,7 +38,8 @@ export function useEditItem() {
       if (id && isNumeric(id)) {
         const updatedItem: ItemSupabase = {
           name: values.name,
-          description: values.description
+          description: values.description,
+          committed: parseInt(values.committed),
         };
 
         const itemsRepository = new ItemsRepository();
@@ -52,8 +60,7 @@ export function useEditItem() {
         } else {
           openSnackbar({
             open: true,
-            message:
-              "Item could not be edited successfully. Please try again.",
+            message: "Item could not be edited successfully. Please try again.",
             variant: "alert",
             alert: {
               color: "error",
@@ -65,8 +72,7 @@ export function useEditItem() {
       } else {
         openSnackbar({
           open: true,
-          message:
-            "Item could not be edited successfully. Please try again.",
+          message: "Item could not be edited successfully. Please try again.",
           variant: "alert",
           alert: {
             color: "error",
@@ -78,8 +84,7 @@ export function useEditItem() {
     } catch (e) {
       openSnackbar({
         open: true,
-        message:
-          "Item could not be edited successfully. Please try again.",
+        message: "Item could not be edited successfully. Please try again.",
         variant: "alert",
         alert: {
           color: "error",

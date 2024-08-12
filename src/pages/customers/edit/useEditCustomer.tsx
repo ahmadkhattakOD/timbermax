@@ -367,7 +367,6 @@ export function useEditCustomer() {
           state: selectedState,
           post_code: values.postCode,
           notes: values.notes,
-          lost_reason: values.lostReason,
         };
 
         const customersRepository = new CustomersRepository();

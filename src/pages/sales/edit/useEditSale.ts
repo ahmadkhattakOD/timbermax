@@ -14,6 +14,9 @@ import InvoicesRepository, {
 } from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
+import SaleOpportunitiesRepository, {
+  SaleOpportunitySupabase,
+} from "utils/repositories/saleOpportunitiesRepository";
 import SalesRepository, {
   SaleSupabase,
 } from "utils/repositories/salesRepository";
@@ -201,16 +204,50 @@ export function useEditSale() {
         );
 
         if (editedSale) {
-          // openSnackbar({
-          //   open: true,
-          //   message: "Sale edited successfully.",
-          //   variant: "alert",
-          //   alert: {
-          //     color: "success",
-          //   },
-          // } as SnackbarProps);
-
+          const saleOpportunitiesRepository = new SaleOpportunitiesRepository();
+          await saleOpportunitiesRepository.deleteBySale(editedSale.id);
           if (values.status !== "cancelled") {
+            for (let i = 0; i < selectedOpportunities.length; i++) {
+              const opportunityId = opportunities.find(
+                (opp) => opp.name === selectedOpportunities[i]
+              )?.id;
+              if (opportunityId) {
+                const newSaleOpportunity: SaleOpportunitySupabase = {
+                  sale: editedSale.id,
+                  opportunity: opportunityId,
+                };
+                const createdSaleOpportunity =
+                  await saleOpportunitiesRepository.create(newSaleOpportunity);
+                if (!createdSaleOpportunity) {
+                  openSnackbar({
+                    open: true,
+                    message:
+                      "Sale could not be edited successfully. Please try again.",
+                    variant: "alert",
+                    alert: {
+                      color: "error",
+                    },
+                  } as SnackbarProps);
+
+                  navigate("/sales");
+                  return;
+                }
+              } else {
+                openSnackbar({
+                  open: true,
+                  message:
+                    "Sale could not be edited successfully. Please try again.",
+                  variant: "alert",
+                  alert: {
+                    color: "error",
+                  },
+                } as SnackbarProps);
+
+                navigate("/sales");
+                return;
+              }
+            }
+
             if (parseFloat(values.deposit) / parseFloat(values.total) >= 0.2) {
               const profilesRepository = new ProfilesRepository();
               const salesPersonProfile = await profilesRepository.getSingle(

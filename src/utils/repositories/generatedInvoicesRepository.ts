@@ -279,6 +279,7 @@ class GeneratedInvoicesRepository {
         .from(this.className)
         .select("*")
         .order("created_at", { ascending: false })
+        .neq("beneficiary", null)
         .gte("created_at", getDateFormattedForField(startDate))
         .lte("created_at", getDateFormattedForField(endDate));
 

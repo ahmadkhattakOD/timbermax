@@ -29,7 +29,7 @@ function FormLayout(
         {inputs.map(
           (input, idx) =>
             input !== null &&
-            (input.props["fullWidth"] ? (
+            (input?.props?.fullWidth ? (
               <Grid key={idx} item xs={12} md={12} sx={{ width: "100%" }}>
                 {input}
               </Grid>

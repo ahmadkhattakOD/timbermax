@@ -258,7 +258,7 @@ export const useDebouncedSearch = (
   };
 };
 
-const stateAbbreviations = {
+export const stateAbbreviations = {
   ACT: "Australian Capital Territory",
   NSW: "New South Wales",
   NT: "Northern Territory",

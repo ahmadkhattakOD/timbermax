@@ -15,6 +15,12 @@ const headCells: HeadCell[] = [
     label: "Name",
   },
   {
+    id: "committed",
+    numeric: true,
+    disablePadding: true,
+    label: "Committed",
+  },
+  {
     id: "description",
     numeric: false,
     disablePadding: true,
@@ -86,6 +92,9 @@ export function useItems() {
           align="left"
         >
           {row.name}
+        </TableCell>
+        <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
+          {row.committed}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.description}</TableCell>
       </React.Fragment>

@@ -248,6 +248,49 @@ export default function Dashboard() {
       )}
       {role === UserRoles.Admin && (
         <Grid item xs={12} md={4}>
+          <MainCard title="Today's Reminders">
+            {loadingReminders ? (
+              <Box sx={{ padding: "3rem" }}>
+                <CircularLoader />
+              </Box>
+            ) : reminders.length > 0 ? (
+              reminders.map((reminder, idx) => {
+                return (
+                  <Box key={idx}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "0.25rem",
+                        "&:hover": {
+                          backgroundColor: theme.palette.secondary[100],
+                          cursor: "pointer",
+                        },
+                      }}
+                      onClick={() => {
+                        viewReminder(reminder.customer?.id, reminder.id);
+                      }}
+                    >
+                      <Typography sx={{ color: theme.palette.text.primary }}>
+                        {reminder.customer?.name}
+                      </Typography>
+                      <Typography sx={{ color: theme.palette.text.secondary }}>
+                        {reminder.notes.length > 15
+                          ? `${reminder.notes.substring(0, 12)}...`
+                          : reminder.notes}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })
+            ) : (
+              <Typography>No Reminders Found for Today.</Typography>
+            )}
+          </MainCard>
+        </Grid>
+      )}
+      {role === UserRoles.Admin && (
+        <Grid item xs={12} md={4}>
           <MainCard
             title="Low in Stock"
             secondary={<Button onClick={viewAllStock}>View All</Button>}
@@ -286,49 +329,6 @@ export default function Dashboard() {
               })
             ) : (
               <Typography>No Stock Found.</Typography>
-            )}
-          </MainCard>
-        </Grid>
-      )}
-      {role === UserRoles.Admin && (
-        <Grid item xs={12} md={4}>
-          <MainCard title="Today's Reminders">
-            {loadingReminders ? (
-              <Box sx={{ padding: "3rem" }}>
-                <CircularLoader />
-              </Box>
-            ) : reminders.length > 0 ? (
-              reminders.map((reminder, idx) => {
-                return (
-                  <Box key={idx}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "0.25rem",
-                        "&:hover": {
-                          backgroundColor: theme.palette.secondary[100],
-                          cursor: "pointer",
-                        },
-                      }}
-                      onClick={() => {
-                        viewReminder(reminder.customer?.id, reminder.id);
-                      }}
-                    >
-                      <Typography sx={{ color: theme.palette.text.primary }}>
-                        {reminder.customer?.name}
-                      </Typography>
-                      <Typography sx={{ color: theme.palette.text.secondary }}>
-                        {reminder.notes.length > 15
-                          ? `${reminder.notes.substring(0, 12)}...`
-                          : reminder.notes}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              })
-            ) : (
-              <Typography>No Reminders Found for Today.</Typography>
             )}
           </MainCard>
         </Grid>

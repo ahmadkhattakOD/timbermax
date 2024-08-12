@@ -34,6 +34,7 @@ export default function EditItem() {
       initialValues={{
         name: item.name ?? "",
         description: item.description ?? "",
+        committed: item.committed ?? "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -59,6 +60,14 @@ export default function EditItem() {
                 placeholder={"Description"}
                 label={"description"}
                 type={"text"}
+              />,
+              <FormInput
+                id={"committed"}
+                name={"committed"}
+                placeholder={"Committed"}
+                label={"committed"}
+                type={"number"}
+                error={touched.committed ? errors.committed : ""}
               />,
             ]}
           />

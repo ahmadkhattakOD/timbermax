@@ -11,6 +11,9 @@ import InvoicesRepository, {
 } from "utils/repositories/invoicesRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
+import SaleOpportunitiesRepository, {
+  SaleOpportunitySupabase,
+} from "utils/repositories/saleOpportunitiesRepository";
 import SalesRepository, {
   SaleSupabase,
 } from "utils/repositories/salesRepository";
@@ -209,7 +212,7 @@ export function useCreateSale() {
       const newSale: SaleSupabase = {
         contact_name: "REPORT IF YOU SEE THIS",
         customer: customerToAdd,
-        opportunity_descriptions: selectedOpportunities.filter((i) => i !== ""),
+        opportunity_descriptions: selectedOpportunities,
         deposit: parseFloat(values.deposit) ?? 0,
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
@@ -239,6 +242,52 @@ export function useCreateSale() {
 
       if (createdSale) {
         if (values.status !== "cancelled") {
+          const saleOpportunitiesRepository = new SaleOpportunitiesRepository();
+          for (let i = 0; i < selectedOpportunities.length; i++) {
+            const opportunityId = opportunities.find(
+              (opp) => opp.name === selectedOpportunities[i]
+            )?.id;
+            if (opportunityId) {
+              const newSaleOpportunity: SaleOpportunitySupabase = {
+                sale: createdSale.id,
+                opportunity: opportunityId,
+              };
+              const createdSaleOpportunity =
+                await saleOpportunitiesRepository.create(newSaleOpportunity);
+              if (!createdSaleOpportunity) {
+                const idsToDelete = [createdSale.id];
+                await salesRepository.delete(idsToDelete);
+                openSnackbar({
+                  open: true,
+                  message:
+                    "Sale could not be added successfully. Please try again.",
+                  variant: "alert",
+                  alert: {
+                    color: "error",
+                  },
+                } as SnackbarProps);
+
+                navigate("/sales");
+                return;
+              }
+            } else {
+              const idsToDelete = [createdSale.id];
+              await salesRepository.delete(idsToDelete);
+              openSnackbar({
+                open: true,
+                message:
+                  "Sale could not be added successfully. Please try again.",
+                variant: "alert",
+                alert: {
+                  color: "error",
+                },
+              } as SnackbarProps);
+
+              navigate("/sales");
+              return;
+            }
+          }
+
           if (parseFloat(values.deposit) / parseFloat(values.total) >= 0.2) {
             const profilesRepository = new ProfilesRepository();
             const salesPersonProfile = await profilesRepository.getSingle(

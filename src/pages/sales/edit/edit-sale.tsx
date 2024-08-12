@@ -332,11 +332,11 @@ export default function EditSale() {
   // }
   return (
     <>
-      {!loading && invoiceCreated && (
+      {!loading && (invoiceCreated || sale?.status === "delivered") && (
         <Box display={"flex"} paddingBottom={"2rem"}>
           <Typography>
-            This sale has been invoiced, and is no longer editable. Only the
-            status can be changed.
+            This sale has been {invoiceCreated ? "invoiced" : "delivered"}, and
+            is no longer editable. Only the status can be changed.
           </Typography>
         </Box>
       )}
@@ -420,6 +420,7 @@ export default function EditSale() {
                     onSelect={(e) => {
                       setSelectedCustomer(e.target.value);
                     }}
+                    disabled={invoiceCreated || sale?.status === "delivered"}
                     error={errors.contactName}
                   />
                 ),
@@ -436,7 +437,7 @@ export default function EditSale() {
                   })}
                   optional={false}
                   error={touched.salesPerson ? errors.salesPerson : ""}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormInput
                   id={"deposit"}
@@ -452,7 +453,7 @@ export default function EditSale() {
                   type={"number"}
                   min={0}
                   error={touched.deposit ? errors.deposit : ""}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormInput
                   id={"total"}
@@ -468,7 +469,7 @@ export default function EditSale() {
                   type={"number"}
                   min={0}
                   error={touched.total ? errors.total : ""}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormDropdown
                   id={"paymentMethod"}
@@ -484,7 +485,7 @@ export default function EditSale() {
                     "care-package",
                   ]}
                   error={touched.paymentMethod ? errors.paymentMethod : ""}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormInput
                   id={"phone"}
@@ -492,7 +493,7 @@ export default function EditSale() {
                   placeholder={"Phone"}
                   label={"phone"}
                   type={"text"}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                   value={selectedPhone}
                   onChange={(e) => {
                     setSelectedPhone(e.target.value);
@@ -504,7 +505,7 @@ export default function EditSale() {
                   placeholder={"Mobile"}
                   label={"mobile"}
                   type={"text"}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                   value={selectedMobile}
                   onChange={(e) => {
                     setSelectedMobile(e.target.value);
@@ -517,7 +518,7 @@ export default function EditSale() {
                   onChange={changeAddress}
                   value={selectedAddress}
                   label="address"
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormInput
                   id={"suburb"}
@@ -529,7 +530,7 @@ export default function EditSale() {
                   onChange={(e) => {
                     setSelectedSuburb(e.target.value);
                   }}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormDropdown
                   id={"state"}
@@ -541,7 +542,7 @@ export default function EditSale() {
                   onChange={(e) => {
                     setSelectedState(e.target.value);
                   }}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormInput
                   id={"postCode"}
@@ -550,7 +551,7 @@ export default function EditSale() {
                   label={"post-code"}
                   type={"text"}
                   value={selectedPostCode}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                   onChange={(e) => {
                     setSelectedPostCode(e.target.value);
                   }}
@@ -562,7 +563,7 @@ export default function EditSale() {
                   label={"email-address"}
                   type={"email"}
                   value={selectedEmail}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                   onChange={(e) => {
                     setSelectedEmail(e.target.value);
                   }}
@@ -574,7 +575,7 @@ export default function EditSale() {
                   label={"note"}
                   type={"text"}
                   isTextArea
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <Box
                   sx={{
@@ -610,7 +611,9 @@ export default function EditSale() {
                             value: opportunity.name,
                           };
                         })}
-                        disabled={invoiceCreated}
+                        disabled={
+                          invoiceCreated || sale?.status === "delivered"
+                        }
                       />
                       {idx === selectedOpportunities.length - 1 &&
                         opportunity !== "" &&
@@ -644,7 +647,7 @@ export default function EditSale() {
                   })}
                   optional={false}
                   error={touched.closer ? errors.closer : ""}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormDropdown
                   id={"status"}
@@ -680,6 +683,7 @@ export default function EditSale() {
                   name={"milestone"}
                   label={"milestone"}
                   options={["won", "in-progress", "lost"]}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 values.milestone === "lost" ? (
                   <FormInput
@@ -689,6 +693,7 @@ export default function EditSale() {
                     label={"lost-reason"}
                     type={"text"}
                     isTextArea
+                    disabled={invoiceCreated || sale?.status === "delivered"}
                   />
                 ) : null,
                 <FormInput
@@ -700,6 +705,7 @@ export default function EditSale() {
                   error={
                     touched.expectedCloseDate ? errors.expectedCloseDate : ""
                   }
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormDropdown
                   id={"show"}
@@ -714,7 +720,7 @@ export default function EditSale() {
                   })}
                   optional={false}
                   error={touched.show ? errors.show : ""}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormInput
                   id={"saleDate"}
@@ -725,7 +731,7 @@ export default function EditSale() {
                   type={"date"}
                   max={getDateFormattedForField()}
                   error={touched.saleDate ? errors.saleDate : ""}
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
                 <FormInput
                   id={"followUpNotes"}
@@ -734,7 +740,7 @@ export default function EditSale() {
                   label={"follow-up-notes"}
                   type={"text"}
                   isTextArea
-                  disabled={invoiceCreated}
+                  disabled={invoiceCreated || sale?.status === "delivered"}
                 />,
               ]}
             />

@@ -9,12 +9,15 @@ import {
   UserRoles,
   getDateFormatted,
   initialRowsPerPage,
+  isNumeric,
+  stateAbbreviations,
   useDebouncedSearch,
 } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
 import ShowsRepository from "utils/repositories/showsRepository";
+import supabase from "utils/supabase";
 
 const headCells: HeadCell[] = [
   {

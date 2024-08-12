@@ -18,6 +18,10 @@ export function useCreateCommunication() {
   const navigate = useNavigate();
   const { id } = useParams();
 
+  function viewAllCommunication() {
+    navigate(`/customers/${id}/edit?tab=Communication`);
+  }
+
   function addFiles(files: FileList) {
     let filesToAdd: File[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -31,8 +35,8 @@ export function useCreateCommunication() {
           },
         } as SnackbarProps);
       } else {
-        if (files[i].name.split('.').length > 1) {
-          const extension = files[i].name.split('.').pop();
+        if (files[i].name.split(".").length > 1) {
+          const extension = files[i].name.split(".").pop();
           if (!acceptedFileTypes.includes(`.${extension}`)) {
             openSnackbar({
               open: true,
@@ -133,5 +137,6 @@ export function useCreateCommunication() {
     selectedFiles,
     addFiles,
     removeFileFromIdx,
+    viewAllCommunication
   };
 }

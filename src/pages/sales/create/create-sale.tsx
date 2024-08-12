@@ -316,8 +316,8 @@ export default function CreateSale() {
                     }}
                   >
                     <FormDropdown
-                      id={"opportunityDescription"}
-                      name={"opportunityDescription"}
+                      id={`opportunityDescription_${idx}`}
+                      name={`opportunityDescription_${idx}`}
                       label={idx === 0 ? "opportunity-description" : undefined}
                       useFormattedStrings={false}
                       value={opportunity}

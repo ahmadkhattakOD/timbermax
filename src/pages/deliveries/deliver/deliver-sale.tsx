@@ -124,7 +124,9 @@ export default function DeliverSale() {
             <FormLayout
               isSubmitting={isSubmitting}
               submitButtonText={
-                sale?.closed ? "Mark as Delivered" : "Close & Mark as Delivered"
+                sale?.closed
+                  ? "mark-as-delivered"
+                  : "close-and-mark-as-delivered"
               }
               inputs={[
                 <FormInput

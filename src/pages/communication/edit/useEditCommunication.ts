@@ -23,6 +23,10 @@ export function useEditCommunication() {
   const [isDownloadingAttachment, setIsDownloadingAttachment] = useState<boolean>(false);
   const { id, iid } = useParams();
 
+  function viewAllCommunication() {
+    navigate(`/customers/${id}/edit?tab=Communication`);
+  }
+
   function addFiles(files: FileList) {
     let filesToAdd: File[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -249,6 +253,7 @@ export function useEditCommunication() {
     downloadExistingFile,
     deleteExistingFile,
     restoreExistingFile,
-    isDownloadingAttachment
+    isDownloadingAttachment,
+    viewAllCommunication
   };
 }

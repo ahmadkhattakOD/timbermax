@@ -214,5 +214,9 @@
   "date": "Date",
   "crm": "CRM",
   "settings": "Settings",
-  "customer-name": "Customer Name"
+  "customer-name": "Customer Name",
+  "view-all-communication": "View All Communication",
+  "mark-as-delivered": "Mark As Delivered",
+  "close-and-mark-as-delivered": "Close & Mark as Delivered",
+  "committed": "Committed"
 }

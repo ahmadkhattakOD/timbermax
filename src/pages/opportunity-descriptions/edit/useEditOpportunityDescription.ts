@@ -181,6 +181,9 @@ export function useEditOpportunityDescription() {
             };
             temp.push(selectedItem);
           }
+          if (temp.length === 0) {
+            temp.push({ item: "", quantity: "" });
+          }
           setSelectedItems(temp);
         }
       }

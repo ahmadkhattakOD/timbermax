@@ -1,5 +1,4 @@
 import { ValuesFilterCustomers } from "pages/customers/main/useCustomers";
-import { ValuesFilterWarehouses } from "pages/warehouses/main/useWarehouses";
 import supabase from "utils/supabase";
 
 export interface CustomerSupabase {
@@ -12,7 +11,7 @@ export interface CustomerSupabase {
   state?: string;
   post_code?: string;
   // tags: string[];
-  lost_reason?: string;
+  // lost_reason?: string;
   notes?: string;
 }
 

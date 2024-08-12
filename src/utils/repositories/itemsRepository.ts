@@ -4,6 +4,7 @@ import supabase from "utils/supabase";
 export interface ItemSupabase {
   name: string;
   description: string;
+  committed?: number;
 }
 
 class ItemsRepository {
