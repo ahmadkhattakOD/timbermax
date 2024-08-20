@@ -116,7 +116,7 @@ export const userRoles = [
 
 export const deleteConfirmationText = "I am sure";
 
-export const extendedDataLimit = 9999999;
+export const extendedDataLimit = 999999;
 
 export function isRouteAllowed(
   role:

@@ -1,4 +1,5 @@
 import { ValuesFilterCustomers } from "pages/customers/main/useCustomers";
+import { extendedDataLimit } from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface CustomerSupabase {
@@ -126,7 +127,8 @@ class CustomersRepository {
           "id, name, email, phone, mobile, address, suburb, state, post_code"
         )
         .order("name", { ascending: true })
-        .ilike("name", `%${name}%`);
+        .ilike("name", `%${name}%`)
+        .limit(extendedDataLimit);
 
       return { customersData, customersError };
     } catch (error) {

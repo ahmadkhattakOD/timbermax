@@ -90,7 +90,7 @@ class SalesRepository {
           query.gte("total", parseFloat(filters.minimumTotal));
         }
         if (filters.maximumTotal) {
-          query.gte("total", parseFloat(filters.maximumTotal));
+          query.lte("total", parseFloat(filters.maximumTotal));
         }
         if (filters.paymentMethod) {
           query.eq("payment_method", filters.paymentMethod);
