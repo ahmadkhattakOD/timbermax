@@ -34,10 +34,6 @@ export function useEditStock() {
       errors.warehouse = "required";
     }
 
-    if (!values.quantity || parseInt(values.quantity) < 0) {
-      errors.quantity = "required-valid-number";
-    }
-
     return errors;
   }
 

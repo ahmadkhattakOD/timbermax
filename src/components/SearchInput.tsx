@@ -37,7 +37,10 @@ const SearchInput = ({
 
   return (
     <Box sx={{ width: "100%", display: "flex", justifyContent: "flex-end" }}>
-      <FormControl sx={{ m: 1, width: "25ch" }} variant="outlined">
+      <FormControl
+        sx={{ m: 1, width: { xs: "100%", sm: "auto" } }}
+        variant="outlined"
+      >
         <OutlinedInput
           sx={{ width: { xs: "100%", sm: "auto" } }}
           fullWidth
