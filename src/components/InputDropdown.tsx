@@ -85,6 +85,7 @@ const InputDropdown = ({
       </Box>
       <div className={"group-input"}>
         <Autocomplete
+          disabled={disabled}
           id={id}
           sx={{ width: "100%", border: "none" }}
           open={open}
@@ -109,7 +110,7 @@ const InputDropdown = ({
                     color: theme.palette.primary.main,
                     textDecoration: "underline",
                     cursor: "pointer",
-                    fontWeight: 600
+                    fontWeight: 600,
                   }}
                   onClick={onClickCreateNew}
                 >
