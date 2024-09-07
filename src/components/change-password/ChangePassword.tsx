@@ -164,7 +164,7 @@ export default function ChangePassword({
                         placeholder={"Confirm New Password"}
                         label={"confirm-new-password"}
                         optional={false}
-                        type={confirmCurrentPassword ? "password" : "text"}
+                        type={confirmPasswordObscured ? "password" : "text"}
                         isPasswordField
                         onChangePasswordVisibility={
                           changeConfirmPasswordVisibility
