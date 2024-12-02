@@ -32,6 +32,12 @@ const headCells: HeadCell[] = [
     label: "Opportunity Description",
   },
   {
+    id: "milestone",
+    numeric: false,
+    disablePadding: true,
+    label: "Milestone",
+  },
+  {
     id: "deposit",
     numeric: true,
     disablePadding: true,
@@ -126,12 +132,6 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Status Changed At",
-  },
-  {
-    id: "milestone",
-    numeric: false,
-    disablePadding: true,
-    label: "Milestone",
   },
   {
     id: "expected_close_date",
