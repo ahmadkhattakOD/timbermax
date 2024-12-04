@@ -111,7 +111,8 @@ class ProfilesRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit)
-        .neq("role", UserRoles.Admin);
+        .eq("status","active")
+        .neq("role", UserRoles.Admin || UserRoles.SuperAdmin);
 
       if (filters) {
         if (filters.fullName) {
@@ -161,8 +162,9 @@ class ProfilesRepository {
       const { data: profilesData, error: profilesError } = await supabase
         .from(this.className)
         .select("*")
+        .eq("status","active")
         .order("created_at", { ascending: false })
-        .neq("role", UserRoles.Admin);
+        .neq("role", UserRoles.Admin || UserRoles.SuperAdmin);
 
       return { profilesData, profilesError };
     } catch (error) {
@@ -177,6 +179,7 @@ class ProfilesRepository {
         .from(this.className)
         .select("*")
         .eq("id", id)
+        .eq("status","active")
         .limit(1)
         .maybeSingle();
 

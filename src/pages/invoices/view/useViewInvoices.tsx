@@ -32,6 +32,7 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Total (A$)",
   },
+  
   {
     id: "wages",
     numeric: true,

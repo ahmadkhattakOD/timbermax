@@ -51,6 +51,12 @@ const headCells: HeadCell[] = [
     label: "Total (A$)",
   },
   {
+    id: "balance",
+    numeric: true,
+    disablePadding: true,
+    label: "Balance (A$)",
+  },
+  {
     id: "payment_method",
     numeric: false,
     disablePadding: true,
@@ -299,6 +305,10 @@ export function useSales() {
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
           {row.total}
+        </TableCell>
+        {/* balance */}
+        <TableCell align="right" sx={{ minWidth: 200 }}>
+        {row.total - row.deposit}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.payment_method && <FormattedMessage id={row.payment_method} />}

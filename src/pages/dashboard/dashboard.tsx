@@ -125,7 +125,7 @@ export default function Dashboard() {
           )}
         </MainCard>
       </Grid>
-      {role !== UserRoles.Admin && (
+      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
         <Grid item xs={12} md={4}>
           <MainCard
             title="Pending Commission"
@@ -173,7 +173,7 @@ export default function Dashboard() {
           </MainCard>
         </Grid>
       )}
-      {role === UserRoles.Admin && (
+      {role === UserRoles.SuperAdmin && (
         <Grid item xs={12} md={4}>
           <MainCard
             title="Users"
@@ -191,7 +191,7 @@ export default function Dashboard() {
           </MainCard>
         </Grid>
       )}
-      {role === UserRoles.Admin && (
+      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
         <Grid item xs={12} md={4}>
           <MainCard
             title="Upcoming Shows"
@@ -246,7 +246,7 @@ export default function Dashboard() {
           </MainCard>
         </Grid>
       )}
-      {role === UserRoles.Admin && (
+      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
         <Grid item xs={12} md={4}>
           <MainCard title="Today's Reminders">
             {loadingReminders ? (
@@ -289,7 +289,7 @@ export default function Dashboard() {
           </MainCard>
         </Grid>
       )}
-      {role === UserRoles.Admin && (
+      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
         <Grid item xs={12} md={4}>
           <MainCard
             title="Low in Stock"

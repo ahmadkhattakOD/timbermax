@@ -106,6 +106,7 @@ export enum UserRoles {
   Closer = "Closer",
   Both = "Sales Person & Closer",
   Admin = "Admin",
+  SuperAdmin = "SuperAdmin",
 }
 
 export const userRoles = [
@@ -121,12 +122,22 @@ export const extendedDataLimit = 999999;
 export function isRouteAllowed(
   role:
     | UserRoles.Admin
+    | UserRoles.SuperAdmin
     | UserRoles.Closer
     | UserRoles.Both
     | UserRoles.SalesPerson
     | ""
 ) {
-  if (role === UserRoles.Admin) {
+  if (role === UserRoles.SuperAdmin) {
+    return true;
+  } else if (role === UserRoles.Admin) {
+    let blackListedURLs = ["/user"];
+
+    for (let i = 0; i < blackListedURLs.length; i++) {
+      if (window.location.href.includes(blackListedURLs[i])) {
+        return false;
+      }
+    }
     return true;
   } else if (role === UserRoles.Closer || role === UserRoles.Both) {
     let whiteListedURLs = ["/dashboard", "/close", "/profile", "view-invoices"];
@@ -155,17 +166,15 @@ export function isRouteAllowed(
 }
 
 export function hasNonEmptyValue(obj: any) {
-  // Iterate over all values of the object
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
       const value = obj[key];
-      // Check if the value is not an empty string
       if (value !== "") {
-        return true; // Return true if any value is not empty
+        return true;
       }
     }
   }
-  return false; // Return false if all values are empty
+  return false; 
 }
 
 export function getMonthName(date: Date) {

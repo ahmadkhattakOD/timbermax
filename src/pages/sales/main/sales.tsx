@@ -57,7 +57,6 @@ export default function Sales() {
     searchValue,
     setSearchValue,
   } = useSales();
-
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout

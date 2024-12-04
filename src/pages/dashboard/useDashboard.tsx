@@ -342,7 +342,7 @@ export function useDashboard() {
   }
 
   useEffect(() => {
-    if (role === UserRoles.Admin) {
+    if (role === UserRoles.Admin || role === UserRoles.SuperAdmin) {
       getUsers();
       getUpcomingShows();
       generateYearOptions();

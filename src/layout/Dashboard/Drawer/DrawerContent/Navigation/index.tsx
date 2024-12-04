@@ -37,7 +37,10 @@ export default function Navigation() {
   const [menuItems, setMenuItems] = useState<{ items: NavItemType[] }>({ items: [] });
 
   useLayoutEffect(() => {
-    if (role === UserRoles.Admin) {
+    if (role === UserRoles.SuperAdmin) {
+      setMenuItems(menuItem.menuItemsSuperAdmin);
+    }
+    else if(role === UserRoles.Admin) {
       setMenuItems(menuItem.menuItemsAdmin);
     }
     else if (role === UserRoles.Closer || role === UserRoles.Both) {

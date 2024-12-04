@@ -10,8 +10,12 @@ import crm from "./crm";
 
 // ==============================|| MENU ITEMS ||============================== //
 
-const menuItemsAdmin: { items: NavItemType[] } = {
+const menuItemsSuperAdmin: { items: NavItemType[] } = {
   items: [dashboard, crm, manage.manageAdmin, inventory, users, edit],
+};
+
+const menuItemsAdmin: { items: NavItemType[] } = {
+  items: [dashboard, crm, manage.manageAdmin, inventory, edit],
 };
 
 const menuItemsSalesPerson: { items: NavItemType[] } = {
@@ -22,4 +26,4 @@ const menuItemsCloser: { items: NavItemType[] } = {
   items: [dashboard, manage.manageCloser, edit],
 };
 
-export default { menuItemsAdmin, menuItemsSalesPerson, menuItemsCloser };
+export default { menuItemsAdmin, menuItemsSuperAdmin, menuItemsSalesPerson, menuItemsCloser };

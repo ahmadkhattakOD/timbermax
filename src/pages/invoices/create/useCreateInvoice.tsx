@@ -193,6 +193,12 @@ const headCellsCancelled: HeadCell[] = [
     label: "Total (A$)",
   },
   {
+    id: "balance",
+    numeric: true,
+    disablePadding: true,
+    label: "Balance (A$)",
+  },
+  {
     id: "commission",
     numeric: true,
     disablePadding: true,
@@ -346,6 +352,9 @@ export function useCreateInvoice() {
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.total}
+        </TableCell>
+        <TableCell align="right" sx={{ minWidth: 200 }}>
+        {row.total - row.deposit}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.commission}
