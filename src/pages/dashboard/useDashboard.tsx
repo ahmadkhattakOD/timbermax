@@ -2,7 +2,7 @@ import { ApexOptions } from "apexcharts";
 import useAuth from "hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { UserRoles } from "utils/helpers";
+import { getYearsArray, UserRoles } from "utils/helpers";
 import CommunicationRepository from "utils/repositories/communicationRepository";
 import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
@@ -36,9 +36,7 @@ export function useDashboard() {
     },
   ]);
   const [salesYear, setSalesYear] = useState(new Date().getFullYear());
-  const [yearOptions, setYearOptions] = useState<number[]>([
-    new Date().getFullYear(),
-  ]);
+  const [yearOptions, setYearOptions] = useState<number[]>(getYearsArray());
 
   const [loadingCommissions, setLoadingCommissions] = useState(true);
   const [commissionOptions, setCommissionOptions] = useState<ApexOptions>({
@@ -159,19 +157,6 @@ export function useDashboard() {
       }
     }
     setLoadingSales(false);
-  }
-
-  function generateYearOptions() {
-    let todayYear = new Date().getFullYear();
-    let startingYear = 2024;
-
-    let years = [];
-
-    for (let i = todayYear; i >= startingYear; i--) {
-      years.push(i);
-    }
-
-    setYearOptions(years);
   }
 
   function handleSalesYearChange(newYear: number) {
@@ -345,7 +330,6 @@ export function useDashboard() {
     if (role === UserRoles.Admin || role === UserRoles.SuperAdmin) {
       getUsers();
       getUpcomingShows();
-      generateYearOptions();
       getLowInStock();
       getReminders();
     } else {
@@ -355,11 +339,11 @@ export function useDashboard() {
 
   useEffect(() => {
     getTotalCommission();
-  }, [salesYear]);
+  }, [commissionYear]);
 
   useEffect(() => {
     getTotalSales();
-  }, [commissionYear]);
+  }, [salesYear]);
 
   return {
     loadingSales,

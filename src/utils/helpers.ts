@@ -106,7 +106,7 @@ export enum UserRoles {
   Closer = "Closer",
   Both = "Sales Person & Closer",
   Admin = "Admin",
-  SuperAdmin = "SuperAdmin",
+  SuperAdmin = "Super Admin",
 }
 
 export const userRoles = [
@@ -375,4 +375,16 @@ export const cleanFileName = (fileUrl: string) => {
     const newFileName = `${baseName}${extension}`;
     return newFileName;
   }
+};
+
+export const getYearsArray = () => {
+  let startYear = 2023;
+  const currentYear = new Date().getFullYear();
+
+  const yearsArray = [];
+  for (let year = currentYear; year >= startYear; year--) {
+    yearsArray.push(year);
+  }
+
+  return yearsArray;
 };

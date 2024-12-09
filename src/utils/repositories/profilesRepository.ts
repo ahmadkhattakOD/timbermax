@@ -111,7 +111,7 @@ class ProfilesRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit)
-        .eq("status","active")
+        .eq("status", "active")
         .neq("role", UserRoles.Admin || UserRoles.SuperAdmin);
 
       if (filters) {
@@ -162,7 +162,7 @@ class ProfilesRepository {
       const { data: profilesData, error: profilesError } = await supabase
         .from(this.className)
         .select("*")
-        .eq("status","active")
+        .eq("status", "active")
         .order("created_at", { ascending: false })
         .neq("role", UserRoles.Admin || UserRoles.SuperAdmin);
 
@@ -179,7 +179,7 @@ class ProfilesRepository {
         .from(this.className)
         .select("*")
         .eq("id", id)
-        .eq("status","active")
+        .eq("status", "active")
         .limit(1)
         .maybeSingle();
 
@@ -251,7 +251,7 @@ class ProfilesRepository {
     try {
       const { data, error } = await supabase
         .from(this.className)
-        .delete()
+        .update({ status: "inactive" })
         .in("id", ids)
         .select();
 

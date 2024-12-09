@@ -125,7 +125,7 @@ export default function Dashboard() {
           )}
         </MainCard>
       </Grid>
-      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
+      {(role !== UserRoles.Admin && role !== UserRoles.SuperAdmin) && (
         <Grid item xs={12} md={4}>
           <MainCard
             title="Pending Commission"
