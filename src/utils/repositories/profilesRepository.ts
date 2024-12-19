@@ -112,7 +112,8 @@ class ProfilesRepository {
         .range(rangeStart, rangeEnd)
         .limit(limit)
         .eq("status", "active")
-        .neq("role", UserRoles.Admin || UserRoles.SuperAdmin);
+        .neq("role", UserRoles.Admin)
+        .neq("role", UserRoles.SuperAdmin);
 
       if (filters) {
         if (filters.fullName) {
@@ -164,7 +165,8 @@ class ProfilesRepository {
         .select("*")
         .eq("status", "active")
         .order("created_at", { ascending: false })
-        .neq("role", UserRoles.Admin || UserRoles.SuperAdmin);
+        .neq("role", UserRoles.Admin)
+        .neq("role", UserRoles.SuperAdmin);
 
       return { profilesData, profilesError };
     } catch (error) {

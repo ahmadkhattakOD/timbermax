@@ -116,7 +116,7 @@ export function useDashboard() {
   }
 
   function viewReminder(customerId: number, id: number) {
-    navigate(`/customers/${customerId}/edit/communication/${id}/edit`)
+    navigate(`/customers/${customerId}/edit/communication/${id}/edit`);
   }
 
   async function getTotalSales() {
@@ -127,7 +127,9 @@ export function useDashboard() {
       const salesRepository = new SalesRepository();
       const totalSales = await salesRepository.getTotalSalesForYear(
         salesYear,
-        role !== UserRoles.Admin ? currentUser.id : undefined
+        role !== UserRoles.Admin && role !== UserRoles.SuperAdmin
+          ? currentUser.id
+          : undefined
       );
 
       if (totalSales) {
@@ -176,7 +178,9 @@ export function useDashboard() {
       const totalCommissions =
         await generatedInvoicesRepository.getTotalCommissionsForYear(
           commissionYear,
-          role !== UserRoles.Admin ? currentUser.id : undefined
+          role !== UserRoles.Admin && role !== UserRoles.SuperAdmin
+            ? currentUser.id
+            : undefined
         );
 
       if (totalCommissions) {
@@ -375,6 +379,6 @@ export function useDashboard() {
     pendingCommission,
     loadingPendingCommission,
     reminders,
-    loadingReminders
+    loadingReminders,
   };
 }
