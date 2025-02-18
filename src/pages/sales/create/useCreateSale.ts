@@ -42,6 +42,8 @@ export interface ValuesCreateSale {
   show: string;
   followUpNotes: string;
   saleDate: string;
+  cpapAmount?: string; // cpap_value in schema
+  is_cpap_pickedup?:string
 }
 
 export function useCreateSale() {
@@ -66,14 +68,18 @@ export function useCreateSale() {
   const [loading, setLoading] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
+  const [searchOpportunity, setSearchOpportunity] = useState("");
+  const [isCpapPickup,setIsCpapPickup] = useState("Yes")
+  const [containCpac, setContainCpac] = useState(false);
 
   function handleChangeSelectedOpportunities(
     e: React.ChangeEvent<HTMLSelectElement>,
     idx: number
   ) {
     let temp = [...selectedOpportunities];
-    temp[idx] = e.target.value;
+    temp[idx] = e.target.innerText; // changed from value to innerText
     setSelectedOpportunities(temp);
+    console.log(e.target.value);
   }
 
   function addSelectedOpportunity() {
@@ -165,10 +171,11 @@ export function useCreateSale() {
     return errors;
   }
 
+
   async function onSubmit(values: ValuesCreateSale) {
     try {
       let customerToAdd = selectedCustomer;
-
+  
       if (createInlineCustomer) {
         const newCustomer: CustomerSupabase = {
           name: values.inlineCustomerName,
@@ -190,9 +197,7 @@ export function useCreateSale() {
             message:
               "Another customer already exists with the same name and address. Please select the customer to continue.",
             variant: "alert",
-            alert: {
-              color: "error",
-            },
+            alert: { color: "error" },
           } as SnackbarProps);
           return;
         } else {
@@ -201,19 +206,17 @@ export function useCreateSale() {
             message:
               "Customer could not be added successfully. Please try again.",
             variant: "alert",
-            alert: {
-              color: "error",
-            },
+            alert: { color: "error" },
           } as SnackbarProps);
           return;
         }
       }
-
+  
       const newSale: SaleSupabase = {
         contact_name: "REPORT IF YOU SEE THIS",
         customer: customerToAdd,
         opportunity_descriptions: selectedOpportunities,
-        deposit: parseFloat(values.deposit) ?? 0,
+        deposit: parseFloat(values.deposit) - parseFloat(values.cpapAmount || "0") || 0,
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
         phone: selectedPhone,
@@ -235,11 +238,13 @@ export function useCreateSale() {
         show: parseInt(values.show),
         follow_up_notes: values.followUpNotes,
         sale_date: new Date(values.saleDate),
+        cpap_value: values.cpapAmount,
+        is_cpap_pickedup:isCpapPickup
       };
-
+  
       const salesRepository = new SalesRepository();
       const createdSale = await salesRepository.create(newSale);
-
+  
       if (createdSale) {
         if (values.status !== "cancelled") {
           const saleOpportunitiesRepository = new SaleOpportunitiesRepository();
@@ -247,6 +252,7 @@ export function useCreateSale() {
             const opportunityId = opportunities.find(
               (opp) => opp.name === selectedOpportunities[i]
             )?.id;
+  
             if (opportunityId) {
               const newSaleOpportunity: SaleOpportunitySupabase = {
                 sale: createdSale.id,
@@ -255,40 +261,37 @@ export function useCreateSale() {
               const createdSaleOpportunity =
                 await saleOpportunitiesRepository.create(newSaleOpportunity);
               if (!createdSaleOpportunity) {
-                const idsToDelete = [createdSale.id];
-                await salesRepository.delete(idsToDelete);
+                await salesRepository.delete([createdSale.id]);
                 openSnackbar({
                   open: true,
                   message:
                     "Sale could not be added successfully. Please try again.",
                   variant: "alert",
-                  alert: {
-                    color: "error",
-                  },
+                  alert: { color: "error" },
                 } as SnackbarProps);
-
                 navigate("/sales");
                 return;
               }
             } else {
-              const idsToDelete = [createdSale.id];
-              await salesRepository.delete(idsToDelete);
+              await salesRepository.delete([createdSale.id]);
               openSnackbar({
                 open: true,
                 message:
                   "Sale could not be added successfully. Please try again.",
                 variant: "alert",
-                alert: {
-                  color: "error",
-                },
+                alert: { color: "error" },
               } as SnackbarProps);
-
               navigate("/sales");
               return;
             }
           }
-
-          if (parseFloat(values.deposit) / parseFloat(values.total) >= 0.2) {
+  
+          // Calculate commission base amount (excluding CPAP)
+          const cpapAmount = parseFloat(values.cpapAmount || "0") || 0;
+          const nonCpapTotal = parseFloat(values.total) - cpapAmount;
+          const remainingDeposit = parseFloat(values.deposit) - cpapAmount;
+  
+          if (remainingDeposit / nonCpapTotal >= 0.2) {
             const profilesRepository = new ProfilesRepository();
             const salesPersonProfile = await profilesRepository.getSingle(
               values.salesPerson
@@ -296,7 +299,7 @@ export function useCreateSale() {
             const closerProfile = await profilesRepository.getSingle(
               values.closer
             );
-
+  
             if (salesPersonProfile && closerProfile) {
               const {
                 profileData: salesProfileData,
@@ -306,90 +309,79 @@ export function useCreateSale() {
                 profileData: closerProfileData,
                 profileError: closerProfileError,
               } = closerProfile;
-
-              if (
-                salesProfileData &&
-                closerProfileData &&
+  
+              if (salesProfileData && closerProfileData &&  
                 !salesProfileError &&
-                !closerProfileError
-              ) {
-                let salesPersonCommissionPercentage =
+                !closerProfileError) {
+                  let salesPersonCommissionPercentage =
                   salesProfileData.commissions &&
                   salesProfileData.commissions.length > 0
                     ? salesProfileData.commissions[0] / 100
                     : 0;
-
+  
                 let closerCommissionPercentage = 0;
-
                 if (closerProfileData.role === UserRoles.Both) {
                   closerCommissionPercentage =
-                    closerProfileData.commissions &&
-                    closerProfileData.commissions.length > 1
-                      ? closerProfileData.commissions[1] / 100
-                      : 0;
+                  closerProfileData.commissions &&
+                  closerProfileData.commissions.length > 1
+                    ? closerProfileData.commissions[1] / 100
+                    : 0;
                 } else {
                   closerCommissionPercentage =
-                    closerProfileData.commissions &&
-                    closerProfileData.commissions.length > 0
-                      ? closerProfileData.commissions[0] / 100
-                      : 0;
+                  closerProfileData.commissions &&
+                  closerProfileData.commissions.length > 0
+                    ? closerProfileData.commissions[0] / 100
+                    : 0;
                 }
-
+  
+                // Use remainingDeposit for commission calculations
+                const commissionBase = nonCpapTotal - 300; 
+  
                 const newSalesPersonInvoice: InvoiceSupabase = {
                   sale: createdSale.id,
-                  commission:
-                    (parseFloat(values.total) - 300) *
-                    salesPersonCommissionPercentage,
+                  commission: commissionBase * salesPersonCommissionPercentage,
                   beneficiary: values.salesPerson,
                 };
+  
                 const newCloserInvoice: InvoiceSupabase = {
                   sale: createdSale.id,
-                  commission:
-                    (parseFloat(values.total) - 300) *
-                    closerCommissionPercentage,
+                  commission: commissionBase * closerCommissionPercentage,
                   beneficiary: values.closer,
                 };
 
+                console.log({commissionBase , supabase:commissionBase * closerCommissionPercentage , closerCommissionPercentage} );
+                
+  
                 const invoicesRepository = new InvoicesRepository();
-                const createdSalesPersonInvoice =
-                  await invoicesRepository.create(newSalesPersonInvoice);
-                const createdCloserInvoice =
-                  await invoicesRepository.create(newCloserInvoice);
-
-                if (createdSalesPersonInvoice && createdCloserInvoice) {
+                const [salesInvoice, closerInvoice] = await Promise.all([
+                  invoicesRepository.create(newSalesPersonInvoice),
+                  invoicesRepository.create(newCloserInvoice),
+                ]);
+  
+                if (salesInvoice && closerInvoice) {
                   openSnackbar({
                     open: true,
                     message: "Sale added and invoice created successfully.",
                     variant: "alert",
-                    alert: {
-                      color: "success",
-                    },
+                    alert: { color: "success" },
                   } as SnackbarProps);
                 } else {
-                  const idToDelete = [createdSale.id];
-                  await salesRepository.delete(idToDelete);
+                  await salesRepository.delete([createdSale.id]);
                   openSnackbar({
                     open: true,
-                    message:
-                      "Sale could not be added successfully. Please try again.",
+                    message: "Failed to create commission invoices.",
                     variant: "alert",
-                    alert: {
-                      color: "error",
-                    },
+                    alert: { color: "error" },
                   } as SnackbarProps);
                 }
               }
             } else {
-              const idToDelete = [createdSale.id];
-              await salesRepository.delete(idToDelete);
+              await salesRepository.delete([createdSale.id]);
               openSnackbar({
                 open: true,
-                message:
-                  "Sale could not be added successfully. Please try again.",
+                message: "Salesperson/closer profiles not found.",
                 variant: "alert",
-                alert: {
-                  color: "error",
-                },
+                alert: { color: "error" },
               } as SnackbarProps);
             }
           } else {
@@ -397,9 +389,7 @@ export function useCreateSale() {
               open: true,
               message: "Sale added successfully.",
               variant: "alert",
-              alert: {
-                color: "success",
-              },
+              alert: { color: "success" },
             } as SnackbarProps);
           }
         } else {
@@ -407,9 +397,7 @@ export function useCreateSale() {
             open: true,
             message: "Sale added successfully.",
             variant: "alert",
-            alert: {
-              color: "success",
-            },
+            alert: { color: "success" },
           } as SnackbarProps);
         }
       } else {
@@ -417,23 +405,17 @@ export function useCreateSale() {
           open: true,
           message: "Sale could not be added successfully. Please try again.",
           variant: "alert",
-          alert: {
-            color: "error",
-          },
+          alert: { color: "error" },
         } as SnackbarProps);
       }
-
       navigate("/sales");
     } catch (e) {
       openSnackbar({
         open: true,
         message: "Sale could not be added successfully. Please try again.",
         variant: "alert",
-        alert: {
-          color: "error",
-        },
+        alert: { color: "error" },
       } as SnackbarProps);
-
       navigate("/sales");
     }
   }
@@ -560,5 +542,11 @@ export function useCreateSale() {
     loadingCustomers,
     createInlineCustomer,
     setCreateInlineCustomer,
+    searchOpportunity,
+    setSearchOpportunity,
+    containCpac,
+    setContainCpac,
+    isCpapPickup,
+    setIsCpapPickup
   };
 }

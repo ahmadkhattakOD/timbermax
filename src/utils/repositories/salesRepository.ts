@@ -32,6 +32,8 @@ export interface SaleSupabase {
   sale_date: Date;
   delivery_date_time?: Date;
   stock_from_warehouse?: number;
+  cpap_value?:string;
+  is_cpap_pickedup?:string
 }
 
 class SalesRepository {

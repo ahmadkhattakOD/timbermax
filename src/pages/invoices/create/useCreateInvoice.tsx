@@ -36,7 +36,7 @@ const headCells: HeadCell[] = [
   {
     id: "milestone",
     numeric: false,
-    disablePadding: true,
+    disablePadding: false,
     label: "Milestone",
   },
   {
@@ -48,14 +48,32 @@ const headCells: HeadCell[] = [
   {
     id: "total",
     numeric: true,
-    disablePadding: true,
+    disablePadding: false,
     label: "Total",
+  },
+  {
+    id: "balance",
+    numeric: true,
+    disablePadding: true,
+    label: "Balance",
   },
   {
     id: "commission",
     numeric: true,
     disablePadding: true,
     label: "Commission",
+  },
+  {
+    id: "cpapAmount",
+    numeric: true,
+    disablePadding: true,
+    label: "Cpap Amount",
+  },
+  {
+    id: "is_cpap_pickedup",
+    numeric: true,
+    disablePadding: true,
+    label: "Is Cpap Pickedup?",
   },
   {
     id: "payment_method",
@@ -299,6 +317,7 @@ export function useCreateInvoice() {
   const [selectedCancelled, setSelectedCancelled] = useState<readonly number[]>(
     []
   );
+  const [consideredComissions, setConsideredComissions] = useState<any>([]);
   const [pageCancelled, setPageCancelled] = useState(0);
   const [rowsPerPageCancelled, setRowsPerPageCancelled] = useState(5);
   const [loadingCancelled, setLoadingCancelled] = useState<boolean>(false);
@@ -316,6 +335,12 @@ export function useCreateInvoice() {
     labelId: string,
     isItemSelected: boolean
   ) {
+    const isConsidered = consideredComissions.some(
+      (con: any) => con.id === row.id
+    );
+
+    // if(!isConsidered)return; // use this if you don't want to render the row 
+
     return (
       <React.Fragment>
         <TableCell sx={{ minWidth: 200 }}>{row.contact_name}</TableCell>
@@ -347,17 +372,35 @@ export function useCreateInvoice() {
             </Typography>
           )}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }} align="right">
+        <TableCell
+          sx={{ minWidth: 200, color: row.deposit < 0 ? "red" : "inherit" }}
+          align="right"
+        >
           {row.deposit}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
           {row.total}
         </TableCell>
+
         <TableCell align="right" sx={{ minWidth: 200 }}>
-        {row.total - row.deposit}
+          {row.total - row.deposit}
+        </TableCell>
+        <TableCell
+          sx={{
+            minWidth: 200,
+            color: isConsidered ? "green" : "inherit",
+            fontWeight: isConsidered ? "bold" : "normal",
+          }}
+          align="right"
+        >
+          {row.commission}
+        </TableCell>
+
+        <TableCell sx={{ minWidth: 200 }} align="right">
+          {row.cpap_value || 0}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.commission}
+          {row.is_cpap_pickedup || "NO" }
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
@@ -786,6 +829,8 @@ export function useCreateInvoice() {
 
   async function getProfileAndFigures() {
     try {
+      console.log("coming this way");
+
       if (id) {
         setProfileDataLoading(true);
         const profilesRepository = new ProfilesRepository();
@@ -804,19 +849,65 @@ export function useCreateInvoice() {
           saleDateFrom,
           saleDateTo
         );
+
         let salesMadeValue = 0;
+        let salesMap = new Map(); // Store the highest commission for each sale ID when closer & salesperson are the same
+
         if (allInvoices) {
           const { invoicesData, invoicesError } = allInvoices;
           if (invoicesData && !invoicesError) {
             for (let i = 0; i < invoicesData.length; i++) {
-              salesMadeValue += invoicesData[i].commission;
-              // if (!salesProcessed.includes(sale.id)) {
-              //   salesMadeValue -= 300;
-              // }
+              const sale = invoicesData[i];
+              const invoiceId = sale.id;
+              const saleId = sale.sale_id;
+              const closer = sale.closer_full_name;
+              const salesperson = sale.sales_person_full_name;
+              const commission = sale.commission;
+
+              if (closer === salesperson) {
+                const greaterComission = Math.max(
+                  salesMap.get(saleId),
+                  commission
+                );
+                // If the same sale ID exists and closer == salesperson, store the max commission
+                if (salesMap.has(saleId)) {
+                  salesMap.set(saleId, greaterComission);
+
+                  setConsideredComissions((prev: any) => {
+                    const existingIndex = prev.findIndex(
+                      (item: any) => item.id === invoiceId
+                    );
+                    if (existingIndex !== -1) {
+                      return prev.map((item: any) =>
+                        item.id === invoiceId
+                          ? { ...item, commission: greaterComission }
+                          : item
+                      );
+                    } else {
+                      return [
+                        ...prev,
+                        { id: invoiceId, commission: greaterComission },
+                      ];
+                    }
+                  });
+                } else {
+                  salesMap.set(saleId, commission);
+                }
+              } else {
+                // If closer and salesperson are different, add commission normally
+                salesMadeValue += commission;
+              }
             }
+
+            // Add the highest commissions from sales where closer == salesperson
+            for (let highestCommission of salesMap.values()) {
+              salesMadeValue += highestCommission;
+            }
+
             setTotalCommission(salesMadeValue);
           }
         }
+
         let salesCancelledValue = 0;
         const allCancelledInvoices =
           await invoicesRepository.getCancelledWithExtendedLimit(

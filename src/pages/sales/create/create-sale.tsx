@@ -1,6 +1,6 @@
 // project-imports
 import FormLayout from "components/FormLayout";
-import { Form, Formik } from "formik";
+import { ErrorMessage, Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateSale } from "./useCreateSale";
@@ -10,6 +10,7 @@ import { Box, IconButton, useTheme } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
+import { useState } from "react";
 
 // ==============================|| CREATE SALE PAGE ||============================== //
 
@@ -46,6 +47,12 @@ export default function CreateSale() {
     loadingCustomers,
     createInlineCustomer,
     setCreateInlineCustomer,
+    searchOpportunity,
+    setSearchOpportunity,
+    containCpac,
+    setContainCpac,
+    isCpapPickup,
+    setIsCpapPickup,
   } = useCreateSale();
 
   const theme = useTheme();
@@ -72,6 +79,8 @@ export default function CreateSale() {
         contactName: "",
         inlineCustomerName: "",
         deposit: "",
+        cpapAmount: "",
+        is_cpap_pickup: "",
         total: "",
         paymentMethod: "",
         phone: "",
@@ -175,6 +184,45 @@ export default function CreateSale() {
                 optional={false}
                 error={touched.salesPerson ? errors.salesPerson : ""}
               />,
+              <label>
+                <Field
+                  type="checkbox"
+                  name="containCpac"
+                  onClick={() => setContainCpac(!containCpac)}
+                />
+                Does this Sale contain Cpac?
+              </label>,
+              containCpac && (
+                <div className="flex flex-wrap">
+                  <div>
+                    <FormInput
+                      id={"cpapAmount"}
+                      name={"cpapAmount"}
+                      placeholder={"cpapAmount"}
+                      label={"Cpap Amount"}
+                      optional={false}
+                      type={"number"}
+                      min={0}
+                      error={touched.deposit ? errors.deposit : ""}
+                    />
+                    ,
+                    <ErrorMessage name="cpapAmount" component="div" />
+                  </div>
+                  <div>
+                    <FormDropdown
+                      id={"is_cpap_pickup"}
+                      name={"is_cpap_pickup"}
+                      onChange={(e) => setIsCpapPickup(e.target.value)}
+                      options={["Yes", "No"]}
+                      label={"Is Cpap Piked up?"}
+                      optional={false}
+                      error={touched.deposit ? errors.deposit : ""}
+                    />
+                    ,
+                    <ErrorMessage name="is_cpap_pickedup" component="div" />
+                  </div>
+                </div>
+              ),
               <FormInput
                 id={"deposit"}
                 name={"deposit"}
@@ -182,7 +230,17 @@ export default function CreateSale() {
                 label={"deposit"}
                 secondaryLabel={
                   values.deposit && values.total
-                    ? `${((parseFloat(values.deposit) / parseFloat(values.total)) * 100).toFixed(2)}%`
+                    ? `${(
+                        ((parseFloat(values.deposit) -
+                          (values.cpapAmount
+                            ? parseFloat(values.cpapAmount)
+                            : 0)) /
+                          (parseFloat(values.total) -
+                            (values.cpapAmount
+                              ? parseFloat(values.cpapAmount)
+                              : 0))) *
+                        100
+                      ).toFixed(2)}%`
                     : null
                 }
                 optional={false}
@@ -315,21 +373,24 @@ export default function CreateSale() {
                       alignItems: "flex-end",
                     }}
                   >
-                    <FormDropdown
+                    <InputDropdown
+                      options={opportunities
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .filter((opportunity) =>
+                          opportunity.name
+                            .toLowerCase()
+                            .includes(searchOpportunity.toLowerCase())
+                        )}
                       id={`opportunityDescription_${idx}`}
                       name={`opportunityDescription_${idx}`}
                       label={idx === 0 ? "opportunity-description" : undefined}
-                      useFormattedStrings={false}
-                      value={opportunity}
+                      loading={loading}
                       onChange={(e) => {
-                        handleChangeSelectedOpportunities(e, idx);
+                        setSearchOpportunity(e.target.value);
                       }}
-                      options={opportunities.map((opportunity) => {
-                        return {
-                          label: opportunity.name,
-                          value: opportunity.name,
-                        };
-                      })}
+                      onSelect={(e) =>
+                        handleChangeSelectedOpportunities(e, idx)
+                      }
                     />
                     {idx === selectedOpportunities.length - 1 &&
                       opportunity !== "" && (
