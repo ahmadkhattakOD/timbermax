@@ -175,7 +175,9 @@ export default function CreateSale() {
                 name={"salesPerson"}
                 label={"sales-person"}
                 useFormattedStrings={false}
-                options={salesPersons.map((salesPerson) => {
+                options={salesPersons
+                  .sort((a,b)=>a.full_name.localeCompare(b.full_name))
+                  .map((salesPerson) => {
                   return {
                     label: salesPerson.full_name,
                     value: salesPerson.id.toString(),
@@ -415,7 +417,9 @@ export default function CreateSale() {
                 name={"closer"}
                 label={"closer"}
                 useFormattedStrings={false}
-                options={closers.map((closer) => {
+                options={closers
+                  .sort((a,b)=>a.full_name.localeCompare(b.full_name))
+                  .map((closer) => {
                   return {
                     label: closer.full_name,
                     value: closer.id.toString(),

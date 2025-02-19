@@ -851,7 +851,8 @@ export function useCreateInvoice() {
         );
 
         let salesMadeValue = 0;
-        let salesMap = new Map(); // Store the highest commission for each sale ID when closer & salesperson are the same
+
+        let salesMap = new Map(); // Store the highest commission and invoice ID for each sale ID when closer & salesperson are the same
 
         if (allInvoices) {
           const { invoicesData, invoicesError } = allInvoices;
@@ -863,47 +864,44 @@ export function useCreateInvoice() {
               const closer = sale.closer_full_name;
               const salesperson = sale.sales_person_full_name;
               const commission = sale.commission;
-
+        
               if (closer === salesperson) {
-                const greaterComission = Math.max(
-                  salesMap.get(saleId),
-                  commission
-                );
-                // If the same sale ID exists and closer == salesperson, store the max commission
-                if (salesMap.has(saleId)) {
-                  salesMap.set(saleId, greaterComission);
-
-                  setConsideredComissions((prev: any) => {
-                    const existingIndex = prev.findIndex(
-                      (item: any) => item.id === invoiceId
-                    );
-                    if (existingIndex !== -1) {
+                const existingEntry = salesMap.get(saleId);
+        
+                if (existingEntry) {
+                  // Compare commissions for the same saleId
+                  if (commission > existingEntry.commission) {
+                    // Update salesMap with the higher commission and its invoiceId
+                    salesMap.set(saleId, { id: invoiceId, commission: commission });
+        
+                    // Update consideredComissions to replace the older entry with the new one
+                    setConsideredComissions((prev: any) => {
                       return prev.map((item: any) =>
-                        item.id === invoiceId
-                          ? { ...item, commission: greaterComission }
+                        item.id === existingEntry.id
+                          ? { id: invoiceId, commission: commission } // Replace with the new invoiceId and commission
                           : item
                       );
-                    } else {
-                      return [
-                        ...prev,
-                        { id: invoiceId, commission: greaterComission },
-                      ];
-                    }
-                  });
+                    });
+                  }
                 } else {
-                  salesMap.set(saleId, commission);
+                  // If no existing entry for this saleId, add it to salesMap and consideredComissions
+                  salesMap.set(saleId, { id: invoiceId, commission: commission });
+                  setConsideredComissions((prev: any) => [
+                    ...prev,
+                    { id: invoiceId, commission: commission },
+                  ]);
                 }
               } else {
                 // If closer and salesperson are different, add commission normally
                 salesMadeValue += commission;
               }
             }
-
+        
             // Add the highest commissions from sales where closer == salesperson
-            for (let highestCommission of salesMap.values()) {
-              salesMadeValue += highestCommission;
+            for (let { commission } of salesMap.values()) {
+              salesMadeValue += commission;
             }
-
+        
             setTotalCommission(salesMadeValue);
           }
         }

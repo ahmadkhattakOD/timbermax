@@ -216,7 +216,7 @@ export function useCreateSale() {
         contact_name: "REPORT IF YOU SEE THIS",
         customer: customerToAdd,
         opportunity_descriptions: selectedOpportunities,
-        deposit: parseFloat(values.deposit) - parseFloat(values.cpapAmount || "0") || 0,
+        deposit: parseFloat(values.deposit) || 0,
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
         phone: selectedPhone,
