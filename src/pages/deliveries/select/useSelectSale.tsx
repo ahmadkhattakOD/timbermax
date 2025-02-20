@@ -31,6 +31,12 @@ const headCells: HeadCell[] = [
     label: "Opportunity Description",
   },
   {
+    id: "sale_date",
+    numeric: false,
+    disablePadding: true,
+    label: "Sale Date",
+  },
+  {
     id: "milestone",
     numeric: false,
     disablePadding: true,
@@ -151,12 +157,6 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Follow-up Notes",
   },
-  {
-    id: "sale_date",
-    numeric: false,
-    disablePadding: true,
-    label: "Sale Date",
-  },
 ];
 
 export interface ValuesFilterSelectSales {
@@ -235,6 +235,22 @@ export function useSelectSale() {
     temp.contactName = e.target.value;
     setFilters(temp);
   }
+  const getDateColor = (saleDate: string | number | Date): "green" | "orange" | "red" => {
+    const today = new Date();
+    const saleDateObj = new Date(saleDate);
+    
+    if (isNaN(saleDateObj.getTime())) {
+      throw new Error("Invalid date provided");
+    }
+  
+    const diffTime = today.getTime() - saleDateObj.getTime(); 
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  
+    if (diffDays <= 7) return "green";
+    if (diffDays <= 14) return "orange";
+    return "red";
+  };
+  
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
@@ -265,6 +281,10 @@ export function useSelectSale() {
               )
             )}
         </TableCell>
+        <TableCell sx={{ minWidth: 200, color: getDateColor(row.sale_date) }}>
+          {getDateFormatted(row.sale_date)}
+        </TableCell>
+        ;
         <TableCell sx={{ minWidth: 200 }}>
           {row.milestone && (
             <Typography
@@ -290,7 +310,7 @@ export function useSelectSale() {
           {row.total}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-        {row.total - row.deposit}
+          {row.total - row.deposit}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
@@ -322,9 +342,6 @@ export function useSelectSale() {
           {row.expected_close_date && getDateFormatted(row.expected_close_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {getDateFormatted(row.sale_date)}
-        </TableCell>
       </React.Fragment>
     );
   }
