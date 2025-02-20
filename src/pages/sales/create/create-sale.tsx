@@ -49,8 +49,8 @@ export default function CreateSale() {
     setCreateInlineCustomer,
     searchOpportunity,
     setSearchOpportunity,
-    containCpac,
-    setContainCpac,
+    containCpap,
+    setContainCpap,
     isCpapPickup,
     setIsCpapPickup,
   } = useCreateSale();
@@ -189,12 +189,12 @@ export default function CreateSale() {
               <label>
                 <Field
                   type="checkbox"
-                  name="containCpac"
-                  onClick={() => setContainCpac(!containCpac)}
+                  name="containCpap"
+                  onClick={() => setContainCpap(!containCpap)}
                 />
-                Does this Sale contain Cpac?
+                Does this Sale contain cpap?
               </label>,
-              containCpac && (
+              containCpap && (
                 <div className="flex flex-wrap">
                   <div>
                     <FormInput
@@ -365,52 +365,50 @@ export default function CreateSale() {
               <Box
                 sx={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
               >
-                {selectedOpportunities.map((opportunity, idx) => (
-                  <Box
-                    key={idx}
-                    sx={{
-                      display: "flex",
-                      gap: "0.5rem",
-                      flexDirection: "row",
-                      alignItems: "flex-end",
-                    }}
-                  >
-                    <InputDropdown
-                      options={opportunities
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .filter((opportunity) =>
-                          opportunity.name
-                            .toLowerCase()
-                            .includes(searchOpportunity.toLowerCase())
-                        )}
-                      id={`opportunityDescription_${idx}`}
-                      name={`opportunityDescription_${idx}`}
-                      label={idx === 0 ? "opportunity-description" : undefined}
-                      loading={loading}
-                      onChange={(e) => {
-                        setSearchOpportunity(e.target.value);
-                      }}
-                      onSelect={(e) =>
-                        handleChangeSelectedOpportunities(e, idx)
-                      }
-                    />
-                    {idx === selectedOpportunities.length - 1 &&
-                      opportunity !== "" && (
-                        <IconButton onClick={addSelectedOpportunity}>
-                          <Add />
-                        </IconButton>
-                      )}
-                    {idx !== 0 && (
-                      <IconButton
-                        onClick={() => {
-                          removeSelectedOpportunity(idx);
-                        }}
-                      >
-                        <Trash />
-                      </IconButton>
-                    )}
-                  </Box>
-                ))}
+            {(selectedOpportunities.length === 0 ? [{}] : selectedOpportunities).map((opportunity, idx) => (
+  <Box
+    key={idx}
+    sx={{
+      display: "flex",
+      gap: "0.5rem",
+      flexDirection: "row",
+      alignItems: "flex-end",
+    }}
+  >
+    <InputDropdown
+      options={opportunities
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .filter((opportunity) =>
+          opportunity.name.toLowerCase().includes(searchOpportunity.toLowerCase())
+        )}
+      id={`opportunityDescription_${idx}`}
+      name={`opportunityDescription_${idx}`}
+      label={idx === 0 ? "opportunity-description" : undefined}
+      loading={loading}
+      onChange={(e) => {
+        setSearchOpportunity(e.target.value);
+      }}
+      onSelect={(e) =>
+        handleChangeSelectedOpportunities(e, idx)
+      }
+    />
+    {idx === selectedOpportunities.length - 1 && opportunity !== "" && (
+      <IconButton onClick={addSelectedOpportunity}>
+        <Add />
+      </IconButton>
+    )}
+    {idx !== 0 && (
+      <IconButton
+        onClick={() => {
+          removeSelectedOpportunity(idx);
+        }}
+      >
+        <Trash />
+      </IconButton>
+    )}
+  </Box>
+))}
+
               </Box>,
               <FormDropdown
                 id={"closer"}

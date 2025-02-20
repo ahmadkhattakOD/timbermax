@@ -338,12 +338,13 @@ export function useCreateInvoice() {
     const isConsidered = consideredComissions.some(
       (con: any) => con.id === row.id
     );
+console.log(row);
 
     // if(!isConsidered)return; // use this if you don't want to render the row 
 
     return (
       <React.Fragment>
-        <TableCell sx={{ minWidth: 200 }}>{row.contact_name}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{row.name}</TableCell>
         <TableCell sx={{ minWidth: 500 }}>
           {row.opportunity_descriptions &&
             row.opportunity_descriptions.map(
@@ -894,6 +895,10 @@ export function useCreateInvoice() {
               } else {
                 // If closer and salesperson are different, add commission normally
                 salesMadeValue += commission;
+                setConsideredComissions((prev: any) => [
+                  ...prev,
+                  { id: invoiceId, commission: commission },
+                ]);
               }
             }
         

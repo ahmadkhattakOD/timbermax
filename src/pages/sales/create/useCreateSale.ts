@@ -2,7 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, parseAddress, useDebouncedSearch } from "utils/helpers";
+import { UserRoles, opportunityDescriptions, parseAddress, useDebouncedSearch } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
 } from "utils/repositories/customersRepository";
@@ -43,7 +43,7 @@ export interface ValuesCreateSale {
   followUpNotes: string;
   saleDate: string;
   cpapAmount?: string; // cpap_value in schema
-  is_cpap_pickedup?:string
+  is_cpap_pickedup?: string;
 }
 
 export function useCreateSale() {
@@ -53,9 +53,7 @@ export function useCreateSale() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([
-    "",
-  ]);
+  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
@@ -69,8 +67,8 @@ export function useCreateSale() {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
   const [searchOpportunity, setSearchOpportunity] = useState("");
-  const [isCpapPickup,setIsCpapPickup] = useState("Yes")
-  const [containCpac, setContainCpac] = useState(false);
+  const [isCpapPickup, setIsCpapPickup] = useState("Yes");
+  const [containCpap, setContainCpap] = useState(false);
 
   function handleChangeSelectedOpportunities(
     e: React.ChangeEvent<HTMLSelectElement>,
@@ -131,6 +129,8 @@ export function useCreateSale() {
     if (!values.salesPerson.trim()) {
       errors.salesPerson = "required";
     }
+   
+
 
     if (!values.deposit || parseFloat(values.deposit) <= 0) {
       errors.deposit = "required-valid-number";
@@ -171,11 +171,10 @@ export function useCreateSale() {
     return errors;
   }
 
-
   async function onSubmit(values: ValuesCreateSale) {
     try {
       let customerToAdd = selectedCustomer;
-  
+
       if (createInlineCustomer) {
         const newCustomer: CustomerSupabase = {
           name: values.inlineCustomerName,
@@ -211,11 +210,16 @@ export function useCreateSale() {
           return;
         }
       }
-  
+console.log(opportunityDescriptions);
+console.log(selectedOpportunities);
+console.log(selectedOpportunities.length);
+
+
+
       const newSale: SaleSupabase = {
         contact_name: "REPORT IF YOU SEE THIS",
         customer: customerToAdd,
-        opportunity_descriptions: selectedOpportunities,
+        opportunity_descriptions: selectedOpportunities.length>0 ? selectedOpportunities  : [], 
         deposit: parseFloat(values.deposit) || 0,
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
@@ -238,13 +242,13 @@ export function useCreateSale() {
         show: parseInt(values.show),
         follow_up_notes: values.followUpNotes,
         sale_date: new Date(values.saleDate),
-        cpap_value: values.cpapAmount,
-        is_cpap_pickedup:isCpapPickup
+        cpap_value: values.cpapAmount || "0",
+        is_cpap_pickedup: isCpapPickup || "NO",
       };
-  
+
       const salesRepository = new SalesRepository();
       const createdSale = await salesRepository.create(newSale);
-  
+
       if (createdSale) {
         if (values.status !== "cancelled") {
           const saleOpportunitiesRepository = new SaleOpportunitiesRepository();
@@ -252,7 +256,7 @@ export function useCreateSale() {
             const opportunityId = opportunities.find(
               (opp) => opp.name === selectedOpportunities[i]
             )?.id;
-  
+
             if (opportunityId) {
               const newSaleOpportunity: SaleOpportunitySupabase = {
                 sale: createdSale.id,
@@ -285,12 +289,12 @@ export function useCreateSale() {
               return;
             }
           }
-  
+
           // Calculate commission base amount (excluding CPAP)
           const cpapAmount = parseFloat(values.cpapAmount || "0") || 0;
           const nonCpapTotal = parseFloat(values.total) - cpapAmount;
           const remainingDeposit = parseFloat(values.deposit) - cpapAmount;
-  
+
           if (remainingDeposit / nonCpapTotal >= 0.2) {
             const profilesRepository = new ProfilesRepository();
             const salesPersonProfile = await profilesRepository.getSingle(
@@ -299,7 +303,7 @@ export function useCreateSale() {
             const closerProfile = await profilesRepository.getSingle(
               values.closer
             );
-  
+
             if (salesPersonProfile && closerProfile) {
               const {
                 profileData: salesProfileData,
@@ -309,55 +313,61 @@ export function useCreateSale() {
                 profileData: closerProfileData,
                 profileError: closerProfileError,
               } = closerProfile;
-  
-              if (salesProfileData && closerProfileData &&  
+
+              if (
+                salesProfileData &&
+                closerProfileData &&
                 !salesProfileError &&
-                !closerProfileError) {
-                  let salesPersonCommissionPercentage =
+                !closerProfileError
+              ) {
+                let salesPersonCommissionPercentage =
                   salesProfileData.commissions &&
                   salesProfileData.commissions.length > 0
                     ? salesProfileData.commissions[0] / 100
                     : 0;
-  
+
                 let closerCommissionPercentage = 0;
                 if (closerProfileData.role === UserRoles.Both) {
                   closerCommissionPercentage =
-                  closerProfileData.commissions &&
-                  closerProfileData.commissions.length > 1
-                    ? closerProfileData.commissions[1] / 100
-                    : 0;
+                    closerProfileData.commissions &&
+                    closerProfileData.commissions.length > 1
+                      ? closerProfileData.commissions[1] / 100
+                      : 0;
                 } else {
                   closerCommissionPercentage =
-                  closerProfileData.commissions &&
-                  closerProfileData.commissions.length > 0
-                    ? closerProfileData.commissions[0] / 100
-                    : 0;
+                    closerProfileData.commissions &&
+                    closerProfileData.commissions.length > 0
+                      ? closerProfileData.commissions[0] / 100
+                      : 0;
                 }
-  
+
                 // Use remainingDeposit for commission calculations
-                const commissionBase = nonCpapTotal - 300; 
-  
+                const commissionBase = nonCpapTotal - 300;
+
                 const newSalesPersonInvoice: InvoiceSupabase = {
                   sale: createdSale.id,
                   commission: commissionBase * salesPersonCommissionPercentage,
                   beneficiary: values.salesPerson,
                 };
-  
+
                 const newCloserInvoice: InvoiceSupabase = {
                   sale: createdSale.id,
                   commission: commissionBase * closerCommissionPercentage,
                   beneficiary: values.closer,
                 };
 
-                console.log({commissionBase , supabase:commissionBase * closerCommissionPercentage , closerCommissionPercentage} );
-                
-  
+                console.log({
+                  commissionBase,
+                  supabase: commissionBase * closerCommissionPercentage,
+                  closerCommissionPercentage,
+                });
+
                 const invoicesRepository = new InvoicesRepository();
                 const [salesInvoice, closerInvoice] = await Promise.all([
                   invoicesRepository.create(newSalesPersonInvoice),
                   invoicesRepository.create(newCloserInvoice),
                 ]);
-  
+
                 if (salesInvoice && closerInvoice) {
                   openSnackbar({
                     open: true,
@@ -544,9 +554,9 @@ export function useCreateSale() {
     setCreateInlineCustomer,
     searchOpportunity,
     setSearchOpportunity,
-    containCpac,
-    setContainCpac,
+    containCpap,
+    setContainCpap,
     isCpapPickup,
-    setIsCpapPickup
+    setIsCpapPickup,
   };
 }
