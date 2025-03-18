@@ -2,7 +2,12 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, opportunityDescriptions, parseAddress, useDebouncedSearch } from "utils/helpers";
+import {
+  UserRoles,
+  opportunityDescriptions,
+  parseAddress,
+  useDebouncedSearch,
+} from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
 } from "utils/repositories/customersRepository";
@@ -53,7 +58,9 @@ export function useCreateSale() {
   const [closers, setClosers] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([]);
+  const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>(
+    []
+  );
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
@@ -77,7 +84,7 @@ export function useCreateSale() {
     let temp = [...selectedOpportunities];
     temp[idx] = e.target.innerText; // changed from value to innerText
     setSelectedOpportunities(temp);
-    console.log(e.target.value);
+    // console.log(e.target.value);
   }
 
   function addSelectedOpportunity() {
@@ -129,8 +136,6 @@ export function useCreateSale() {
     if (!values.salesPerson.trim()) {
       errors.salesPerson = "required";
     }
-   
-
 
     if (!values.deposit || parseFloat(values.deposit) <= 0) {
       errors.deposit = "required-valid-number";
@@ -210,16 +215,12 @@ export function useCreateSale() {
           return;
         }
       }
-console.log(opportunityDescriptions);
-console.log(selectedOpportunities);
-console.log(selectedOpportunities.length);
-
-
 
       const newSale: SaleSupabase = {
         contact_name: "REPORT IF YOU SEE THIS",
         customer: customerToAdd,
-        opportunity_descriptions: selectedOpportunities.length>0 ? selectedOpportunities  : [], 
+        opportunity_descriptions:
+          selectedOpportunities.length > 0 ? selectedOpportunities : [],
         deposit: parseFloat(values.deposit) || 0,
         total: parseFloat(values.total) ?? 0,
         payment_method: values.paymentMethod,
@@ -249,19 +250,33 @@ console.log(selectedOpportunities.length);
       const salesRepository = new SalesRepository();
       const createdSale = await salesRepository.create(newSale);
 
+      //helper function to normalize string since some of the values were not matching with old code that's commented out below
+      const normalizeString = (str: string) =>
+        str.normalize("NFKC").replace(/\s+/g, " ").trim();
+
       if (createdSale) {
         if (values.status !== "cancelled") {
           const saleOpportunitiesRepository = new SaleOpportunitiesRepository();
           for (let i = 0; i < selectedOpportunities.length; i++) {
-            const opportunityId = opportunities.find(
-              (opp) => opp.name === selectedOpportunities[i]
-            )?.id;
+            const opportunityNormalized = normalizeString(
+              selectedOpportunities[i]
+            );
+
+            // const opportunityId = opportunities.find(
+            //   (opp) => opp.name.trim() === selectedOpportunities[i].trim()
+            // )?.id;
+
+            const opportunityId = opportunities.find((opp) => {
+              const nametrimmed = normalizeString(opp.name);
+              return nametrimmed === opportunityNormalized;
+            })?.id;
 
             if (opportunityId) {
               const newSaleOpportunity: SaleOpportunitySupabase = {
                 sale: createdSale.id,
                 opportunity: opportunityId,
               };
+
               const createdSaleOpportunity =
                 await saleOpportunitiesRepository.create(newSaleOpportunity);
               if (!createdSaleOpportunity) {
@@ -273,6 +288,7 @@ console.log(selectedOpportunities.length);
                   variant: "alert",
                   alert: { color: "error" },
                 } as SnackbarProps);
+
                 navigate("/sales");
                 return;
               }
@@ -285,6 +301,7 @@ console.log(selectedOpportunities.length);
                 variant: "alert",
                 alert: { color: "error" },
               } as SnackbarProps);
+
               navigate("/sales");
               return;
             }
@@ -356,11 +373,11 @@ console.log(selectedOpportunities.length);
                   beneficiary: values.closer,
                 };
 
-                console.log({
-                  commissionBase,
-                  supabase: commissionBase * closerCommissionPercentage,
-                  closerCommissionPercentage,
-                });
+                // console.log({
+                //   commissionBase,
+                //   supabase: commissionBase * closerCommissionPercentage,
+                //   closerCommissionPercentage,
+                // });
 
                 const invoicesRepository = new InvoicesRepository();
                 const [salesInvoice, closerInvoice] = await Promise.all([
@@ -418,6 +435,7 @@ console.log(selectedOpportunities.length);
           alert: { color: "error" },
         } as SnackbarProps);
       }
+
       navigate("/sales");
     } catch (e) {
       openSnackbar({
@@ -426,6 +444,7 @@ console.log(selectedOpportunities.length);
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
+
       navigate("/sales");
     }
   }

@@ -188,6 +188,7 @@ export default function CreateSale() {
               />,
               <label>
                 <Field
+                  id="cpap_checkbox"
                   type="checkbox"
                   name="containCpap"
                   onClick={() => setContainCpap(!containCpap)}
@@ -201,6 +202,7 @@ export default function CreateSale() {
                       id={"cpapAmount"}
                       name={"cpapAmount"}
                       placeholder={"cpapAmount"}
+                      
                       label={"Cpap Amount"}
                       optional={false}
                       type={"number"}
@@ -217,6 +219,7 @@ export default function CreateSale() {
                       onChange={(e) => setIsCpapPickup(e.target.value)}
                       options={["Yes", "No"]}
                       label={"Is Cpap Piked up?"}
+                      useFormattedStrings={true}
                       optional={false}
                       error={touched.deposit ? errors.deposit : ""}
                     />
