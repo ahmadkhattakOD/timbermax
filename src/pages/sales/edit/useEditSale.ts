@@ -5,6 +5,7 @@ import { SnackbarProps } from "types/snackbar";
 import {
   UserRoles,
   isNumeric,
+  normalizeString,
   parseAddress,
   useDebouncedSearch,
 } from "utils/helpers";
@@ -208,9 +209,6 @@ export function useEditSale() {
           const saleOpportunitiesRepository = new SaleOpportunitiesRepository();
           await saleOpportunitiesRepository.deleteBySale(editedSale.id);
 
-          //helper function to normalize string since some of the values were not matching with old code that's commented out below
-          const normalizeString = (str: string) =>
-            str.normalize("NFKC").replace(/\s+/g, " ").trim();
 
           if (values.status !== "cancelled") {
             for (let i = 0; i < selectedOpportunities.length; i++) {

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
   UserRoles,
+  normalizeString,
   opportunityDescriptions,
   parseAddress,
   useDebouncedSearch,
@@ -250,9 +251,7 @@ export function useCreateSale() {
       const salesRepository = new SalesRepository();
       const createdSale = await salesRepository.create(newSale);
 
-      //helper function to normalize string since some of the values were not matching with old code that's commented out below
-      const normalizeString = (str: string) =>
-        str.normalize("NFKC").replace(/\s+/g, " ").trim();
+
 
       if (createdSale) {
         if (values.status !== "cancelled") {

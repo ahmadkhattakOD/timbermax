@@ -10,6 +10,7 @@ import {
   australianStates,
   getDateFormatted,
   getDateFormattedForField,
+  normalizeString,
 } from "utils/helpers";
 import { IconButton } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
@@ -606,9 +607,12 @@ export default function EditSale() {
                           handleChangeSelectedOpportunities(e, idx);
                         }}
                         options={opportunities.map((opportunity) => {
+                          const normalizedName = normalizeString(
+                            opportunity.name
+                          ); // some names have spaces at the end , that causes no match sometimes.
                           return {
-                            label: opportunity.name,
-                            value: opportunity.name,
+                            label: normalizedName,
+                            value: normalizedName,
                           };
                         })}
                         disabled={

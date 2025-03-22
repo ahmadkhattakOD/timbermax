@@ -174,7 +174,7 @@ export function hasNonEmptyValue(obj: any) {
       }
     }
   }
-  return false; 
+  return false;
 }
 
 export function getMonthName(date: Date) {
@@ -366,8 +366,8 @@ export const downloadFile = async (fileUrl: string, fileName: string) => {
 };
 
 export const cleanFileName = (fileUrl: string) => {
-  const underscoreIndex = fileUrl.lastIndexOf('_');
-  const dotIndex = fileUrl.lastIndexOf('.');
+  const underscoreIndex = fileUrl.lastIndexOf("_");
+  const dotIndex = fileUrl.lastIndexOf(".");
 
   if (underscoreIndex !== -1 && dotIndex !== -1 && dotIndex > underscoreIndex) {
     const baseName = fileUrl.substring(0, underscoreIndex);
@@ -388,3 +388,7 @@ export const getYearsArray = () => {
 
   return yearsArray;
 };
+
+//helper function to normalize string since some of the values were not matching with old code that's commented out below
+export const normalizeString = (str: string) =>
+  str.normalize("NFKC").replace(/\s+/g, " ").trim();
