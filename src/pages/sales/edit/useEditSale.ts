@@ -165,6 +165,7 @@ export function useEditSale() {
 
     return errors;
   }
+  console.log(sale);
 
   async function onSubmit(values: ValuesEditSale) {
     try {
@@ -206,11 +207,21 @@ export function useEditSale() {
         if (editedSale) {
           const saleOpportunitiesRepository = new SaleOpportunitiesRepository();
           await saleOpportunitiesRepository.deleteBySale(editedSale.id);
+
+          //helper function to normalize string since some of the values were not matching with old code that's commented out below
+          const normalizeString = (str: string) =>
+            str.normalize("NFKC").replace(/\s+/g, " ").trim();
+
           if (values.status !== "cancelled") {
             for (let i = 0; i < selectedOpportunities.length; i++) {
-              const opportunityId = opportunities.find(
-                (opp) => opp.name === selectedOpportunities[i]
-              )?.id;
+              const opportunityNormalized = normalizeString(
+                selectedOpportunities[i]
+              );
+              const opportunityId = opportunities.find((opp) => {
+                const nametrimmed = normalizeString(opp.name);
+                return nametrimmed === opportunityNormalized;
+              })?.id;
+
               if (opportunityId) {
                 const newSaleOpportunity: SaleOpportunitySupabase = {
                   sale: editedSale.id,
@@ -218,6 +229,7 @@ export function useEditSale() {
                 };
                 const createdSaleOpportunity =
                   await saleOpportunitiesRepository.create(newSaleOpportunity);
+
                 if (!createdSaleOpportunity) {
                   openSnackbar({
                     open: true,

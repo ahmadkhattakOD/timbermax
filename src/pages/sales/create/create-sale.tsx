@@ -176,13 +176,13 @@ export default function CreateSale() {
                 label={"sales-person"}
                 useFormattedStrings={false}
                 options={salesPersons
-                  .sort((a,b)=>a.full_name.localeCompare(b.full_name))
+                  .sort((a, b) => a.full_name.localeCompare(b.full_name))
                   .map((salesPerson) => {
-                  return {
-                    label: salesPerson.full_name,
-                    value: salesPerson.id.toString(),
-                  };
-                })}
+                    return {
+                      label: salesPerson.full_name,
+                      value: salesPerson.id.toString(),
+                    };
+                  })}
                 optional={false}
                 error={touched.salesPerson ? errors.salesPerson : ""}
               />,
@@ -202,7 +202,6 @@ export default function CreateSale() {
                       id={"cpapAmount"}
                       name={"cpapAmount"}
                       placeholder={"cpapAmount"}
-                      
                       label={"Cpap Amount"}
                       optional={false}
                       type={"number"}
@@ -368,50 +367,55 @@ export default function CreateSale() {
               <Box
                 sx={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
               >
-            {(selectedOpportunities.length === 0 ? [{}] : selectedOpportunities).map((opportunity, idx) => (
-  <Box
-    key={idx}
-    sx={{
-      display: "flex",
-      gap: "0.5rem",
-      flexDirection: "row",
-      alignItems: "flex-end",
-    }}
-  >
-    <InputDropdown
-      options={opportunities
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .filter((opportunity) =>
-          opportunity.name.toLowerCase().includes(searchOpportunity.toLowerCase())
-        )}
-      id={`opportunityDescription_${idx}`}
-      name={`opportunityDescription_${idx}`}
-      label={idx === 0 ? "opportunity-description" : undefined}
-      loading={loading}
-      onChange={(e) => {
-        setSearchOpportunity(e.target.value);
-      }}
-      onSelect={(e) =>
-        handleChangeSelectedOpportunities(e, idx)
-      }
-    />
-    {idx === selectedOpportunities.length - 1 && opportunity !== "" && (
-      <IconButton onClick={addSelectedOpportunity}>
-        <Add />
-      </IconButton>
-    )}
-    {idx !== 0 && (
-      <IconButton
-        onClick={() => {
-          removeSelectedOpportunity(idx);
-        }}
-      >
-        <Trash />
-      </IconButton>
-    )}
-  </Box>
-))}
-
+                {(selectedOpportunities.length === 0
+                  ? [{}]
+                  : selectedOpportunities
+                ).map((opportunity, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      flexDirection: "row",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    <InputDropdown
+                      options={opportunities
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .filter((opportunity) =>
+                          opportunity.name
+                            .toLowerCase()
+                            .includes(searchOpportunity.toLowerCase())
+                        )}
+                      id={`opportunityDescription_${idx}`}
+                      name={`opportunityDescription_${idx}`}
+                      label={idx === 0 ? "opportunity-description" : undefined}
+                      loading={loading}
+                      onChange={(e) => {
+                        setSearchOpportunity(e.target.value);
+                      }}
+                      onSelect={(e) =>
+                        handleChangeSelectedOpportunities(e, idx)
+                      }
+                    />
+                    {idx === selectedOpportunities.length - 1 &&
+                      opportunity !== "" && (
+                        <IconButton onClick={addSelectedOpportunity}>
+                          <Add />
+                        </IconButton>
+                      )}
+                    {idx !== 0 && (
+                      <IconButton
+                        onClick={() => {
+                          removeSelectedOpportunity(idx);
+                        }}
+                      >
+                        <Trash />
+                      </IconButton>
+                    )}
+                  </Box>
+                ))}
               </Box>,
               <FormDropdown
                 id={"closer"}
@@ -419,13 +423,13 @@ export default function CreateSale() {
                 label={"closer"}
                 useFormattedStrings={false}
                 options={closers
-                  .sort((a,b)=>a.full_name.localeCompare(b.full_name))
+                  .sort((a, b) => a.full_name.localeCompare(b.full_name))
                   .map((closer) => {
-                  return {
-                    label: closer.full_name,
-                    value: closer.id.toString(),
-                  };
-                })}
+                    return {
+                      label: closer.full_name,
+                      value: closer.id.toString(),
+                    };
+                  })}
                 optional={false}
                 error={touched.closer ? errors.closer : ""}
               />,
