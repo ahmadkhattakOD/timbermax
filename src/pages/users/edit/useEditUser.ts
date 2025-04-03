@@ -23,50 +23,7 @@ export function useEditUser() {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const { id } = useParams();
 
-  function validate(values: ValuesEditProfile) {
-    const errors = {} as ValuesEditProfile;
 
-    if (!values.fullName.trim()) {
-      errors.fullName = "required";
-    }
-
-    // const emailRegex = new RegExp(
-    //   /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
-    // );
-    // if (!emailRegex.test(values.email.trim())) {
-    //   errors.email = "required-email";
-    // }
-
-    if (
-      !values.email.trim() ||
-      values.email.trim().length < 3 ||
-      (values.email.length > 0 && isNumeric(values.email[0]))
-    ) {
-      errors.email = "required-username";
-    }
-
-    if (!values.role.trim()) {
-      errors.role = "required";
-    }
-
-    if (values.commission === "" || parseFloat(values.commission) < 0) {
-      errors.commission = "required-valid-number-positive";
-    }
-
-    if (
-      selectedRole === UserRoles.Both &&
-      (values.secondaryCommission === "" ||
-        parseFloat(values.secondaryCommission) < 0)
-    ) {
-      errors.secondaryCommission = "required-valid-number-positive";
-    }
-
-    if (values.dailyWage !== "" && parseFloat(values.dailyWage) < 0) {
-      errors.dailyWage = "required-valid-number-positive";
-    }
-
-    return errors;
-  }
 
   async function onSubmit(values: ValuesEditProfile) {
     try {
@@ -151,7 +108,50 @@ export function useEditUser() {
     }
     setLoading(false);
   }
+  function validate(values: ValuesEditProfile) {
+    const errors = {} as ValuesEditProfile;
 
+    if (!values.fullName.trim()) {
+      errors.fullName = "required";
+    }
+
+    // const emailRegex = new RegExp(
+    //   /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
+    // );
+    // if (!emailRegex.test(values.email.trim())) {
+    //   errors.email = "required-email";
+    // }
+
+    if (
+      !values.email.trim() ||
+      values.email.trim().length < 3 ||
+      (values.email.length > 0 && isNumeric(values.email[0]))
+    ) {
+      errors.email = "required-username";
+    }
+
+    if (!values.role.trim()) {
+      errors.role = "required";
+    }
+
+    if (values.commission === "" || parseFloat(values.commission) < 0) {
+      errors.commission = "required-valid-number-positive";
+    }
+
+    if (
+      selectedRole === UserRoles.Both &&
+      (values.secondaryCommission === "" ||
+        parseFloat(values.secondaryCommission) < 0)
+    ) {
+      errors.secondaryCommission = "required-valid-number-positive";
+    }
+
+    if (values.dailyWage !== "" && parseFloat(values.dailyWage) < 0) {
+      errors.dailyWage = "required-valid-number-positive";
+    }
+
+    return errors;
+  }
   useEffect(() => {
     getProfile();
   }, []);

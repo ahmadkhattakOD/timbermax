@@ -144,7 +144,7 @@ export default function EditUser() {
                         optional={false}
                         options={userRoles}
                         error={touched.role ? errors.role : ""}
-                        disabled
+                        // disabled
                       />,
                       <FormInput
                         id={"commission"}
