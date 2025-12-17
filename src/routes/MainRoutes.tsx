@@ -49,6 +49,9 @@ import CreateCustomer from "pages/customers/create/create-customer";
 import EditCustomer from "pages/customers/edit/edit-customer";
 import CreateCommunication from "pages/communication/create/create-communication";
 import EditCommunication from "pages/communication/edit/edit-communication";
+import CreateQuotation from "pages/quotations/create/create-quotation";
+import Quotations from "pages/quotations/quotation";
+import EditQuotation from "pages/quotations/edit/edit-quotation";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -102,7 +105,36 @@ const MainRoutes = {
         },
       ],
     },
-
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "quotations",
+          element: <Quotations />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "quotations/create",
+          element: <CreateQuotation />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "quotations/:id/edit",
+          element: <EditQuotation />,
+        },
+      ],
+    },
     {
       path: "/",
       element: <DashboardLayout />,
@@ -310,6 +342,16 @@ const MainRoutes = {
         {
           path: "invoices/users",
           element: <Invoices />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "invoices/create",
+          element: <CreateInvoice />,
         },
       ],
     },

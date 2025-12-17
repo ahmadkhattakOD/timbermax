@@ -1,1039 +1,526 @@
-import { Typography, useTheme } from "@mui/material";
-import { Checkbox, TableCell } from "@mui/material";
-import { openSnackbar } from "api/snackbar";
-import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect, useRef } from "react";
-import { FormattedMessage } from "react-intl";
-import { useNavigate, useParams } from "react-router";
-import { SnackbarProps } from "types/snackbar";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import {
-  getDateFormatted,
-  getDateTimeFormatted,
-  initialRowsPerPage,
+  parseAddress,
+  useDebouncedSearch,
 } from "utils/helpers";
-import GeneratedInvoicesRepository, {
-  GeneratedInvoiceSupabase,
-} from "utils/repositories/generatedInvoicesRepository";
-import InvoicesRepository from "utils/repositories/invoicesRepository";
-import ProfilesRepository, {
-  InvoiceRulesSupabase,
-} from "utils/repositories/profilesRepository";
-import SalesRepository from "utils/repositories/salesRepository";
+import { openSnackbar } from "api/snackbar"; // Import the snackbar function
+import CustomersRepository, {
+  CustomerSupabase,
+} from "utils/repositories/customersRepository";
+import ItemsRepository from "utils/repositories/itemsRepository";
+import InvoicesRepository, {
+  InvoiceSupabase,
+} from "utils/repositories/invoicesRepository";
+import QuotationsRepository from "utils/repositories/quotationRepo";
+import StocksRepository from "utils/repositories/stocksRepository";
 
-const headCells: HeadCell[] = [
-  {
-    id: "name",
-    numeric: false,
-    disablePadding: true,
-    label: "Contact Name",
-  },
-  {
-    id: "opportunity_descriptions",
-    numeric: false,
-    disablePadding: true,
-    label: "Opportunity Description",
-  },
-  {
-    id: "milestone",
-    numeric: false,
-    disablePadding: false,
-    label: "Milestone",
-  },
-  {
-    id: "deposit",
-    numeric: true,
-    disablePadding: true,
-    label: "Deposit",
-  },
-  {
-    id: "total",
-    numeric: true,
-    disablePadding: false,
-    label: "Total",
-  },
-  {
-    id: "balance",
-    numeric: true,
-    disablePadding: true,
-    label: "Balance",
-  },
-  {
-    id: "commission",
-    numeric: true,
-    disablePadding: true,
-    label: "Commission",
-  },
-  {
-    id: "cpapAmount",
-    numeric: true,
-    disablePadding: true,
-    label: "Cpap Amount",
-  },
-  {
-    id: "is_cpap_pickedup",
-    numeric: true,
-    disablePadding: true,
-    label: "Is Cpap Pickedup?",
-  },
-  {
-    id: "payment_method",
-    numeric: false,
-    disablePadding: true,
-    label: "Payment Method",
-  },
-  {
-    id: "phone",
-    numeric: false,
-    disablePadding: true,
-    label: "Phone",
-  },
-  {
-    id: "mobile",
-    numeric: false,
-    disablePadding: true,
-    label: "Mobile",
-  },
-  {
-    id: "address",
-    numeric: false,
-    disablePadding: true,
-    label: "Address",
-  },
-  {
-    id: "suburb",
-    numeric: false,
-    disablePadding: true,
-    label: "Suburb",
-  },
-  {
-    id: "state",
-    numeric: false,
-    disablePadding: true,
-    label: "State",
-  },
-  {
-    id: "post_code",
-    numeric: false,
-    disablePadding: true,
-    label: "Post Code",
-  },
-  {
-    id: "email_address",
-    numeric: false,
-    disablePadding: true,
-    label: "Email Address",
-  },
-  {
-    id: "sales_person_full_name",
-    numeric: false,
-    disablePadding: true,
-    label: "Sales Person",
-  },
-  {
-    id: "closer_full_name",
-    numeric: false,
-    disablePadding: true,
-    label: "Closer",
-  },
-  {
-    id: "show_name",
-    numeric: false,
-    disablePadding: true,
-    label: "Show",
-  },
-  {
-    id: "note",
-    numeric: false,
-    disablePadding: true,
-    label: "Note",
-  },
-  {
-    id: "status",
-    numeric: false,
-    disablePadding: true,
-    label: "Status",
-  },
-  {
-    id: "expected_close_date",
-    numeric: false,
-    disablePadding: true,
-    label: "Expected Close Date",
-  },
-  {
-    id: "follow_up_notes",
-    numeric: false,
-    disablePadding: true,
-    label: "Follow-up Notes",
-  },
-  {
-    id: "sale_date",
-    numeric: false,
-    disablePadding: true,
-    label: "Sale Date",
-  },
-  {
-    id: "delivery_date_time",
-    numeric: false,
-    disablePadding: true,
-    label: "Delivery Date Time",
-  },
-  {
-    id: "stock_from_warehouse_name",
-    numeric: false,
-    disablePadding: true,
-    label: "Stock from Warehouse",
-  },
-  {
-    id: "invoice_date",
-    numeric: false,
-    disablePadding: true,
-    label: "Invoice Date",
-  },
-];
-
-const headCellsCancelled: HeadCell[] = [
-  {
-    id: "name",
-    numeric: false,
-    disablePadding: true,
-    label: "Contact Name",
-  },
-  {
-    id: "deposit",
-    numeric: true,
-    disablePadding: true,
-    label: "Deposit (A$)",
-  },
-  {
-    id: "total",
-    numeric: true,
-    disablePadding: true,
-    label: "Total (A$)",
-  },
-  {
-    id: "balance",
-    numeric: true,
-    disablePadding: true,
-    label: "Balance (A$)",
-  },
-  {
-    id: "commission",
-    numeric: true,
-    disablePadding: true,
-    label: "Commission (A$)",
-  },
-  {
-    id: "sale_date",
-    numeric: false,
-    disablePadding: true,
-    label: "Sale Date",
-  },
-  {
-    id: "status_changed_at",
-    numeric: false,
-    disablePadding: true,
-    label: "Cancellation Date",
-  },
-];
-
-export interface ValuesEditInvoice {
-  showDays: string;
-  travelBonus: string;
-  otherBonuses: string;
-  deductions: string;
-  totalCommission: string;
-  cancelledSales: string;
+export interface ValuesCreateInvoice {
+  invoice_number: string;
+  contactName: string;
+  inlineCustomerName: string;
+  phone: string;
+  mobile: string;
+  address: string;
+  suburb: string;
+  state: string;
+  postCode: string;
+  emailAddress: string;
+  invoice_date: string;
+  note: string;
+  quotation_id: string;
 }
-
-export interface ValuesSaleDates {
-  saleDateFrom: string;
-  saleDateTo: string;
-}
-
-export interface ValuesFilterInvoices {
-  sale: string;
-  minimumCommission: string;
-  maximumCommission: string;
-  invoiceDateFrom: string;
-  invoiceDateTo: string;
-}
-
-const initialFilters: ValuesFilterInvoices = {
-  sale: "",
-  minimumCommission: "",
-  maximumCommission: "",
-  invoiceDateFrom: "",
-  invoiceDateTo: "",
-};
-
-export interface ValuesFilterCancelled {
-  sale: string;
-  minimumCommission: string;
-  maximumCommission: string;
-}
-
-const initialFiltersCancelled: ValuesFilterCancelled = {
-  sale: "",
-  minimumCommission: "",
-  maximumCommission: "",
-};
 
 export function useCreateInvoice() {
-  const [data, setData] = useState<any[]>([]);
-  const [dataCount, setDataCount] = useState<number>(0);
-  const [order, setOrder] = useState<Order>("desc");
-  const [orderBy, setOrderBy] = useState<string>("created_at");
-  const [selected, setSelected] = useState<readonly number[]>([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [fullName, setFullName] = useState<string>("");
-  const [profilePicture, setProfilePicture] = useState<string>("");
-  const [wage, setWage] = useState<number>(0);
-  const [profileDataLoading, setProfileDataLoading] = useState(true);
-  const [cancelledSales, setCancelledSales] = useState<number>(0);
-  const [totalCommission, setTotalCommission] = useState<number>(0);
-  const [invoiceRules, setInvoiceRules] = useState<InvoiceRulesSupabase>({
-    show_days: 0,
-    travel_bonus: 0,
-    other_bonuses: 0,
-    deductions: 0,
-  });
-  const [grandTotal, setGrandTotal] = useState<number>(0);
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [sales, setSales] = useState<any[]>([]);
-  const [filters, setFilters] = useState<ValuesFilterInvoices>(initialFilters);
-  const { id } = useParams();
-  const [saleDateFrom, setSaleDateFrom] = useState("");
-  const [saleDateTo, setSaleDateTo] = useState("");
-  const [alreadyCreatedInvoice, setAlreadyCreatedInvoice] = useState<any>(null);
-  const [csvData, setCsvData] = useState<string>("");
-  const csvLink = useRef<any>();
-  const [dataCancelled, setDataCancelled] = useState<any[]>([]);
-  const [dataCountCancelled, setDataCountCancelled] = useState<number>(0);
-  const [orderCancelled, setOrderCancelled] = useState<Order>("desc");
-  const [orderByCancelled, setOrderByCancelled] =
-    useState<string>("created_at");
-  const [selectedCancelled, setSelectedCancelled] = useState<readonly number[]>(
-    []
-  );
-  const [consideredComissions, setConsideredComissions] = useState<any>([]);
-  const [pageCancelled, setPageCancelled] = useState(0);
-  const [rowsPerPageCancelled, setRowsPerPageCancelled] = useState(5);
-  const [loadingCancelled, setLoadingCancelled] = useState<boolean>(false);
-  const [filterModalOpenCancelled, setFilterModalOpenCancelled] =
-    useState(false);
-  const [filtersCancelled, setFiltersCancelled] =
-    useState<ValuesFilterCancelled>(initialFiltersCancelled);
-  const [csvDataCancelled, setCsvDataCancelled] = useState<string>("");
-  const csvLinkCancelled = useRef<any>();
   const navigate = useNavigate();
-  const theme = useTheme();
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [quotations, setQuotations] = useState<any[]>([]);
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedEmail, setSelectedEmail] = useState<string>("");
+  const [selectedPhone, setSelectedPhone] = useState<string>("");
+  const [selectedMobile, setSelectedMobile] = useState<string>("");
+  const [selectedPostCode, setSelectedPostCode] = useState<string>("");
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
+  const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
+  const [customerSearch, setCustomerSearch] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
+  const [isQuotationLoaded, setIsQuotationLoaded] = useState(false);
 
-  function generateTableCells(
-    row: any,
-    labelId: string,
-    isItemSelected: boolean
-  ) {
-    const isConsidered = consideredComissions.some(
-      (con: any) => con.id === row.id
-    );
-console.log(row);
+  const totalAmount = selectedItems.reduce((sum, item) => 
+    sum + (item.quantity * item.unit_price), 0
+  );
 
-    // if(!isConsidered)return; // use this if you don't want to render the row 
-
-    return (
-      <React.Fragment>
-        <TableCell sx={{ minWidth: 200 }}>{row.name}</TableCell>
-        <TableCell sx={{ minWidth: 500 }}>
-          {row.opportunity_descriptions &&
-            row.opportunity_descriptions.map(
-              (opportunity: string, idx: number) => (
-                <Typography key={idx}>
-                  - {opportunity} <br />
-                </Typography>
-              )
-            )}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.milestone && (
-            <Typography
-              sx={{
-                color:
-                  row.milestone === "won"
-                    ? theme.palette.success.main
-                    : row.milestone === "in-progress"
-                      ? theme.palette.warning.main
-                      : row.milestone === "lost"
-                        ? theme.palette.error.main
-                        : theme.palette.secondary.main,
-              }}
-            >
-              <FormattedMessage id={row.milestone} />
-            </Typography>
-          )}
-        </TableCell>
-        <TableCell
-          sx={{ minWidth: 200, color: row.deposit < 0 ? "red" : "inherit" }}
-          align="right"
-        >
-          {row.deposit}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.total}
-        </TableCell>
-
-        <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.total - row.deposit}
-        </TableCell>
-        <TableCell
-          sx={{
-            minWidth: 200,
-            color: isConsidered ? "green" : "inherit",
-            fontWeight: isConsidered ? "bold" : "normal",
-          }}
-          align="right"
-        >
-          {row.commission}
-        </TableCell>
-
-        <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.cpap_value || 0}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.is_cpap_pickedup || "NO" }
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.payment_method && <FormattedMessage id={row.payment_method} />}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.suburb}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.email_address}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.sales_person_full_name}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.closer_full_name}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.show_name}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.status && <FormattedMessage id={row.status} />}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.expected_close_date && getDateFormatted(row.expected_close_date)}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.follow_up_notes}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {getDateFormatted(row.sale_date)}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.delivery_date_time &&
-            getDateTimeFormatted(row.delivery_date_time, true)}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.stock_from_warehouse_name}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.created_at && getDateFormatted(row.created_at)}
-        </TableCell>
-      </React.Fragment>
-    );
+  function changeAddress(newValue: any, actionMeta: any) {
+    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedSuburb(addressComponents.suburb);
+    setSelectedState(addressComponents.state);
+    setSelectedAddress(newValue?.value?.description ?? "");
   }
 
-  function openFilterModal() {
-    setFilterModalOpen(true);
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setCustomerSearch(e.target.value);
   }
 
-  function closeFilterModal() {
-    setFilterModalOpen(false);
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+
+  function resetCustomerData() {
+    setSelectedEmail("");
+    setSelectedPhone("");
+    setSelectedMobile("");
+    setSelectedAddress("");
+    setSelectedSuburb("");
+    setSelectedState("");
+    setSelectedPostCode("");
   }
 
-  function validate(values: ValuesEditInvoice) {
-    const errors = {} as ValuesEditInvoice;
+  const addItem = (item: any) => {
+    setSelectedItems([...selectedItems, item]);
+  };
 
-    if (values.showDays !== "" && parseInt(values.showDays) < 0) {
-      errors.showDays = "required-valid-number-positive";
+  const removeItem = (index: number) => {
+    setSelectedItems(selectedItems.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const updatedItems = [...selectedItems];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    if (field === 'quantity' || field === 'unit_price') {
+      updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].unit_price;
+    }
+    setSelectedItems(updatedItems);
+  };
+
+  async function loadFromQuotation(quotationId: number) {
+    try {
+      setLoading(true);
+      const quotationsRepo = new QuotationsRepository();
+      const quotation = await quotationsRepo.getSingle(quotationId);
+      
+      if (quotation?.quotationData) {
+        setSelectedQuotation(quotation.quotationData);
+        setIsQuotationLoaded(true);
+          console.log("hellooo",quotation)
+        // Load customer details
+        if (quotation.quotationData.customers) {
+          console.log("Not coming",quotation.quotationData.customers)
+          setSelectedCustomer(quotation.quotationData.customers.id);
+          setSelectedEmail(quotation.quotationData.customers.email || "");
+          setSelectedPhone(quotation.quotationData.customers.phone || "");
+          setSelectedMobile(quotation.quotationData.customers.mobile || "");
+          setSelectedAddress(quotation.quotationData.customers.address || "");
+          setSelectedSuburb(quotation.quotationData.customers.suburb || "");
+          setSelectedState(quotation.quotationData.customers.state || "");
+          setSelectedPostCode(quotation.quotationData.customers.post_code || "");
+        }
+        
+        // Load items
+        const itemsData = await quotationsRepo.getItems(quotationId);
+        if (itemsData?.data) {
+          setSelectedItems(itemsData.data.map((item: any) => ({
+            item_id: item.item_id,
+            name: item.items?.name,
+            itemCode: item.items?.itemCode,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.total_price
+          })));
+          
+          // Show success snackbar
+          openSnackbar({
+            action: false,
+            open: true,
+            message: `Loaded ${itemsData.data.length} items from quotation`,
+            anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+            variant: 'alert',
+            alert: {
+              color: 'success',
+              variant: 'filled'
+            },
+            transition: 'Fade',
+            close: true,
+            actionButton: false,
+            maxStack: 3,
+            dense: false,
+            iconVariant: 'usedefault'
+          });
+        }
+      } else {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "Quotation not found or could not be loaded",
+          anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+          variant: 'alert',
+          alert: {
+            color: 'error',
+            variant: 'filled'
+          },
+          transition: 'Fade',
+          close: true,
+          actionButton: false,
+          maxStack: 3,
+          dense: false,
+          iconVariant: 'usedefault'
+        });
+      }
+    } catch (error) {
+      console.error("Error loading quotation:", error);
+      openSnackbar({
+        action: false,
+        open: true,
+        message: "Failed to load quotation data",
+        anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+        variant: 'alert',
+        alert: {
+          color: 'error',
+          variant: 'filled'
+        },
+        transition: 'Fade',
+        close: true,
+        actionButton: false,
+        maxStack: 3,
+        dense: false,
+        iconVariant: 'usedefault'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function validate(values: ValuesCreateInvoice) {
+    const errors = {} as ValuesCreateInvoice;
+
+    if (!values.invoice_number) {
+      errors.invoice_number = "required";
     }
 
-    if (values.travelBonus !== "" && parseInt(values.travelBonus) < 0) {
-      errors.travelBonus = "required-valid-number-positive";
+    if (!createInlineCustomer && !selectedCustomer) {
+      errors.contactName = "required";
     }
 
-    if (values.otherBonuses !== "" && parseInt(values.otherBonuses) < 0) {
-      errors.otherBonuses = "required-valid-number-positive";
+    if (createInlineCustomer && !values.inlineCustomerName.trim()) {
+      errors.inlineCustomerName = "required";
     }
 
-    if (values.deductions !== "" && parseInt(values.deductions) < 0) {
-      errors.deductions = "required-valid-number-positive";
+    if (!values.invoice_date) {
+      errors.invoice_date = "required";
+    }
+
+    if (selectedItems.length === 0) {
+      // Add error handling for items
+      // errors.items = "Add at least one item";
     }
 
     return errors;
   }
 
-  async function onSubmit(values: ValuesEditInvoice) {
+  async function onSubmit(values: ValuesCreateInvoice) {
     try {
-      if (id) {
-        const newGeneratedInvoice: GeneratedInvoiceSupabase = {
-          start_date: new Date(saleDateFrom),
-          end_date: new Date(saleDateTo),
-          wages:
-            parseFloat(values.showDays !== "" ? values.showDays : "0") * wage,
-          travel_bonus:
-            parseFloat(values.travelBonus !== "" ? values.travelBonus : "0") ??
-            0,
-          other_bonuses: parseFloat(
-            values.otherBonuses !== "" ? values.otherBonuses : "0"
-          ),
-          total_commission: parseFloat(
-            values.totalCommission !== "" ? values.totalCommission : "0"
-          ),
-          cancelled_sales: parseFloat(
-            values.cancelledSales !== "" ? values.cancelledSales : "0"
-          ),
-          deductions: parseFloat(
-            values.deductions !== "" ? values.deductions : "0"
-          ),
-          status: "pending",
-          beneficiary: id,
+      let customerToAdd = selectedCustomer;
+
+      if (createInlineCustomer) {
+        const newCustomer: CustomerSupabase = {
+          name: values.inlineCustomerName,
+          phone: selectedPhone,
+          mobile: selectedMobile,
+          address: selectedAddress,
+          suburb: selectedSuburb,
+          state: selectedState,
+          post_code: selectedPostCode,
+          email: selectedEmail,
         };
+        const customersRepository = new CustomersRepository();
+        const createdCustomer = await customersRepository.create(newCustomer);
+        if (createdCustomer) {
+          customerToAdd = createdCustomer.id;
+        } else if (createdCustomer === false) {
+          openSnackbar({
+            action: false,
+            open: true,
+            message: "Another customer already exists with the same name and address. Please select the customer to continue.",
+            anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+            variant: 'alert',
+            alert: {
+              color: 'error',
+              variant: 'filled'
+            },
+            transition: 'Fade',
+            close: true,
+            actionButton: false,
+            maxStack: 3,
+            dense: false,
+            iconVariant: 'usedefault'
+          });
+          return;
+        } else {
+          openSnackbar({
+            action: false,
+            open: true,
+            message: "Customer could not be added successfully. Please try again.",
+            anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+            variant: 'alert',
+            alert: {
+              color: 'error',
+              variant: 'filled'
+            },
+            transition: 'Fade',
+            close: true,
+            actionButton: false,
+            maxStack: 3,
+            dense: false,
+            iconVariant: 'usedefault'
+          });
+          return;
+        }
+      }
 
-        const generatedInvoicesRepository = new GeneratedInvoicesRepository();
-        const createdInvoice =
-          await generatedInvoicesRepository.create(newGeneratedInvoice);
+      const newInvoice: InvoiceSupabase = {
+        invoice_number: values.invoice_number,
+        customer_id: customerToAdd,
+        quotation_id: selectedQuotation?.id,
+        total: totalAmount,
+        invoice_date: new Date(values.invoice_date),
+        note: values.note,
+        status: 'draft'
+      };
 
-        if (createdInvoice) {
-          const salesRepository = new SalesRepository();
-          const changeToInvoiced = await salesRepository.markAsInvoiced(
-            saleDateFrom,
-            saleDateTo,
-            id,
+      const invoicesRepo = new InvoicesRepository();
+      const createdInvoice = await invoicesRepo.create(newInvoice);
+
+      if (createdInvoice) {
+        // Add items to invoice
+        for (const item of selectedItems) {
+          await invoicesRepo.addItem({
+            invoice_id: createdInvoice.id,
+            item_id: item.item_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price
+          });
+
+          // COMMIT STOCK (Immediate reduction for invoices)
+          const stocksRepo = new StocksRepository();
+          const result = await stocksRepo.commitForInvoice(
+            item.item_id,
+            1, // default warehouse
+            item.quantity,
             createdInvoice.id
           );
 
-          const changeCancelledToInvoiced =
-            await salesRepository.markCancelledAsInvoiced(
-              saleDateFrom,
-              saleDateTo,
-              id,
-              createdInvoice.id
-            );
-
-          if (changeToInvoiced) {
+          if (!result.success) {
+            // If stock commit fails, show error and rollback
+            await invoicesRepo.delete([createdInvoice.id]);
             openSnackbar({
+              action: false,
               open: true,
-              message: "Invoice generated successfully.",
-              variant: "alert",
+              message: `Failed to allocate stock for item ${item.name}. ${result.error}`,
+              anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+              variant: 'alert',
               alert: {
-                color: "success",
+                color: 'error',
+                variant: 'filled'
               },
-            } as SnackbarProps);
-          } else {
-            const idsToDelete = [createdInvoice.id];
-            await generatedInvoicesRepository.delete(idsToDelete);
-            openSnackbar({
-              open: true,
-              message:
-                "Invoice could not be generated successfully. Please try again.",
-              variant: "alert",
-              alert: {
-                color: "error",
-              },
-            } as SnackbarProps);
+              transition: 'Fade',
+              close: true,
+              actionButton: false,
+              maxStack: 3,
+              dense: false,
+              iconVariant: 'usedefault'
+            });
+            return;
           }
-        } else {
+        }
+
+        // If this invoice was created from a quotation, update quotation status
+        if (selectedQuotation) {
+          const quotationsRepo = new QuotationsRepository();
+          await quotationsRepo.updateStatus(selectedQuotation.id, 'converted');
           openSnackbar({
+            action: false,
             open: true,
-            message:
-              "Invoice could not be generated successfully. Please try again.",
-            variant: "alert",
+            message: `Quotation #${selectedQuotation.quotation_number} marked as converted`,
+            anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+            variant: 'alert',
             alert: {
-              color: "error",
+              color: 'info',
+              variant: 'filled'
             },
-          } as SnackbarProps);
+            transition: 'Fade',
+            close: true,
+            actionButton: false,
+            maxStack: 3,
+            dense: false,
+            iconVariant: 'usedefault'
+          });
         }
-        navigate(`/invoices/users/${id}/view`);
-      }
-    } catch (e) {
-      openSnackbar({
-        open: true,
-        message:
-          "Invoice could not be generated successfully. Please try again.",
-        variant: "alert",
-        alert: {
-          color: "error",
-        },
-      } as SnackbarProps);
-      if (id) {
-        navigate(`/invoices/users/${id}/view`);
+
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "Invoice created successfully. Stock has been committed.",
+          anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+          variant: 'alert',
+          alert: {
+            color: 'success',
+            variant: 'filled'
+          },
+          transition: 'Fade',
+          close: true,
+          actionButton: false,
+          maxStack: 3,
+          dense: false,
+          iconVariant: 'usedefault'
+        });
+        
+        navigate("/invoices");
       } else {
-        navigate(`/invoices/users`);
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "Invoice could not be created. Please try again.",
+          anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+          variant: 'alert',
+          alert: {
+            color: 'error',
+            variant: 'filled'
+          },
+          transition: 'Fade',
+          close: true,
+          actionButton: false,
+          maxStack: 3,
+          dense: false,
+          iconVariant: 'usedefault'
+        });
       }
+
+    } catch (e) {
+      console.error("Error creating invoice:", e);
+      openSnackbar({
+        action: false,
+        open: true,
+        message: "Invoice could not be created. Please try again.",
+        anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
+        variant: 'alert',
+        alert: {
+          color: 'error',
+          variant: 'filled'
+        },
+        transition: 'Fade',
+        close: true,
+        actionButton: false,
+        maxStack: 3,
+        dense: false,
+        iconVariant: 'usedefault'
+      });
     }
   }
 
-  async function getData() {
-    try {
-      if (id) {
-        setLoading(true);
-        const invoicesRepository = new InvoicesRepository();
-        const rangeStart = rowsPerPage * page;
-        const rangeEnd = rangeStart + rowsPerPage;
-        const invoices = await invoicesRepository.get(
-          id,
-          orderBy,
-          order === "asc",
-          rangeStart,
-          rangeEnd,
-          rowsPerPage,
-          saleDateFrom,
-          saleDateTo,
-          filters
-        );
-        if (invoices) {
-          const { invoicesData, invoicesCount, invoicesError } = invoices;
-          if (invoicesData && !invoicesError) {
-            setData(invoicesData);
-            setDataCount(invoicesCount ?? 0);
-          }
-        }
-        setLoading(false);
+  async function getCustomers() {
+    setLoadingCustomers(true);
+    const customersRepository = new CustomersRepository();
+    const allCustomers = await customersRepository.getByName(customerSearch);
+    if (allCustomers) {
+      const { customersData, customersError } = allCustomers;
+      if (customersData && !customersError) {
+        setCustomers(customersData);
       }
-    } catch (e) {
-      console.error("Error fetching invoices:", e);
-      setLoading(false);
     }
+    setLoadingCustomers(false);
+  }
+
+  async function getItems() {
+    const itemsRepository = new ItemsRepository();
+    const allItems = await itemsRepository.getWithoutFilters();
+    if (allItems?.itemsData) {
+      setItems(allItems.itemsData);
+    }
+  }
+
+  async function getQuotations() {
+    const quotationsRepo = new QuotationsRepository();
+    const allQuotations = await quotationsRepo.getWithoutFilters();
+    if (allQuotations?.quotationsData) {
+      // Filter only non-converted quotations
+      const activeQuotations = allQuotations.quotationsData.filter(
+        (q: any) => q.status !== 'converted' && q.status !== 'cancelled'
+      );
+      setQuotations(activeQuotations);
+    }
+  }
+
+  async function loadData() {
+    setLoading(true);
+    await Promise.all([getCustomers(), getItems(), getQuotations()]);
+    setLoading(false);
   }
 
   useEffect(() => {
-    getData();
-  }, [order, orderBy, page, rowsPerPage, filters, saleDateFrom, saleDateTo]);
-
-  function getDataCsv() {
-    try {
-      let csvString = "";
-
-      if (data.length > 0) {
-        for (let i = 0; i < data.length; i++) {
-          let invoice = data[i] as any;
-          let opportunityDescriptions = "";
-          if (invoice?.sale?.opportunity_descriptions) {
-            invoice?.sale?.opportunity_descriptions.forEach(
-              (opportunity: string) => {
-                opportunityDescriptions += opportunity + " ";
-              }
-            );
-          }
-          csvString += `${invoice.contact_name ?? ""},${opportunityDescriptions},${invoice.milestone},${invoice.deposit ?? ""},${invoice.total ?? ""},${invoice.commission ?? ""},${invoice.payment_method ?? ""},${invoice.phone ?? ""},${invoice.mobile ?? ""},${invoice.address ?? ""},${invoice.state ?? ""},${invoice.post_code ?? ""},${invoice.email_address ?? ""},${invoice.sales_person_full_name ?? ""},${invoice.closer_full_name ?? ""},${invoice.show_name ?? ""},${invoice.note ?? ""},${invoice.status ?? ""},${invoice.expected_close_date},${invoice.follow_up_notes ?? ""},${invoice.sale_date ?? ""},${invoice.delivery_date_time ?? ""},${invoice.stock_from_warehose_name ?? ""},${invoice.invoice_date ?? ""}\n`;
-        }
-
-        setCsvData(csvString);
-
-        setTimeout(() => {
-          csvLink?.current?.link?.click();
-        }, 2000);
-      }
-    } catch (e) {
-      console.error("Error fetching invoices:", e);
-      setLoading(false);
-    }
-  }
-
-  async function validateFilters(values: ValuesFilterInvoices) {
-    const errors = {} as ValuesFilterInvoices;
-
-    return errors;
-  }
-
-  async function handleFiltersSubmit(values: ValuesFilterInvoices) {
-    try {
-      setFilters(values);
-      setFilterModalOpen(false);
-    } catch (error) {
-      console.error("Error filtering invoices:", error);
-    }
-  }
-
-  function resetFilters() {
-    setFilters(initialFilters);
-  }
-
-  function generateTableCellsCancelled(
-    row: any,
-    labelId: string,
-    isItemSelected: boolean
-  ) {
-    return (
-      <React.Fragment>
-        <TableCell
-          component="th"
-          id={labelId}
-          scope="row"
-          padding="none"
-          width={200}
-          align="left"
-        >
-          {row.contact_name}
-        </TableCell>
-        <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.sale?.deposit}
-        </TableCell>
-        <TableCell align="right">{row.total}</TableCell>
-        <TableCell align="right">{row.commission}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.sale?.sale_date && getDateFormatted(row.sale_date)}
-        </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.status_changed_at && getDateFormatted(row.status_changed_at)}
-        </TableCell>
-      </React.Fragment>
-    );
-  }
-
-  async function getDataCancelled() {
-    try {
-      if (id) {
-        setLoadingCancelled(true);
-        const invoicesRepository = new InvoicesRepository();
-        const rangeStart = rowsPerPageCancelled * pageCancelled;
-        const rangeEnd = rangeStart + rowsPerPageCancelled;
-        const invoices = await invoicesRepository.getCancelled(
-          id,
-          orderByCancelled,
-          orderCancelled === "asc",
-          rangeStart,
-          rangeEnd,
-          rowsPerPageCancelled,
-          saleDateFrom,
-          saleDateTo,
-          filtersCancelled
-        );
-        if (invoices) {
-          const { invoicesData, invoicesCount, invoicesError } = invoices;
-          if (invoicesData && !invoicesError) {
-            setDataCancelled(invoicesData);
-            setDataCountCancelled(invoicesCount ?? 0);
-          }
-        }
-        setLoadingCancelled(false);
-      }
-    } catch (e) {
-      console.error("Error fetching sales:", e);
-      setLoadingCancelled(false);
-    }
-  }
-
-  useEffect(() => {
-    getDataCancelled();
-  }, [
-    orderCancelled,
-    orderByCancelled,
-    pageCancelled,
-    rowsPerPageCancelled,
-    filtersCancelled,
-    saleDateFrom,
-    saleDateTo,
-  ]);
-
-  function getDataCsvCancelled() {
-    try {
-      let csvString = "";
-
-      if (dataCancelled.length > 0) {
-        for (let i = 0; i < dataCancelled.length; i++) {
-          let invoice = dataCancelled[i] as any;
-          csvString += `${invoice.contact_name ?? ""},${invoice.deposit ?? ""},${invoice.total ?? ""},${invoice.commission ?? ""},${invoice.sale_date ?? ""},${invoice.status_changed_at ?? ""}\n`;
-        }
-
-        setCsvDataCancelled(csvString);
-
-        setTimeout(() => {
-          csvLinkCancelled?.current?.link?.click();
-        }, 2000);
-      }
-    } catch (e) {
-      console.error("Error fetching invoices:", e);
-      setLoading(false);
-    }
-  }
-
-  function openFilterModalCancelled() {
-    setFilterModalOpenCancelled(true);
-  }
-
-  function closeFilterModalCancelled() {
-    setFilterModalOpenCancelled(false);
-  }
-
-  async function validateFiltersCancelled(values: ValuesFilterCancelled) {
-    const errors = {} as ValuesFilterCancelled;
-
-    return errors;
-  }
-
-  async function handleFiltersSubmitCancelled(values: ValuesFilterCancelled) {
-    try {
-      setFiltersCancelled(values);
-      setFilterModalOpenCancelled(false);
-    } catch (error) {
-      console.error("Error filtering invoices:", error);
-    }
-  }
-
-  function resetFiltersCancelled() {
-    setFiltersCancelled(initialFiltersCancelled);
-  }
-
-  async function validateSaleDates(values: ValuesSaleDates) {
-    const errors = {} as ValuesSaleDates;
-
-    if (!values.saleDateFrom) {
-      errors.saleDateFrom = "required";
-    }
-
-    if (!values.saleDateTo) {
-      errors.saleDateTo = "required";
-    }
-
-    return errors;
-  }
-
-  async function handleSaleDatesSubmit(values: ValuesSaleDates) {
-    try {
-      setAlreadyCreatedInvoice(null);
-      setSaleDateFrom(values.saleDateFrom);
-      setSaleDateTo(values.saleDateTo);
-      if (id) {
-        const generatedInvoicesRepository = new GeneratedInvoicesRepository();
-        const alreadyCreatedForDates =
-          await generatedInvoicesRepository.checkExistence(
-            id,
-            values.saleDateFrom,
-            values.saleDateTo
-          );
-
-        if (alreadyCreatedForDates) {
-          const { invoiceData, invoiceError } = alreadyCreatedForDates;
-          if (invoiceData && !invoiceError) {
-            setAlreadyCreatedInvoice(invoiceData);
-          }
-        } else {
-          setAlreadyCreatedInvoice(null);
-        }
-      }
-    } catch (error) {
-      console.error("Error setting dates:", error);
-    }
-  }
-
-  async function getProfileAndFigures() {
-    try {
-      console.log("coming this way");
-
-      if (id) {
-        setProfileDataLoading(true);
-        const profilesRepository = new ProfilesRepository();
-        const profile = await profilesRepository.getSingle(id);
-        if (profile) {
-          const { profileData, profileError } = profile;
-          if (profileData && !profileError) {
-            setFullName(profileData.full_name);
-            setProfilePicture(profileData.profile_picture);
-            setWage(profileData.daily_wage ?? 0);
-          }
-        }
-        const invoicesRepository = new InvoicesRepository();
-        const allInvoices = await invoicesRepository.getWithExtendedLimit(
-          id,
-          saleDateFrom,
-          saleDateTo
-        );
-
-        let salesMadeValue = 0;
-
-        let salesMap = new Map(); // Store the highest commission and invoice ID for each sale ID when closer & salesperson are the same
-
-        if (allInvoices) {
-          const { invoicesData, invoicesError } = allInvoices;
-          if (invoicesData && !invoicesError) {
-            for (let i = 0; i < invoicesData.length; i++) {
-              const sale = invoicesData[i];
-              const invoiceId = sale.id;
-              const saleId = sale.sale_id;
-              const closer = sale.closer_full_name;
-              const salesperson = sale.sales_person_full_name;
-              const commission = sale.commission;
-        
-              if (closer === salesperson) {
-                const existingEntry = salesMap.get(saleId);
-        
-                if (existingEntry) {
-                  // Compare commissions for the same saleId
-                  if (commission > existingEntry.commission) {
-                    // Update salesMap with the higher commission and its invoiceId
-                    salesMap.set(saleId, { id: invoiceId, commission: commission });
-        
-                    // Update consideredComissions to replace the older entry with the new one
-                    setConsideredComissions((prev: any) => {
-                      return prev.map((item: any) =>
-                        item.id === existingEntry.id
-                          ? { id: invoiceId, commission: commission } // Replace with the new invoiceId and commission
-                          : item
-                      );
-                    });
-                  }
-                } else {
-                  // If no existing entry for this saleId, add it to salesMap and consideredComissions
-                  salesMap.set(saleId, { id: invoiceId, commission: commission });
-                  setConsideredComissions((prev: any) => [
-                    ...prev,
-                    { id: invoiceId, commission: commission },
-                  ]);
-                }
-              } else {
-                // If closer and salesperson are different, add commission normally
-                salesMadeValue += commission;
-                setConsideredComissions((prev: any) => [
-                  ...prev,
-                  { id: invoiceId, commission: commission },
-                ]);
-              }
-            }
-        
-            // Add the highest commissions from sales where closer == salesperson
-            for (let { commission } of salesMap.values()) {
-              salesMadeValue += commission;
-            }
-        
-            setTotalCommission(salesMadeValue);
-          }
-        }
-
-        let salesCancelledValue = 0;
-        const allCancelledInvoices =
-          await invoicesRepository.getCancelledWithExtendedLimit(
-            id,
-            saleDateFrom,
-            saleDateTo
-          );
-        if (allCancelledInvoices) {
-          const { invoicesData, invoicesError } = allCancelledInvoices;
-          if (invoicesData && !invoicesError) {
-            for (let i = 0; i < invoicesData?.length; i++) {
-              salesCancelledValue += invoicesData[i].commission;
-            }
-            setCancelledSales(salesCancelledValue);
-          }
-        }
-        setGrandTotal(salesMadeValue - salesCancelledValue);
-
-        setProfileDataLoading(false);
-      }
-    } catch (e) {
-      console.error("Error fetching profile data:", e);
-      setProfileDataLoading(false);
-    }
-  }
-
-  async function getFilterData() {
-    const salesRepository = new SalesRepository();
-    const allSales = await salesRepository.getWithoutFilters();
-    if (allSales) {
-      const { salesData, salesError } = allSales;
-      if (salesData && !salesError) {
-        setSales(salesData);
-      }
-    }
-  }
-
-  useEffect(() => {
-    getFilterData();
+    loadData();
   }, []);
 
   useEffect(() => {
-    getProfileAndFigures();
-  }, [saleDateFrom, saleDateTo]);
+    if (!createInlineCustomer) {
+      getCustomers();
+    }
+  }, [customerSearch, createInlineCustomer]);
 
   useEffect(() => {
-    setGrandTotal(
-      totalCommission +
-        invoiceRules.show_days * wage +
-        invoiceRules.travel_bonus +
-        invoiceRules.other_bonuses -
-        invoiceRules.deductions -
-        cancelledSales
-    );
-  }, [invoiceRules, wage, totalCommission, cancelledSales]);
+    if (selectedCustomer) {
+      const customer = customers.find((c) => c.id === selectedCustomer);
+      if (customer) {
+        setSelectedEmail(customer.email);
+        setSelectedPhone(customer.phone);
+        setSelectedMobile(customer.mobile);
+        setSelectedAddress(customer.address);
+        setSelectedSuburb(customer.suburb);
+        setSelectedState(customer.state);
+        setSelectedPostCode(customer.post_code);
+      }
+    } else {
+      resetCustomerData();
+    }
+  }, [selectedCustomer]);
 
   return {
-    data,
-    dataCount,
-    loading,
-    order,
-    setOrder,
-    orderBy,
-    setOrderBy,
-    selected,
-    setSelected,
-    page,
-    setPage,
-    rowsPerPage,
-    setRowsPerPage,
-    headCells,
-    generateTableCells,
     validate,
     onSubmit,
-    fullName,
-    profilePicture,
-    wage,
-    totalCommission,
-    cancelledSales,
-    grandTotal,
-    filterModalOpen,
-    openFilterModal,
-    closeFilterModal,
-    handleFiltersSubmit,
-    validateFilters,
-    filters,
-    sales,
-    resetFilters,
-    validateSaleDates,
-    handleSaleDatesSubmit,
-    profileDataLoading,
-    invoiceRules,
-    setInvoiceRules,
-    saleDateFrom,
-    saleDateTo,
-    alreadyCreatedInvoice,
-    getDataCsv,
-    csvData,
-    csvLink,
-    filterModalOpenCancelled,
-    openFilterModalCancelled,
-    closeFilterModalCancelled,
-    handleFiltersSubmitCancelled,
-    validateFiltersCancelled,
-    filtersCancelled,
-    resetFiltersCancelled,
-    dataCancelled,
-    dataCountCancelled,
-    loadingCancelled,
-    orderCancelled,
-    setOrderCancelled,
-    orderByCancelled,
-    setOrderByCancelled,
-    selectedCancelled,
-    setSelectedCancelled,
-    pageCancelled,
-    setPageCancelled,
-    rowsPerPageCancelled,
-    setRowsPerPageCancelled,
-    headCellsCancelled,
-    generateTableCellsCancelled,
-    getDataCsvCancelled,
-    csvDataCancelled,
-    csvLinkCancelled,
+    customers,
+    items,
+    quotations,
+    loading,
+    selectedItems,
+    addItem,
+    removeItem,
+    updateItem,
+    totalAmount,
+    handleSearchDebounced,
+    loadingCustomers,
+    createInlineCustomer,
+    setCreateInlineCustomer,
+    selectedAddress,
+    selectedSuburb,
+    selectedState,
+    selectedEmail,
+    selectedPhone,
+    selectedMobile,
+    selectedPostCode,
+    setSelectedCustomer,
+    changeAddress,
+    setSelectedSuburb,
+    setSelectedState,
+    setSelectedEmail,
+    setSelectedPhone,
+    setSelectedMobile,
+    setSelectedPostCode,
+    selectedCustomer,
+    loadFromQuotation,
+    selectedQuotation,
+    isQuotationLoaded,
+    setIsQuotationLoaded
   };
 }

@@ -3,28 +3,35 @@ import FormLayout from "components/FormLayout";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { useCreateInvoice } from "./useCreateInvoice";
+import { useCreateQuotation } from "./use-create-quotation";
 import { australianStates, getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
-import { Box, IconButton, useTheme, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+} from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 
-// ==============================|| CREATE INVOICE PAGE ||============================== //
+// ==============================|| CREATE QUOTATION PAGE ||============================== //
 
-export default function CreateInvoice() {
-  const [searchParams] = useSearchParams();
-  const quotationIdFromUrl = searchParams.get('quotation_id');
-  
+export default function CreateQuotation() {
   const {
     validate,
     onSubmit,
     customers,
     items,
-    quotations,
     loading,
     selectedItems,
     addItem,
@@ -51,23 +58,11 @@ export default function CreateInvoice() {
     setSelectedMobile,
     setSelectedPostCode,
     selectedCustomer,
-    loadFromQuotation,
-    selectedQuotation,
-    isQuotationLoaded,
-    setIsQuotationLoaded
-  } = useCreateInvoice();
+    availableStock,
+    checkStockAvailability,
+  } = useCreateQuotation();
 
   const theme = useTheme();
-
-  // Auto-load quotation if ID is in URL
-  useEffect(() => {
-    if (quotationIdFromUrl && !isQuotationLoaded) {
-      const quotationId = parseInt(quotationIdFromUrl);
-      if (quotationId) {
-        loadFromQuotation(quotationId);
-      }
-    }
-  }, [quotationIdFromUrl, isQuotationLoaded, loadFromQuotation]);
 
   if (loading) {
     return (
@@ -89,97 +84,46 @@ export default function CreateInvoice() {
     <Formik
       enableReinitialize
       initialValues={{
-        invoice_number: `INV-${Date.now()}`,
+        quotation_number: `QT-${Date.now()}`,
         contactName: "",
         inlineCustomerName: "",
-        phone: selectedPhone || "",
-        mobile: selectedMobile || "",
-        address: selectedAddress || "",
-        suburb: selectedSuburb || "",
-        state: selectedState || "",
-        postCode: selectedPostCode || "",
-        emailAddress: selectedEmail || "",
-        invoice_date: getDateFormattedForField(),
+        phone: "",
+        mobile: "",
+        address: "",
+        suburb: "",
+        state: "",
+        postCode: "",
+        emailAddress: "",
+        valid_until: "",
         note: "",
-        quotation_id: quotationIdFromUrl || ""
       }}
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting, values, setFieldValue }) => (
+      {({ handleSubmit, errors, touched, isSubmitting, values }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
-            submitButtonText={"Create Invoice"}
+            submitButtonText="Create Quotation" // Use direct text, not ID
             inputs={[
               <FormInput
-                id={"invoice_number"}
-                name={"invoice_number"}
-                placeholder={"Invoice Number"}
-                label={"Invoice Number"}
+                key="quotation_number"
+                id={"quotation_number"}
+                name={"quotation_number"}
+                placeholder={"Quotation Number"}
+                label="Quotation Number" // Use direct text
                 type={"text"}
                 optional={false}
-                error={touched.invoice_number ? errors.invoice_number : ""}
+                error={touched.quotation_number ? errors.quotation_number : ""}
               />,
-
-              // Show quotation info if loaded from quotation
-              selectedQuotation && (
-                <Box key="quotation-info" sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 1 }}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    Creating Invoice from Quotation
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                    <Typography variant="body2">
-                      <strong>Quotation:</strong> #{selectedQuotation.quotation_number}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Customer:</strong> {selectedQuotation.customer?.name}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Total:</strong> ${selectedQuotation.total?.toFixed(2)}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Items:</strong> {selectedItems.length}
-                    </Typography>
-                  </Box>
-                </Box>
-              ),
-
-              // OPTION TO LOAD FROM QUOTATION (only show if not already loaded from URL)
-              !quotationIdFromUrl && (
-                <Box key="load-quotation" sx={{ mb: 2 }}>
-                  <FormDropdown
-                    id={"quotation_id"}
-                    name={"quotation_id"}
-                    label={"Load from Quotation (Optional)"}
-                    options={[
-                      { label: "Create New Invoice", value: "" },
-                      ...quotations.map(q => ({
-                        label: `Quotation #${q.quotation_number} - ${q.customer?.name || 'Unknown'} - $${q.total}`,
-                        value: q.id.toString()
-                      }))
-                    ]}
-                    onChange={(e) => {
-                      const quotationId = parseInt(e.target.value);
-                      if (quotationId) {
-                        loadFromQuotation(quotationId);
-                      } else {
-                        // Clear if "Create New Invoice" is selected
-                        setSelectedItems([]);
-                        setFieldValue('total', 0);
-                        setIsQuotationLoaded(false);
-                      }
-                    }}
-                  />
-                </Box>
-              ),
 
               // CUSTOMER MODULE - EXACTLY LIKE SALES
               !createInlineCustomer ? (
                 <InputDropdown
+                  key="contactName"
                   id="contactName"
                   name="contactName"
-                  label="contact-name"
+                  label="Contact Name" // Use direct text
                   options={customers}
                   secondaryLabel={
                     <Box
@@ -206,16 +150,16 @@ export default function CreateInvoice() {
                     setCreateInlineCustomer(true);
                   }}
                   error={errors.contactName}
-                  value={selectedCustomer || ""}
                 />
               ) : null,
 
               createInlineCustomer ? (
                 <FormInput
+                  key="inlineCustomerName"
                   id={"inlineCustomerName"}
                   name={"inlineCustomerName"}
                   placeholder={"Contact Name"}
-                  label={"contact-name"}
+                  label="Contact Name" // Use direct text
                   type={"text"}
                   secondaryLabel={
                     <Box
@@ -240,10 +184,11 @@ export default function CreateInvoice() {
 
               // CONTACT DETAILS - EXACTLY LIKE SALES
               <FormInput
+                key="phone"
                 id={"phone"}
                 name={"phone"}
                 placeholder={"Phone"}
-                label={"phone"}
+                label="Phone" // Use direct text
                 type={"text"}
                 value={selectedPhone}
                 onChange={(e) => {
@@ -252,10 +197,11 @@ export default function CreateInvoice() {
               />,
 
               <FormInput
+                key="mobile"
                 id={"mobile"}
                 name={"mobile"}
                 placeholder={"Mobile"}
-                label={"mobile"}
+                label="Mobile" // Use direct text
                 type={"text"}
                 value={selectedMobile}
                 onChange={(e) => {
@@ -264,19 +210,21 @@ export default function CreateInvoice() {
               />,
 
               <PlacesInput
+                key="address"
                 id="address"
                 name="address"
                 placeholder="Address"
                 onChange={changeAddress}
                 value={selectedAddress}
-                label="address"
+                label="Address" // Use direct text
               />,
 
               <FormInput
+                key="suburb"
                 id={"suburb"}
                 name={"suburb"}
                 placeholder={"Suburb"}
-                label={"suburb"}
+                label="Suburb" // Use direct text
                 type={"text"}
                 value={selectedSuburb}
                 onChange={(e) => {
@@ -285,11 +233,15 @@ export default function CreateInvoice() {
               />,
 
               <FormDropdown
+                key="state"
                 id={"state"}
                 name={"state"}
-                label={"state"}
+                label="State" // Use direct text
                 useFormattedStrings={false}
-                options={australianStates}
+                options={australianStates.map(state => ({
+                  label: state,
+                  value: state
+                }))}
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -297,10 +249,11 @@ export default function CreateInvoice() {
               />,
 
               <FormInput
+                key="postCode"
                 id={"postCode"}
                 name={"postCode"}
                 placeholder={"Post Code"}
-                label={"post-code"}
+                label="Post Code" // Use direct text
                 type={"text"}
                 value={selectedPostCode}
                 onChange={(e) => {
@@ -309,10 +262,11 @@ export default function CreateInvoice() {
               />,
 
               <FormInput
+                key="emailAddress"
                 id={"emailAddress"}
                 name={"emailAddress"}
                 placeholder={"Email Address"}
-                label={"email-address"}
+                label="Email Address" // Use direct text
                 type={"email"}
                 value={selectedEmail}
                 onChange={(e) => {
@@ -320,44 +274,42 @@ export default function CreateInvoice() {
                 }}
               />,
 
-              // INVOICE DATE
-              <FormInput
-                id={"invoice_date"}
-                name={"invoice_date"}
-                placeholder={"Invoice Date"}
-                label={"Invoice Date"}
-                type={"date"}
-                optional={false}
-                // InputLabelProps={{ shrink: true }}
-                error={touched.invoice_date ? errors.invoice_date : ""}
-              />,
-
               // ITEMS TABLE
-              <Box sx={{ mt: 3 }}>
+              <Box key="items-section" sx={{ mt: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   Items
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
+                >
                   <FormDropdown
                     id={"add_item"}
                     name={"add_item"}
-                    label={"Add Item"}
-                    options={items.map(item => ({
-                      label: `${item.name} (${item.itemCode}) - $${item.sellPrice}`,
-                      value: item.id.toString()
+                    label="Add Item" // Use direct text
+                    options={items.map((item) => ({
+                      label: `${item.name} (${item.itemCode}) - $${item.sellPrice} (Available: ${availableStock[item.id] || 0})`,
+                      value: item.id.toString(),
                     }))}
                     onChange={(e) => {
                       const itemId = parseInt(e.target.value);
                       if (itemId) {
-                        const item = items.find(i => i.id === itemId);
+                        const item = items.find((i) => i.id === itemId);
                         if (item) {
+                          // Check stock availability before adding
+                          const available = availableStock[item.id] || 0;
+                          if (available <= 0) {
+                            alert(`Item "${item.name}" is out of stock!`);
+                            return;
+                          }
+                          
                           addItem({
                             item_id: item.id,
                             name: item.name,
                             itemCode: item.itemCode,
                             quantity: 1,
                             unit_price: item.sellPrice,
-                            total: item.sellPrice
+                            total: item.sellPrice,
+                            available_stock: available,
                           });
                         }
                       }
@@ -378,47 +330,80 @@ export default function CreateInvoice() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {selectedItems.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell>{item.itemCode}</TableCell>
-                          <TableCell>
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
-                              style={{ 
-                                width: '80px', 
-                                padding: '8px',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px'
-                              }}
-                              min={1}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <input
-                              type="number"
-                              value={item.unit_price}
-                              onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                              style={{ 
-                                width: '100px', 
-                                padding: '8px',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px'
-                              }}
-                              min={0}
-                              step="0.01"
-                            />
-                          </TableCell>
-                          <TableCell>${(item.quantity * item.unit_price).toFixed(2)}</TableCell>
-                          <TableCell>
-                            <IconButton onClick={() => removeItem(index)}>
-                              <Trash size={20} />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {selectedItems.map((item, index) => {
+                        const available = availableStock[item.item_id] || 0;
+                        const totalRequested = selectedItems
+                          .filter(i => i.item_id === item.item_id)
+                          .reduce((sum, i) => sum + i.quantity, 0);
+                        
+                        return (
+                          <TableRow key={index}>
+                            <TableCell>{item.name}</TableCell>
+                            <TableCell>{item.itemCode}</TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <input
+                                  id={`items[${index}].quantity`}
+                                  name={`items[${index}].quantity`}
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const newQuantity = parseFloat(e.target.value) || 0;
+                                    if (newQuantity < 1) {
+                                      alert("Quantity must be at least 1");
+                                      return;
+                                    }
+                                    if (newQuantity > available) {
+                                      const remaining = available - (totalRequested - item.quantity);
+                                      alert(`Cannot select more than ${remaining} items. Only ${remaining} available after accounting for other selections.`);
+                                      return;
+                                    }
+                                    updateItem(index, "quantity", newQuantity);
+                                  }}
+                                  style={{ 
+                                    width: '80px', 
+                                    padding: '8px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '4px'
+                                  }}
+                                  min={1}
+                                  max={available}
+                                />
+                                <Typography variant="caption" color="text.secondary">
+                                  Max: {available}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <input
+                                id={`items[${index}].unit_price`}
+                                name={`items[${index}].unit_price`}
+                                type="number"
+                                value={item.unit_price}
+                                onChange={(e) =>
+                                  updateItem(index, "unit_price", parseFloat(e.target.value) || 0)
+                                }
+                                style={{ 
+                                  width: '100px', 
+                                  padding: '8px',
+                                  border: '1px solid #ccc',
+                                  borderRadius: '4px'
+                                }}
+                                min={0}
+                                step="0.01"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              ${(item.quantity * item.unit_price).toFixed(2)}
+                            </TableCell>
+                            <TableCell>
+                              <IconButton onClick={() => removeItem(index)}>
+                                <Trash size={20} />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                       <TableRow>
                         <TableCell colSpan={4} align="right">
                           <strong>Total:</strong>
@@ -433,16 +418,26 @@ export default function CreateInvoice() {
                 </TableContainer>
               </Box>,
 
-              // NOTES
+              // <FormInput
+              //   key="valid_until"
+              //   id={"valid_until"}
+              //   name={"valid_until"}
+              //   placeholder={"Valid Until"}
+              //   label="Valid Until" // Use direct text
+              //   type={"date"}
+              //   // InputLabelProps={{ shrink: true }}
+              // />,
+
               <FormInput
+                key="note"
                 id={"note"}
                 name={"note"}
                 placeholder={"Notes"}
-                label={"Notes"}
+                label="Notes" // Use direct text
                 type={"text"}
                 isTextArea
                 // rows={3}
-              />
+              />,
             ]}
           />
         </Form>

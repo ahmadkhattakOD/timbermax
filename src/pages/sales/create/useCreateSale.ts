@@ -360,13 +360,13 @@ export function useCreateSale() {
                 // Use remainingDeposit for commission calculations
                 const commissionBase = nonCpapTotal - 300;
 
-                const newSalesPersonInvoice: InvoiceSupabase = {
+                const newSalesPersonInvoice: any = {
                   sale: createdSale.id,
                   commission: commissionBase * salesPersonCommissionPercentage,
                   beneficiary: values.salesPerson,
                 };
 
-                const newCloserInvoice: InvoiceSupabase = {
+                const newCloserInvoice: any = {
                   sale: createdSale.id,
                   commission: commissionBase * closerCommissionPercentage,
                   beneficiary: values.closer,

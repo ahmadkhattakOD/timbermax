@@ -4,12 +4,16 @@ import ActionButton from "components/ActionButton";
 import { useInvoices } from "./useInvoices";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { hasNonEmptyValue, userRoles } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
+import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
-import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
+import {
+  getDateTimeFormatted,
+  hasNonEmptyValue,
+} from "utils/helpers";
+import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
 
 export default function Invoices() {
@@ -17,6 +21,7 @@ export default function Invoices() {
     data,
     dataCount,
     loading,
+    goToCreate,
     order,
     setOrder,
     orderBy,
@@ -40,14 +45,20 @@ export default function Invoices() {
     validateFilters,
     filters,
     resetFilters,
+    getDataCsv,
+    csvData,
+    csvLink,
     handleSearchDebounced,
     searchValue,
     setSearchValue,
   } = useInvoices();
-
+  
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
+        actionButton={
+          <ActionButton text={"add-new-invoice"} onClick={goToCreate} />
+        }
         filters={
           <Box
             sx={{
@@ -59,7 +70,7 @@ export default function Invoices() {
             }}
           >
             <SearchInput
-              placeholder="Search User"
+              placeholder="Search Invoice Number or Customer"
               value={searchValue}
               onChange={(e) => {
                 setSearchValue(e.target.value);
@@ -82,7 +93,7 @@ export default function Invoices() {
         data={data}
         dataCount={dataCount}
         loading={loading}
-        tableTitle="users"
+        tableTitle="invoices"
         selected={selected}
         setSelected={setSelected}
         rowsPerPage={rowsPerPage}
@@ -97,8 +108,7 @@ export default function Invoices() {
         generateTableCells={generateTableCells}
         openDeleteConfirmModal={openDeleteConfirmModal}
         openFilterModal={openFilterModal}
-        selectable={false}
-        takeToOnClick="view"
+        onDownload={getDataCsv}
       />
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
@@ -106,7 +116,7 @@ export default function Invoices() {
         onDelete={onDelete}
       />
       <ModalFilters
-        title="filter-users"
+        title="filter-invoices"
         open={filterModalOpen}
         onClose={closeFilterModal}
         form={
@@ -123,71 +133,94 @@ export default function Invoices() {
                   submitButtonText={"apply"}
                   inputs={[
                     <FormInput
-                      id={"fullName"}
-                      name={"fullName"}
-                      placeholder={"Full Name"}
-                      label={"full-name"}
+                      id={"invoice_number"}
+                      name={"invoice_number"}
+                      placeholder={"Invoice Number"}
+                      label={"invoice-number"}
                       type={"text"}
                     />,
                     <FormInput
-                      id={"email"}
-                      name={"email"}
-                      placeholder={"Username"}
-                      label={"username"}
+                      id={"customer_name"}
+                      name={"customer_name"}
+                      placeholder={"Customer Name"}
+                      label={"customer-name"}
                       type={"text"}
+                    />,
+                    <FormInput
+                      id={"quotation_number"}
+                      name={"quotation_number"}
+                      placeholder={"Quotation Number"}
+                      label={"quotation-number"}
+                      type={"text"}
+                    />,
+                    <FormInput
+                      id={"minimumTotal"}
+                      name={"minimumTotal"}
+                      placeholder={"Minimum Total"}
+                      label={"minimum-total"}
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      id={"maximumTotal"}
+                      name={"maximumTotal"}
+                      placeholder={"Maximum Total"}
+                      label={"maximum-total"}
+                      type={"number"}
+                      min={0}
                     />,
                     <FormDropdown
-                      id={"role"}
-                      name={"role"}
-                      label={"role"}
-                      useFormattedStrings={false}
-                      options={userRoles}
+                      id={"status"}
+                      name={"status"}
+                      label={"status"}
+                      options={[
+                        "draft",
+                        "sent",
+                        "paid",
+                        "cancelled"
+                      ]}
                     />,
                     <FormInput
-                      id={"minimumDailyWage"}
-                      name={"minimumDailyWage"}
-                      placeholder={"Minimum Daily Wage"}
-                      label={"minimum-daily-wage"}
-                      type={"number"}
-                      min={0}
-                    />,
-                    <FormInput
-                      id={"maximumDailyWage"}
-                      name={"maximumDailyWage"}
-                      placeholder={"Maximum Daily Wage"}
-                      label={"maximum-daily-wage"}
-                      type={"number"}
-                      min={0}
-                    />,
-                    // <FormInput
-                    //   id={"minimumCommission"}
-                    //   name={"minimumCommission"}
-                    //   placeholder={"Minimum Commission"}
-                    //   label={"minimum-commission"}
-                    //   type={"number"}
-                    //   min={0}
-                    // />,
-                    // <FormInput
-                    //   id={"maximumCommission"}
-                    //   name={"maximumCommission"}
-                    //   placeholder={"Maximum Commission"}
-                    //   label={"maximum-commission"}
-                    //   type={"number"}
-                    //   min={0}
-                    // />,
-                    <FormInput
-                      id={"joinedAtFrom"}
-                      name={"joinedAtFrom"}
-                      placeholder={"Joined At From"}
-                      label={"joined-at-from"}
+                      id={"invoice_date_from"}
+                      name={"invoice_date_from"}
+                      placeholder={"Invoice Date From"}
+                      label={"invoice-date-from"}
                       type={"date"}
                     />,
                     <FormInput
-                      id={"joinedAtTo"}
-                      name={"joinedAtTo"}
-                      placeholder={"Joined At To"}
-                      label={"joined-at-to"}
+                      id={"invoice_date_to"}
+                      name={"invoice_date_to"}
+                      placeholder={"Invoice Date To"}
+                      label={"invoice-date-to"}
                       type={"date"}
+                    />,
+                    <FormInput
+                      id={"created_at_from"}
+                      name={"created_at_from"}
+                      placeholder={"Created From"}
+                      label={"created-from"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"created_at_to"}
+                      name={"created_at_to"}
+                      placeholder={"Created To"}
+                      label={"created-to"}
+                      type={"date"}
+                    />,
+                    <FormInput
+                      id={"item_name"}
+                      name={"item_name"}
+                      placeholder={"Item Name"}
+                      label={"item-name"}
+                      type={"text"}
+                    />,
+                    <FormInput
+                      id={"item_code"}
+                      name={"item_code"}
+                      placeholder={"Item Code"}
+                      label={"item-code"}
+                      type={"text"}
                     />,
                   ]}
                   showSubmitButton={false}
@@ -209,6 +242,14 @@ export default function Invoices() {
             )}
           </Formik>
         }
+      />
+      <CSVLink
+        data={csvData}
+        headers={headCells.map((cell) => cell.label)}
+        filename={`invoices_${getDateTimeFormatted()}.csv`}
+        className="hidden"
+        ref={csvLink}
+        target="_blank"
       />
     </Box>
   );

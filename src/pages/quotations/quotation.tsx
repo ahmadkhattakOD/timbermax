@@ -1,25 +1,27 @@
 import Box from "@mui/material/Box";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
-import { useStock } from "./useStock";
+import { useQuotations } from "./useQuotationts";
 import DataTable from "components/data-table/DataTable";
 import ModalDeleteConfirm from "components/ModalConfirmDelete";
-import { getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
 import ModalFilters from "components/modal-filters/ModalFilters";
+import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
-import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
+import {
+  getDateTimeFormatted,
+  hasNonEmptyValue,
+} from "utils/helpers";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
 
-export default function Stock() {
+export default function Quotations() {
   const {
     data,
     dataCount,
     loading,
     goToCreate,
-    goToMove,
     order,
     setOrder,
     orderBy,
@@ -42,23 +44,32 @@ export default function Stock() {
     handleFiltersSubmit,
     validateFilters,
     filters,
-    items,
-    warehouses,
     resetFilters,
     getDataCsv,
     csvData,
     csvLink,
+    handleSearchDebounced,
     searchValue,
     setSearchValue,
-    handleSearchDebounced,
-    goToStatus,
-  } = useStock();
-
+    convertToInvoice,
+    viewItems,
+    cancelQuotation,
+  } = useQuotations();
+  
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         actionButton={
-          <ActionButton text="Add New Stock" onClick={goToCreate} />
+          <Box sx={{ display: "flex", gap: 2 }}>
+            {selected.length === 1 && (
+              <ActionButton 
+                text="Convert to Invoice" 
+                onClick={() => convertToInvoice(selected[0])}
+                color="primary"
+              />
+            )}
+            <ActionButton text="Add New Quotation" onClick={goToCreate} />
+          </Box>
         }
         filters={
           <Box
@@ -71,31 +82,22 @@ export default function Stock() {
             }}
           >
             <SearchInput
-              placeholder="Search Item Name"
+              placeholder="Search Quotation Number or Customer"
               value={searchValue}
               onChange={(e) => {
                 setSearchValue(e.target.value);
                 handleSearchDebounced(e);
               }}
             />
-            <Box sx={{ display: "flex", gap: 2 }}>
+            {hasNonEmptyValue(filters) ? (
               <ActionButton
-                text="On Hold Stock"
-                onClick={() => goToStatus("on_hold")}
+                text="Reset Filters"
+                color="secondary"
+                onClick={resetFilters}
               />
-              <ActionButton
-                text="Committed Stock"
-                onClick={() => goToStatus("committed")}
-              />
-              <ActionButton text="Move Stock" onClick={goToMove} />
-              {hasNonEmptyValue(filters) ? (
-                <ActionButton
-                  text="Reset Filters"
-                  color="secondary"
-                  onClick={resetFilters}
-                />
-              ) : null}
-            </Box>
+            ) : (
+              <></>
+            )}
           </Box>
         }
       />
@@ -103,7 +105,7 @@ export default function Stock() {
         data={data}
         dataCount={dataCount}
         loading={loading}
-        tableTitle="stock"
+        tableTitle="quotations"
         selected={selected}
         setSelected={setSelected}
         rowsPerPage={rowsPerPage}
@@ -126,7 +128,7 @@ export default function Stock() {
         onDelete={onDelete}
       />
       <ModalFilters
-        title="Filter Stock"
+        title="Filter Quotations"
         open={filterModalOpen}
         onClose={closeFilterModal}
         form={
@@ -142,31 +144,39 @@ export default function Stock() {
                   isSubmitting={isSubmitting}
                   submitButtonText="Apply"
                   inputs={[
-                    <FormDropdown
-                      key="item"
-                      id={"item"}
-                      name={"item"}
-                      label="Item"
-                      useFormattedStrings={false}
-                      options={items.map((item) => {
-                        return {
-                          label: `${item.name} (${item.itemCode})`,
-                          value: item.id.toString(),
-                        };
-                      })}
+                    <FormInput
+                      key="quotation_number"
+                      id={"quotation_number"}
+                      name={"quotation_number"}
+                      placeholder={"Quotation Number"}
+                      label="Quotation Number"
+                      type={"text"}
                     />,
-                    <FormDropdown
-                      key="warehouse"
-                      id={"warehouse"}
-                      name={"warehouse"}
-                      label="Warehouse"
-                      useFormattedStrings={false}
-                      options={warehouses.map((warehouse) => {
-                        return {
-                          label: warehouse.name,
-                          value: warehouse.id.toString(),
-                        };
-                      })}
+                    <FormInput
+                      key="customer_name"
+                      id={"customer_name"}
+                      name={"customer_name"}
+                      placeholder={"Customer Name"}
+                      label="Customer Name"
+                      type={"text"}
+                    />,
+                    <FormInput
+                      key="minimumTotal"
+                      id={"minimumTotal"}
+                      name={"minimumTotal"}
+                      placeholder={"Minimum Total"}
+                      label="Minimum Total"
+                      type={"number"}
+                      min={0}
+                    />,
+                    <FormInput
+                      key="maximumTotal"
+                      id={"maximumTotal"}
+                      name={"maximumTotal"}
+                      placeholder={"Maximum Total"}
+                      label="Maximum Total"
+                      type={"number"}
+                      min={0}
                     />,
                     <FormDropdown
                       key="status"
@@ -174,43 +184,60 @@ export default function Stock() {
                       name={"status"}
                       label="Status"
                       options={[
-                        { label: "Available", value: "available" },
-                        { label: "On Hold", value: "on_hold" },
-                        { label: "Committed", value: "committed" },
-                        { label: "Damaged", value: "damaged" },
+                        { label: "Draft", value: "draft" },
+                        { label: "Sent", value: "sent" },
+                        { label: "Accepted", value: "accepted" },
+                        { label: "Converted", value: "converted" },
+                        { label: "Cancelled", value: "cancelled" }
                       ]}
                     />,
                     <FormInput
-                      key="minimumQuantity"
-                      id={"minimumQuantity"}
-                      name={"minimumQuantity"}
-                      placeholder={"Minimum Quantity"}
-                      label="Minimum Quantity"
-                      type={"number"}
-                    />,
-                    <FormInput
-                      key="maximumQuantity"
-                      id={"maximumQuantity"}
-                      name={"maximumQuantity"}
-                      placeholder={"Maximum Quantity"}
-                      label="Maximum Quantity"
-                      type={"number"}
-                    />,
-                    <FormInput
-                      key="updatedAtFrom"
-                      id={"updatedAtFrom"}
-                      name={"updatedAtFrom"}
-                      placeholder={"Updated At From"}
-                      label="Updated At From"
+                      key="valid_until_from"
+                      id={"valid_until_from"}
+                      name={"valid_until_from"}
+                      placeholder={"Valid From"}
+                      label="Valid From"
                       type={"date"}
                     />,
                     <FormInput
-                      key="updatedAtTo"
-                      id={"updatedAtTo"}
-                      name={"updatedAtTo"}
-                      placeholder={"Updated At To"}
-                      label="Updated At To"
+                      key="valid_until_to"
+                      id={"valid_until_to"}
+                      name={"valid_until_to"}
+                      placeholder={"Valid To"}
+                      label="Valid To"
                       type={"date"}
+                    />,
+                    <FormInput
+                      key="created_at_from"
+                      id={"created_at_from"}
+                      name={"created_at_from"}
+                      placeholder={"Created From"}
+                      label="Created From"
+                      type={"date"}
+                    />,
+                    <FormInput
+                      key="created_at_to"
+                      id={"created_at_to"}
+                      name={"created_at_to"}
+                      placeholder={"Created To"}
+                      label="Created To"
+                      type={"date"}
+                    />,
+                    <FormInput
+                      key="item_name"
+                      id={"item_name"}
+                      name={"item_name"}
+                      placeholder={"Item Name"}
+                      label="Item Name"
+                      type={"text"}
+                    />,
+                    <FormInput
+                      key="item_code"
+                      id={"item_code"}
+                      name={"item_code"}
+                      placeholder={"Item Code"}
+                      label="Item Code"
+                      type={"text"}
                     />,
                   ]}
                   showSubmitButton={false}
@@ -236,7 +263,7 @@ export default function Stock() {
       <CSVLink
         data={csvData}
         headers={headCells.map((cell) => ({ label: cell.label, key: cell.id }))}
-        filename={`stock_${getDateTimeFormatted()}.csv`}
+        filename={`quotations_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}
         target="_blank"

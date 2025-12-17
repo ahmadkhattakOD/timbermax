@@ -1,298 +1,115 @@
-import {
-  ValuesFilterCancelled,
-  ValuesFilterInvoices,
-} from "pages/invoices/create/useCreateInvoice";
-import { ValuesFilterSales } from "pages/view-invoices-sales-closer/download/useDownloadInvoiceSalesCloser";
-import {
-  extendedDataLimit,
-  getDateFormattedForField,
-  getMonthName,
-} from "utils/helpers";
+import { ValuesFilterInvoices } from "types";
+import { getDateFormattedForField } from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface InvoiceSupabase {
-  sale: number;
-  commission: number;
-  beneficiary: string;
+  invoice_number: string;
+  customer_id: number;
+  quotation_id?: number;
+  total: number;
+  status?: 'draft' | 'sent' | 'paid' | 'cancelled';
+  invoice_date?: Date;
+  note?: string;
+  user?: string;
+}
+
+export interface InvoiceItemSupabase {
+  invoice_id: number;
+  item_id: number;
+  quantity: number;
+  unit_price: number;
 }
 
 class InvoicesRepository {
   private className = "invoices";
+  private itemsClassName = "invoice_items";
 
   public async create(invoice: InvoiceSupabase) {
     try {
-      const { data: existingInvoiceData, error: existingInvoiceError } =
-        await supabase
-          .from(this.className)
-          .select("sale (id, sales_person, closer) ")
-          .eq("sale", invoice.sale)
-          .eq("beneficiary", invoice.beneficiary);
+      const { data, error } = await supabase
+        .from(this.className)
+        .insert(invoice)
+        .select();
 
-      let limit = 1;
-      if (existingInvoiceData && !existingInvoiceError) {
-        for (let i = 0; i < existingInvoiceData.length; i++) {
-          const sale = existingInvoiceData[i].sale as any;
-          if (sale && sale.sales_person == sale.closer) {
-            limit = 2;
-          }
-        }
+      if (data && data.length > 0 && error === null) {
+        return data[0];
       }
-
-      if (
-        existingInvoiceData &&
-        existingInvoiceData.length >= limit &&
-        !existingInvoiceError
-      ) {
-        return existingInvoiceData[0];
-      } else {
-        const { data, error } = await supabase
-          .from(this.className)
-          .insert(invoice)
-          .select();
-
-        if (data && data.length > 0 && error === null) {
-          return data[0];
-        }
-        return null;
-      }
-    } catch (error) {
-      console.error("Error creating new invoice:", error);
       return null;
-    }
-  }
-
-  public async findAndDelete(saleId: number, beneficiaryId: string) {
-    try {
-      const { data: existingInvoiceData, error: existingInvoiceError } =
-        await supabase
-          .from(this.className)
-          .select("id, sale (id, sales_person, closer) ")
-          .eq("sale", saleId)
-          .eq("beneficiary", beneficiaryId);
-
-      if (existingInvoiceData && !existingInvoiceError) {
-        const idsToDelete: number[] = [];
-        for (let i = 0; i < existingInvoiceData.length; i++) {
-          idsToDelete.push(existingInvoiceData[i].id);
-        }
-        const deleted = await this.delete(idsToDelete);
-        if (deleted === idsToDelete.length) {
-          return true;
-        } else {
-          return null;
-        }
-      } else {
-        return null;
-      }
     } catch (error) {
-      console.error("Error updating previous invoice:", error);
+      console.error("Error creating invoice:", error);
       return null;
     }
   }
 
   public async get(
-    id: string,
     orderBy: string,
     ascending: boolean,
     rangeStart: number,
     rangeEnd: number,
     limit: number,
-    saleDateFrom: string,
-    saleDateTo: string,
     filters?: ValuesFilterInvoices
   ) {
     try {
       const query = supabase
-        .rpc(
-          "fetch_invoices",
-          {
-            p_beneficiary_id: id,
-            p_start_date: saleDateFrom,
-            p_end_date: saleDateTo,
-          },
-          { count: "exact" }
-        )
-        .order(orderBy, { ascending: ascending })
-        .range(rangeStart, rangeEnd)
-        .limit(limit);
-
-      if (filters) {
-        if (filters.sale) {
-          query.eq("sale_id", filters.sale);
-        }
-        if (filters.minimumCommission) {
-          query.gte("commission", filters.minimumCommission);
-        }
-        if (filters.maximumCommission) {
-          query.lte("commission", filters.maximumCommission);
-        }
-        if (filters.invoiceDateFrom) {
-          query.gte("created_at", filters.invoiceDateFrom);
-        }
-        if (filters.invoiceDateTo) {
-          query.lte("created_at", filters.invoiceDateTo);
-        }
-      }
-
-      const {
-        data: invoicesData,
-        count: invoicesCount,
-        error: invoicesError,
-      } = await query;
-
-      return { invoicesData, invoicesCount, invoicesError };
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
-      return null;
-    }
-  }
-
-  public async getWithExtendedLimit(
-    id: string,
-    saleDateFrom: string,
-    saleDateTo: string
-  ) {
-    try {
-      const query = supabase
-        .rpc(
-          "fetch_invoices",
-          {
-            p_beneficiary_id: id,
-            p_start_date: saleDateFrom,
-            p_end_date: saleDateTo,
-          },
-          { count: "exact" }
-        )
-        .order("created_at", { ascending: true })
-        .limit(extendedDataLimit);
-
-      const {
-        data: invoicesData,
-        count: invoicesCount,
-        error: invoicesError,
-      } = await query;
-
-      return { invoicesData, invoicesCount, invoicesError };
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
-      return null;
-    }
-  }
-
-  public async getForSalesCloser(
-    id: string,
-    orderBy: string,
-    ascending: boolean,
-    rangeStart: number,
-    rangeEnd: number,
-    limit: number,
-    saleDateFrom: string,
-    saleDateTo: string,
-    filters?: ValuesFilterSales
-  ) {
-    try {
-      // const query = supabase
-      //   .from(this.className)
-      //   .select(
-      //     "id, created_at, sale!inner ( contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ), delivery_date_time, stock_from_warehouse (name) ), commission, beneficiary( full_name )",
-      //     { count: "exact" }
-      //   )
-      //   .order(orderBy, { ascending: ascending })
-      //   .range(rangeStart, rangeEnd)
-      //   .limit(limit)
-      //   .eq("beneficiary", id);
-
-      const query = supabase
-        .rpc(
-          "fetch_invoiced_invoices",
-          {
-            p_beneficiary_id: id,
-            p_start_date: saleDateFrom,
-            p_end_date: saleDateTo,
-          },
-          { count: "exact" }
-        )
-        .order(orderBy, { ascending: ascending })
-        .range(rangeStart, rangeEnd)
-        .limit(limit);
-
-      if (filters) {
-        if (filters.minimumCommission) {
-          query.gte("commission", filters.minimumCommission);
-        }
-        if (filters.maximumCommission) {
-          query.lte("commission", filters.maximumCommission);
-        }
-        if (filters.invoiceDateFrom) {
-          query.gte("created_at", filters.invoiceDateFrom);
-        }
-        if (filters.invoiceDateTo) {
-          query.lte("created_at", filters.invoiceDateTo);
-        }
-      }
-      // if (saleDateFrom !== "") {
-      //   query.gte("sale.sale_date", saleDateFrom);
-      // }
-      // if (saleDateTo !== "") {
-      //   query.lte("sale.sale_date", saleDateTo);
-      // }
-
-      const {
-        data: invoicesData,
-        count: invoicesCount,
-        error: invoicesError,
-      } = await query;
-
-      return { invoicesData, invoicesCount, invoicesError };
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
-      return null;
-    }
-  }
-
-  public async getBySale(
-    id: number,
-    orderBy: string,
-    ascending: boolean,
-    rangeStart: number,
-    rangeEnd: number,
-    limit: number
-  ) {
-    try {
-      const {
-        data: invoicesData,
-        count: invoicesCount,
-        error: invoicesError,
-      } = await supabase
         .from(this.className)
         .select(
-          "id, sale ( customer ( id, name ),  contact_name, opportunity_description, opportunity_descriptions, deposit, total, payment_method, phone, mobile, address, suburb, state, post_code, email_address, note, status, milestone, expected_close_date, lost_reason, status_changed_at, follow_up_notes, sale_date, sales_person( full_name ), closer ( full_name ), show ( name ) ), commission, beneficiary( full_name )",
+          `id, invoice_number, customer!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+           quotation_id, quotations ( quotation_number ), total, status, invoice_date, note, created_at, updated_at,
+           ${this.itemsClassName}!inner ( quantity, unit_price, items!inner ( id, name, itemCode, sellPrice ) )`,
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
-        .limit(limit)
-        .eq("sale", id);
+        .limit(limit);
+
+      if (filters) {
+        if (filters.invoice_number) {
+          query.ilike("invoice_number", `%${filters.invoice_number}%`);
+        }
+        if (filters.customer_name) {
+          query.ilike("customer.name", `%${filters.customer_name}%`);
+        }
+        if (filters.quotation_number) {
+          query.ilike("quotations.quotation_number", `%${filters.quotation_number}%`);
+        }
+        if (filters.minimumTotal) {
+          query.gte("total", parseFloat(filters.minimumTotal));
+        }
+        if (filters.maximumTotal) {
+          query.lte("total", parseFloat(filters.maximumTotal));
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.invoice_date_from) {
+          query.gte("invoice_date", filters.invoice_date_from);
+        }
+        if (filters.invoice_date_to) {
+          query.lte("invoice_date", filters.invoice_date_to);
+        }
+        if (filters.created_at_from) {
+          query.gte("created_at", filters.created_at_from);
+        }
+        if (filters.created_at_to) {
+          query.lte("created_at", filters.created_at_to);
+        }
+        if (filters.item_name) {
+          query.ilike(`${this.itemsClassName}.items.name`, `%${filters.item_name}%`);
+        }
+        if (filters.item_code) {
+          query.ilike(`${this.itemsClassName}.items.itemCode`, `%${filters.item_code}%`);
+        }
+      }
+
+      const {
+        data: invoicesData,
+        count: invoicesCount,
+        error: invoicesError,
+      } = await query;
 
       return { invoicesData, invoicesCount, invoicesError };
     } catch (error) {
       console.error("Error fetching invoices:", error);
-      return null;
-    }
-  }
-
-  public async checkExistenceBySale(id: number) {
-    try {
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from(this.className)
-        .select("id")
-        .eq("sale", id)
-        .limit(1)
-        .maybeSingle();
-
-      return { invoiceData, invoiceError };
-    } catch (error) {
-      console.error("Error fetching invoice:", error);
       return null;
     }
   }
@@ -311,179 +128,15 @@ class InvoicesRepository {
     }
   }
 
-  public async getCancelled(
-    id: string,
-    orderBy: string,
-    ascending: boolean,
-    rangeStart: number,
-    rangeEnd: number,
-    limit: number,
-    saleDateFrom: string,
-    saleDateTo: string,
-    filters?: ValuesFilterCancelled
-  ) {
-    try {
-      // const query = supabase
-      //   .from(this.className)
-      //   .select(
-      //     "id, commission, sale!inner ( contact_name, status, total, deposit, status_changed_at, sale_date, invoiced )",
-      //     { count: "exact" }
-      //   )
-      //   .eq("beneficiary", id)
-      //   .eq("sale.status", "cancelled")
-      //   .eq("sale.invoiced", true)
-      //   .order(orderBy, { ascending: ascending })
-      //   .range(rangeStart, rangeEnd)
-      //   .limit(limit);
-
-      const query = supabase
-        .rpc(
-          "fetch_invoices_cancelled",
-          {
-            p_beneficiary_id: id,
-            p_start_date: saleDateFrom,
-            p_end_date: saleDateTo,
-          },
-          { count: "exact" }
-        )
-        .order(orderBy, { ascending: ascending })
-        .range(rangeStart, rangeEnd)
-        .limit(limit);
-
-      if (filters) {
-        if (filters.sale) {
-          query.eq("sale", filters.sale);
-        }
-        if (filters.minimumCommission) {
-          query.gte("commission", filters.minimumCommission);
-        }
-        if (filters.maximumCommission) {
-          query.lte("commission", filters.maximumCommission);
-        }
-      }
-
-      const {
-        data: invoicesData,
-        count: invoicesCount,
-        error: invoicesError,
-      } = await query;
-
-      return { invoicesData, invoicesCount, invoicesError };
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
-      return null;
-    }
-  }
-
-  public async getCancelledWithExtendedLimit(
-    id: string,
-    saleDateFrom: string,
-    saleDateTo: string
-  ) {
-    try {
-      // const query = supabase
-      //   .from(this.className)
-      //   .select(
-      //     "commission, sale!inner ( status, total, deposit, status_changed_at, invoiced ) "
-      //   )
-      //   .order("created_at", { ascending: false })
-      //   .eq("beneficiary", id)
-      //   .eq("sale.status", "cancelled")
-      //   .eq("sale.invoiced", true)
-      //   .limit(extendedDataLimit);
-
-      const query = supabase
-        .rpc(
-          "fetch_invoices_cancelled",
-          {
-            p_beneficiary_id: id,
-            p_start_date: saleDateFrom,
-            p_end_date: saleDateTo,
-          },
-          { count: "exact" }
-        )
-        .order("created_at", { ascending: true })
-        .limit(extendedDataLimit);
-
-      // if (saleDateFrom !== "") {
-      //   query.gte("sale.status_changed_at", saleDateFrom);
-      // }
-      // if (saleDateTo !== "") {
-      //   query.lte("sale.status_changed_at", saleDateTo);
-      // }
-
-      const { data: invoicesData, error: invoicesError } = await query;
-
-      return { invoicesData, invoicesError };
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
-      return null;
-    }
-  }
-
-  public async getTotalCommissionsForYear(
-    year: number,
-    userId?: string
-  ): Promise<{ month: string; sales: number }[]> {
-    try {
-      const startDate = new Date(year, 0, 1);
-      const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
-      const query = supabase
-        .from(this.className)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .gte("created_at", getDateFormattedForField(startDate))
-        .lte("created_at", getDateFormattedForField(endDate));
-
-      if (userId) {
-        query.eq("beneficiary", userId);
-      }
-
-      const { data: invoicesData, error: invoicesError } = await query;
-
-      const totalCommissionCount: { [month: string]: number } = {
-        January: 0,
-        February: 0,
-        March: 0,
-        April: 0,
-        May: 0,
-        June: 0,
-        July: 0,
-        August: 0,
-        September: 0,
-        October: 0,
-        November: 0,
-        December: 0,
-      };
-
-      if (invoicesData && !invoicesError) {
-        for (let i = 0; i < invoicesData.length; i++) {
-          const invoiceDate = new Date(invoicesData[i].created_at);
-          const month = getMonthName(invoiceDate);
-
-          if (!totalCommissionCount[month]) {
-            totalCommissionCount[month] = 0;
-          }
-
-          totalCommissionCount[month] += invoicesData[i].commission;
-        }
-      }
-
-      return Object.keys(totalCommissionCount).map((month) => ({
-        month,
-        sales: totalCommissionCount[month],
-      }));
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
-      return [];
-    }
-  }
-
   public async getSingle(id: number) {
     try {
       const { data: invoiceData, error: invoiceError } = await supabase
         .from(this.className)
-        .select("*")
+        .select(
+          `id, invoice_number, customer_id, customer ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+           quotation_id, quotations ( id, quotation_number ), total, status, invoice_date, note, created_at, updated_at,
+           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice ) )`
+        )
         .eq("id", id)
         .limit(1)
         .maybeSingle();
@@ -491,6 +144,80 @@ class InvoicesRepository {
       return { invoiceData, invoiceError };
     } catch (error) {
       console.error("Error fetching invoice:", error);
+      return null;
+    }
+  }
+
+  public async getItems(invoiceId: number) {
+    try {
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .select(`
+          *,
+          items (id, name, itemCode, sellPrice)
+        `)
+        .eq("invoice_id", invoiceId);
+
+      return { data, error };
+    } catch (error) {
+      console.error("Error fetching invoice items:", error);
+      return null;
+    }
+  }
+
+  public async addItem(item: InvoiceItemSupabase) {
+    try {
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .insert(item)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error adding invoice item:", error);
+      return null;
+    }
+  }
+
+  public async updateStatus(id: number, status: string) {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .update({ status: status, updated_at: new Date() })
+        .eq("id", id)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error updating invoice status:", error);
+      return null;
+    }
+  }
+
+  public async markAsPaid(id: number, paymentDate?: Date) {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .update({ 
+          status: 'paid', 
+          updated_at: new Date(),
+          payment_date: paymentDate || new Date()
+        })
+        .eq("id", id)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error marking invoice as paid:", error);
       return null;
     }
   }
@@ -530,5 +257,178 @@ class InvoicesRepository {
       return 0;
     }
   }
+
+  public async deleteItem(invoiceId: number, itemId: number) {
+    try {
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .delete()
+        .eq("invoice_id", invoiceId)
+        .eq("item_id", itemId)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data.length;
+      }
+      return 0;
+    } catch (error) {
+      console.error("Error deleting invoice item:", error);
+      return 0;
+    }
+  }
+
+  public async updateItem(invoiceId: number, itemId: number, updates: any) {
+    try {
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .update(updates)
+        .eq("invoice_id", invoiceId)
+        .eq("item_id", itemId)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error updating invoice item:", error);
+      return null;
+    }
+  }
+
+  // Get invoices for a specific customer
+  public async getByCustomer(
+    customerId: number,
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterInvoices
+  ) {
+    try {
+      const query = supabase
+        .from(this.className)
+        .select(
+          `id, invoice_number, customer!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+           quotation_id, total, status, invoice_date, note, created_at, updated_at`,
+          { count: "exact" }
+        )
+        .order(orderBy, { ascending: ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit)
+        .eq("customer_id", customerId);
+
+      if (filters) {
+        if (filters.invoice_number) {
+          query.ilike("invoice_number", `%${filters.invoice_number}%`);
+        }
+        if (filters.minimumTotal) {
+          query.gte("total", parseFloat(filters.minimumTotal));
+        }
+        if (filters.maximumTotal) {
+          query.lte("total", parseFloat(filters.maximumTotal));
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.invoice_date_from) {
+          query.gte("invoice_date", filters.invoice_date_from);
+        }
+        if (filters.invoice_date_to) {
+          query.lte("invoice_date", filters.invoice_date_to);
+        }
+        if (filters.created_at_from) {
+          query.gte("created_at", filters.created_at_from);
+        }
+        if (filters.created_at_to) {
+          query.lte("created_at", filters.created_at_to);
+        }
+      }
+
+      const {
+        data: invoicesData,
+        count: invoicesCount,
+        error: invoicesError,
+      } = await query;
+
+      return { invoicesData, invoicesCount, invoicesError };
+    } catch (error) {
+      console.error("Error fetching customer invoices:", error);
+      return null;
+    }
+  }
+
+  // Get unpaid invoices
+  public async getUnpaid() {
+    try {
+      const { data: invoicesData, error: invoicesError } = await supabase
+        .from(this.className)
+        .select("*")
+        .neq("status", "paid")
+        .neq("status", "cancelled")
+        .order("invoice_date", { ascending: true });
+
+      return { invoicesData, invoicesError };
+    } catch (error) {
+      console.error("Error fetching unpaid invoices:", error);
+      return null;
+    }
+  }
+
+  // Create invoice from quotation
+  public async createFromQuotation(quotationId: number, invoiceNumber: string) {
+    try {
+      // Get quotation data
+      const { data: quotation } = await supabase
+        .from("quotations")
+        .select(`
+          id, quotation_number, customer_id, total, note,
+          quotation_items ( item_id, quantity, unit_price )
+        `)
+        .eq("id", quotationId)
+        .single();
+
+      if (!quotation) return null;
+
+      // Create invoice
+      const invoice: InvoiceSupabase = {
+        invoice_number: invoiceNumber,
+        customer_id: quotation.customer_id,
+        quotation_id: quotation.id,
+        total: quotation.total,
+        status: 'draft',
+        invoice_date: new Date(),
+        note: quotation.note
+      };
+
+      const createdInvoice = await this.create(invoice);
+      if (!createdInvoice) return null;
+
+      // Copy items from quotation
+      if (quotation.quotation_items && quotation.quotation_items.length > 0) {
+        for (const item of quotation.quotation_items) {
+          await this.addItem({
+            invoice_id: createdInvoice.id,
+            item_id: item.item_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price
+          });
+        }
+      }
+
+      // Update quotation status
+      await supabase
+        .from("quotations")
+        .update({ status: 'converted' })
+        .eq("id", quotationId);
+
+      return createdInvoice;
+    } catch (error) {
+      console.error("Error creating invoice from quotation:", error);
+      return null;
+    }
+  }
 }
+
 export default InvoicesRepository;
