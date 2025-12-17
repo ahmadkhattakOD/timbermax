@@ -8,6 +8,9 @@ import ItemsRepository, {
 export interface ValuesCreateItem {
   name: string;
   description: string;
+  itemCode: string;
+  sellPrice: string;
+  purchasePrice: string;
 }
 
 export function useCreateItem() {
@@ -20,14 +23,48 @@ export function useCreateItem() {
       errors.name = "required";
     }
 
+    if (!values.itemCode.trim()) {
+      errors.itemCode = "required";
+    }
+
+    // For number fields, check if they're falsy (null, undefined, empty string)
+    if (!values.sellPrice) {
+      errors.sellPrice = "required";
+    } else {
+      // Now we know sellPrice has a value, but it might not be a string
+      // Convert to string first
+      const sellPriceStr = values.sellPrice.toString();
+      const sellPriceNum = parseFloat(sellPriceStr);
+      if (isNaN(sellPriceNum) || sellPriceNum < 0) {
+        errors.sellPrice = "must be a valid number";
+      }
+    }
+
+    if (!values.purchasePrice) {
+      errors.purchasePrice = "required";
+    } else {
+      const purchasePriceStr = values.purchasePrice.toString();
+      const purchasePriceNum = parseFloat(purchasePriceStr);
+      if (isNaN(purchasePriceNum) || purchasePriceNum < 0) {
+        errors.purchasePrice = "must be a valid number";
+      }
+    }
+
     return errors;
   }
 
   async function onSubmit(values: ValuesCreateItem) {
     try {
+      // Convert to numbers, handling any string representation
+      const sellPriceNum = values.sellPrice ? parseFloat(values.sellPrice.toString()) : 0;
+      const purchasePriceNum = values.purchasePrice ? parseFloat(values.purchasePrice.toString()) : 0;
+      
       const newItem: ItemSupabase = {
         name: values.name,
         description: values.description,
+        itemCode: values.itemCode,
+        sellPrice: sellPriceNum,
+        purchasePrice: purchasePriceNum,
       };
 
       const itemsRepository = new ItemsRepository();
@@ -55,6 +92,7 @@ export function useCreateItem() {
 
       navigate("/items");
     } catch (e) {
+      console.error("Error creating item:", e);
       openSnackbar({
         open: true,
         message: "Item could not be added successfully. Please try again.",

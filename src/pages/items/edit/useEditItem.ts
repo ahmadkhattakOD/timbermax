@@ -10,7 +10,9 @@ import ItemsRepository, {
 export interface ValuesEditItem {
   name: string;
   description: string;
-  committed: string;
+  itemCode: string;
+  sellPrice: string;
+  purchasePrice: string;
 }
 
 export function useEditItem() {
@@ -26,8 +28,30 @@ export function useEditItem() {
       errors.name = "required";
     }
 
-    if (values.committed && parseInt(values.committed) < 0) {
-      errors.committed = "required-valid-number-positive";
+    if (!values.itemCode.trim()) {
+      errors.itemCode = "required";
+    }
+
+    // For sellPrice, check if it's falsy or empty
+    const sellPriceStr = String(values.sellPrice || '');
+    if (sellPriceStr === '' || sellPriceStr === '0' || sellPriceStr === 'null' || sellPriceStr === 'undefined') {
+      errors.sellPrice = "required";
+    } else {
+      const sellPriceNum = parseFloat(sellPriceStr);
+      if (isNaN(sellPriceNum) || sellPriceNum < 0) {
+        errors.sellPrice = "must be a valid number";
+      }
+    }
+
+    // For purchasePrice, check if it's falsy or empty
+    const purchasePriceStr = String(values.purchasePrice || '');
+    if (purchasePriceStr === '' || purchasePriceStr === '0' || purchasePriceStr === 'null' || purchasePriceStr === 'undefined') {
+      errors.purchasePrice = "required";
+    } else {
+      const purchasePriceNum = parseFloat(purchasePriceStr);
+      if (isNaN(purchasePriceNum) || purchasePriceNum < 0) {
+        errors.purchasePrice = "must be a valid number";
+      }
     }
 
     return errors;
@@ -36,10 +60,16 @@ export function useEditItem() {
   async function onSubmit(values: ValuesEditItem) {
     try {
       if (id && isNumeric(id)) {
+        // Convert to numbers, handling any string representation
+        const sellPriceNum = values.sellPrice ? parseFloat(values.sellPrice.toString()) : 0;
+        const purchasePriceNum = values.purchasePrice ? parseFloat(values.purchasePrice.toString()) : 0;
+        
         const updatedItem: ItemSupabase = {
           name: values.name,
           description: values.description,
-          committed: parseInt(values.committed),
+          itemCode: values.itemCode,
+          sellPrice: sellPriceNum,
+          purchasePrice: purchasePriceNum,
         };
 
         const itemsRepository = new ItemsRepository();
@@ -82,6 +112,7 @@ export function useEditItem() {
         navigate("/items");
       }
     } catch (e) {
+      console.error("Error editing item:", e);
       openSnackbar({
         open: true,
         message: "Item could not be edited successfully. Please try again.",

@@ -4,7 +4,9 @@ import supabase from "utils/supabase";
 export interface ItemSupabase {
   name: string;
   description: string;
-  committed?: number;
+  itemCode: string;
+  sellPrice: number;
+  purchasePrice: number;
 }
 
 class ItemsRepository {
@@ -49,6 +51,9 @@ class ItemsRepository {
         }
         if (filters.description) {
           query.ilike("description", `%${filters.description}%`);
+        }
+        if (filters.itemCode) {
+          query.ilike("itemCode", `%${filters.itemCode}%`);
         }
       }
 

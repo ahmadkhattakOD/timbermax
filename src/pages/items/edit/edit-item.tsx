@@ -8,7 +8,7 @@ import CircularLoader from "components/CircularLoader";
 import { australianStates } from "utils/helpers";
 import { useEditItem } from "./useEditItem";
 
-// ==============================|| EDIT WAREHOUSE PAGE ||============================== //
+// ==============================|| EDIT ITEM PAGE ||============================== //
 
 export default function EditItem() {
   const { validate, onSubmit, item, loading } = useEditItem();
@@ -28,13 +28,16 @@ export default function EditItem() {
       </Box>
     );
   }
+
   return (
     <Formik
       enableReinitialize
       initialValues={{
-        name: item.name ?? "",
-        description: item.description ?? "",
-        committed: item.committed ?? "",
+        name: item?.name ?? "",
+        description: item?.description ?? "",
+        itemCode: item?.itemCode ?? "",
+        sellPrice: item?.sellPrice?.toString() ?? "",
+        purchasePrice: item?.purchasePrice?.toString() ?? "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -52,7 +55,36 @@ export default function EditItem() {
                 label={"name"}
                 optional={false}
                 type={"text"}
-                error={touched.name ? errors.name : ""}
+                error={touched.name ? errors.name : ("" as any)}
+              />,
+              <FormInput
+                id={"itemCode"}
+                name={"itemCode"}
+                placeholder={"Item Code"}
+                label={"itemCode"}
+                optional={false}
+                type={"text"}
+                error={touched.itemCode ? errors.itemCode : ("" as any)}
+              />,
+              <FormInput
+                id={"sellPrice"}
+                name={"sellPrice"}
+                placeholder={"Sell Price"}
+                label={"sellPrice"}
+                optional={false}
+                type={"number"}
+                error={touched.sellPrice ? errors.sellPrice : ("" as any)}
+              />,
+              <FormInput
+                id={"purchasePrice"}
+                name={"purchasePrice"}
+                placeholder={"Purchase Price"}
+                label={"purchasePrice"}
+                optional={false}
+                type={"number"}
+                error={
+                  touched.purchasePrice ? errors.purchasePrice : ("" as any)
+                }
               />,
               <FormInput
                 id={"description"}

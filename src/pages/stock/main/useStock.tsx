@@ -4,6 +4,7 @@ import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
+import { getStockStyles } from "utils/getColors";
 import {
   getDateTimeFormatted,
   initialRowsPerPage,
@@ -102,7 +103,22 @@ export function useStock() {
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.item.name}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.warehouse.name}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.quantity}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "4px 12px",
+              borderRadius: 6,
+              fontSize: 14,
+              ...getStockStyles(row.quantity),
+            }}
+          >
+            {row.quantity}
+          </div>
+        </TableCell>
+
         <TableCell sx={{ minWidth: 200 }}>
           {getDateTimeFormatted(row.updated_at, true)}
         </TableCell>

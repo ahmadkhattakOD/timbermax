@@ -26,16 +26,36 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Description",
   },
+  {
+    id: "itemCode",
+    numeric: false,
+    disablePadding: false,
+    label: "Item Code",
+  },
+  {
+    id: "sellPrice",
+    numeric: true,
+    disablePadding: false,
+    label: "Sell Price",
+  },
+  {
+    id: "purchasePrice",
+    numeric: true,
+    disablePadding: false,
+    label: "Purchase Price",
+  },
 ];
 
 export interface ValuesFilterItems {
   name: string;
   description: string;
+  itemCode: string;
 }
 
 const initialFilters: ValuesFilterItems = {
   name: "",
   description: "",
+  itemCode: "",
 };
 
 export function useItems() {
@@ -97,6 +117,13 @@ export function useItems() {
           {row.committed}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.description}</TableCell>
+        <TableCell sx={{ minWidth: 120 }}>{row.itemCode}</TableCell>
+        <TableCell sx={{ minWidth: 120 }} align="right">
+          ${row.sellPrice ? row.sellPrice.toFixed(2) : "0.00"}
+        </TableCell>
+        <TableCell sx={{ minWidth: 140 }} align="right">
+          ${row.purchasePrice ? row.purchasePrice.toFixed(2) : "0.00"}
+        </TableCell>
       </React.Fragment>
     );
   }
@@ -177,12 +204,14 @@ export function useItems() {
 
   function getDataCsv() {
     try {
-      let csvString = "";
+      let csvString = "Name,Description,Item Code,Sell Price,Purchase Price\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let item = data[i] as any;
-          csvString += `${item?.name ?? ""},${item?.description ?? ""}\n`;
+          csvString += `${item?.name ?? ""},${item?.description ?? ""},${
+            item?.itemCode ?? ""
+          },${item?.sellPrice ?? ""},${item?.purchasePrice ?? ""}\n`;
         }
 
         setCsvData(csvString);

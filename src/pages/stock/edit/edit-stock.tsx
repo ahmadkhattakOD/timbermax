@@ -52,7 +52,7 @@ export default function EditStock() {
                 label={"item"}
                 useFormattedStrings={false}
                 optional={false}
-                error={touched.item ? errors.item : ""}
+                error={touched?.item ? errors?.item : ("" as any)}
                 options={items.map((item) => {
                   return { label: item.name, value: item.id.toString() };
                 })}
@@ -63,7 +63,7 @@ export default function EditStock() {
                 label={"warehouse"}
                 useFormattedStrings={false}
                 optional={false}
-                error={touched.warehouse ? errors.warehouse : ""}
+                error={touched.warehouse ? errors.warehouse : ("" as any)}
                 options={warehouses.map((warehouse) => {
                   return {
                     label: warehouse.name,
@@ -78,7 +78,7 @@ export default function EditStock() {
                 label={"quantity"}
                 type={"number"}
                 optional={false}
-                error={touched.quantity ? errors.quantity : ""}
+                error={touched.quantity ? errors.quantity : ("" as any)}
               />,
             ]}
           />

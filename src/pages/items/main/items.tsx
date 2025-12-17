@@ -142,6 +142,13 @@ export default function Items() {
                       label={"description"}
                       type={"text"}
                     />,
+                    <FormInput
+                      id={"itemCode"}
+                      name={"itemCode"}
+                      placeholder={"Item Code"}
+                      label={"itemCode"}
+                      type={"text"}
+                    />,
                   ]}
                   showSubmitButton={false}
                 />

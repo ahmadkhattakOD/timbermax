@@ -27,7 +27,6 @@ const icons = {
   deliveries: Truck,
   items: ForwardItem,
   stock: ClipboardTick,
-  shows: Briefcase,
   warehouses: House2,
   opportunityDescriptions: NoteSquare,
   contactus: I24Support,

@@ -29,10 +29,10 @@ const LoginRoutes = {
           path: 'login',
           element: <AuthLogin />
         },
-        // {
-        //   path: 'register',
-        //   element: <AuthRegister />
-        // },
+        {
+          path: 'register',
+          element: <AuthRegister />
+        },
         {
           path: 'forgot-password',
           element: <AuthForgotPassword />
