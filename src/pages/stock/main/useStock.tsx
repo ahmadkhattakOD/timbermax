@@ -1,4 +1,4 @@
-import { Checkbox, TableCell, Typography, Chip, Box, Tooltip, IconButton } from "@mui/material";
+import { Checkbox, TableCell, Typography, Chip, Box, Tooltip, IconButton, Modal } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
@@ -13,7 +13,8 @@ import {
 import ItemsRepository from "utils/repositories/itemsRepository";
 import StocksRepository from "utils/repositories/stocksRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
-import { Eye } from "iconsax-react";
+import { Eye, EyeSlash } from "iconsax-react";
+import StockReservationsModal from "components/stock-reservation-modal";
 
 const headCells: HeadCell[] = [
   {
@@ -51,12 +52,6 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Status",
-  },
-  {
-    id: "reference",
-    numeric: false,
-    disablePadding: true,
-    label: "Held For",
   },
   {
     id: "updated_at",
@@ -108,9 +103,11 @@ export function useStock() {
   const [filters, setFilters] = useState<ValuesFilterStock>(initialFilters);
   const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const csvLink = useRef<any>();
   const navigate = useNavigate();
-  const location = useLocation(); // Use React Router's location hook
+  const location = useLocation();
 
   function goToCreate() {
     navigate("/stock/new");
@@ -121,7 +118,6 @@ export function useStock() {
   }
 
   function goToStatus(status: string) {
-    // Update URL with status filter
     const params = new URLSearchParams(location.search);
     params.set('status', status);
     navigate(`/stock?${params.toString()}`);
@@ -156,18 +152,6 @@ export function useStock() {
       }
     };
 
-    const getReferenceLabel = (row: any) => {
-      if (!row.reference_type || row.reference_type === 'none' || !row.reference_id) {
-        return "None";
-      }
-      
-      const type = row.reference_type === 'quotation' ? 'Quotation' : 
-                   row.reference_type === 'invoice' ? 'Invoice' : 
-                   row.reference_type === 'sales_order' ? 'Sales Order' : row.reference_type;
-      
-      return `${type} #${row.reference_id}`;
-    };
-
     return (
       <React.Fragment>
         <TableCell padding="checkbox">
@@ -198,12 +182,29 @@ export function useStock() {
           </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
-          <Chip 
-            label={reserved.toFixed(2)} 
-            size="small"
-            color={reserved > 0 ? "warning" : "default"}
-            variant={reserved > 0 ? "filled" : "outlined"}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Chip 
+              label={reserved.toFixed(2)} 
+              size="small"
+              color={reserved > 0 ? "warning" : "default"}
+              variant={reserved > 0 ? "filled" : "outlined"}
+            />
+            {reserved > 0 && (
+              <Tooltip title="View Reservations">
+                <IconButton 
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewReservations(row);
+                  }}
+                  color="primary"
+                  sx={{ ml: 1 }}
+                >
+                  <Eye size={14} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <div
@@ -229,22 +230,17 @@ export function useStock() {
           />
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
-          <Typography variant="body2">
-            {getReferenceLabel(row)}
-          </Typography>
-        </TableCell>
-        <TableCell sx={{ minWidth: 150 }}>
           {getDateTimeFormatted(row.updated_at, true)}
         </TableCell>
         <TableCell sx={{ minWidth: 100 }}>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            {row.reference_type && row.reference_type !== 'none' && row.reference_id && (
-              <Tooltip title={`View ${row.reference_type === 'quotation' ? 'Quotation' : 'Invoice'}`}>
+            {reserved > 0 && (
+              <Tooltip title="View Reservations">
                 <IconButton 
                   size="small" 
                   onClick={(e) => {
                     e.stopPropagation();
-                    viewReference(row.reference_type, row.reference_id);
+                    handleViewReservations(row);
                   }}
                   color="info"
                 >
@@ -258,39 +254,28 @@ export function useStock() {
     );
   }
 
-  async function viewReference(referenceType: string, referenceId: number) {
-    try {
-      if (referenceType === 'quotation') {
-        navigate(`/quotations/view/${referenceId}`);
-      } else if (referenceType === 'invoice') {
-        navigate(`/invoices/view/${referenceId}`);
-      } else {
-        openSnackbar({
-          open: true,
-          message: `Cannot view ${referenceType}.`,
-          variant: "alert",
-          alert: { color: "warning" },
-        } as SnackbarProps);
-      }
-    } catch (error: any) {
-      console.error("Error viewing reference:", error);
-      openSnackbar({
-        open: true,
-        message: `Failed to view reference: ${error.message}`,
-        variant: "alert",
-        alert: { color: "error" },
-      } as SnackbarProps);
-    }
-  }
+  const handleViewReservations = (stockRow: any) => {
+    setSelectedItem({
+      id: stockRow.item?.id,
+      warehouseId: stockRow.warehouse?.id || 1,
+      name: stockRow.item?.name || "Unknown Item",
+      code: stockRow.item?.itemCode || "N/A"
+    });
+    setReservationModalOpen(true);
+  };
+
+  const handleCloseReservationModal = () => {
+    setReservationModalOpen(false);
+    setSelectedItem(null);
+  };
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setSearchValue(value);
     
-    // Update filters for item name search
     if (value.trim()) {
       let temp = { ...filters };
-      temp.item = value; // This will search by item name
+      temp.item = value;
       setFilters(temp);
     } else {
       let temp = { ...filters };
@@ -351,7 +336,6 @@ export function useStock() {
       const rangeStart = rowsPerPage * page;
       const rangeEnd = rangeStart + rowsPerPage;
       
-      // Get stocks with all fields including reserved, status, and references
       const stocks = await stocksRepository.get(
         orderBy,
         order === "asc",
@@ -375,13 +359,10 @@ export function useStock() {
     }
   }
 
-  // Sync URL with filters and fetch data when URL changes
   useEffect(() => {
-    // Parse URL parameters and update filters
     const params = new URLSearchParams(location.search);
     const newFilters = { ...initialFilters };
     
-    // Update filters from URL
     if (params.has('status')) newFilters.status = params.get('status') || '';
     if (params.has('item')) newFilters.item = params.get('item') || '';
     if (params.has('warehouse')) newFilters.warehouse = params.get('warehouse') || '';
@@ -390,20 +371,18 @@ export function useStock() {
     if (params.has('updatedAtFrom')) newFilters.updatedAtFrom = params.get('updatedAtFrom') || '';
     if (params.has('updatedAtTo')) newFilters.updatedAtTo = params.get('updatedAtTo') || '';
     
-    // Only update if filters actually changed
     if (JSON.stringify(newFilters) !== JSON.stringify(filters)) {
       setFilters(newFilters);
     }
-  }, [location.search]); // Run when URL search changes
+  }, [location.search]);
 
-  // Fetch data when filters change
   useEffect(() => {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
   function getDataCsv() {
     try {
-      let csvString = "Item,Item Code,Warehouse,Total Quantity,Reserved,Available,Status,Held For,Reference ID,Updated At\n";
+      let csvString = "Item,Item Code,Warehouse,Total Quantity,Reserved,Available,Status,Updated At\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
@@ -412,7 +391,7 @@ export function useStock() {
           const reserved = parseFloat(stock.reserved) || 0;
           const available = quantity - reserved;
           
-          csvString += `"${stock?.item?.name ?? ''}","${stock?.item?.itemCode ?? ''}","${stock?.warehouse?.name ?? ''}",${quantity},${reserved},${available},"${stock?.status ?? ''}","${stock?.reference_type === 'quotation' ? 'Quotation' : stock?.reference_type === 'invoice' ? 'Invoice' : stock?.reference_type || 'None'}","${stock?.reference_id || ''}","${stock?.updated_at ?? ''}"\n`;
+          csvString += `"${stock?.item?.name ?? ''}","${stock?.item?.itemCode ?? ''}","${stock?.warehouse?.name ?? ''}",${quantity},${reserved},${available},"${stock?.status ?? ''}","${stock?.updated_at ?? ''}"\n`;
         }
 
         setCsvData(csvString);
@@ -438,7 +417,6 @@ export function useStock() {
       setFilters(values);
       setFilterModalOpen(false);
       
-      // Update URL with new filters
       const params = new URLSearchParams();
       Object.entries(values).forEach(([key, value]) => {
         if (value) params.set(key, value);
@@ -453,7 +431,7 @@ export function useStock() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
-    navigate('/stock'); // Clear URL parameters
+    navigate('/stock');
   }
 
   async function getFilterData() {
@@ -502,6 +480,8 @@ export function useStock() {
     searchValue,
     csvData,
     csvLink,
+    reservationModalOpen,
+    selectedItem,
     
     // State setters
     setOrder,
@@ -526,7 +506,8 @@ export function useStock() {
     resetFilters,
     getDataCsv,
     handleSearchDebounced,
-    viewReference,
+    handleViewReservations,
+    handleCloseReservationModal,
     
     // Constants
     headCells,

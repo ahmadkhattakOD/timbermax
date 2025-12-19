@@ -48,6 +48,7 @@ export function useCreateQuotation() {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
   const [availableStock, setAvailableStock] = useState<Record<number, number>>({});
+  const [stockReservations, setStockReservations] = useState<Record<number, number>>({});
 
   const totalAmount = selectedItems.reduce((sum, item) => 
     sum + (parseFloat(item.quantity) * parseFloat(item.unit_price)), 0
@@ -80,8 +81,10 @@ export function useCreateQuotation() {
   async function checkStockAvailability() {
     const stocksRepo = new StocksRepository();
     const stockMap: Record<number, number> = {};
+    const reservationMap: Record<number, number> = {};
     
     for (const item of items) {
+      // Get total available stock
       const result = await stocksRepo.getAvailableStock(item.id, 1);
       if (result.success) {
         stockMap[item.id] = result.totalAvailable || 0;
@@ -89,9 +92,16 @@ export function useCreateQuotation() {
         console.warn(`Failed to get stock for item ${item.id}:`, result.error);
         stockMap[item.id] = 0;
       }
+      
+      // Get already reserved quantity for this item (from other quotations)
+      const reservedResult = await stocksRepo.getTotalReservedForItem(item.id, 1);
+      if (reservedResult.success) {
+        reservationMap[item.id] = reservedResult.totalReserved || 0;
+      }
     }
     
     setAvailableStock(stockMap);
+    setStockReservations(reservationMap);
   }
 
   const addItem = (item: any) => {
@@ -102,20 +112,9 @@ export function useCreateQuotation() {
       // Update existing item quantity
       const updatedItems = [...selectedItems];
       const newQuantity = parseFloat(updatedItems[existingIndex].quantity) + 1;
-      const available = availableStock[item.item_id] || 0;
       
-      // Check if total requested exceeds available
-      const totalRequested = selectedItems
-        .filter(i => i.item_id === item.item_id)
-        .reduce((sum, i) => sum + parseFloat(i.quantity), 0) + 1;
-      
-      if (totalRequested > available) {
-        openSnackbar({
-          open: true,
-          message: `Cannot add more of "${item.name}". Only ${available} available.`,
-          variant: "alert",
-          alert: { color: "error" },
-        } as SnackbarProps);
+      // Check stock availability
+      if (!checkItemAvailability(item.item_id, newQuantity)) {
         return;
       }
       
@@ -124,14 +123,7 @@ export function useCreateQuotation() {
       setSelectedItems(updatedItems);
     } else {
       // Add new item
-      const available = availableStock[item.item_id] || 0;
-      if (available <= 0) {
-        openSnackbar({
-          open: true,
-          message: `Item "${item.name}" is out of stock!`,
-          variant: "alert",
-          alert: { color: "error" },
-        } as SnackbarProps);
+      if (!checkItemAvailability(item.item_id, 1)) {
         return;
       }
       
@@ -144,6 +136,35 @@ export function useCreateQuotation() {
     }
   };
 
+  // Helper function to check item availability
+  const checkItemAvailability = (itemId: number, requestedQuantity: number) => {
+    const available = availableStock[itemId] || 0;
+    const alreadyReserved = stockReservations[itemId] || 0;
+    
+    // Calculate total requested from current selection
+    const currentRequested = selectedItems
+      .filter(i => i.item_id === itemId)
+      .reduce((sum, i) => sum + parseFloat(i.quantity), 0);
+    
+    const totalNeeded = currentRequested + requestedQuantity;
+    
+    // Check if we have enough stock considering both available and already reserved
+    if (totalNeeded > available) {
+      const netAvailable = Math.max(0, available - alreadyReserved);
+      if (netAvailable < requestedQuantity) {
+        openSnackbar({
+          open: true,
+          message: `Insufficient stock. Only ${netAvailable} available (${available} total - ${alreadyReserved} already reserved).`,
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const removeItem = (index: number) => {
     setSelectedItems(selectedItems.filter((_, i) => i !== index));
   };
@@ -154,10 +175,6 @@ export function useCreateQuotation() {
     
     if (field === 'quantity') {
       const newQuantity = parseFloat(value);
-      const available = availableStock[item.item_id] || 0;
-      const totalRequested = selectedItems
-        .filter((i, idx) => idx !== index && i.item_id === item.item_id)
-        .reduce((sum, i) => sum + parseFloat(i.quantity), 0) + newQuantity;
       
       if (newQuantity < 1) {
         openSnackbar({
@@ -169,13 +186,8 @@ export function useCreateQuotation() {
         return;
       }
       
-      if (totalRequested > available) {
-        openSnackbar({
-          open: true,
-          message: `Cannot select ${value} items. Only ${available} available. ${totalRequested - newQuantity} already selected.`,
-          variant: "alert",
-          alert: { color: "error" },
-        } as SnackbarProps);
+      // Check availability
+      if (!checkItemAvailability(item.item_id, newQuantity)) {
         return;
       }
       
@@ -209,17 +221,23 @@ export function useCreateQuotation() {
 
     if (selectedItems.length === 0) {
       // You can add error for items if needed
+      openSnackbar({
+        open: true,
+        message: "Please add at least one item to the quotation",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+      return errors;
     }
 
     // Validate stock availability
     for (const item of selectedItems) {
-      const available = availableStock[item.item_id] || 0;
-      const totalRequested = selectedItems
-        .filter(i => i.item_id === item.item_id)
-        .reduce((sum, i) => sum + parseFloat(i.quantity), 0);
+      const itemId = item.item_id;
+      const requestedQuantity = parseFloat(item.quantity);
       
-      if (totalRequested > available) {
-        // Optional: Add error handling
+      if (!checkItemAvailability(itemId, requestedQuantity)) {
+        // Error will be shown by checkItemAvailability
+        return errors;
       }
     }
 
@@ -230,18 +248,10 @@ export function useCreateQuotation() {
     try {
       // Final stock validation before submission
       for (const item of selectedItems) {
-        const available = availableStock[item.item_id] || 0;
-        const totalRequested = selectedItems
-          .filter(i => i.item_id === item.item_id)
-          .reduce((sum, i) => sum + parseFloat(i.quantity), 0);
+        const itemId = item.item_id;
+        const requestedQuantity = parseFloat(item.quantity);
         
-        if (totalRequested > available) {
-          openSnackbar({
-            open: true,
-            message: `Insufficient stock for "${item.name}". Available: ${available}, Requested: ${totalRequested}`,
-            variant: "alert",
-            alert: { color: "error" },
-          } as SnackbarProps);
+        if (!checkItemAvailability(itemId, requestedQuantity)) {
           return;
         }
       }
@@ -290,71 +300,57 @@ export function useCreateQuotation() {
         total: totalAmount,
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
-        status: 'draft'
+        status: 'draft' // Always start as draft
       };
 
+      // Use the new method that handles stock reservation
       const quotationsRepo = new QuotationsRepository();
-      const createdQuotation = await quotationsRepo.create(newQuotation);
+      
+      // Prepare items for reservation
+      const itemsForReservation = selectedItems.map(item => ({
+        item_id: item.item_id,
+        quantity: parseFloat(item.quantity)
+      }));
 
-      if (!createdQuotation) {
+      // Create quotation with stock reservation
+      const result = await quotationsRepo.createWithStockReservation(
+        newQuotation,
+        itemsForReservation
+      );
+
+      if (!result.success) {
         openSnackbar({
           open: true,
-          message: "Quotation could not be created. Please try again.",
+          message: `Quotation could not be created: ${result.error}`,
           variant: "alert",
           alert: { color: "error" },
         } as SnackbarProps);
         return;
       }
 
-      const stocksRepo = new StocksRepository();
-      const quotationId = createdQuotation.id;
-      let hasError = false;
-      let errorMessage = "";
+      // Add items to quotation_items table
+      const quotationId = result.quotation?.id;
+      if (!quotationId) {
+        openSnackbar({
+          open: true,
+          message: "Failed to get quotation ID",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
 
-      // Add items and reserve stock
+      // Add each item to quotation_items
       for (const item of selectedItems) {
         const itemQuantity = parseFloat(item.quantity);
         const itemUnitPrice = parseFloat(item.unit_price);
         
-        // Add item to quotation
-        const addedItem = await quotationsRepo.addItem({
+        await quotationsRepo.addItem({
           quotation_id: quotationId,
           item_id: item.item_id,
           quantity: itemQuantity,
           unit_price: itemUnitPrice
         });
-
-        if (!addedItem) {
-          hasError = true;
-          errorMessage = `Failed to add item "${item.name}" to quotation`;
-          break;
-        }
-
-        // Reserve stock for quotation
-        const reserveResult = await stocksRepo.reserveForQuotation(
-          item.item_id,
-          1, // default warehouse
-          itemQuantity,
-          quotationId
-        );
-
-        if (!reserveResult.success) {
-          hasError = true;
-          errorMessage = `Failed to reserve stock for "${item.name}". ${reserveResult.error}`;
-          break;
-        }
-      }
-
-      if (hasError) {
-        // Rollback: delete the quotation if any step fails
-        await quotationsRepo.delete([quotationId]);
-        openSnackbar({
-          open: true,
-          message: errorMessage,
-          variant: "alert",
-          alert: { color: "error" },
-        } as SnackbarProps);
-        return;
       }
 
       openSnackbar({
@@ -442,6 +438,11 @@ export function useCreateQuotation() {
       checkStockAvailability();
     }
   }, [items]);
+
+  // Re-check availability when selected items change
+  useEffect(() => {
+    checkStockAvailability();
+  }, [selectedItems]);
 
   return {
     validate,

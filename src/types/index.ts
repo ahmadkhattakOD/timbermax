@@ -63,7 +63,7 @@ export interface Quotation {
   quotation_number: string;
   customer_id: number;
   customer?: Customer;
-  status: 'draft' | 'sent' | 'accepted' | 'converted' | 'cancelled';
+  status: 'draft' | 'sent' | 'accepted' | 'converted' | 'cancelled' | 'approved';
   total: number;
   subtotal?: number;
   tax?: number;

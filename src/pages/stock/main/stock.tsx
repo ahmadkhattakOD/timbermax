@@ -12,6 +12,7 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
+import StockReservationsModal from "components/stock-reservation-modal"; 
 
 export default function Stock() {
   const {
@@ -52,6 +53,9 @@ export default function Stock() {
     setSearchValue,
     handleSearchDebounced,
     goToStatus,
+    reservationModalOpen,
+    selectedItem,
+    handleCloseReservationModal,
   } = useStock();
 
   return (
@@ -82,10 +86,6 @@ export default function Stock() {
               <ActionButton
                 text="On Hold Stock"
                 onClick={() => goToStatus("on_hold")}
-              />
-              <ActionButton
-                text="Committed Stock"
-                onClick={() => goToStatus("committed")}
               />
               <ActionButton text="Move Stock" onClick={goToMove} />
               {hasNonEmptyValue(filters) ? (
@@ -241,6 +241,18 @@ export default function Stock() {
         ref={csvLink}
         target="_blank"
       />
+      
+      {/* Add Stock Reservations Modal */}
+      {selectedItem && (
+        <StockReservationsModal
+          open={reservationModalOpen}
+          onClose={handleCloseReservationModal}
+          itemId={selectedItem.id}
+          warehouseId={selectedItem.warehouseId}
+          itemName={selectedItem.name}
+          itemCode={selectedItem.code}
+        />
+      )}
     </Box>
   );
 }

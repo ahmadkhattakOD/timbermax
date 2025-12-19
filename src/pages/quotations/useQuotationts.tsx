@@ -9,16 +9,19 @@ import {
   IconButton,
   Tooltip,
   Box,
+  Button,
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import {
+  AddCircle,
   CloseCircle,
   DocumentDownload,
   Edit,
   Eye,
   EyeSlash,
   Receipt,
+  Send,
   Xd,
 } from "iconsax-react";
 import {
@@ -34,7 +37,18 @@ import {
 import QuotationsRepository from "utils/repositories/quotationRepo";
 import { ValuesFilterQuotations } from "types";
 import StocksRepository from "utils/repositories/stocksRepository";
-
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 // Add these missing icon imports
 // import { Download, Visibility, Close, Receipt } from "@mui/icons-material";
 import { SnackbarProps } from "types/snackbar";
@@ -109,6 +123,9 @@ export function useQuotations() {
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [itemsModalOpen, setItemsModalOpen] = useState(false);
+  const [currentQuotationItems, setCurrentQuotationItems] = useState<any[]>([]);
+  const [currentQuotationInfo, setCurrentQuotationInfo] = useState<any>(null);
   const [filters, setFilters] =
     useState<ValuesFilterQuotations>(initialFilters);
   const [searchValue, setSearchValue] = useState("");
@@ -129,20 +146,207 @@ export function useQuotations() {
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+  // Add this function to show items in a modal
+  async function viewItemsModal(quotationId: number) {
+    try {
+      const quotationsRepo = new QuotationsRepository();
+      const quotation = await quotationsRepo.getSingle(quotationId);
 
+      if (!quotation?.quotationData) {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "Quotation not found.",
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "error" as any,
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+        return;
+      }
+
+      const items = quotation.quotationData.quotation_items || [];
+
+      if (items.length === 0) {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "No items found in this quotation.",
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "info" as any,
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+        return;
+      }
+
+      // Format items for display
+      const formattedItems = items.map((item: any, index: number) => ({
+        id: index + 1,
+        name: item.items?.name || "Unknown",
+        code: item.items?.itemCode || "N/A",
+        quantity: parseFloat(item.quantity) || 0,
+        unitPrice: parseFloat(item.unit_price) || 0,
+        total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
+      }));
+
+      setCurrentQuotationItems(formattedItems);
+      setCurrentQuotationInfo({
+        quotationNumber: quotation.quotationData.quotation_number,
+        customerName: quotation.quotationData.customers?.name,
+        total: quotation.quotationData.total,
+      });
+      setItemsModalOpen(true);
+    } catch (error: any) {
+      console.error("Error viewing quotation items:", error);
+      openSnackbar({
+        action: false,
+        open: true,
+        message: `Failed to load quotation items: ${error.message}`,
+        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        variant: "alert",
+        alert: {
+          color: "error" as any,
+          variant: "filled",
+        },
+        transition: "Fade",
+        close: true,
+        actionButton: false,
+      } as SnackbarProps);
+    }
+  }
+
+  // Add function to close the items modal
+  function closeItemsModal() {
+    setItemsModalOpen(false);
+    setCurrentQuotationItems([]);
+    setCurrentQuotationInfo(null);
+  }
+
+  // Add this component to your return statement at the bottom
+  const ItemsModal = () => (
+    <Dialog
+      open={itemsModalOpen}
+      onClose={closeItemsModal}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          maxHeight: "70vh",
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: "1px solid #e0e0e0",
+          pb: 2,
+        }}
+      >
+        <Box>
+          <Typography variant="h6" component="div">
+            Quotation Items
+          </Typography>
+          {currentQuotationInfo && (
+            <Typography variant="body2" color="text.secondary">
+              {currentQuotationInfo.quotationNumber} -{" "}
+              {currentQuotationInfo.customerName}
+            </Typography>
+          )}
+        </Box>
+      </DialogTitle>
+
+      <DialogContent sx={{ pt: 3, pb: 2 }}>
+        <TableContainer component={Paper} variant="outlined">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>#</TableCell>
+                <TableCell>Item Name</TableCell>
+                <TableCell>Code</TableCell>
+                <TableCell align="right">Quantity</TableCell>
+                <TableCell align="right">Unit Price</TableCell>
+                <TableCell align="right">Total</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {currentQuotationItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.id}</TableCell>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.code}</TableCell>
+                  <TableCell align="right">
+                    {item.quantity.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right">
+                    ${item.unitPrice.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography fontWeight={600}>
+                      ${item.total.toFixed(2)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableCell colSpan={5} align="right">
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Grand Total:
+                  </Typography>
+                </TableCell>
+                <TableCell align="right">
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    ${currentQuotationInfo?.total?.toFixed(2) || "0.00"}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </DialogContent>
+
+      <DialogActions
+        sx={{
+          borderTop: "1px solid #e0e0e0",
+          pt: 2,
+          pb: 2,
+          px: 3,
+        }}
+      >
+        <Button onClick={closeItemsModal} color="primary">
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  // Add status buttons to the generateTableCells function
+  // In hooks/useQuotations.ts - update the generateTableCells function
   function generateTableCells(
     row: Quotation,
     labelId: string,
     isItemSelected: boolean
   ) {
     const itemsCount = row.quotation_items?.length || 0;
-    const isConvertable =
-      row.status === "draft" ||
-      row.status === "sent" ||
-      row.status === "accepted";
+    const isConvertable = row.status === "approved";
     const isCancellable =
       row.status !== "cancelled" && row.status !== "converted";
-    const isEditable = row.status === "draft" || row.status === "sent";
+    const isEditable = row.status === "draft";
+    const canMarkSent = row.status === "draft";
+    const canMarkApproved = row.status === "sent";
 
     return (
       <>
@@ -173,7 +377,7 @@ export function useQuotations() {
           <Typography
             sx={{
               color:
-                row.status === "accepted"
+                row.status === "approved"
                   ? theme.palette.success.main
                   : row.status === "sent"
                     ? theme.palette.info.main
@@ -195,9 +399,9 @@ export function useQuotations() {
         <TableCell sx={{ minWidth: 150 }}>
           {getDateFormatted(row.created_at)}
         </TableCell>
-        <TableCell sx={{ minWidth: 280 }}>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            {/* Edit Button (only for draft and sent quotations) */}
+        <TableCell sx={{ minWidth: 350 }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            {/* Edit Button (only for draft quotations) */}
             {isEditable && (
               <Tooltip title="Edit Quotation">
                 <IconButton
@@ -213,33 +417,53 @@ export function useQuotations() {
               </Tooltip>
             )}
 
-            {/* View Items Button */}
-            <Tooltip title="View Items">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  viewItems(row.id);
-                }}
-                color="info"
-              >
-                <Eye size={18} />
-              </IconButton>
-            </Tooltip>
+            {/* Mark as Sent Button (only for draft) */}
+            {canMarkSent && (
+              <Tooltip title="Mark as Sent">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsSent(row.id);
+                  }}
+                  color="info"
+                >
+                  <Send size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
 
-            {/* Preview PDF Button */}
-            <Tooltip title="Preview PDF">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  previewQuotationPDF(row.id);
-                }}
-                color="secondary"
-              >
-                <EyeSlash fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            {/* Mark as Approved Button (only for sent) */}
+            {canMarkApproved && (
+              <Tooltip title="Mark as Approved">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsApproved(row.id);
+                  }}
+                  color="success"
+                >
+                  <AddCircle size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* View Items Button - Always show if there are items */}
+            {itemsCount > 0 && (
+              <Tooltip title="View Items">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    viewItemsModal(row.id);
+                  }}
+                  color="info"
+                >
+                  <Eye size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
 
             {/* Download PDF Button */}
             <Tooltip title="Download PDF">
@@ -251,27 +475,11 @@ export function useQuotations() {
                 }}
                 color="primary"
               >
-                <DocumentDownload fontSize="small" />
+                <DocumentDownload size={18} />
               </IconButton>
             </Tooltip>
 
-            {/* Cancel Button (only for non-cancelled, non-converted quotations) */}
-            {isCancellable && (
-              <Tooltip title="Cancel Quotation">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    cancelQuotation(row.id);
-                  }}
-                  color="error"
-                >
-                  <CloseCircle fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Convert to Invoice Button (only for convertible quotations) */}
+            {/* Convert to Invoice Button (only for approved quotations) */}
             {isConvertable && (
               <Tooltip title="Convert to Invoice">
                 <IconButton
@@ -282,7 +490,23 @@ export function useQuotations() {
                   }}
                   color="success"
                 >
-                  <Receipt fontSize="small" />
+                  <Receipt size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Cancel Button (only for non-cancelled quotations) */}
+            {isCancellable && (
+              <Tooltip title="Cancel Quotation">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelQuotation(row.id);
+                  }}
+                  color="error"
+                >
+                  <CloseCircle size={18} />
                 </IconButton>
               </Tooltip>
             )}
@@ -290,6 +514,187 @@ export function useQuotations() {
         </TableCell>
       </>
     );
+  }
+
+  // Add new functions to useQuotations hook
+  async function markAsSent(quotationId: number) {
+    try {
+      const quotationsRepo = new QuotationsRepository();
+      const result = await quotationsRepo.updateStatus(quotationId, "sent");
+
+      if (result.success) {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "Quotation marked as sent",
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "success",
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+        await getData();
+      } else {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: `Failed to mark as sent: ${result.error}`,
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "error",
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+      }
+    } catch (error: any) {
+      console.error("Error marking quotation as sent:", error);
+      openSnackbar({
+        action: false,
+        open: true,
+        message: `Failed to mark as sent: ${error.message}`,
+        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        variant: "alert",
+        alert: {
+          color: "error",
+          variant: "filled",
+        },
+        transition: "Fade",
+        close: true,
+        actionButton: false,
+      } as SnackbarProps);
+    }
+  }
+
+  async function markAsApproved(quotationId: number) {
+    try {
+      const quotationsRepo = new QuotationsRepository();
+      const result = await quotationsRepo.updateStatus(quotationId, "approved");
+
+      if (result.success) {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "Quotation marked as approved",
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "success",
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+        await getData();
+      } else {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: `Failed to mark as approved: ${result.error}`,
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "error",
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+      }
+    } catch (error: any) {
+      console.error("Error marking quotation as approved:", error);
+      openSnackbar({
+        action: false,
+        open: true,
+        message: `Failed to mark as approved: ${error.message}`,
+        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        variant: "alert",
+        alert: {
+          color: "error",
+          variant: "filled",
+        },
+        transition: "Fade",
+        close: true,
+        actionButton: false,
+      } as SnackbarProps);
+    }
+  }
+
+  // Update cancelQuotation function
+  async function cancelQuotation(quotationId: number) {
+    if (
+      !window.confirm(
+        "Are you sure you want to cancel this quotation? This will release any reserved stock."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const quotationsRepo = new QuotationsRepository();
+      const result = await quotationsRepo.updateStatus(
+        quotationId,
+        "cancelled"
+      );
+
+      if (result.success) {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: "Quotation cancelled successfully",
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "success",
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+        await getData();
+      } else {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: `Failed to cancel quotation: ${result.error}`,
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "error",
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+      }
+    } catch (error: any) {
+      console.error("Error cancelling quotation:", error);
+      openSnackbar({
+        action: false,
+        open: true,
+        message: `Failed to cancel quotation: ${error.message}`,
+        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        variant: "alert",
+        alert: {
+          color: "error",
+          variant: "filled",
+        },
+        transition: "Fade",
+        close: true,
+        actionButton: false,
+      } as SnackbarProps);
+    }
   }
 
   function openDeleteConfirmModal() {
@@ -751,122 +1156,6 @@ export function useQuotations() {
     }
   }
 
-  // Cancel quotation - FIXED SNACKBAR TYPES
-  async function cancelQuotation(quotationId: number) {
-    if (
-      !window.confirm(
-        "Are you sure you want to cancel this quotation? This will release any reserved stock."
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const quotationsRepo = new QuotationsRepository();
-      const result = await quotationsRepo.updateStatus(
-        quotationId,
-        "cancelled"
-      );
-
-      if (result) {
-        // Release stock from cancellation
-        const stocksRepo = new StocksRepository();
-        const releaseResult =
-          await stocksRepo.releaseAllFromQuotation(quotationId);
-
-        if (releaseResult.success) {
-          openSnackbar({
-            action: false,
-            open: true,
-            message: `Quotation cancelled successfully. Released ${releaseResult.totalReleased || 0} units of stock.`,
-            anchorOrigin: { vertical: "bottom", horizontal: "right" },
-            variant: "alert",
-            alert: {
-              color: "success" as
-                | "success"
-                | "info"
-                | "warning"
-                | "error"
-                | "primary"
-                | "secondary",
-              variant: "filled",
-            },
-            transition: "Fade",
-            close: true,
-            actionButton: false,
-          } as SnackbarProps);
-        } else {
-          openSnackbar({
-            action: false,
-            open: true,
-            message: `Quotation cancelled but failed to release stock: ${releaseResult.error}`,
-            anchorOrigin: { vertical: "bottom", horizontal: "right" },
-            variant: "alert",
-            alert: {
-              color: "warning" as
-                | "success"
-                | "info"
-                | "warning"
-                | "error"
-                | "primary"
-                | "secondary",
-              variant: "filled",
-            },
-            transition: "Fade",
-            close: true,
-            actionButton: false,
-          } as SnackbarProps);
-        }
-
-        // Refresh data
-        await getData();
-      } else {
-        openSnackbar({
-          action: false,
-          open: true,
-          message: "Failed to cancel quotation.",
-          anchorOrigin: { vertical: "bottom", horizontal: "right" },
-          variant: "alert",
-          alert: {
-            color: "error" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
-            variant: "filled",
-          },
-          transition: "Fade",
-          close: true,
-          actionButton: false,
-        } as SnackbarProps);
-      }
-    } catch (error: any) {
-      console.error("Error cancelling quotation:", error);
-      openSnackbar({
-        action: false,
-        open: true,
-        message: `Failed to cancel quotation: ${error.message}`,
-        anchorOrigin: { vertical: "bottom", horizontal: "right" },
-        variant: "alert",
-        alert: {
-          color: "error" as
-            | "success"
-            | "info"
-            | "warning"
-            | "error"
-            | "primary"
-            | "secondary",
-          variant: "filled",
-        },
-        transition: "Fade",
-        close: true,
-        actionButton: false,
-      } as SnackbarProps);
-    }
-  }
-
   // Return ALL functions and state
   return {
     // State
@@ -911,7 +1200,7 @@ export function useQuotations() {
     cancelQuotation,
     downloadQuotationPDF,
     previewQuotationPDF,
-
+    ItemsModal,
     // Constants
     headCells,
   };

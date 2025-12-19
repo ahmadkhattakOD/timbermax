@@ -1,13 +1,20 @@
 import { ValuesFilterQuotations } from "types";
 import { getDateFormattedForField } from "utils/helpers";
 import supabase from "utils/supabase";
+import StocksRepository from "./stocksRepository";
 
 export interface QuotationSupabase {
   id?: number;
   quotation_number: string;
   customer_id: number;
   total: number;
-  status?: "draft" | "sent" | "accepted" | "converted" | "cancelled";
+  status?:
+    | "draft"
+    | "sent"
+    | "accepted"
+    | "converted"
+    | "cancelled"
+    | "approved";
   valid_until?: Date | null;
   note?: string;
   user?: string;
@@ -112,10 +119,7 @@ class QuotationsRepository {
           query.lte("created_at", filters.created_at_to);
         }
         if (filters.item_name) {
-          query.ilike(
-            `quotation_items.items.name`,
-            `%${filters.item_name}%`
-          );
+          query.ilike(`quotation_items.items.name`, `%${filters.item_name}%`);
         }
         if (filters.item_code) {
           query.ilike(
@@ -200,7 +204,7 @@ class QuotationsRepository {
   public async addItem(item: QuotationItemSupabase) {
     try {
       const total_price = item.quantity * item.unit_price;
-      
+
       const { data, error } = await supabase
         .from(this.itemsClassName)
         .insert({
@@ -223,26 +227,109 @@ class QuotationsRepository {
     }
   }
 
-  public async updateStatus(id: number, status: "draft" | "sent" | "accepted" | "converted" | "cancelled") {
+  public async updateStatus(
+    id: number,
+    status: "draft" | "sent" | "approved" | "cancelled"
+  ) {
     try {
+      // Get current status
+      const currentQuotation = await this.getSingle(id);
+
+      if (!currentQuotation?.quotationData) {
+        return { success: false, error: "Quotation not found" };
+      }
+
+      const currentStatus = currentQuotation.quotationData.status;
+
+      // If changing to cancelled from on_hold status, release stock
+      if (
+        status === "cancelled" &&
+        (currentStatus === "draft" ||
+          currentStatus === "sent" ||
+          currentStatus === "approved")
+      ) {
+        // Release ALL reserved stock
+        const stocksRepo = new StocksRepository();
+        const releaseResult = await stocksRepo.releaseAllFromQuotation(id);
+
+        if (!releaseResult.success) {
+          console.error("Failed to release stock:", releaseResult.error);
+          // Continue with status update but log the error
+        }
+      }
+
+      // Update quotation status
       const { data, error } = await supabase
         .from(this.className)
-        .update({ 
-          status: status, 
-          updated_at: new Date().toISOString()
+        .update({
+          status: status,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", id)
         .select()
         .single();
 
       if (error) {
-        console.error("Error updating quotation status:", error);
-        return null;
+        return { success: false, error: error.message };
       }
-      return data;
-    } catch (error) {
+
+      return { success: true, data };
+    } catch (error: any) {
       console.error("Error updating quotation status:", error);
-      return null;
+      return { success: false, error: error.message };
+    }
+  }
+
+  // When creating a quotation, reserve stock
+  public async createWithStockReservation(
+    quotation: QuotationSupabase,
+    items: Array<{ item_id: number; quantity: number }>
+  ) {
+    try {
+      // 1. Create quotation
+      const createdQuotation = await this.create(quotation);
+      if (!createdQuotation) {
+        return { success: false, error: "Failed to create quotation" };
+      }
+
+      // 2. Reserve stock for each item
+      const stocksRepo = new StocksRepository();
+      const reservationResults = [];
+
+      for (const item of items) {
+        const reserveResult = await stocksRepo.reserveForQuotation(
+          item.item_id,
+          1, // default warehouse
+          item.quantity,
+          createdQuotation.id
+        );
+
+        reservationResults.push({
+          itemId: item.item_id,
+          success: reserveResult.success,
+          error: reserveResult.error,
+        });
+
+        // If any reservation fails, you might want to rollback
+        if (!reserveResult.success) {
+          console.error(
+            `Failed to reserve stock for item ${item.item_id}:`,
+            reserveResult.error
+          );
+          // Optional: Rollback the quotation creation
+          // await this.delete([createdQuotation.id]);
+          // return { success: false, error: `Failed to reserve stock for item ${item.item_id}` };
+        }
+      }
+
+      return {
+        success: true,
+        quotation: createdQuotation,
+        reservations: reservationResults,
+      };
+    } catch (error: any) {
+      console.error("Error creating quotation with stock reservation:", error);
+      return { success: false, error: error.message };
     }
   }
 
@@ -252,7 +339,7 @@ class QuotationsRepository {
         .from(this.className)
         .update({
           ...quotation,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq("id", id)
         .select()
@@ -308,10 +395,14 @@ class QuotationsRepository {
     }
   }
 
-  public async updateItem(quotationId: number, itemId: number, updates: Partial<QuotationItemSupabase>) {
+  public async updateItem(
+    quotationId: number,
+    itemId: number,
+    updates: Partial<QuotationItemSupabase>
+  ) {
     try {
       let finalUpdates = { ...updates };
-      
+
       // Recalculate total_price if quantity or unit_price changes
       if (updates.quantity !== undefined || updates.unit_price !== undefined) {
         const { data: currentItem } = await supabase
@@ -320,19 +411,25 @@ class QuotationsRepository {
           .eq("quotation_id", quotationId)
           .eq("item_id", itemId)
           .single();
-        
+
         if (currentItem) {
-          const quantity = updates.quantity !== undefined ? updates.quantity : currentItem.quantity;
-          const unit_price = updates.unit_price !== undefined ? updates.unit_price : currentItem.unit_price;
+          const quantity =
+            updates.quantity !== undefined
+              ? updates.quantity
+              : currentItem.quantity;
+          const unit_price =
+            updates.unit_price !== undefined
+              ? updates.unit_price
+              : currentItem.unit_price;
           finalUpdates.total_price = quantity * unit_price;
         }
       }
-      
+
       const { data, error } = await supabase
         .from(this.itemsClassName)
         .update({
           ...finalUpdates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq("quotation_id", quotationId)
         .eq("item_id", itemId)
@@ -362,22 +459,28 @@ class QuotationsRepository {
         return { success: false, error: itemsError.message };
       }
 
-      const total = items?.reduce((sum, item) => 
-        sum + (parseFloat(item.quantity.toString()) * parseFloat(item.unit_price.toString())), 0) || 0;
+      const total =
+        items?.reduce(
+          (sum, item) =>
+            sum +
+            parseFloat(item.quantity.toString()) *
+              parseFloat(item.unit_price.toString()),
+          0
+        ) || 0;
 
       // Update quotation total
       const { error: updateError } = await supabase
         .from(this.className)
         .update({
           total: total,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq("id", quotationId);
 
-      return { 
-        success: !updateError, 
+      return {
+        success: !updateError,
         error: updateError?.message,
-        total 
+        total,
       };
     } catch (error: any) {
       console.error("Error updating quotation total:", error);
@@ -406,7 +509,7 @@ class QuotationsRepository {
       const quantity = parseFloat(stock.quantity) || 0;
       const reserved = parseFloat(stock.reserved) || 0;
       const totalAvailable = Math.max(0, quantity - reserved);
-      
+
       return { success: true, totalAvailable };
     } catch (error: any) {
       console.error("Error checking available stock:", error);

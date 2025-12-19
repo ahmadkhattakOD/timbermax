@@ -9,10 +9,7 @@ import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
-import {
-  getDateTimeFormatted,
-  hasNonEmptyValue,
-} from "utils/helpers";
+import { getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
 
@@ -53,17 +50,18 @@ export default function Quotations() {
     setSearchValue,
     convertToInvoice,
     viewItems,
+    ItemsModal,
     cancelQuotation,
   } = useQuotations();
-  
+
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         actionButton={
           <Box sx={{ display: "flex", gap: 2 }}>
             {selected.length === 1 && (
-              <ActionButton 
-                text="Convert to Invoice" 
+              <ActionButton
+                text="Convert to Invoice"
                 onClick={() => convertToInvoice(selected[0])}
                 color="primary"
               />
@@ -188,7 +186,7 @@ export default function Quotations() {
                         { label: "Sent", value: "sent" },
                         { label: "Accepted", value: "accepted" },
                         { label: "Converted", value: "converted" },
-                        { label: "Cancelled", value: "cancelled" }
+                        { label: "Cancelled", value: "cancelled" },
                       ]}
                     />,
                     <FormInput
@@ -260,6 +258,7 @@ export default function Quotations() {
           </Formik>
         }
       />
+      <ItemsModal />
       <CSVLink
         data={csvData}
         headers={headCells.map((cell) => ({ label: cell.label, key: cell.id }))}
