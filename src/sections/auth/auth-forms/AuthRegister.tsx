@@ -82,32 +82,56 @@ export default function AuthRegister() {
         })}
         onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
           try {
-            // await register(values.email, values.password, values.firstname, values.lastname);
-            // if (scriptedRef.current) {
-            //   setStatus({ success: true });
-            //   setSubmitting(false);
-            //   openSnackbar({
-            //     open: true,
-            //     message: 'Your registration has been successfully completed.',
-            //     variant: 'alert',
-            //     alert: {
-            //       color: 'success'
-            //     }
-            //   } as SnackbarProps);
+            console.log("1. Starting registration for:", values.email);
 
-            //   setTimeout(() => {
-            //     navigate('/login', { replace: true });
-            //   }, 1500);
-            // }
-            await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
               email: values.email,
               password: values.password,
+              options: {
+                data: {
+                  full_name: `${values.firstname} ${values.lastname}`,
+                  first_name: values.firstname,
+                  last_name: values.lastname,
+                },
+              },
             });
+
+            console.log("2. Supabase signUp response:", { data, error });
+
+            if (error) {
+              console.error("3. Signup error:", error);
+              throw error;
+            }
+
+            if (data?.user) {
+              console.log("4. User created in Auth. ID:", data.user.id);
+              console.log("5. User metadata:", data.user.user_metadata);
+            }
+
+            if (scriptedRef.current) {
+              setStatus({ success: true });
+              setSubmitting(false);
+
+              openSnackbar({
+                open: true,
+                message:
+                  "Registration successful! Please check your email to confirm your account.",
+                variant: "alert",
+                alert: {
+                  color: "success",
+                },
+              } as SnackbarProps);
+
+              // Optional: redirect to login or show success message
+              setTimeout(() => {
+                navigate("/login", { replace: true });
+              }, 3000);
+            }
           } catch (err: any) {
-            console.error(err);
+            console.error("Registration error:", err);
             if (scriptedRef.current) {
               setStatus({ success: false });
-              setErrors({ submit: err.message });
+              setErrors({ submit: err.message || "Registration failed" });
               setSubmitting(false);
             }
           }

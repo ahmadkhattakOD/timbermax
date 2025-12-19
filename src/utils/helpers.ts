@@ -128,41 +128,42 @@ export function isRouteAllowed(
     | UserRoles.SalesPerson
     | ""
 ) {
-  if (role === UserRoles.SuperAdmin) {
-    return true;
-  } else if (role === UserRoles.Admin) {
-    let blackListedURLs = ["/user"];
+  // TODO: fix and uncomment this
+  // if (role === UserRoles.SuperAdmin) {
+  //   return true;
+  // } else if (role === UserRoles.Admin) {
+  //   let blackListedURLs = ["/user"];
 
-    for (let i = 0; i < blackListedURLs.length; i++) {
-      if (window.location.href.includes(blackListedURLs[i])) {
-        return false;
-      }
-    }
-    return true;
-  } else if (role === UserRoles.Closer || role === UserRoles.Both) {
-    let whiteListedURLs = ["/dashboard", "/close", "/profile", "view-invoices"];
-    for (let i = 0; i < whiteListedURLs.length; i++) {
-      if (window.location.href.includes(whiteListedURLs[i])) {
-        return true;
-      }
-    }
-    return false;
-  } else if (UserRoles.SalesPerson) {
-    let whiteListedURLs = [
-      "/dashboard",
-      "/profile",
-      "/view-sales",
-      "view-invoices",
-    ];
+  //   for (let i = 0; i < blackListedURLs.length; i++) {
+  //     if (window.location.href.includes(blackListedURLs[i])) {
+  //       return false;
+  //     }
+  //   }
+  //   return true;
+  // } else if (role === UserRoles.Closer || role === UserRoles.Both) {
+  //   let whiteListedURLs = ["/dashboard", "/close", "/profile", "view-invoices"];
+  //   for (let i = 0; i < whiteListedURLs.length; i++) {
+  //     if (window.location.href.includes(whiteListedURLs[i])) {
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // } else if (UserRoles.SalesPerson) {
+  //   let whiteListedURLs = [
+  //     "/dashboard",
+  //     "/profile",
+  //     "/view-sales",
+  //     "view-invoices",
+  //   ];
 
-    for (let i = 0; i < whiteListedURLs.length; i++) {
-      if (window.location.href.includes(whiteListedURLs[i])) {
-        return true;
-      }
-    }
-    return false;
-  }
-  return false;
+  //   for (let i = 0; i < whiteListedURLs.length; i++) {
+  //     if (window.location.href.includes(whiteListedURLs[i])) {
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // }
+  return true;
 }
 
 export function hasNonEmptyValue(obj: any) {

@@ -26,25 +26,46 @@ export interface InvoiceRulesSupabase {
 class ProfilesRepository {
   private className = "profiles";
 
-  public async create(user: UserSupabase, profile: ProfileSupabase) {
+  public async create(user: UserSupabase, profile: ProfileSupabase, createdById?: string) {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData && userData.user) {
-        const { data, error } = await supabase.functions.invoke("account", {
-          body: {
-            user: user,
-            profile: profile,
-            action: "signup",
-            createdById: userData.user.id,
-          },
-        });
+      // First, create the user with Supabase Auth using admin API
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        email: user.email,
+        password: user.password,
+        email_confirm: true,
+      });
 
-        if (data && data.status === "success" && error === null) {
-          return data.data;
-        }
+      if (userError || !userData.user) {
+        console.error("Error creating auth user:", userError);
         return null;
       }
-      return null;
+
+      // Then create the profile in the profiles table
+      const { data, error } = await supabase
+        .from(this.className)
+        .insert({
+          id: userData.user.id,
+          full_name: profile.full_name,
+          email: userData.user.email,
+          role: profile.role,
+          daily_wage: profile.daily_wage,
+          commissions: profile.commissions ?? [],
+          profile_picture: profile.profile_picture,
+          status: "active",
+          created_at: new Date().toISOString(),
+          user: createdById, // This matches your edge function logic
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating profile:", error);
+        // Clean up: delete the auth user if profile creation fails
+        await supabase.auth.admin.deleteUser(userData.user.id);
+        return null;
+      }
+
+      return data;
     } catch (error) {
       console.error("Error creating new user:", error);
       return null;
@@ -53,20 +74,18 @@ class ProfilesRepository {
 
   public async setPassword(userId: string, newPassword: string) {
     try {
-      const { data, error } = await supabase.functions.invoke("account", {
-        body: {
-          userId: userId,
-          newPassword: newPassword,
-          action: "setPassword",
-        },
+      const { data, error } = await supabase.auth.admin.updateUserById(userId, {
+        password: newPassword,
       });
 
-      if (data && data.status === "success" && error === null) {
-        return data.data;
+      if (error) {
+        console.error("Error setting password:", error);
+        return null;
       }
-      return null;
+
+      return data;
     } catch (error) {
-      console.error("Error creating new user:", error);
+      console.error("Error setting password:", error);
       return null;
     }
   }
@@ -77,21 +96,34 @@ class ProfilesRepository {
     newPassword: string
   ) {
     try {
-      const { data, error } = await supabase.functions.invoke("account", {
-        body: {
-          email: email,
-          oldPassword: oldPassword,
-          newPassword: newPassword,
-          action: "resetPassword",
-        },
+      // First, verify old password by signing in
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: oldPassword,
       });
 
-      if (data && data.status === "success" && error === null) {
-        return data.data;
+      if (loginError || !loginData.user) {
+        console.error("Incorrect credentials:", loginError);
+        return null;
       }
-      return null;
+
+      // Then update the password using admin API
+      const { data: updateData, error: updateError } = await supabase.auth.admin.updateUserById(
+        loginData.user.id,
+        { password: newPassword }
+      );
+
+      if (updateError) {
+        console.error("Error resetting password:", updateError);
+        return null;
+      }
+
+      // Sign out after password reset for security
+      await supabase.auth.signOut();
+
+      return updateData;
     } catch (error) {
-      console.error("Error creating new user:", error);
+      console.error("Error resetting password:", error);
       return null;
     }
   }
@@ -258,6 +290,8 @@ class ProfilesRepository {
         .select();
 
       if (data && data.length > 0 && error === null) {
+        // Optionally, also delete auth users if needed
+        // await Promise.all(ids.map(id => supabase.auth.admin.deleteUser(id)));
         return data.length;
       }
       return 0;
@@ -312,4 +346,5 @@ class ProfilesRepository {
     }
   }
 }
+
 export default ProfilesRepository;
