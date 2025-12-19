@@ -103,15 +103,7 @@ const StockReservationsModal: React.FC<StockReservationsModalProps> = ({
     onClose();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'on_hold': return 'warning';
-      case 'released': return 'default';
-      case 'cancelled': return 'error';
-      default: return 'default';
-    }
-  };
-
+ 
   const getQuotationStatusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'default';

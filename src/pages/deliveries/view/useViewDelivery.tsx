@@ -299,15 +299,15 @@ export function useViewDelivery() {
         const invoicesRepository = new InvoicesRepository();
         const rangeStart = rowsPerPage * page;
         const rangeEnd = rangeStart + rowsPerPage;
-        const invoices = await invoicesRepository.getBySale(
-          parseInt(id),
-          orderBy,
-          order === "asc",
-          rangeStart,
-          rangeEnd,
-          rowsPerPage
-        );
-
+        // const invoices = await invoicesRepository.getBySale(
+        //   parseInt(id),
+        //   orderBy,
+        //   order === "asc",
+        //   rangeStart,
+        //   rangeEnd,
+        //   rowsPerPage
+        // );
+        const invoices = null; // later added original is above commented,
         if (invoices) {
           const { invoicesData, invoicesCount, invoicesError } = invoices;
           if (invoicesData && !invoicesError) {

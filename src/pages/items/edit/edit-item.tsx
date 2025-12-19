@@ -93,14 +93,14 @@ export default function EditItem() {
                 label={"description"}
                 type={"text"}
               />,
-              <FormInput
-                id={"committed"}
-                name={"committed"}
-                placeholder={"Committed"}
-                label={"committed"}
-                type={"number"}
-                error={touched.committed ? errors.committed : ""}
-              />,
+              // <FormInput
+              //   id={"committed"}
+              //   name={"committed"}
+              //   placeholder={"Committed"}
+              //   label={"committed"}
+              //   type={"number"}
+              //   error={touched.committed ? errors.committed : ""}
+              // />,
             ]}
           />
         </Form>

@@ -144,7 +144,8 @@ export default function DownloadInvoiceSalesCloser() {
                 fontWeight: 600,
               }}
             >
-              {({ loading }) => (loading ? "Loading..." : "Download PDF")}
+              {/* {({ loading }) => (loading ? "Loading..." : "Download PDF")} */}
+              Download PDF
             </PDFDownloadLink>
           </Box>
         </Box>
@@ -197,7 +198,7 @@ export default function DownloadInvoiceSalesCloser() {
                   label={"total-commission"}
                   type={"number"}
                   disabled
-                  error={touched.totalCommission ? errors.totalCommission : ""}
+                  // error={touched.totalCommission ? errors.totalCommission : ""}
                 />,
                 <FormInput
                   id={"cancelledSales"}
@@ -206,7 +207,7 @@ export default function DownloadInvoiceSalesCloser() {
                   label={"cancelled-sales"}
                   type={"number"}
                   disabled
-                  error={touched.cancelledSales ? errors.cancelledSales : ""}
+                  // error={touched.cancelledSales ? errors.cancelledSales : ""}
                 />,
                 <FormInput
                   id={"wages"}
@@ -215,7 +216,7 @@ export default function DownloadInvoiceSalesCloser() {
                   label={"wages"}
                   type={"number"}
                   disabled
-                  error={touched.wages ? errors.wages : ""}
+                  // error={touched.wages ? errors.wages : ""}
                 />,
                 <FormInput
                   id={"travelBonus"}
@@ -224,7 +225,7 @@ export default function DownloadInvoiceSalesCloser() {
                   label={"travel-bonus"}
                   type={"number"}
                   disabled
-                  error={touched.travelBonus ? errors.travelBonus : ""}
+                  // error={touched.travelBonus ? errors.travelBonus : ""}
                 />,
                 <FormInput
                   id={"otherBonuses"}
@@ -233,7 +234,7 @@ export default function DownloadInvoiceSalesCloser() {
                   label={"other-bonuses"}
                   type={"number"}
                   disabled
-                  error={touched.otherBonuses ? errors.otherBonuses : ""}
+                  // error={touched.otherBonuses ? errors.otherBonuses : ""}
                 />,
                 <FormInput
                   id={"deductions"}
@@ -242,7 +243,7 @@ export default function DownloadInvoiceSalesCloser() {
                   label={"deductions"}
                   type={"number"}
                   disabled
-                  error={touched.deductions ? errors.deductions : ""}
+                  // error={touched.deductions ? errors.deductions : ""}
                 />,
               ]}
             />

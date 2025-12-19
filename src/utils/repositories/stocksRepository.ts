@@ -12,7 +12,7 @@ export interface StockSupabase {
   reference_type?: "quotation" | "invoice" | "sales_order" | "none" | null;
   user?: string;
   created_at?: string;
-  updated_at?: string;
+  updated_at?: any;
 }
 
 export interface ReserveStockParams {

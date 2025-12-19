@@ -6,7 +6,19 @@ import FormDropdown from "components/FormDropdown";
 import { useCreateInvoice } from "./useCreateInvoice";
 import { australianStates, getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
-import { Box, IconButton, useTheme, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+} from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
@@ -17,8 +29,8 @@ import { useSearchParams } from "react-router-dom";
 
 export default function CreateInvoice() {
   const [searchParams] = useSearchParams();
-  const quotationIdFromUrl = searchParams.get('quotation_id');
-  
+  const quotationIdFromUrl = searchParams.get("quotation_id");
+
   const {
     validate,
     onSubmit,
@@ -54,7 +66,8 @@ export default function CreateInvoice() {
     loadFromQuotation,
     selectedQuotation,
     isQuotationLoaded,
-    setIsQuotationLoaded
+    setSelectedItems,
+    setIsQuotationLoaded,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -101,12 +114,19 @@ export default function CreateInvoice() {
         emailAddress: selectedEmail || "",
         invoice_date: getDateFormattedForField(),
         note: "",
-        quotation_id: quotationIdFromUrl || ""
+        quotation_id: quotationIdFromUrl || "",
       }}
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting, values, setFieldValue }) => (
+      {({
+        handleSubmit,
+        errors,
+        touched,
+        isSubmitting,
+        values,
+        setFieldValue,
+      }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
@@ -124,19 +144,31 @@ export default function CreateInvoice() {
 
               // Show quotation info if loaded from quotation
               selectedQuotation && (
-                <Box key="quotation-info" sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 1 }}>
+                <Box
+                  key="quotation-info"
+                  sx={{
+                    mb: 3,
+                    p: 2,
+                    border: "1px solid",
+                    borderColor: "primary.main",
+                    borderRadius: 1,
+                  }}
+                >
                   <Typography variant="h6" gutterBottom color="primary">
                     Creating Invoice from Quotation
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
                     <Typography variant="body2">
-                      <strong>Quotation:</strong> #{selectedQuotation.quotation_number}
+                      <strong>Quotation:</strong> #
+                      {selectedQuotation.quotation_number}
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Customer:</strong> {selectedQuotation.customer?.name}
+                      <strong>Customer:</strong>{" "}
+                      {selectedQuotation.customer?.name}
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Total:</strong> ${selectedQuotation.total?.toFixed(2)}
+                      <strong>Total:</strong> $
+                      {selectedQuotation.total?.toFixed(2)}
                     </Typography>
                     <Typography variant="body2">
                       <strong>Items:</strong> {selectedItems.length}
@@ -154,10 +186,10 @@ export default function CreateInvoice() {
                     label={"Load from Quotation (Optional)"}
                     options={[
                       { label: "Create New Invoice", value: "" },
-                      ...quotations.map(q => ({
-                        label: `Quotation #${q.quotation_number} - ${q.customer?.name || 'Unknown'} - $${q.total}`,
-                        value: q.id.toString()
-                      }))
+                      ...quotations.map((q) => ({
+                        label: `Quotation #${q.quotation_number} - ${q.customer?.name || "Unknown"} - $${q.total}`,
+                        value: q.id.toString(),
+                      })),
                     ]}
                     onChange={(e) => {
                       const quotationId = parseInt(e.target.value);
@@ -166,7 +198,7 @@ export default function CreateInvoice() {
                       } else {
                         // Clear if "Create New Invoice" is selected
                         setSelectedItems([]);
-                        setFieldValue('total', 0);
+                        setFieldValue("total", 0);
                         setIsQuotationLoaded(false);
                       }
                     }}
@@ -337,19 +369,21 @@ export default function CreateInvoice() {
                 <Typography variant="h6" gutterBottom>
                   Items
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
+                >
                   <FormDropdown
                     id={"add_item"}
                     name={"add_item"}
                     label={"Add Item"}
-                    options={items.map(item => ({
+                    options={items.map((item) => ({
                       label: `${item.name} (${item.itemCode}) - $${item.sellPrice}`,
-                      value: item.id.toString()
+                      value: item.id.toString(),
                     }))}
                     onChange={(e) => {
                       const itemId = parseInt(e.target.value);
                       if (itemId) {
-                        const item = items.find(i => i.id === itemId);
+                        const item = items.find((i) => i.id === itemId);
                         if (item) {
                           addItem({
                             item_id: item.id,
@@ -357,7 +391,7 @@ export default function CreateInvoice() {
                             itemCode: item.itemCode,
                             quantity: 1,
                             unit_price: item.sellPrice,
-                            total: item.sellPrice
+                            total: item.sellPrice,
                           });
                         }
                       }
@@ -386,12 +420,18 @@ export default function CreateInvoice() {
                             <input
                               type="number"
                               value={item.quantity}
-                              onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
-                              style={{ 
-                                width: '80px', 
-                                padding: '8px',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px'
+                              onChange={(e) =>
+                                updateItem(
+                                  index,
+                                  "quantity",
+                                  parseFloat(e.target.value) || 1
+                                )
+                              }
+                              style={{
+                                width: "80px",
+                                padding: "8px",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
                               }}
                               min={1}
                             />
@@ -400,18 +440,26 @@ export default function CreateInvoice() {
                             <input
                               type="number"
                               value={item.unit_price}
-                              onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                              style={{ 
-                                width: '100px', 
-                                padding: '8px',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px'
+                              onChange={(e) =>
+                                updateItem(
+                                  index,
+                                  "unit_price",
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              style={{
+                                width: "100px",
+                                padding: "8px",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
                               }}
                               min={0}
                               step="0.01"
                             />
                           </TableCell>
-                          <TableCell>${(item.quantity * item.unit_price).toFixed(2)}</TableCell>
+                          <TableCell>
+                            ${(item.quantity * item.unit_price).toFixed(2)}
+                          </TableCell>
                           <TableCell>
                             <IconButton onClick={() => removeItem(index)}>
                               <Trash size={20} />
@@ -442,7 +490,7 @@ export default function CreateInvoice() {
                 type={"text"}
                 isTextArea
                 // rows={3}
-              />
+              />,
             ]}
           />
         </Form>

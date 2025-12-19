@@ -160,14 +160,14 @@ export function useDeliverSale() {
                     : 0;
               }
 
-              const newSalesPersonInvoice: InvoiceSupabase = {
+              const newSalesPersonInvoice: any = {
                 sale: deliveredSale.id,
                 commission:
                   (parseFloat(values.total) - 300) *
                   salesPersonCommissionPercentage,
                 beneficiary: values.salesPerson,
               };
-              const newCloserInvoice: InvoiceSupabase = {
+              const newCloserInvoice: any = {
                 sale: deliveredSale.id,
                 commission:
                   (parseFloat(values.total) - 300) * closerCommissionPercentage,

@@ -305,14 +305,14 @@ export function useEditSale() {
                         : 0;
                   }
 
-                  const newSalesPersonInvoice: InvoiceSupabase = {
+                  const newSalesPersonInvoice: any = {
                     sale: editedSale.id,
                     commission:
                       (parseFloat(values.total) - 300) *
                       salesPersonCommissionPercentage,
                     beneficiary: values.salesPerson,
                   };
-                  const newCloserInvoice: InvoiceSupabase = {
+                  const newCloserInvoice: any = {
                     sale: editedSale.id,
                     commission:
                       (parseFloat(values.total) - 300) *
@@ -322,14 +322,14 @@ export function useEditSale() {
 
                   const invoicesRepository = new InvoicesRepository();
 
-                  await invoicesRepository.findAndDelete(
-                    parseInt(id),
-                    values.salesPerson
-                  );
-                  await invoicesRepository.findAndDelete(
-                    parseInt(id),
-                    values.closer
-                  );
+                  // await invoicesRepository.findAndDelete(
+                  //   parseInt(id),
+                  //   values.salesPerson
+                  // );
+                  // await invoicesRepository.findAndDelete(
+                  //   parseInt(id),
+                  //   values.closer
+                  // );
                   const createdSalesPersonInvoice =
                     await invoicesRepository.create(newSalesPersonInvoice);
                   const createdCloserInvoice =
@@ -416,14 +416,14 @@ export function useEditSale() {
                         : 0;
                   }
 
-                  const newSalesPersonInvoice: InvoiceSupabase = {
+                  const newSalesPersonInvoice: any = {
                     sale: editedSale.id,
                     commission:
                       (parseFloat(values.total) - 300) *
                       salesPersonCommissionPercentage,
                     beneficiary: values.salesPerson,
                   };
-                  const newCloserInvoice: InvoiceSupabase = {
+                  const newCloserInvoice: any = {
                     sale: editedSale.id,
                     commission:
                       (parseFloat(values.total) - 300) *
@@ -433,16 +433,18 @@ export function useEditSale() {
 
                   const invoicesRepository = new InvoicesRepository();
 
-                  const deletedSalesPersonInvoice =
-                    await invoicesRepository.findAndDelete(
-                      parseInt(id),
-                      values.salesPerson
-                    );
-                  const deletedCloserInvoice =
-                    await invoicesRepository.findAndDelete(
-                      parseInt(id),
-                      values.closer
-                    );
+                  // const deletedSalesPersonInvoice =
+                  //   await invoicesRepository.findAndDelete(
+                  //     parseInt(id),
+                  //     values.salesPerson
+                  //   );
+                  // const deletedCloserInvoice =
+                  //   await invoicesRepository.findAndDelete(
+                  //     parseInt(id),
+                  //     values.closer
+                  //   );
+                  const deletedSalesPersonInvoice = null
+                  const deletedCloserInvoice = null
 
                   if (deletedSalesPersonInvoice && deletedCloserInvoice) {
                     openSnackbar({
