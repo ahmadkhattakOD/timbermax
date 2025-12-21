@@ -1,15 +1,13 @@
-// project-imports
 import FormLayout from "components/FormLayout";
-import { ErrorMessage, Field, Form, Formik } from "formik";
+import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useEditQuotation } from "./use-edit-quotation";
-import { australianStates, getDateFormattedForField } from "utils/helpers";
+import { australianStates } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
   IconButton,
-  useTheme,
   Table,
   TableBody,
   TableCell,
@@ -18,6 +16,7 @@ import {
   TableRow,
   Paper,
   Typography,
+  Button,
 } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
@@ -34,7 +33,6 @@ export default function EditQuotation() {
   const {
     validate,
     onSubmit,
-    customers,
     items,
     loading,
     selectedItems,
@@ -42,10 +40,7 @@ export default function EditQuotation() {
     removeItem,
     updateItem,
     totalAmount,
-    handleSearchDebounced,
-    loadingCustomers,
-    createInlineCustomer,
-    setCreateInlineCustomer,
+    loadingItems,
     selectedAddress,
     selectedSuburb,
     selectedState,
@@ -53,7 +48,6 @@ export default function EditQuotation() {
     selectedPhone,
     selectedMobile,
     selectedPostCode,
-    setSelectedCustomer,
     changeAddress,
     setSelectedSuburb,
     setSelectedState,
@@ -61,15 +55,15 @@ export default function EditQuotation() {
     setSelectedPhone,
     setSelectedMobile,
     setSelectedPostCode,
-    selectedCustomer,
-    availableStock,
-    checkStockAvailability,
+    selectedItemId,
+    setSelectedItemId,
+    handleItemSearchDebounced,
     initialValues,
     currentStatus,
     quotationData,
+    customerName,
+    setCustomerName,
   } = useEditQuotation(id ? parseInt(id) : 0);
-
-  const theme = useTheme();
 
   if (loading) {
     return (
@@ -142,13 +136,13 @@ export default function EditQuotation() {
             text="Back to Quotations"
             onClick={() => navigate("/quotations")}
           />
-          {currentStatus !== "cancelled" && currentStatus !== "converted" && (
+          {/* {currentStatus !== "cancelled" && currentStatus !== "converted" && (
             <ActionButton
               text="View Details"
               onClick={() => navigate(`/quotations/view/${id}`)}
               color="info"
             />
-          )}
+          )} */}
         </Box>
       </Box>
     );
@@ -181,14 +175,13 @@ export default function EditQuotation() {
                 id={"quotation_number"}
                 name={"quotation_number"}
                 placeholder={"Quotation Number"}
-                label="Quotation Number"
+                label="Quote Number"
                 type={"text"}
                 optional={false}
                 error={touched.quotation_number ? errors.quotation_number : ""}
-                disabled // Quotation number should not be editable
+                disabled
               />,
 
-              // Status dropdown
               <FormDropdown
                 key="status"
                 id={"status"}
@@ -197,79 +190,29 @@ export default function EditQuotation() {
                 options={[
                   { label: "Draft", value: "draft" },
                   { label: "Sent", value: "sent" },
-                  { label: "Accepted", value: "accepted" },
+                  { label: "Approved", value: "approved" },
+                  { label: "Cancelled", value: "cancelled" },
                 ]}
                 optional={false}
                 error={touched.status ? errors.status : ""}
               />,
 
-              // CUSTOMER MODULE
-              !createInlineCustomer ? (
-                <InputDropdown
-                  key="contactName"
-                  id="contactName"
-                  name="contactName"
-                  label="Contact Name"
-                  options={customers}
-                  secondaryLabel={
-                    <Box
-                      sx={{
-                        color: theme.palette.primary.main,
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                      }}
-                      onClick={() => {
-                        setCreateInlineCustomer(true);
-                      }}
-                    >
-                      Create Manually
-                    </Box>
-                  }
-                  loading={loadingCustomers}
-                  optional={false}
-                  onChange={handleSearchDebounced}
-                  onSelect={(e) => {
-                    setSelectedCustomer(e.target.value);
-                  }}
-                  onClickCreateNew={() => {
-                    setCreateInlineCustomer(true);
-                  }}
-                  error={errors.contactName}
-                  value={selectedCustomer}
-                />
-              ) : null,
+              <FormInput
+                key="customerName"
+                id={"customerName"}
+                name={"customerName"}
+                placeholder={"Customer Name"}
+                label="Customer Name"
+                type={"text"}
+                optional={false}
+                error={touched.customerName ? errors.customerName : ""}
+                value={customerName}
+                onChange={(e) => {
+                  setFieldValue("customerName", e.target.value);
+                  setCustomerName(e.target.value);
+                }}
+              />,
 
-              createInlineCustomer ? (
-                <FormInput
-                  key="inlineCustomerName"
-                  id={"inlineCustomerName"}
-                  name={"inlineCustomerName"}
-                  placeholder={"Contact Name"}
-                  label="Contact Name"
-                  type={"text"}
-                  secondaryLabel={
-                    <Box
-                      sx={{
-                        color: theme.palette.primary.main,
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                      }}
-                      onClick={() => {
-                        setCreateInlineCustomer(false);
-                      }}
-                    >
-                      Cancel Manual
-                    </Box>
-                  }
-                  error={
-                    touched.inlineCustomerName ? errors.inlineCustomerName : ""
-                  }
-                />
-              ) : null,
-
-              // CONTACT DETAILS
               <FormInput
                 key="phone"
                 id={"phone"}
@@ -279,6 +222,7 @@ export default function EditQuotation() {
                 type={"text"}
                 value={selectedPhone}
                 onChange={(e) => {
+                  setFieldValue("phone", e.target.value);
                   setSelectedPhone(e.target.value);
                 }}
               />,
@@ -292,6 +236,7 @@ export default function EditQuotation() {
                 type={"text"}
                 value={selectedMobile}
                 onChange={(e) => {
+                  setFieldValue("mobile", e.target.value);
                   setSelectedMobile(e.target.value);
                 }}
               />,
@@ -301,7 +246,10 @@ export default function EditQuotation() {
                 id="address"
                 name="address"
                 placeholder="Address"
-                onChange={changeAddress}
+                onChange={(newValue, actionMeta) => {
+                  changeAddress(newValue, actionMeta);
+                  setFieldValue("address", newValue?.value?.description ?? "");
+                }}
                 value={selectedAddress}
                 label="Address"
               />,
@@ -315,6 +263,7 @@ export default function EditQuotation() {
                 type={"text"}
                 value={selectedSuburb}
                 onChange={(e) => {
+                  setFieldValue("suburb", e.target.value);
                   setSelectedSuburb(e.target.value);
                 }}
               />,
@@ -331,6 +280,7 @@ export default function EditQuotation() {
                 }))}
                 value={selectedState}
                 onChange={(e) => {
+                  setFieldValue("state", e.target.value);
                   setSelectedState(e.target.value);
                 }}
               />,
@@ -344,6 +294,7 @@ export default function EditQuotation() {
                 type={"text"}
                 value={selectedPostCode}
                 onChange={(e) => {
+                  setFieldValue("postCode", e.target.value);
                   setSelectedPostCode(e.target.value);
                 }}
               />,
@@ -357,56 +308,46 @@ export default function EditQuotation() {
                 type={"email"}
                 value={selectedEmail}
                 onChange={(e) => {
+                  setFieldValue("emailAddress", e.target.value);
                   setSelectedEmail(e.target.value);
                 }}
               />,
 
-              // ITEMS TABLE
-              <Box key="items-section" sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Items
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Note: Removing items will release reserved stock
-                </Typography>
+              <Box key="items-section">
                 <Box
                   sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
                 >
-                  <FormDropdown
-                    id={"add_item"}
-                    name={"add_item"}
-                    label="Add Item"
-                    options={items.map((item) => ({
-                      label: `${item.name} (${item.itemCode}) - $${item.sellPrice} (Available: ${availableStock[item.id] || 0})`,
-                      value: item.id.toString(),
-                    }))}
-                    onChange={(e) => {
+                  <InputDropdown
+                    key="item_search"
+                    id="item_search"
+                    name="item_search"
+                    label="Select Item"
+                    options={items}
+                    loading={loadingItems}
+                    optional={false}
+                    onChange={handleItemSearchDebounced}
+                    onSelect={(e) => {
                       const itemId = parseInt(e.target.value);
                       if (itemId) {
-                        const item = items.find((i) => i.id === itemId);
-                        if (item) {
-                          // Check stock availability before adding
-                          const available = availableStock[item.id] || 0;
-                          if (available <= 0) {
-                            alert(`Item "${item.name}" is out of stock!`);
-                            return;
-                          }
-
-                          addItem({
-                            item_id: item.id,
-                            name: item.name,
-                            itemCode: item.itemCode,
-                            quantity: 1,
-                            unit_price: item.sellPrice,
-                            total: item.sellPrice,
-                            available_stock: available,
-                          });
-                        }
+                        setSelectedItemId(itemId);
                       }
                     }}
                   />
+                  <Button
+                    variant="contained"
+                    startIcon={<Add size={20} />}
+                    onClick={() => {
+                      if (selectedItemId) {
+                        addItem(selectedItemId);
+                        setSelectedItemId(null);
+                      }
+                    }}
+                    sx={{ mt: 4 }}
+                    disabled={!selectedItemId}
+                  >
+                    Add
+                  </Button>
                 </Box>
-
                 <TableContainer component={Paper} sx={{ mt: 2 }}>
                   <Table>
                     <TableHead>
@@ -421,11 +362,6 @@ export default function EditQuotation() {
                     </TableHead>
                     <TableBody>
                       {selectedItems.map((item, index) => {
-                        const available = availableStock[item.item_id] || 0;
-                        const totalRequested = selectedItems
-                          .filter((i) => i.item_id === item.item_id)
-                          .reduce((sum, i) => sum + i.quantity, 0);
-
                         return (
                           <TableRow key={index}>
                             <TableCell>{item.name}</TableCell>
@@ -450,15 +386,6 @@ export default function EditQuotation() {
                                       alert("Quantity must be at least 1");
                                       return;
                                     }
-                                    if (newQuantity > available) {
-                                      const remaining =
-                                        available -
-                                        (totalRequested - item.quantity);
-                                      alert(
-                                        `Cannot select more than ${remaining} items. Only ${remaining} available after accounting for other selections.`
-                                      );
-                                      return;
-                                    }
                                     updateItem(index, "quantity", newQuantity);
                                   }}
                                   style={{
@@ -468,14 +395,7 @@ export default function EditQuotation() {
                                     borderRadius: "4px",
                                   }}
                                   min={1}
-                                  max={available}
                                 />
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  Max: {available}
-                                </Typography>
                               </Box>
                             </TableCell>
                             <TableCell>
@@ -525,15 +445,6 @@ export default function EditQuotation() {
                   </Table>
                 </TableContainer>
               </Box>,
-
-              // <FormInput
-              //   key="valid_until"
-              //   id={"valid_until"}
-              //   name={"valid_until"}
-              //   placeholder={"Valid Until"}
-              //   label="Valid Until"
-              //   type={"date"}
-              // />,
 
               <FormInput
                 key="note"
