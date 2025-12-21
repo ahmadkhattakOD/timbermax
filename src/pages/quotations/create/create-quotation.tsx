@@ -1,4 +1,3 @@
-// project-imports
 import FormLayout from "components/FormLayout";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
@@ -56,16 +55,13 @@ export default function CreateQuotation() {
     handleItemSearchDebounced,
     setSelectedCustomer,
     changeAddress,
-    setSelectedSuburb,
-    setSelectedState,
-    setSelectedEmail,
-    setSelectedPhone,
-    setSelectedMobile,
-    setSelectedPostCode,
+    inlineCustomerName,
+    quotationNumberRef,
+    setInlineCustomerName,
   } = useCreateQuotation();
 
   const theme = useTheme();
-  console.log("Imtess", items);
+
   if (loading) {
     return (
       <Box
@@ -84,48 +80,55 @@ export default function CreateQuotation() {
 
   return (
     <Formik
-      enableReinitialize
+      enableReinitialize={false}
       initialValues={{
-        quotation_number: `QT-${Date.now()}`,
+        quotation_number: String(quotationNumberRef.current),
         contactName: "",
-        inlineCustomerName: "",
-        phone: "",
-        mobile: "",
-        address: "",
-        suburb: "",
-        state: "",
-        postCode: "",
-        emailAddress: "",
+        inlineCustomerName: inlineCustomerName,
+        phone: selectedPhone,
+        mobile: selectedMobile,
+        address: selectedAddress,
+        suburb: selectedSuburb,
+        state: selectedState,
+        postCode: selectedPostCode,
+        emailAddress: selectedEmail,
         valid_until: "",
         note: "",
       }}
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting, values }) => (
+      {({
+        handleSubmit,
+        errors,
+        touched,
+        isSubmitting,
+        values,
+        setFieldValue,
+      }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
-            submitButtonText="Create Quotation" // Use direct text, not ID
+            submitButtonText="Create a Quote"
             inputs={[
               <FormInput
                 key="quotation_number"
                 id={"quotation_number"}
                 name={"quotation_number"}
                 placeholder={"Quotation Number"}
-                label="Quotation Number" // Use direct text
+                label="Quote Number"
                 type={"text"}
                 optional={false}
                 error={touched.quotation_number ? errors.quotation_number : ""}
               />,
 
-              // CUSTOMER MODULE - EXACTLY LIKE SALES
+              // CUSTOMER MODULE
               !createInlineCustomer ? (
                 <InputDropdown
                   key="contactName"
                   id="contactName"
                   name="contactName"
-                  label="Contact Name" // Use direct text
+                  label="Contact Name"
                   options={customers}
                   secondaryLabel={
                     <Box
@@ -161,7 +164,7 @@ export default function CreateQuotation() {
                   id={"inlineCustomerName"}
                   name={"inlineCustomerName"}
                   placeholder={"Contact Name"}
-                  label="Contact Name" // Use direct text
+                  label="Contact Name"
                   type={"text"}
                   secondaryLabel={
                     <Box
@@ -181,21 +184,22 @@ export default function CreateQuotation() {
                   error={
                     touched.inlineCustomerName ? errors.inlineCustomerName : ""
                   }
+                  onChange={(e) => {
+                    setFieldValue("inlineCustomerName", e.target.value);
+                    setInlineCustomerName(e.target.value); // Update the state in hook
+                  }}
+                  value={values.inlineCustomerName}
                 />
               ) : null,
 
-              // CONTACT DETAILS - EXACTLY LIKE SALES
+              // CONTACT DETAILS - Let Formik manage these fields
               <FormInput
                 key="phone"
                 id={"phone"}
                 name={"phone"}
                 placeholder={"Phone"}
-                label="Phone" // Use direct text
+                label="Phone"
                 type={"text"}
-                value={selectedPhone}
-                onChange={(e) => {
-                  setSelectedPhone(e.target.value);
-                }}
               />,
 
               <FormInput
@@ -203,12 +207,8 @@ export default function CreateQuotation() {
                 id={"mobile"}
                 name={"mobile"}
                 placeholder={"Mobile"}
-                label="Mobile" // Use direct text
+                label="Mobile"
                 type={"text"}
-                value={selectedMobile}
-                onChange={(e) => {
-                  setSelectedMobile(e.target.value);
-                }}
               />,
 
               <PlacesInput
@@ -216,9 +216,12 @@ export default function CreateQuotation() {
                 id="address"
                 name="address"
                 placeholder="Address"
-                onChange={changeAddress}
+                onChange={(newValue, actionMeta) => {
+                  changeAddress(newValue, actionMeta);
+                  setFieldValue("address", newValue?.value?.description ?? "");
+                }}
                 value={selectedAddress}
-                label="Address" // Use direct text
+                label="Address"
               />,
 
               <FormInput
@@ -226,28 +229,20 @@ export default function CreateQuotation() {
                 id={"suburb"}
                 name={"suburb"}
                 placeholder={"Suburb"}
-                label="Suburb" // Use direct text
+                label="Suburb"
                 type={"text"}
-                value={selectedSuburb}
-                onChange={(e) => {
-                  setSelectedSuburb(e.target.value);
-                }}
               />,
 
               <FormDropdown
                 key="state"
                 id={"state"}
                 name={"state"}
-                label="State" // Use direct text
+                label="State"
                 useFormattedStrings={false}
                 options={australianStates.map((state) => ({
                   label: state,
                   value: state,
                 }))}
-                value={selectedState}
-                onChange={(e) => {
-                  setSelectedState(e.target.value);
-                }}
               />,
 
               <FormInput
@@ -255,12 +250,8 @@ export default function CreateQuotation() {
                 id={"postCode"}
                 name={"postCode"}
                 placeholder={"Post Code"}
-                label="Post Code" // Use direct text
+                label="Post Code"
                 type={"text"}
-                value={selectedPostCode}
-                onChange={(e) => {
-                  setSelectedPostCode(e.target.value);
-                }}
               />,
 
               <FormInput
@@ -268,19 +259,20 @@ export default function CreateQuotation() {
                 id={"emailAddress"}
                 name={"emailAddress"}
                 placeholder={"Email Address"}
-                label="Email Address" // Use direct text
+                label="Email Address"
                 type={"email"}
-                value={selectedEmail}
-                onChange={(e) => {
-                  setSelectedEmail(e.target.value);
-                }}
               />,
-
+              <FormInput
+                key="note"
+                id={"note"}
+                name={"note"}
+                placeholder={"Notes"}
+                label="Notes"
+                type={"text"}
+                isTextArea
+              />,
               // ITEMS TABLE
-              <Box key="items-section" sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Items
-                </Typography>
+              <Box key="items-section">
                 <Box
                   sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
                 >
@@ -290,22 +282,6 @@ export default function CreateQuotation() {
                     name="item_search"
                     label="Select Item"
                     options={items}
-                    secondaryLabel={
-                      <Box
-                        sx={{
-                          color: theme.palette.primary.main,
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                        }}
-                        onClick={() => {
-                          // Handle create new item if needed
-                          console.log("Create new item clicked");
-                        }}
-                      >
-                        Create New Item
-                      </Box>
-                    }
                     loading={loadingItems}
                     optional={false}
                     onChange={handleItemSearchDebounced}
@@ -315,8 +291,6 @@ export default function CreateQuotation() {
                         setSelectedItemId(itemId);
                       }
                     }}
-                    // Remove the value prop to work like customers dropdown
-                    // error={errors.item_search}
                   />
                   <Button
                     variant="contained"
@@ -324,16 +298,15 @@ export default function CreateQuotation() {
                     onClick={() => {
                       if (selectedItemId) {
                         addItem(selectedItemId);
-                        setSelectedItemId(null); // Reset after adding
+                        setSelectedItemId(null);
                       }
                     }}
+                    sx={{ mt: 4 }}
                     disabled={!selectedItemId}
-                    sx={{ height: "56px" }}
                   >
-                    Add Item
+                    Add
                   </Button>
                 </Box>
-                ,
                 <TableContainer component={Paper} sx={{ mt: 2 }}>
                   <Table>
                     <TableHead>
@@ -348,11 +321,6 @@ export default function CreateQuotation() {
                     </TableHead>
                     <TableBody>
                       {selectedItems.map((item, index) => {
-                        // const available = availableStock[item.item_id] || 0;
-                        const totalRequested = selectedItems
-                          .filter((i) => i.item_id === item.item_id)
-                          .reduce((sum, i) => sum + i.quantity, 0);
-
                         return (
                           <TableRow key={index}>
                             <TableCell>{item.name}</TableCell>
@@ -377,7 +345,6 @@ export default function CreateQuotation() {
                                       alert("Quantity must be at least 1");
                                       return;
                                     }
-
                                     updateItem(index, "quantity", newQuantity);
                                   }}
                                   style={{
@@ -437,27 +404,6 @@ export default function CreateQuotation() {
                   </Table>
                 </TableContainer>
               </Box>,
-
-              // <FormInput
-              //   key="valid_until"
-              //   id={"valid_until"}
-              //   name={"valid_until"}
-              //   placeholder={"Valid Until"}
-              //   label="Valid Until" // Use direct text
-              //   type={"date"}
-              //   // InputLabelProps={{ shrink: true }}
-              // />,
-
-              <FormInput
-                key="note"
-                id={"note"}
-                name={"note"}
-                placeholder={"Notes"}
-                label="Notes" // Use direct text
-                type={"text"}
-                isTextArea
-                // rows={3}
-              />,
             ]}
           />
         </Form>

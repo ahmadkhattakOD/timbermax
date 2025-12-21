@@ -1,11 +1,8 @@
 import { openSnackbar } from "api/snackbar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import {
-  parseAddress,
-  useDebouncedSearch,
-} from "utils/helpers";
+import { parseAddress, useDebouncedSearch } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
 } from "utils/repositories/customersRepository";
@@ -49,9 +46,13 @@ export function useCreateQuotation() {
   const [loadingItems, setLoadingItems] = useState(false); // Add items loading state
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null); // For item selection
+  const [inlineCustomerName, setInlineCustomerName] = useState("");
+  const quotationNumberRef = useRef(`QT-${Date.now()}`);
 
-  const totalAmount = selectedItems.reduce((sum, item) => 
-    sum + (parseFloat(item.quantity) * parseFloat(item.unit_price)), 0
+  const totalAmount = selectedItems.reduce(
+    (sum, item) =>
+      sum + parseFloat(item.quantity) * parseFloat(item.unit_price),
+    0
   );
 
   function changeAddress(newValue: any, actionMeta: any) {
@@ -60,6 +61,13 @@ export function useCreateQuotation() {
     setSelectedState(addressComponents.state);
     setSelectedAddress(newValue?.value?.description ?? "");
   }
+
+  const setCreateInlineCustomerWithReset = (value: boolean) => {
+    setCreateInlineCustomer(value);
+    if (!value) {
+      setInlineCustomerName("");
+    }
+  };
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setCustomerSearch(e.target.value);
@@ -89,29 +97,32 @@ export function useCreateQuotation() {
     if (!item) return;
 
     // Check if item already exists in selected items
-    const existingIndex = selectedItems.findIndex(i => i.item_id === itemId);
-    
+    const existingIndex = selectedItems.findIndex((i) => i.item_id === itemId);
+
     if (existingIndex !== -1) {
       // Update existing item quantity
       const updatedItems = [...selectedItems];
       const newQuantity = parseFloat(updatedItems[existingIndex].quantity) + 1;
-      
+
       updatedItems[existingIndex].quantity = newQuantity.toString();
-      updatedItems[existingIndex].total = (newQuantity * parseFloat(updatedItems[existingIndex].unit_price)).toString();
+      updatedItems[existingIndex].total = (
+        newQuantity * parseFloat(updatedItems[existingIndex].unit_price)
+      ).toString();
       setSelectedItems(updatedItems);
     } else {
+      console.log("IMTESS", item);
       // Add new item
       const newItem = {
         item_id: item.id,
         name: item.name,
         itemCode: item.itemCode,
         quantity: "1",
-        unit_price: item.sellPrice,
-        total: item.sellPrice.toString()
+        unit_price: item?.sellPrice,
+        total: item?.sellPrice.toString(),
       };
       setSelectedItems([...selectedItems, newItem]);
     }
-    
+
     // Reset selection
     setSelectedItemId(null);
   };
@@ -122,10 +133,10 @@ export function useCreateQuotation() {
 
   const updateItem = (index: number, field: string, value: any) => {
     const updatedItems = [...selectedItems];
-    
-    if (field === 'quantity') {
+
+    if (field === "quantity") {
       const newQuantity = parseFloat(value);
-      
+
       if (newQuantity < 1) {
         openSnackbar({
           open: true,
@@ -135,13 +146,12 @@ export function useCreateQuotation() {
         } as SnackbarProps);
         return;
       }
-      
+
       updatedItems[index].quantity = value;
-    } 
-    else if (field === 'unit_price') {
+    } else if (field === "unit_price") {
       updatedItems[index].unit_price = value;
     }
-    
+
     // Recalculate total for the item
     const quantity = parseFloat(updatedItems[index].quantity);
     const unit_price = parseFloat(updatedItems[index].unit_price);
@@ -164,33 +174,32 @@ export function useCreateQuotation() {
       errors.inlineCustomerName = "required";
     }
 
-    if (selectedItems.length === 0) {
-      openSnackbar({
-        open: true,
-        message: "Please add at least one item to the quotation",
-        variant: "alert",
-        alert: { color: "error" },
-      } as SnackbarProps);
-      return errors;
-    }
-
     return errors;
   }
 
   async function onSubmit(values: ValuesCreateQuotation) {
     try {
       let customerToAdd = selectedCustomer;
+      if (selectedItems.length === 0) {
+        openSnackbar({
+          open: true,
+          message: "Please add at least one item to the quotation",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
 
       if (createInlineCustomer) {
         const newCustomer: CustomerSupabase = {
           name: values.inlineCustomerName,
-          phone: selectedPhone,
-          mobile: selectedMobile,
-          address: selectedAddress,
-          suburb: selectedSuburb,
-          state: selectedState,
-          post_code: selectedPostCode,
-          email: selectedEmail,
+          phone: values.phone,
+          mobile: values.mobile,
+          address: values.address,
+          suburb: values.suburb,
+          state: values.state,
+          post_code: values.postCode,
+          email: values.emailAddress,
         };
         const customersRepository = new CustomersRepository();
         const createdCustomer = await customersRepository.create(newCustomer);
@@ -223,24 +232,20 @@ export function useCreateQuotation() {
         total: totalAmount,
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
-        status: 'draft'
+        status: "draft",
       };
 
-      // Use regular create method (no stock reservation)
       const quotationsRepo = new QuotationsRepository();
-      
-      // Prepare items for reservation
-      const itemsForReservation = selectedItems.map(item => ({
+
+      const itemsForReservation = selectedItems.map((item) => ({
         item_id: item.item_id,
-        quantity: parseFloat(item.quantity)
+        quantity: parseFloat(item.quantity),
       }));
-console.log("Coming reservations");
-      // Create quotation with stock reservation
+
       const result = await quotationsRepo.createWithStockReservation(
         newQuotation,
         itemsForReservation
       );
-console.log("Coming RESULT", result);
 
       if (!result.success) {
         openSnackbar({
@@ -252,7 +257,6 @@ console.log("Coming RESULT", result);
         return;
       }
 
-      // Add items to quotation_items table
       const quotationId = result.quotation?.id;
       if (!quotationId) {
         openSnackbar({
@@ -264,16 +268,15 @@ console.log("Coming RESULT", result);
         return;
       }
 
-      // Add each item to quotation_items
       for (const item of selectedItems) {
         const itemQuantity = parseFloat(item.quantity);
         const itemUnitPrice = parseFloat(item.unit_price);
-        
+
         await quotationsRepo.addItem({
           quotation_id: quotationId,
           item_id: item.item_id,
           quantity: itemQuantity,
-          unit_price: itemUnitPrice
+          unit_price: itemUnitPrice,
         });
       }
 
@@ -285,7 +288,6 @@ console.log("Coming RESULT", result);
       } as SnackbarProps);
 
       navigate("/quotations");
-
     } catch (e: any) {
       console.error("Error creating quotation:", e);
       openSnackbar({
@@ -349,18 +351,18 @@ console.log("Coming RESULT", result);
     if (selectedCustomer) {
       const customer = customers.find((c) => c.id === selectedCustomer);
       if (customer) {
-        setSelectedEmail(customer.email);
-        setSelectedPhone(customer.phone);
-        setSelectedMobile(customer.mobile);
-        setSelectedAddress(customer.address);
-        setSelectedSuburb(customer.suburb);
-        setSelectedState(customer.state);
-        setSelectedPostCode(customer.post_code);
+        setSelectedEmail(customer.email || "");
+        setSelectedPhone(customer.phone || "");
+        setSelectedMobile(customer.mobile || "");
+        setSelectedAddress(customer.address || "");
+        setSelectedSuburb(customer.suburb || "");
+        setSelectedState(customer.state || "");
+        setSelectedPostCode(customer.post_code || "");
       }
-    } else {
+    } else if (!createInlineCustomer) {
       resetCustomerData();
     }
-  }, [selectedCustomer]);
+  }, [selectedCustomer, customers, createInlineCustomer]);
 
   return {
     validate,
@@ -376,7 +378,6 @@ console.log("Coming RESULT", result);
     handleSearchDebounced,
     loadingCustomers,
     createInlineCustomer,
-    setCreateInlineCustomer,
     selectedAddress,
     selectedSuburb,
     selectedState,
@@ -399,5 +400,9 @@ console.log("Coming RESULT", result);
     loadingItems,
     selectedItemId,
     setSelectedItemId,
+    setCreateInlineCustomer: setCreateInlineCustomerWithReset,
+    inlineCustomerName,
+    quotationNumberRef,
+    setInlineCustomerName,
   };
 }
