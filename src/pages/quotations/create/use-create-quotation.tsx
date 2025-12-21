@@ -13,7 +13,6 @@ import ItemsRepository from "utils/repositories/itemsRepository";
 import QuotationsRepository, {
   QuotationSupabase,
 } from "utils/repositories/quotationRepo";
-import StocksRepository from "utils/repositories/stocksRepository";
 
 export interface ValuesCreateQuotation {
   quotation_number: string;
@@ -44,11 +43,12 @@ export function useCreateQuotation() {
   const [selectedPostCode, setSelectedPostCode] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
   const [customerSearch, setCustomerSearch] = useState<string>("");
+  const [itemSearch, setItemSearch] = useState<string>(""); // Add item search state
   const [loading, setLoading] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [loadingItems, setLoadingItems] = useState(false); // Add items loading state
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
-  const [availableStock, setAvailableStock] = useState<Record<number, number>>({});
-  const [stockReservations, setStockReservations] = useState<Record<number, number>>({});
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null); // For item selection
 
   const totalAmount = selectedItems.reduce((sum, item) => 
     sum + (parseFloat(item.quantity) * parseFloat(item.unit_price)), 0
@@ -67,6 +67,13 @@ export function useCreateQuotation() {
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
+  // Add item search handler
+  function handleItemSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setItemSearch(e.target.value);
+  }
+
+  const handleItemSearchDebounced = useDebouncedSearch(handleItemSearchChange);
+
   function resetCustomerData() {
     setSelectedEmail("");
     setSelectedPhone("");
@@ -77,92 +84,36 @@ export function useCreateQuotation() {
     setSelectedPostCode("");
   }
 
-  // Check stock availability for all items
-  async function checkStockAvailability() {
-    const stocksRepo = new StocksRepository();
-    const stockMap: Record<number, number> = {};
-    const reservationMap: Record<number, number> = {};
-    
-    for (const item of items) {
-      // Get total available stock
-      const result = await stocksRepo.getAvailableStock(item.id, 1);
-      if (result.success) {
-        stockMap[item.id] = result.totalAvailable || 0;
-      } else {
-        console.warn(`Failed to get stock for item ${item.id}:`, result.error);
-        stockMap[item.id] = 0;
-      }
-      
-      // Get already reserved quantity for this item (from other quotations)
-      const reservedResult = await stocksRepo.getTotalReservedForItem(item.id, 1);
-      if (reservedResult.success) {
-        reservationMap[item.id] = reservedResult.totalReserved || 0;
-      }
-    }
-    
-    setAvailableStock(stockMap);
-    setStockReservations(reservationMap);
-  }
+  const addItem = (itemId: number) => {
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return;
 
-  const addItem = (item: any) => {
     // Check if item already exists in selected items
-    const existingIndex = selectedItems.findIndex(i => i.item_id === item.item_id);
+    const existingIndex = selectedItems.findIndex(i => i.item_id === itemId);
     
     if (existingIndex !== -1) {
       // Update existing item quantity
       const updatedItems = [...selectedItems];
       const newQuantity = parseFloat(updatedItems[existingIndex].quantity) + 1;
       
-      // Check stock availability
-      if (!checkItemAvailability(item.item_id, newQuantity)) {
-        return;
-      }
-      
       updatedItems[existingIndex].quantity = newQuantity.toString();
       updatedItems[existingIndex].total = (newQuantity * parseFloat(updatedItems[existingIndex].unit_price)).toString();
       setSelectedItems(updatedItems);
     } else {
       // Add new item
-      if (!checkItemAvailability(item.item_id, 1)) {
-        return;
-      }
-      
       const newItem = {
-        ...item,
+        item_id: item.id,
+        name: item.name,
+        itemCode: item.itemCode,
         quantity: "1",
-        total: item.unit_price.toString()
+        unit_price: item.sellPrice,
+        total: item.sellPrice.toString()
       };
       setSelectedItems([...selectedItems, newItem]);
     }
-  };
-
-  // Helper function to check item availability
-  const checkItemAvailability = (itemId: number, requestedQuantity: number) => {
-    const available = availableStock[itemId] || 0;
-    const alreadyReserved = stockReservations[itemId] || 0;
     
-    // Calculate total requested from current selection
-    const currentRequested = selectedItems
-      .filter(i => i.item_id === itemId)
-      .reduce((sum, i) => sum + parseFloat(i.quantity), 0);
-    
-    const totalNeeded = currentRequested + requestedQuantity;
-    
-    // Check if we have enough stock considering both available and already reserved
-    if (totalNeeded > available) {
-      const netAvailable = Math.max(0, available - alreadyReserved);
-      if (netAvailable < requestedQuantity) {
-        openSnackbar({
-          open: true,
-          message: `Insufficient stock. Only ${netAvailable} available (${available} total - ${alreadyReserved} already reserved).`,
-          variant: "alert",
-          alert: { color: "error" },
-        } as SnackbarProps);
-        return false;
-      }
-    }
-    
-    return true;
+    // Reset selection
+    setSelectedItemId(null);
   };
 
   const removeItem = (index: number) => {
@@ -171,7 +122,6 @@ export function useCreateQuotation() {
 
   const updateItem = (index: number, field: string, value: any) => {
     const updatedItems = [...selectedItems];
-    const item = updatedItems[index];
     
     if (field === 'quantity') {
       const newQuantity = parseFloat(value);
@@ -183,11 +133,6 @@ export function useCreateQuotation() {
           variant: "alert",
           alert: { color: "error" },
         } as SnackbarProps);
-        return;
-      }
-      
-      // Check availability
-      if (!checkItemAvailability(item.item_id, newQuantity)) {
         return;
       }
       
@@ -220,7 +165,6 @@ export function useCreateQuotation() {
     }
 
     if (selectedItems.length === 0) {
-      // You can add error for items if needed
       openSnackbar({
         open: true,
         message: "Please add at least one item to the quotation",
@@ -230,32 +174,11 @@ export function useCreateQuotation() {
       return errors;
     }
 
-    // Validate stock availability
-    for (const item of selectedItems) {
-      const itemId = item.item_id;
-      const requestedQuantity = parseFloat(item.quantity);
-      
-      if (!checkItemAvailability(itemId, requestedQuantity)) {
-        // Error will be shown by checkItemAvailability
-        return errors;
-      }
-    }
-
     return errors;
   }
 
   async function onSubmit(values: ValuesCreateQuotation) {
     try {
-      // Final stock validation before submission
-      for (const item of selectedItems) {
-        const itemId = item.item_id;
-        const requestedQuantity = parseFloat(item.quantity);
-        
-        if (!checkItemAvailability(itemId, requestedQuantity)) {
-          return;
-        }
-      }
-
       let customerToAdd = selectedCustomer;
 
       if (createInlineCustomer) {
@@ -300,10 +223,10 @@ export function useCreateQuotation() {
         total: totalAmount,
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
-        status: 'draft' // Always start as draft
+        status: 'draft'
       };
 
-      // Use the new method that handles stock reservation
+      // Use regular create method (no stock reservation)
       const quotationsRepo = new QuotationsRepository();
       
       // Prepare items for reservation
@@ -311,12 +234,13 @@ export function useCreateQuotation() {
         item_id: item.item_id,
         quantity: parseFloat(item.quantity)
       }));
-
+console.log("Coming reservations");
       // Create quotation with stock reservation
       const result = await quotationsRepo.createWithStockReservation(
         newQuotation,
         itemsForReservation
       );
+console.log("Coming RESULT", result);
 
       if (!result.success) {
         openSnackbar({
@@ -355,7 +279,7 @@ export function useCreateQuotation() {
 
       openSnackbar({
         open: true,
-        message: "Quotation created successfully. Stock has been reserved.",
+        message: "Quotation created successfully.",
         variant: "alert",
         alert: { color: "success" },
       } as SnackbarProps);
@@ -387,18 +311,19 @@ export function useCreateQuotation() {
   }
 
   async function getItems() {
+    setLoadingItems(true);
     const itemsRepository = new ItemsRepository();
-    const allItems = await itemsRepository.getWithoutFilters();
+    const allItems = await itemsRepository.getByName(itemSearch || "");
     if (allItems?.itemsData) {
       setItems(allItems.itemsData);
     }
+    setLoadingItems(false);
   }
 
   async function loadData() {
     setLoading(true);
     try {
       await Promise.all([getCustomers(), getItems()]);
-      await checkStockAvailability();
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -414,6 +339,11 @@ export function useCreateQuotation() {
       getCustomers();
     }
   }, [customerSearch, createInlineCustomer]);
+
+  // Load items when search changes
+  useEffect(() => {
+    getItems();
+  }, [itemSearch]);
 
   useEffect(() => {
     if (selectedCustomer) {
@@ -431,18 +361,6 @@ export function useCreateQuotation() {
       resetCustomerData();
     }
   }, [selectedCustomer]);
-
-  // Update stock availability when items change
-  useEffect(() => {
-    if (items.length > 0) {
-      checkStockAvailability();
-    }
-  }, [items]);
-
-  // Re-check availability when selected items change
-  useEffect(() => {
-    checkStockAvailability();
-  }, [selectedItems]);
 
   return {
     validate,
@@ -475,7 +393,11 @@ export function useCreateQuotation() {
     setSelectedMobile,
     setSelectedPostCode,
     selectedCustomer,
-    availableStock,
-    checkStockAvailability,
+    itemSearch,
+    setItemSearch,
+    handleItemSearchDebounced,
+    loadingItems,
+    selectedItemId,
+    setSelectedItemId,
   };
 }

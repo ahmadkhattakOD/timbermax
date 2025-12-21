@@ -347,17 +347,6 @@ class StocksRepository {
       const stock = stockData[0];
       const currentQuantity = parseFloat(stock.quantity) || 0;
       const currentReserved = parseFloat(stock.reserved) || 0;
-      const available = currentQuantity - currentReserved;
-
-      // 2. Validate available stock
-      if (available < quantity) {
-        return {
-          success: false,
-          error: `Insufficient stock. Available: ${available}, Requested: ${quantity}`,
-          available,
-          requested: quantity,
-        };
-      }
 
       // 3. Create reservation record
       const { data: reservation, error: reservationError } = await supabase
@@ -417,147 +406,39 @@ class StocksRepository {
     }
   }
 
-// Add these methods to StocksRepository class
+  // Add these methods to StocksRepository class
 
-// Method to release ALL stock from a quotation (for cancellation)
-public async releaseAllFromQuotation(quotationId: number) {
-  try {
-    // 1. Get all reservations for this quotation
-    const { data: reservations, error: resError } = await supabase
-      .from("stock_reservations")
-      .select("id, item_id, warehouse_id, quantity")
-      .eq("quotation_id", quotationId)
-      .eq("status", "on_hold");
-
-    if (resError) {
-      return {
-        success: false,
-        error: `Failed to fetch reservations: ${resError.message}`,
-      };
-    }
-
-    if (!reservations || reservations.length === 0) {
-      return {
-        success: true,
-        released: 0,
-        message: "No active reservations found",
-      };
-    }
-
-    let totalReleased = 0;
-    const releaseResults = [];
-
-    // 2. Release each reservation
-    for (const reservation of reservations) {
-      // Update reservation status
-      const { error: updateResError } = await supabase
+  // Method to release ALL stock from a quotation (for cancellation)
+  public async releaseAllFromQuotation(quotationId: number) {
+    try {
+      // 1. Get all reservations for this quotation
+      const { data: reservations, error: resError } = await supabase
         .from("stock_reservations")
-        .update({
-          status: "released",
-          released_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", reservation.id);
+        .select("id, item_id, warehouse_id, quantity")
+        .eq("quotation_id", quotationId)
+        .eq("status", "on_hold");
 
-      if (updateResError) {
-        console.error(
-          `Failed to release reservation ${reservation.id}:`,
-          updateResError
-        );
-        continue;
+      if (resError) {
+        return {
+          success: false,
+          error: `Failed to fetch reservations: ${resError.message}`,
+        };
       }
 
-      // Update stock reserved quantity
-      const { data: stockData } = await supabase
-        .from(this.className)
-        .select("id, quantity, reserved")
-        .eq("item", reservation.item_id)
-        .eq("warehouse", reservation.warehouse_id)
-        .single();
-
-      if (stockData) {
-        const currentReserved = parseFloat(stockData.reserved) || 0;
-        const newReserved = Math.max(
-          0,
-          currentReserved - reservation.quantity
-        );
-        const newStatus = newReserved === 0 ? "available" : "on_hold";
-
-        await supabase
-          .from(this.className)
-          .update({
-            reserved: newReserved,
-            status: newStatus,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", stockData.id);
-
-        totalReleased += reservation.quantity;
-        releaseResults.push({
-          itemId: reservation.item_id,
-          released: reservation.quantity,
+      if (!reservations || reservations.length === 0) {
+        return {
           success: true,
-        });
+          released: 0,
+          message: "No active reservations found",
+        };
       }
-    }
 
-    return {
-      success: true,
-      totalReleased,
-      results: releaseResults,
-    };
-  } catch (error: any) {
-    console.error("Error releasing stock:", error);
-    return { success: false, error: `System error: ${error.message}` };
-  }
-}
+      let totalReleased = 0;
+      const releaseResults = [];
 
-// Method to release specific quantity of an item from a quotation (for editing)
-public async releaseFromQuotation(
-  quotationId: number,
-  itemId: number,
-  warehouseId: number,
-  quantity: number
-) {
-  try {
-    // 1. Get active reservations for this item and quotation
-    const { data: reservations, error: resError } = await supabase
-      .from("stock_reservations")
-      .select("id, quantity")
-      .eq("quotation_id", quotationId)
-      .eq("item_id", itemId)
-      .eq("warehouse_id", warehouseId)
-      .eq("status", "on_hold")
-      .order("created_at", { ascending: true }); // Release oldest first
-
-    if (resError) {
-      return {
-        success: false,
-        error: `Failed to fetch reservations: ${resError.message}`,
-      };
-    }
-
-    if (!reservations || reservations.length === 0) {
-      return {
-        success: false,
-        error: "No active reservations found for this item",
-        released: 0,
-      };
-    }
-
-    let remainingToRelease = quantity;
-    let totalReleased = 0;
-    const releaseResults = [];
-
-    // 2. Release from reservations (oldest first)
-    for (const reservation of reservations) {
-      if (remainingToRelease <= 0) break;
-
-      const reservationQuantity = parseFloat(reservation.quantity);
-      const releaseQuantity = Math.min(remainingToRelease, reservationQuantity);
-
-      if (releaseQuantity === reservationQuantity) {
-        // Release entire reservation
+      // 2. Release each reservation
+      for (const reservation of reservations) {
+        // Update reservation status
         const { error: updateResError } = await supabase
           .from("stock_reservations")
           .update({
@@ -574,28 +455,137 @@ public async releaseFromQuotation(
           );
           continue;
         }
-      } else {
-        // Partially release reservation - create new reservation for remaining quantity
-        const { error: updateResError } = await supabase
-          .from("stock_reservations")
-          .update({
-            quantity: reservationQuantity - releaseQuantity,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", reservation.id);
 
-        if (updateResError) {
-          console.error(
-            `Failed to partially release reservation ${reservation.id}:`,
-            updateResError
+        // Update stock reserved quantity
+        const { data: stockData } = await supabase
+          .from(this.className)
+          .select("id, quantity, reserved")
+          .eq("item", reservation.item_id)
+          .eq("warehouse", reservation.warehouse_id)
+          .single();
+
+        if (stockData) {
+          const currentReserved = parseFloat(stockData.reserved) || 0;
+          const newReserved = Math.max(
+            0,
+            currentReserved - reservation.quantity
           );
-          continue;
-        }
+          const newStatus = newReserved === 0 ? "available" : "on_hold";
 
-        // Create new reservation for the released portion
-        await supabase
-          .from("stock_reservations")
-          .insert({
+          await supabase
+            .from(this.className)
+            .update({
+              reserved: newReserved,
+              status: newStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", stockData.id);
+
+          totalReleased += reservation.quantity;
+          releaseResults.push({
+            itemId: reservation.item_id,
+            released: reservation.quantity,
+            success: true,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        totalReleased,
+        results: releaseResults,
+      };
+    } catch (error: any) {
+      console.error("Error releasing stock:", error);
+      return { success: false, error: `System error: ${error.message}` };
+    }
+  }
+
+  // Method to release specific quantity of an item from a quotation (for editing)
+  public async releaseFromQuotation(
+    quotationId: number,
+    itemId: number,
+    warehouseId: number,
+    quantity: number
+  ) {
+    try {
+      // 1. Get active reservations for this item and quotation
+      const { data: reservations, error: resError } = await supabase
+        .from("stock_reservations")
+        .select("id, quantity")
+        .eq("quotation_id", quotationId)
+        .eq("item_id", itemId)
+        .eq("warehouse_id", warehouseId)
+        .eq("status", "on_hold")
+        .order("created_at", { ascending: true }); // Release oldest first
+
+      if (resError) {
+        return {
+          success: false,
+          error: `Failed to fetch reservations: ${resError.message}`,
+        };
+      }
+
+      if (!reservations || reservations.length === 0) {
+        return {
+          success: false,
+          error: "No active reservations found for this item",
+          released: 0,
+        };
+      }
+
+      let remainingToRelease = quantity;
+      let totalReleased = 0;
+      const releaseResults = [];
+
+      // 2. Release from reservations (oldest first)
+      for (const reservation of reservations) {
+        if (remainingToRelease <= 0) break;
+
+        const reservationQuantity = parseFloat(reservation.quantity);
+        const releaseQuantity = Math.min(
+          remainingToRelease,
+          reservationQuantity
+        );
+
+        if (releaseQuantity === reservationQuantity) {
+          // Release entire reservation
+          const { error: updateResError } = await supabase
+            .from("stock_reservations")
+            .update({
+              status: "released",
+              released_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", reservation.id);
+
+          if (updateResError) {
+            console.error(
+              `Failed to release reservation ${reservation.id}:`,
+              updateResError
+            );
+            continue;
+          }
+        } else {
+          // Partially release reservation - create new reservation for remaining quantity
+          const { error: updateResError } = await supabase
+            .from("stock_reservations")
+            .update({
+              quantity: reservationQuantity - releaseQuantity,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", reservation.id);
+
+          if (updateResError) {
+            console.error(
+              `Failed to partially release reservation ${reservation.id}:`,
+              updateResError
+            );
+            continue;
+          }
+
+          // Create new reservation for the released portion
+          await supabase.from("stock_reservations").insert({
             item_id: itemId,
             warehouse_id: warehouseId,
             quotation_id: quotationId,
@@ -605,86 +595,86 @@ public async releaseFromQuotation(
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
-      }
+        }
 
-      // Update stock reserved quantity
-      const { data: stockData } = await supabase
-        .from(this.className)
-        .select("id, quantity, reserved")
-        .eq("item", itemId)
-        .eq("warehouse", warehouseId)
-        .single();
-
-      if (stockData) {
-        const currentReserved = parseFloat(stockData.reserved) || 0;
-        const newReserved = Math.max(0, currentReserved - releaseQuantity);
-        const newStatus = newReserved === 0 ? "available" : "on_hold";
-
-        await supabase
+        // Update stock reserved quantity
+        const { data: stockData } = await supabase
           .from(this.className)
-          .update({
-            reserved: newReserved,
-            status: newStatus,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", stockData.id);
+          .select("id, quantity, reserved")
+          .eq("item", itemId)
+          .eq("warehouse", warehouseId)
+          .single();
+
+        if (stockData) {
+          const currentReserved = parseFloat(stockData.reserved) || 0;
+          const newReserved = Math.max(0, currentReserved - releaseQuantity);
+          const newStatus = newReserved === 0 ? "available" : "on_hold";
+
+          await supabase
+            .from(this.className)
+            .update({
+              reserved: newReserved,
+              status: newStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", stockData.id);
+        }
+
+        remainingToRelease -= releaseQuantity;
+        totalReleased += releaseQuantity;
+        releaseResults.push({
+          reservationId: reservation.id,
+          released: releaseQuantity,
+          success: true,
+        });
       }
 
-      remainingToRelease -= releaseQuantity;
-      totalReleased += releaseQuantity;
-      releaseResults.push({
-        reservationId: reservation.id,
-        released: releaseQuantity,
-        success: true,
-      });
-    }
+      if (remainingToRelease > 0) {
+        return {
+          success: false,
+          error: `Could not release ${quantity} items. Only released ${totalReleased}. Insufficient reserved stock.`,
+          released: totalReleased,
+          needed: remainingToRelease,
+        };
+      }
 
-    if (remainingToRelease > 0) {
+      return {
+        success: true,
+        released: totalReleased,
+        results: releaseResults,
+      };
+    } catch (error: any) {
+      console.error("Error releasing stock from quotation:", error);
       return {
         success: false,
-        error: `Could not release ${quantity} items. Only released ${totalReleased}. Insufficient reserved stock.`,
-        released: totalReleased,
-        needed: remainingToRelease,
+        error: `System error: ${error.message}`,
+        released: 0,
       };
     }
-
-    return {
-      success: true,
-      released: totalReleased,
-      results: releaseResults,
-    };
-  } catch (error: any) {
-    console.error("Error releasing stock from quotation:", error);
-    return {
-      success: false,
-      error: `System error: ${error.message}`,
-      released: 0,
-    };
   }
-}
 
-// Method to get reservations for a specific item and quotation
-public async getItemReservationsForQuotation(
-  quotationId: number,
-  itemId: number,
-  warehouseId: number = 1
-) {
-  try {
-    const { data, error } = await supabase
-      .from("stock_reservations")
-      .select("id, quantity, status, created_at")
-      .eq("quotation_id", quotationId)
-      .eq("item_id", itemId)
-      .eq("warehouse_id", warehouseId)
-      .eq("status", "on_hold")
-      .order("created_at", { ascending: true });
+  // Method to get reservations for a specific item and quotation
+  public async getItemReservationsForQuotation(
+    quotationId: number,
+    itemId: number,
+    warehouseId: number = 1
+  ) {
+    try {
+      const { data, error } = await supabase
+        .from("stock_reservations")
+        .select("id, quantity, status, created_at")
+        .eq("quotation_id", quotationId)
+        .eq("item_id", itemId)
+        .eq("warehouse_id", warehouseId)
+        .eq("status", "on_hold")
+        .order("created_at", { ascending: true });
 
-    return { data, error };
-  } catch (error) {
-    console.error("Error fetching item reservations:", error);
-    return { data: null, error };
+      return { data, error };
+    } catch (error) {
+      console.error("Error fetching item reservations:", error);
+      return { data: null, error };
+    }
   }
-}
 
   public async getAvailableStock(itemId: number, warehouseId: number = 1) {
     try {

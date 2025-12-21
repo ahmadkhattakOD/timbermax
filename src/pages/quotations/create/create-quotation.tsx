@@ -23,6 +23,7 @@ import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
 import { useState } from "react";
+import { Button } from "@mui/material";
 
 // ==============================|| CREATE QUOTATION PAGE ||============================== //
 
@@ -49,6 +50,10 @@ export default function CreateQuotation() {
     selectedPhone,
     selectedMobile,
     selectedPostCode,
+    selectedItemId,
+    setSelectedItemId,
+    loadingItems,
+    handleItemSearchDebounced,
     setSelectedCustomer,
     changeAddress,
     setSelectedSuburb,
@@ -57,13 +62,10 @@ export default function CreateQuotation() {
     setSelectedPhone,
     setSelectedMobile,
     setSelectedPostCode,
-    selectedCustomer,
-    availableStock,
-    checkStockAvailability,
   } = useCreateQuotation();
 
   const theme = useTheme();
-
+  console.log("Imtess", items);
   if (loading) {
     return (
       <Box
@@ -238,9 +240,9 @@ export default function CreateQuotation() {
                 name={"state"}
                 label="State" // Use direct text
                 useFormattedStrings={false}
-                options={australianStates.map(state => ({
+                options={australianStates.map((state) => ({
                   label: state,
-                  value: state
+                  value: state,
                 }))}
                 value={selectedState}
                 onChange={(e) => {
@@ -282,41 +284,56 @@ export default function CreateQuotation() {
                 <Box
                   sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
                 >
-                  <FormDropdown
-                    id={"add_item"}
-                    name={"add_item"}
-                    label="Add Item" // Use direct text
-                    options={items.map((item) => ({
-                      label: `${item.name} (${item.itemCode}) - $${item.sellPrice} (Available: ${availableStock[item.id] || 0})`,
-                      value: item.id.toString(),
-                    }))}
-                    onChange={(e) => {
+                  <InputDropdown
+                    key="item_search"
+                    id="item_search"
+                    name="item_search"
+                    label="Select Item"
+                    options={items}
+                    secondaryLabel={
+                      <Box
+                        sx={{
+                          color: theme.palette.primary.main,
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                        onClick={() => {
+                          // Handle create new item if needed
+                          console.log("Create new item clicked");
+                        }}
+                      >
+                        Create New Item
+                      </Box>
+                    }
+                    loading={loadingItems}
+                    optional={false}
+                    onChange={handleItemSearchDebounced}
+                    onSelect={(e) => {
                       const itemId = parseInt(e.target.value);
                       if (itemId) {
-                        const item = items.find((i) => i.id === itemId);
-                        if (item) {
-                          // Check stock availability before adding
-                          const available = availableStock[item.id] || 0;
-                          if (available <= 0) {
-                            alert(`Item "${item.name}" is out of stock!`);
-                            return;
-                          }
-                          
-                          addItem({
-                            item_id: item.id,
-                            name: item.name,
-                            itemCode: item.itemCode,
-                            quantity: 1,
-                            unit_price: item.sellPrice,
-                            total: item.sellPrice,
-                            available_stock: available,
-                          });
-                        }
+                        setSelectedItemId(itemId);
                       }
                     }}
+                    // Remove the value prop to work like customers dropdown
+                    // error={errors.item_search}
                   />
+                  <Button
+                    variant="contained"
+                    startIcon={<Add size={20} />}
+                    onClick={() => {
+                      if (selectedItemId) {
+                        addItem(selectedItemId);
+                        setSelectedItemId(null); // Reset after adding
+                      }
+                    }}
+                    disabled={!selectedItemId}
+                    sx={{ height: "56px" }}
+                  >
+                    Add Item
+                  </Button>
                 </Box>
-
+                ,
                 <TableContainer component={Paper} sx={{ mt: 2 }}>
                   <Table>
                     <TableHead>
@@ -331,47 +348,46 @@ export default function CreateQuotation() {
                     </TableHead>
                     <TableBody>
                       {selectedItems.map((item, index) => {
-                        const available = availableStock[item.item_id] || 0;
+                        // const available = availableStock[item.item_id] || 0;
                         const totalRequested = selectedItems
-                          .filter(i => i.item_id === item.item_id)
+                          .filter((i) => i.item_id === item.item_id)
                           .reduce((sum, i) => sum + i.quantity, 0);
-                        
+
                         return (
                           <TableRow key={index}>
                             <TableCell>{item.name}</TableCell>
                             <TableCell>{item.itemCode}</TableCell>
                             <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
                                 <input
                                   id={`items[${index}].quantity`}
                                   name={`items[${index}].quantity`}
                                   type="number"
                                   value={item.quantity}
                                   onChange={(e) => {
-                                    const newQuantity = parseFloat(e.target.value) || 0;
+                                    const newQuantity =
+                                      parseFloat(e.target.value) || 0;
                                     if (newQuantity < 1) {
                                       alert("Quantity must be at least 1");
                                       return;
                                     }
-                                    if (newQuantity > available) {
-                                      const remaining = available - (totalRequested - item.quantity);
-                                      alert(`Cannot select more than ${remaining} items. Only ${remaining} available after accounting for other selections.`);
-                                      return;
-                                    }
+
                                     updateItem(index, "quantity", newQuantity);
                                   }}
-                                  style={{ 
-                                    width: '80px', 
-                                    padding: '8px',
-                                    border: '1px solid #ccc',
-                                    borderRadius: '4px'
+                                  style={{
+                                    width: "80px",
+                                    padding: "8px",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "4px",
                                   }}
                                   min={1}
-                                  max={available}
                                 />
-                                <Typography variant="caption" color="text.secondary">
-                                  Max: {available}
-                                </Typography>
                               </Box>
                             </TableCell>
                             <TableCell>
@@ -381,13 +397,17 @@ export default function CreateQuotation() {
                                 type="number"
                                 value={item.unit_price}
                                 onChange={(e) =>
-                                  updateItem(index, "unit_price", parseFloat(e.target.value) || 0)
+                                  updateItem(
+                                    index,
+                                    "unit_price",
+                                    parseFloat(e.target.value) || 0
+                                  )
                                 }
-                                style={{ 
-                                  width: '100px', 
-                                  padding: '8px',
-                                  border: '1px solid #ccc',
-                                  borderRadius: '4px'
+                                style={{
+                                  width: "100px",
+                                  padding: "8px",
+                                  border: "1px solid #ccc",
+                                  borderRadius: "4px",
                                 }}
                                 min={0}
                                 step="0.01"

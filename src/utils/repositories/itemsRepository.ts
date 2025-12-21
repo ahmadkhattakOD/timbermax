@@ -70,6 +70,28 @@ class ItemsRepository {
     }
   }
 
+  public async getByName(searchTerm: string = "", limit: number = 10) {
+    try {
+      let query = supabase
+        .from(this.className)
+        .select("*")
+        .order("name", { ascending: true })
+        .limit(limit);
+        
+        if (searchTerm.trim()) {
+          // Search in both name and itemCode fields
+          query = query.or(`name.ilike.%${searchTerm}%,itemCode.ilike.%${searchTerm}%`);
+        }
+        
+        const { data: itemsData, error: itemsError } = await query;
+
+      return { itemsData, itemsError };
+    } catch (error) {
+      console.error("Error searching items:", error);
+      return { itemsData: [], itemsError: error };
+    }
+  }
+
   public async getWithoutFilters() {
     try {
       const { data: itemsData, error: itemsError } = await supabase
@@ -136,4 +158,5 @@ class ItemsRepository {
     }
   }
 }
+
 export default ItemsRepository;
