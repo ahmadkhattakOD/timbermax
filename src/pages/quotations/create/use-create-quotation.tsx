@@ -117,8 +117,8 @@ export function useCreateQuotation() {
         name: item.name,
         itemCode: item.itemCode,
         quantity: "1",
-        unit_price: item?.sellPrice,
-        total: item?.sellPrice.toString(),
+        unit_price: item?.sellPrice || 0,
+        total: item?.sellPrice.toString() || "0",
       };
       setSelectedItems([...selectedItems, newItem]);
     }
@@ -348,8 +348,11 @@ export function useCreateQuotation() {
   }, [itemSearch]);
 
   useEffect(() => {
+    console.log("POKERSS");
+    
     if (selectedCustomer) {
       const customer = customers.find((c) => c.id === selectedCustomer);
+      console.log("cUSTOMER" , customer)
       if (customer) {
         setSelectedEmail(customer.email || "");
         setSelectedPhone(customer.phone || "");

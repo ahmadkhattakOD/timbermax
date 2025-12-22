@@ -380,13 +380,11 @@ export default function EditQuotation() {
                                   type="number"
                                   value={item.quantity}
                                   onChange={(e) => {
-                                    const newQuantity =
-                                      parseFloat(e.target.value) || 0;
-                                    if (newQuantity < 1) {
-                                      alert("Quantity must be at least 1");
-                                      return;
-                                    }
-                                    updateItem(index, "quantity", newQuantity);
+                                    updateItem(
+                                      index,
+                                      "quantity",
+                                      parseFloat(e.target.value)
+                                    );
                                   }}
                                   style={{
                                     width: "80px",
