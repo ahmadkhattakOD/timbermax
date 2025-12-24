@@ -449,7 +449,7 @@ class QuotationsRepository {
 
   public async updateQuotationTotal(quotationId: number) {
     try {
-      // Calculate new total from items
+      // Calculate new total from items (including GST if stored separately)
       const { data: items, error: itemsError } = await supabase
         .from(this.itemsClassName)
         .select("quantity, unit_price")
@@ -459,7 +459,8 @@ class QuotationsRepository {
         return { success: false, error: itemsError.message };
       }
 
-      const total =
+      // This calculates base total without GST
+      const baseTotal =
         items?.reduce(
           (sum, item) =>
             sum +
@@ -468,11 +469,37 @@ class QuotationsRepository {
           0
         ) || 0;
 
+      // If you need to add GST, you'll need to fetch GST information for each item
+      // Option 1: If GST is stored in quotation_items
+      const { data: itemsWithGST } = await supabase
+        .from(this.itemsClassName)
+        .select(
+          `
+        quantity, 
+        unit_price,
+        items!inner(gst)
+      `
+        )
+        .eq("quotation_id", quotationId);
+
+      let totalWithGST = 0;
+      if (itemsWithGST) {
+        itemsWithGST.forEach((item: any) => {
+          const quantity = parseFloat(item.quantity);
+          const unitPrice = parseFloat(item.unit_price);
+          const base = quantity * unitPrice;
+          const gst = item.items?.gst ? base * 0.1 : 0;
+          totalWithGST += base + gst;
+        });
+      } else {
+        totalWithGST = baseTotal;
+      }
+
       // Update quotation total
       const { error: updateError } = await supabase
         .from(this.className)
         .update({
-          total: total,
+          total: totalWithGST, // Use GST-included total
           updated_at: new Date().toISOString(),
         })
         .eq("id", quotationId);
@@ -480,7 +507,7 @@ class QuotationsRepository {
       return {
         success: !updateError,
         error: updateError?.message,
-        total,
+        total: totalWithGST,
       };
     } catch (error: any) {
       console.error("Error updating quotation total:", error);

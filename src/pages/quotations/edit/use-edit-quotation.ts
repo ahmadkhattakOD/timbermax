@@ -6,6 +6,7 @@ import {
   parseAddress,
   useDebouncedSearch,
   getDateFormattedForField,
+  calculateItemTotal,
 } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
@@ -67,7 +68,8 @@ export function useEditQuotation(quotationId: number) {
   });
 
   const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + parseFloat(item.quantity) * parseFloat(item.unit_price),
+    (sum, item) =>
+      sum + parseFloat(item.quantity) * parseFloat(item.unit_price),
     0
   );
 
@@ -83,7 +85,6 @@ export function useEditQuotation(quotationId: number) {
   }
 
   const handleItemSearchDebounced = useDebouncedSearch(handleItemSearchChange);
-
   const addItem = (itemId: number) => {
     const item = items.find((i) => i.id === itemId);
     if (!item) return;
@@ -97,19 +98,28 @@ export function useEditQuotation(quotationId: number) {
       const newQuantity = parseFloat(updatedItems[existingIndex].quantity) + 1;
 
       updatedItems[existingIndex].quantity = newQuantity.toString();
-      updatedItems[existingIndex].total = (
-        newQuantity * parseFloat(updatedItems[existingIndex].unit_price)
-      ).toString();
+      // Recalculate total with GST
+      const quantity = newQuantity;
+      const unitPrice = parseFloat(updatedItems[existingIndex].unit_price);
+      const baseTotal = quantity * unitPrice;
+      const gstAmount = updatedItems[existingIndex].gst ? baseTotal * 0.1 : 0;
+
+      updatedItems[existingIndex].total = (baseTotal + gstAmount).toString();
       setSelectedItems(updatedItems);
     } else {
-      // Add new item
+      // Add new item with GST
       const newItem = {
         item_id: item.id,
         name: item.name,
         itemCode: item.itemCode,
         quantity: "1",
-        unit_price: item?.sellPrice,
-        total: item?.sellPrice.toString(),
+        unit_price: item?.sellPrice || 0,
+        gst: item?.gst || false, // Add GST field
+        total: calculateItemTotal({
+          quantity: "1",
+          unit_price: item?.sellPrice || 0,
+          gst: item?.gst || false,
+        }).toString(),
       };
       setSelectedItems([...selectedItems, newItem]);
     }
@@ -144,10 +154,13 @@ export function useEditQuotation(quotationId: number) {
       updatedItems[index].unit_price = value;
     }
 
-    // Recalculate total for the item
+    // Recalculate total for the item with GST
     const quantity = parseFloat(updatedItems[index].quantity);
     const unit_price = parseFloat(updatedItems[index].unit_price);
-    updatedItems[index].total = (quantity * unit_price).toString();
+    const baseTotal = quantity * unit_price;
+    const gstAmount = updatedItems[index].gst ? baseTotal * 0.1 : 0;
+
+    updatedItems[index].total = (baseTotal + gstAmount).toString();
     setSelectedItems(updatedItems);
   };
 
@@ -169,244 +182,250 @@ export function useEditQuotation(quotationId: number) {
     return errors;
   }
 
-  async function onSubmit(values: ValuesEditQuotation) {
-    try {
-      if (selectedItems.length === 0) {
-        openSnackbar({
-          open: true,
-          message: "Please add at least one item to the quotation",
-          variant: "alert",
-          alert: { color: "error" },
-        } as SnackbarProps);
-        return;
-      }
-
-      // Update customer details
-      if (customerId) {
-        const customersRepo = new CustomersRepository();
-        await customersRepo.edit(customerId, {
-          name: values.customerName,
-          phone: values.phone,
-          mobile: values.mobile,
-          address: values.address,
-          suburb: values.suburb,
-          state: values.state,
-          post_code: values.postCode,
-          email: values.emailAddress,
-        });
-      }
-
-      const quotationsRepo = new QuotationsRepository();
-      const stocksRepo = new StocksRepository();
-
-      // Get current items from database
-      const currentItemsResult = await quotationsRepo.getItems(quotationId);
-      const currentItems = currentItemsResult?.data || [];
-
-      // Check if status changed to cancelled
-      const statusChangedToCancelled = 
-        currentStatus !== "cancelled" && values.status === "cancelled";
-
-      // If changing to cancelled, release all stock first
-      if (statusChangedToCancelled) {
-        for (const item of currentItems) {
-          const reservations = await stocksRepo.getReservedStockByItem(
-            item.item_id,
-            1
-          );
-          const quotationReservations =
-            reservations.data?.filter(
-              (res: any) =>
-                res.quotation_id === quotationId && res.status === "on_hold"
-            ) || [];
-
-          for (const reservation of quotationReservations) {
-            await stocksRepo.releaseFromQuotation(
-              quotationId,
-              item.item_id,
-              1,
-              parseFloat(reservation.quantity)
-            );
-          }
-        }
-      }
-
-      // Update quotation status and details
-      const updatedQuotation: Partial<QuotationSupabase> = {
-        customer_id: customerId,
-        total: totalAmount,
-        valid_until: values.valid_until ? new Date(values.valid_until) : null,
-        note: values.note,
-        status: values.status,
-      };
-
-      const updated = await quotationsRepo.edit(quotationId, updatedQuotation);
-
-      if (!updated) {
-        openSnackbar({
-          open: true,
-          message: "Quotation could not be updated. Please try again.",
-          variant: "alert",
-          alert: { color: "error" },
-        } as SnackbarProps);
-        return;
-      }
-
-      // Only update items if status is not cancelled
-      if (values.status !== "cancelled") {
-        // Identify items to remove
-        const currentItemIds = currentItems.map((item: any) => item.item_id);
-        const newItemIds = selectedItems.map((item) => item.item_id);
-
-        // Items to remove (in current but not in new)
-        const itemsToRemove = currentItems.filter(
-          (item: any) => !newItemIds.includes(item.item_id)
-        );
-
-        // Remove items that are no longer in the quotation
-        for (const item of itemsToRemove) {
-          // Delete item from quotation_items
-          await quotationsRepo.deleteItem(quotationId, item.item_id);
-
-          // Release stock for removed items
-          const reservations = await stocksRepo.getReservedStockByItem(
-            item.item_id,
-            1
-          );
-          const quotationReservations =
-            reservations.data?.filter(
-              (res: any) =>
-                res.quotation_id === quotationId && res.status === "on_hold"
-            ) || [];
-
-          for (const reservation of quotationReservations) {
-            await stocksRepo.releaseFromQuotation(
-              quotationId,
-              item.item_id,
-              1,
-              parseFloat(reservation.quantity)
-            );
-          }
-        }
-
-        // Update or add items
-        for (const selectedItem of selectedItems) {
-          const itemId = selectedItem.item_id;
-          const newQuantity = parseFloat(selectedItem.quantity);
-          const itemUnitPrice = parseFloat(selectedItem.unit_price);
-
-          const currentItem = currentItems.find(
-            (item: any) => item.item_id === itemId
-          );
-
-          if (currentItem) {
-            // Update existing item
-            const currentQuantity = parseFloat(currentItem.quantity);
-
-            await quotationsRepo.updateItem(quotationId, itemId, {
-              quantity: newQuantity,
-              unit_price: itemUnitPrice,
-            });
-
-            // Adjust stock if quantity changed
-            if (newQuantity !== currentQuantity) {
-              const quantityDiff = newQuantity - currentQuantity;
-
-              if (quantityDiff > 0) {
-                // Need more stock
-                const reserveResult = await stocksRepo.reserveForQuotation(
-                  itemId,
-                  1,
-                  quantityDiff,
-                  quotationId
-                );
-
-                if (!reserveResult.success) {
-                  console.warn(
-                    `Failed to reserve additional stock for item ${itemId}:`,
-                    reserveResult.error
-                  );
-                }
-              } else if (quantityDiff < 0) {
-                // Need to release stock
-                const releaseAmount = Math.abs(quantityDiff);
-
-                const reservations = await stocksRepo.getReservedStockByItem(
-                  itemId,
-                  1
-                );
-                const quotationReservations =
-                  reservations.data?.filter(
-                    (res: any) =>
-                      res.quotation_id === quotationId && res.status === "on_hold"
-                  ) || [];
-
-                let remainingToRelease = releaseAmount;
-                for (const reservation of quotationReservations) {
-                  if (remainingToRelease <= 0) break;
-
-                  const releaseQuantity = Math.min(
-                    remainingToRelease,
-                    parseFloat(reservation.quantity)
-                  );
-                  await stocksRepo.releaseFromQuotation(
-                    quotationId,
-                    itemId,
-                    1,
-                    releaseQuantity
-                  );
-                  remainingToRelease -= releaseQuantity;
-                }
-              }
-            }
-          } else {
-            // Add new item
-            await quotationsRepo.addItem({
-              quotation_id: quotationId,
-              item_id: itemId,
-              quantity: newQuantity,
-              unit_price: itemUnitPrice,
-            });
-
-            // Reserve stock for new item
-            const reserveResult = await stocksRepo.reserveForQuotation(
-              itemId,
-              1,
-              newQuantity,
-              quotationId
-            );
-
-            if (!reserveResult.success) {
-              console.warn(
-                `Failed to reserve stock for new item ${itemId}:`,
-                reserveResult.error
-              );
-            }
-          }
-        }
-
-        // Update quotation total
-        await quotationsRepo.updateQuotationTotal(quotationId);
-      }
-
+ async function onSubmit(values: ValuesEditQuotation) {
+  try {
+    if (selectedItems.length === 0) {
       openSnackbar({
         open: true,
-        message: "Quotation updated successfully.",
-        variant: "alert",
-        alert: { color: "success" },
-      } as SnackbarProps);
-
-      navigate("/quotations");
-    } catch (e: any) {
-      console.error("Error updating quotation:", e);
-      openSnackbar({
-        open: true,
-        message: `Quotation could not be updated: ${e.message}`,
+        message: "Please add at least one item to the quotation",
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
+      return;
     }
+
+    // Calculate total with GST included
+    const totalWithGST = selectedItems.reduce(
+      (sum, item) => sum + calculateItemTotal(item),
+      0
+    );
+
+    // Update customer details
+    if (customerId) {
+      const customersRepo = new CustomersRepository();
+      await customersRepo.edit(customerId, {
+        name: values.customerName,
+        phone: values.phone,
+        mobile: values.mobile,
+        address: values.address,
+        suburb: values.suburb,
+        state: values.state,
+        post_code: values.postCode,
+        email: values.emailAddress,
+      });
+    }
+
+    const quotationsRepo = new QuotationsRepository();
+    const stocksRepo = new StocksRepository();
+
+    // Get current items from database
+    const currentItemsResult = await quotationsRepo.getItems(quotationId);
+    const currentItems = currentItemsResult?.data || [];
+
+    // Check if status changed to cancelled
+    const statusChangedToCancelled = 
+      currentStatus !== "cancelled" && values.status === "cancelled";
+
+    // If changing to cancelled, release all stock first
+    if (statusChangedToCancelled) {
+      for (const item of currentItems) {
+        const reservations = await stocksRepo.getReservedStockByItem(
+          item.item_id,
+          1
+        );
+        const quotationReservations =
+          reservations.data?.filter(
+            (res: any) =>
+              res.quotation_id === quotationId && res.status === "on_hold"
+          ) || [];
+
+        for (const reservation of quotationReservations) {
+          await stocksRepo.releaseFromQuotation(
+            quotationId,
+            item.item_id,
+            1,
+            parseFloat(reservation.quantity)
+          );
+        }
+      }
+    }
+
+    // Update quotation status and details with GST-calculated total
+    const updatedQuotation: Partial<QuotationSupabase> = {
+      customer_id: customerId,
+      total: totalWithGST, // Use GST-included total
+      valid_until: values.valid_until ? new Date(values.valid_until) : null,
+      note: values.note,
+      status: values.status,
+    };
+
+    const updated = await quotationsRepo.edit(quotationId, updatedQuotation);
+
+    if (!updated) {
+      openSnackbar({
+        open: true,
+        message: "Quotation could not be updated. Please try again.",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+      return;
+    }
+
+    // Only update items if status is not cancelled
+    if (values.status !== "cancelled") {
+      // Identify items to remove
+      const currentItemIds = currentItems.map((item: any) => item.item_id);
+      const newItemIds = selectedItems.map((item) => item.item_id);
+
+      // Items to remove (in current but not in new)
+      const itemsToRemove = currentItems.filter(
+        (item: any) => !newItemIds.includes(item.item_id)
+      );
+
+      // Remove items that are no longer in the quotation
+      for (const item of itemsToRemove) {
+        // Delete item from quotation_items
+        await quotationsRepo.deleteItem(quotationId, item.item_id);
+
+        // Release stock for removed items
+        const reservations = await stocksRepo.getReservedStockByItem(
+          item.item_id,
+          1
+        );
+        const quotationReservations =
+          reservations.data?.filter(
+            (res: any) =>
+              res.quotation_id === quotationId && res.status === "on_hold"
+          ) || [];
+
+        for (const reservation of quotationReservations) {
+          await stocksRepo.releaseFromQuotation(
+            quotationId,
+            item.item_id,
+            1,
+            parseFloat(reservation.quantity)
+          );
+        }
+      }
+
+      // Update or add items
+      for (const selectedItem of selectedItems) {
+        const itemId = selectedItem.item_id;
+        const newQuantity = parseFloat(selectedItem.quantity);
+        const itemUnitPrice = parseFloat(selectedItem.unit_price);
+
+        const currentItem = currentItems.find(
+          (item: any) => item.item_id === itemId
+        );
+
+        if (currentItem) {
+          // Update existing item
+          const currentQuantity = parseFloat(currentItem.quantity);
+
+          await quotationsRepo.updateItem(quotationId, itemId, {
+            quantity: newQuantity,
+            unit_price: itemUnitPrice,
+          });
+
+          // Adjust stock if quantity changed
+          if (newQuantity !== currentQuantity) {
+            const quantityDiff = newQuantity - currentQuantity;
+
+            if (quantityDiff > 0) {
+              // Need more stock
+              const reserveResult = await stocksRepo.reserveForQuotation(
+                itemId,
+                1,
+                quantityDiff,
+                quotationId
+              );
+
+              if (!reserveResult.success) {
+                console.warn(
+                  `Failed to reserve additional stock for item ${itemId}:`,
+                  reserveResult.error
+                );
+              }
+            } else if (quantityDiff < 0) {
+              // Need to release stock
+              const releaseAmount = Math.abs(quantityDiff);
+
+              const reservations = await stocksRepo.getReservedStockByItem(
+                itemId,
+                1
+              );
+              const quotationReservations =
+                reservations.data?.filter(
+                  (res: any) =>
+                    res.quotation_id === quotationId && res.status === "on_hold"
+                ) || [];
+
+              let remainingToRelease = releaseAmount;
+              for (const reservation of quotationReservations) {
+                if (remainingToRelease <= 0) break;
+
+                const releaseQuantity = Math.min(
+                  remainingToRelease,
+                  parseFloat(reservation.quantity)
+                );
+                await stocksRepo.releaseFromQuotation(
+                  quotationId,
+                  itemId,
+                  1,
+                  releaseQuantity
+                );
+                remainingToRelease -= releaseQuantity;
+              }
+            }
+          }
+        } else {
+          // Add new item
+          await quotationsRepo.addItem({
+            quotation_id: quotationId,
+            item_id: itemId,
+            quantity: newQuantity,
+            unit_price: itemUnitPrice,
+          });
+
+          // Reserve stock for new item
+          const reserveResult = await stocksRepo.reserveForQuotation(
+            itemId,
+            1,
+            newQuantity,
+            quotationId
+          );
+
+          if (!reserveResult.success) {
+            console.warn(
+              `Failed to reserve stock for new item ${itemId}:`,
+              reserveResult.error
+            );
+          }
+        }
+      }
+
+      // Update quotation total with GST
+      await quotationsRepo.updateQuotationTotal(quotationId);
+    }
+
+    openSnackbar({
+      open: true,
+      message: "Quotation updated successfully.",
+      variant: "alert",
+      alert: { color: "success" },
+    } as SnackbarProps);
+
+    navigate("/quotations");
+  } catch (e: any) {
+    console.error("Error updating quotation:", e);
+    openSnackbar({
+      open: true,
+      message: `Quotation could not be updated: ${e.message}`,
+      variant: "alert",
+      alert: { color: "error" },
+    } as SnackbarProps);
   }
+}
 
   async function getItems() {
     setLoadingItems(true);
@@ -469,9 +488,12 @@ export function useEditQuotation(quotationId: number) {
               itemCode: item.items?.itemCode || "",
               quantity: item.quantity.toString(),
               unit_price: item.unit_price.toString(),
-              total: (
-                parseFloat(item.quantity) * parseFloat(item.unit_price)
-              ).toString(),
+              gst: item.items?.gst || false, // Add GST field
+              total: calculateItemTotal({
+                quantity: item.quantity.toString(),
+                unit_price: item.unit_price.toString(),
+                gst: item.items?.gst || false,
+              }).toString(),
             })
           );
           setSelectedItems(itemsWithDetails);

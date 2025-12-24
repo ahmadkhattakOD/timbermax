@@ -198,6 +198,17 @@ export function getMonthName(date: Date) {
   return monthNames[monthIndex];
 }
 
+export const calculateItemTotal = (item: any) => {
+  const qty = parseFloat(item.quantity);
+  const price = parseFloat(item.unit_price);
+
+  const baseTotal = qty * price;
+  const gstAmount = item.gst ? baseTotal * 0.1 : 0;
+
+  return baseTotal + gstAmount;
+};
+
+
 export const opportunityDescriptions = [
   "Electric Bases (Narrow Single)",
   "Electric Bases (Long Single)",

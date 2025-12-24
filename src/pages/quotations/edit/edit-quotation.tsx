@@ -3,7 +3,7 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useEditQuotation } from "./use-edit-quotation";
-import { australianStates } from "utils/helpers";
+import { australianStates, calculateItemTotal } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
@@ -356,6 +356,8 @@ export default function EditQuotation() {
                         <TableCell>Code</TableCell>
                         <TableCell>Quantity</TableCell>
                         <TableCell>Unit Price</TableCell>
+                        <TableCell>GST</TableCell>
+
                         <TableCell>Total</TableCell>
                         <TableCell>Actions</TableCell>
                       </TableRow>
@@ -419,8 +421,9 @@ export default function EditQuotation() {
                                 step="0.01"
                               />
                             </TableCell>
+                            <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
                             <TableCell>
-                              ${(item.quantity * item.unit_price).toFixed(2)}
+                              ${calculateItemTotal(item).toFixed(2)}
                             </TableCell>
                             <TableCell>
                               <IconButton onClick={() => removeItem(index)}>

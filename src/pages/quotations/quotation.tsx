@@ -49,9 +49,7 @@ export default function Quotations() {
     searchValue,
     setSearchValue,
     convertToInvoice,
-    viewItems,
     ItemsModal,
-    cancelQuotation,
   } = useQuotations();
 
   return (

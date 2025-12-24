@@ -3,7 +3,7 @@ import { ErrorMessage, Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateQuotation } from "./use-create-quotation";
-import { australianStates, getDateFormattedForField } from "utils/helpers";
+import { australianStates, calculateItemTotal, getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
@@ -356,6 +356,7 @@ export default function CreateQuotation() {
                           <TableCell>Code</TableCell>
                           <TableCell>Quantity</TableCell>
                           <TableCell>Unit Price</TableCell>
+                          <TableCell>GST</TableCell>
                           <TableCell>Total</TableCell>
                           <TableCell>Actions</TableCell>
                         </TableRow>
@@ -419,8 +420,10 @@ export default function CreateQuotation() {
                                   step="0.01"
                                 />
                               </TableCell>
+                              <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
+
                               <TableCell>
-                                ${(item.quantity * item.unit_price).toFixed(2)}
+                               ${calculateItemTotal(item).toFixed(2)}
                               </TableCell>
                               <TableCell>
                                 <IconButton onClick={() => removeItem(index)}>
