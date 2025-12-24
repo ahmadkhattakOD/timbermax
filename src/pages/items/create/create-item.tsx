@@ -20,6 +20,7 @@ export default function CreateItem() {
         itemCode: "",
         sellPrice: "",
         purchasePrice: "",
+        gst: false,
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -39,6 +40,7 @@ export default function CreateItem() {
                 type={"text"}
                 error={touched.name ? errors.name : ""}
               />,
+
               <FormInput
                 id={"itemCode"}
                 name={"itemCode"}
@@ -75,6 +77,25 @@ export default function CreateItem() {
                 label={"description"}
                 type={"text"}
               />,
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  maxWidth: "10%",
+                  background: "#fafafa",
+                }}
+              >
+                <FormInput
+                  id={"gst"}
+                  name={"gst"}
+                  placeholder={"gst"}
+                  label={"gst"}
+                  optional={true}
+                  type={"checkbox"}
+                  error={touched.name ? errors.name : ""}
+                />
+              </div>,
             ]}
           />
         </Form>

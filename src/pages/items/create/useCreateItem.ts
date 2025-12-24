@@ -11,6 +11,7 @@ export interface ValuesCreateItem {
   itemCode: string;
   sellPrice: string;
   purchasePrice: string;
+  gst:boolean
 }
 
 export function useCreateItem() {
@@ -65,6 +66,7 @@ export function useCreateItem() {
         itemCode: values.itemCode,
         sellPrice: sellPriceNum,
         purchasePrice: purchasePriceNum,
+        gst:values.gst || false
       };
 
       const itemsRepository = new ItemsRepository();

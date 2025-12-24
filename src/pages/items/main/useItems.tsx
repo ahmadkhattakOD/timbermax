@@ -15,10 +15,10 @@ const headCells: HeadCell[] = [
     label: "Name",
   },
   {
-    id: "committed",
-    numeric: true,
-    disablePadding: true,
-    label: "Committed",
+    id: "GST",
+    numeric: false,
+    disablePadding: false,
+    label: "Gst",
   },
   {
     id: "description",
@@ -113,8 +113,8 @@ export function useItems() {
         >
           {row.name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.committed}
+        <TableCell sx={{ minWidth: 200, textAlign: "left" }}>
+          {row.gst ? 'Yes' : 'No'}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.description}</TableCell>
         <TableCell sx={{ minWidth: 120 }}>{row.itemCode}</TableCell>

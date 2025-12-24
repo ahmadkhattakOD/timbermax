@@ -13,6 +13,7 @@ export interface ValuesEditItem {
   itemCode: string;
   sellPrice: string;
   purchasePrice: string;
+  gst:boolean
 }
 
 export function useEditItem() {
@@ -70,6 +71,7 @@ export function useEditItem() {
           itemCode: values.itemCode,
           sellPrice: sellPriceNum,
           purchasePrice: purchasePriceNum,
+          gst:values.gst || false
         };
 
         const itemsRepository = new ItemsRepository();

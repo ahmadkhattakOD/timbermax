@@ -38,6 +38,7 @@ export default function EditItem() {
         itemCode: item?.itemCode ?? "",
         sellPrice: item?.sellPrice?.toString() ?? "",
         purchasePrice: item?.purchasePrice?.toString() ?? "",
+        gst: item?.gst || false,
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -52,7 +53,7 @@ export default function EditItem() {
                 id={"name"}
                 name={"name"}
                 placeholder={"Name"}
-                label={"name"}
+                label={"Name"}
                 optional={false}
                 type={"text"}
                 error={touched.name ? errors.name : ("" as any)}
@@ -61,7 +62,7 @@ export default function EditItem() {
                 id={"itemCode"}
                 name={"itemCode"}
                 placeholder={"Item Code"}
-                label={"itemCode"}
+                label={"Item Code"}
                 optional={false}
                 type={"text"}
                 error={touched.itemCode ? errors.itemCode : ("" as any)}
@@ -70,7 +71,7 @@ export default function EditItem() {
                 id={"sellPrice"}
                 name={"sellPrice"}
                 placeholder={"Sell Price"}
-                label={"sellPrice"}
+                label={"Sell Price"}
                 optional={false}
                 type={"number"}
                 error={touched.sellPrice ? errors.sellPrice : ("" as any)}
@@ -79,7 +80,7 @@ export default function EditItem() {
                 id={"purchasePrice"}
                 name={"purchasePrice"}
                 placeholder={"Purchase Price"}
-                label={"purchasePrice"}
+                label={"Purchase Price"}
                 optional={false}
                 type={"number"}
                 error={
@@ -93,6 +94,24 @@ export default function EditItem() {
                 label={"description"}
                 type={"text"}
               />,
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  maxWidth: "10%",
+                  background: "#fafafa",
+                }}
+              >
+                <FormInput
+                  id={"gst"}
+                  name={"gst"}
+                  placeholder={"gst"}
+                  label={"GST"}
+                  optional={true}
+                  type={"checkbox"}
+                />
+              </div>,
               // <FormInput
               //   id={"committed"}
               //   name={"committed"}
