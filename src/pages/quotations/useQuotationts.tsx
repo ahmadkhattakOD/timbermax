@@ -22,9 +22,11 @@ import {
   EyeSlash,
   Receipt,
   Send,
+  Truck,
   Xd,
 } from "iconsax-react";
 import {
+  generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
   openQuotationPDFInNewTab,
 } from "utils/pdf-generator";
@@ -98,6 +100,74 @@ const headCells: HeadCell[] = [
   },
 ];
 
+async function downloadDeliveryDocument(quotationId: number) {
+  try {
+    const quotationsRepo = new QuotationsRepository();
+    const quotationResponse = await quotationsRepo.getSingle(quotationId);
+
+    if (!quotationResponse?.quotationData) {
+      throw new Error(`Quotation with ID ${quotationId} not found`);
+    }
+
+    const quotation: Quotation = quotationResponse.quotationData;
+
+    openSnackbar({
+      action: false,
+      open: true,
+      message: "Generating Delivery Document...",
+      anchorOrigin: { vertical: "bottom", horizontal: "right" },
+      variant: "alert",
+      alert: {
+        color: "info" as any,
+        variant: "filled",
+      },
+      transition: "Fade",
+      close: true,
+      actionButton: false,
+    } as SnackbarProps);
+
+    const result = await generateAndDownloadDeliveryDocument(quotation);
+
+    if (result.success) {
+      openSnackbar({
+        action: false,
+        open: true,
+        message: `Delivery Document downloaded: ${result.fileName}`,
+        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        variant: "alert",
+        alert: {
+          color: "success" as any,
+          variant: "filled",
+        },
+        transition: "Fade",
+        close: true,
+        actionButton: false,
+      } as SnackbarProps);
+    } else {
+      throw new Error(result.error || "Failed to download Delivery Document");
+    }
+  } catch (error) {
+    console.error("Error in downloadDeliveryDocument:", error);
+    openSnackbar({
+      action: false,
+      open: true,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to generate Delivery Document",
+      anchorOrigin: { vertical: "bottom", horizontal: "right" },
+      variant: "alert",
+      alert: {
+        color: "error" as any,
+        variant: "filled",
+      },
+      transition: "Fade",
+      close: true,
+      actionButton: false,
+    } as SnackbarProps);
+  } finally {
+  }
+}
 export const initialFilters: ValuesFilterQuotations = {
   quotation_number: "",
   customer_name: "",
@@ -333,8 +403,7 @@ export function useQuotations() {
     </Dialog>
   );
 
-  // Add status buttons to the generateTableCells function
-  // In hooks/useQuotations.ts - update the generateTableCells function
+  // Update the generateTableCells function to add Delivery Document button
   function generateTableCells(
     row: Quotation,
     labelId: string,
@@ -344,9 +413,11 @@ export function useQuotations() {
     const isConvertable = row.status === "approved";
     const isCancellable =
       row.status !== "cancelled" && row.status !== "converted";
-    const isEditable = row.status === "draft";
     const canMarkSent = row.status === "draft";
     const canMarkApproved = row.status === "sent";
+    const canDownloadDelivery = ["approved", "sent", "draft"].includes(
+      row.status || ""
+    );
 
     return (
       <>
@@ -401,22 +472,6 @@ export function useQuotations() {
         </TableCell>
         <TableCell sx={{ minWidth: 350 }}>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {/* Edit Button (only for draft quotations) */}
-            {isEditable && (
-              <Tooltip title="Edit Quotation">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/quotations/edit/${row.id}`);
-                  }}
-                  color="primary"
-                >
-                  <Edit size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
             {/* Mark as Sent Button (only for draft) */}
             {canMarkSent && (
               <Tooltip title="Mark as Sent">
@@ -466,7 +521,7 @@ export function useQuotations() {
             )}
 
             {/* Download PDF Button */}
-            <Tooltip title="Download PDF">
+            <Tooltip title="Download Quotation PDF">
               <IconButton
                 size="small"
                 onClick={(e) => {
@@ -478,6 +533,22 @@ export function useQuotations() {
                 <DocumentDownload size={18} />
               </IconButton>
             </Tooltip>
+
+            {/* Download Delivery Document Button */}
+            {canDownloadDelivery && itemsCount > 0 && (
+              <Tooltip title="Download Delivery Document">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadDeliveryDocument(row.id);
+                  }}
+                  color="warning"
+                >
+                  <Truck size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
 
             {/* Convert to Invoice Button (only for approved quotations) */}
             {isConvertable && (
@@ -515,7 +586,6 @@ export function useQuotations() {
       </>
     );
   }
-
   // Add new functions to useQuotations hook
   async function markAsSent(quotationId: number) {
     try {

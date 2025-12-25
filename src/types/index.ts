@@ -36,6 +36,9 @@ export interface Customer {
   address?: string;
   company?: string;
   abn?: string;
+  post_code?:string;
+  suburb?:string
+  state?:string
 }
 
 export interface Item {
@@ -63,7 +66,14 @@ export interface Quotation {
   quotation_number: string;
   customer_id: number;
   customer?: Customer;
-  status: 'draft' | 'sent' | 'accepted' | 'converted' | 'cancelled' | 'approved';
+  customers?: Customer;
+  status:
+    | "draft"
+    | "sent"
+    | "accepted"
+    | "converted"
+    | "cancelled"
+    | "approved";
   total: number;
   subtotal?: number;
   tax?: number;
