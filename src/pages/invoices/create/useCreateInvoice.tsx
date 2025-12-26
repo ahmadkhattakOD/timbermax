@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { parseAddress, useDebouncedSearch } from "utils/helpers";
-import { openSnackbar } from "api/snackbar"; // Import the snackbar function
+import { parseAddress, useDebouncedSearch, calculateItemTotal } from "utils/helpers";
+import { openSnackbar } from "api/snackbar";
 import CustomersRepository, {
   CustomerSupabase,
 } from "utils/repositories/customersRepository";
@@ -10,7 +10,7 @@ import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
 import QuotationsRepository from "utils/repositories/quotationRepo";
-import StocksRepository from "utils/repositories/stocksRepository";
+import { SnackbarProps } from "types/snackbar";
 
 export interface ValuesCreateInvoice {
   invoice_number: string;
@@ -44,13 +44,17 @@ export function useCreateInvoice() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState<string>("");
+  const [itemSearch, setItemSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [loadingItems, setLoadingItems] = useState(false);
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isQuotationLoaded, setIsQuotationLoaded] = useState(false);
+  const [inlineCustomerName, setInlineCustomerName] = useState("");
 
   const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + item.quantity * item.unit_price,
+    (sum, item) => sum + calculateItemTotal(item),
     0
   );
 
@@ -61,11 +65,24 @@ export function useCreateInvoice() {
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
+  const setCreateInlineCustomerWithReset = (value: boolean) => {
+    setCreateInlineCustomer(value);
+    if (!value) {
+      setInlineCustomerName("");
+    }
+  };
+
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setCustomerSearch(e.target.value);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+
+  function handleItemSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setItemSearch(e.target.value);
+  }
+
+  const handleItemSearchDebounced = useDebouncedSearch(handleItemSearchChange);
 
   function resetCustomerData() {
     setSelectedEmail("");
@@ -77,8 +94,39 @@ export function useCreateInvoice() {
     setSelectedPostCode("");
   }
 
-  const addItem = (item: any) => {
-    setSelectedItems([...selectedItems, item]);
+  const addItem = (itemId: number) => {
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    // Check if item already exists in selected items
+    const existingIndex = selectedItems.findIndex((i) => i.item_id === itemId);
+
+    if (existingIndex !== -1) {
+      // Update existing item quantity
+      const updatedItems = [...selectedItems];
+      const newQuantity = parseFloat(updatedItems[existingIndex].quantity) + 1;
+
+      updatedItems[existingIndex].quantity = newQuantity.toString();
+      updatedItems[existingIndex].total = (
+        newQuantity * parseFloat(updatedItems[existingIndex].unit_price)
+      ).toString();
+      setSelectedItems(updatedItems);
+    } else {
+      // Add new item with GST information
+      const newItem = {
+        item_id: item.id,
+        name: item.name,
+        itemCode: item.itemCode,
+        quantity: "1",
+        unit_price: item?.sellPrice || 0,
+        gst: item?.gst || false,
+        total: item?.sellPrice.toString() || "0",
+      };
+      setSelectedItems([...selectedItems, newItem]);
+    }
+
+    // Reset selection
+    setSelectedItemId(null);
   };
 
   const removeItem = (index: number) => {
@@ -87,11 +135,32 @@ export function useCreateInvoice() {
 
   const updateItem = (index: number, field: string, value: any) => {
     const updatedItems = [...selectedItems];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-    if (field === "quantity" || field === "unit_price") {
-      updatedItems[index].total =
-        updatedItems[index].quantity * updatedItems[index].unit_price;
+
+    if (field === "quantity") {
+      const newQuantity = parseFloat(value);
+
+      if (newQuantity < 1) {
+        openSnackbar({
+          open: true,
+          message: "Quantity must be at least 1",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
+
+      updatedItems[index].quantity = value;
+    } else if (field === "unit_price") {
+      updatedItems[index].unit_price = value;
     }
+
+    // Recalculate total for the item including GST
+    const quantity = parseFloat(updatedItems[index].quantity);
+    const unit_price = parseFloat(updatedItems[index].unit_price);
+    const baseTotal = quantity * unit_price;
+    const gstAmount = updatedItems[index].gst ? baseTotal * 0.1 : 0;
+
+    updatedItems[index].total = (baseTotal + gstAmount).toString();
     setSelectedItems(updatedItems);
   };
 
@@ -104,10 +173,9 @@ export function useCreateInvoice() {
       if (quotation?.quotationData) {
         setSelectedQuotation(quotation.quotationData);
         setIsQuotationLoaded(true);
-        console.log("hellooo", quotation);
+
         // Load customer details
         if (quotation.quotationData.customers) {
-          console.log("Not coming", quotation.quotationData.customers);
           setSelectedCustomer(quotation.quotationData.customers.id);
           setSelectedEmail(quotation.quotationData.customers.email || "");
           setSelectedPhone(quotation.quotationData.customers.phone || "");
@@ -120,7 +188,7 @@ export function useCreateInvoice() {
           );
         }
 
-        // Load items
+        // Load items with GST information
         const itemsData = await quotationsRepo.getItems(quotationId);
         if (itemsData?.data) {
           setSelectedItems(
@@ -130,11 +198,11 @@ export function useCreateInvoice() {
               itemCode: item.items?.itemCode,
               quantity: item.quantity,
               unit_price: item.unit_price,
+              gst: item.items?.gst || false,
               total: item.total_price,
             }))
           );
 
-          // Show success snackbar
           openSnackbar({
             action: false,
             open: true,
@@ -197,7 +265,7 @@ export function useCreateInvoice() {
   }
 
   function validate(values: ValuesCreateInvoice) {
-    const errors = {} as ValuesCreateInvoice;
+    const errors: Partial<ValuesCreateInvoice> = {};
 
     if (!values.invoice_number) {
       errors.invoice_number = "required";
@@ -217,7 +285,12 @@ export function useCreateInvoice() {
 
     if (selectedItems.length === 0) {
       // Add error handling for items
-      // errors.items = "Add at least one item";
+      openSnackbar({
+        open: true,
+        message: "Please add at least one item to the invoice",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
     }
 
     return errors;
@@ -226,17 +299,27 @@ export function useCreateInvoice() {
   async function onSubmit(values: ValuesCreateInvoice) {
     try {
       let customerToAdd = selectedCustomer;
+      
+      if (selectedItems.length === 0) {
+        openSnackbar({
+          open: true,
+          message: "Please add at least one item to the invoice",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
 
       if (createInlineCustomer) {
         const newCustomer: CustomerSupabase = {
           name: values.inlineCustomerName,
-          phone: selectedPhone,
-          mobile: selectedMobile,
-          address: selectedAddress,
-          suburb: selectedSuburb,
-          state: selectedState,
-          post_code: selectedPostCode,
-          email: selectedEmail,
+          phone: values.phone,
+          mobile: values.mobile,
+          address: values.address,
+          suburb: values.suburb,
+          state: values.state,
+          post_code: values.postCode,
+          email: values.emailAddress,
         };
         const customersRepository = new CustomersRepository();
         const createdCustomer = await customersRepository.create(newCustomer);
@@ -244,43 +327,21 @@ export function useCreateInvoice() {
           customerToAdd = createdCustomer.id;
         } else if (createdCustomer === false) {
           openSnackbar({
-            action: false,
             open: true,
             message:
               "Another customer already exists with the same name and address. Please select the customer to continue.",
-            anchorOrigin: { vertical: "bottom", horizontal: "right" },
             variant: "alert",
-            alert: {
-              color: "error",
-              variant: "filled",
-            },
-            transition: "Fade",
-            close: true,
-            actionButton: false,
-            maxStack: 3,
-            dense: false,
-            iconVariant: "usedefault",
-          });
+            alert: { color: "error" },
+          } as SnackbarProps);
           return;
         } else {
           openSnackbar({
-            action: false,
             open: true,
             message:
               "Customer could not be added successfully. Please try again.",
-            anchorOrigin: { vertical: "bottom", horizontal: "right" },
             variant: "alert",
-            alert: {
-              color: "error",
-              variant: "filled",
-            },
-            transition: "Fade",
-            close: true,
-            actionButton: false,
-            maxStack: 3,
-            dense: false,
-            iconVariant: "usedefault",
-          });
+            alert: { color: "error" },
+          } as SnackbarProps);
           return;
         }
       }
@@ -295,133 +356,64 @@ export function useCreateInvoice() {
         status: "draft",
       };
 
+      // Prepare items for stock reduction (quantity only for stock adjustment)
+      const itemsForStockReduction = selectedItems.map((item) => ({
+        item_id: item.item_id,
+        quantity: parseFloat(item.quantity),
+      }));
+
+      // Create invoice with immediate stock reduction
       const invoicesRepo = new InvoicesRepository();
-      const createdInvoice = await invoicesRepo.create(newInvoice);
+      const result = await invoicesRepo.createWithStockReduction(
+        newInvoice,
+        itemsForStockReduction
+      );
 
-      if (createdInvoice) {
-        // Add items to invoice
-        for (const item of selectedItems) {
-          await invoicesRepo.addItem({
-            invoice_id: createdInvoice.id,
-            item_id: item.item_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-          });
-
-          // COMMIT STOCK (Immediate reduction for invoices)
-          const stocksRepo = new StocksRepository();
-          // const result = await stocksRepo.commitForInvoice(
-          //   item.item_id,
-          //   1, // default warehouse
-          //   item.quantity,
-          //   createdInvoice.id
-          // );
-          const result = { success: false, error: false }; // TODO: temporary for fixing build erro, original is above
-
-          if (!result.success) {
-            // If stock commit fails, show error and rollback
-            await invoicesRepo.delete([createdInvoice.id]);
-            openSnackbar({
-              action: false,
-              open: true,
-              message: `Failed to allocate stock for item ${item.name}. ${result.error}`,
-              anchorOrigin: { vertical: "bottom", horizontal: "right" },
-              variant: "alert",
-              alert: {
-                color: "error",
-                variant: "filled",
-              },
-              transition: "Fade",
-              close: true,
-              actionButton: false,
-              maxStack: 3,
-              dense: false,
-              iconVariant: "usedefault",
-            });
-            return;
-          }
-        }
-
-        // If this invoice was created from a quotation, update quotation status
-        if (selectedQuotation) {
-          const quotationsRepo = new QuotationsRepository();
-          // await quotationsRepo.updateStatus(selectedQuotation.id, 'converted');
-          openSnackbar({
-            action: false,
-            open: true,
-            message: `Quotation #${selectedQuotation.quotation_number} marked as converted`,
-            anchorOrigin: { vertical: "bottom", horizontal: "right" },
-            variant: "alert",
-            alert: {
-              color: "info",
-              variant: "filled",
-            },
-            transition: "Fade",
-            close: true,
-            actionButton: false,
-            maxStack: 3,
-            dense: false,
-            iconVariant: "usedefault",
-          });
-        }
-
+      if (!result.success) {
         openSnackbar({
-          action: false,
           open: true,
-          message: "Invoice created successfully. Stock has been committed.",
-          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          message: `Invoice creation failed: ${result.error}`,
           variant: "alert",
-          alert: {
-            color: "success",
-            variant: "filled",
-          },
-          transition: "Fade",
-          close: true,
-          actionButton: false,
-          maxStack: 3,
-          dense: false,
-          iconVariant: "usedefault",
-        });
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
 
-        navigate("/invoices");
-      } else {
-        openSnackbar({
-          action: false,
-          open: true,
-          message: "Invoice could not be created. Please try again.",
-          anchorOrigin: { vertical: "bottom", horizontal: "right" },
-          variant: "alert",
-          alert: {
-            color: "error",
-            variant: "filled",
-          },
-          transition: "Fade",
-          close: true,
-          actionButton: false,
-          maxStack: 3,
-          dense: false,
-          iconVariant: "usedefault",
+      // Add invoice items (with GST information)
+      for (const item of selectedItems) {
+        const itemQuantity = parseFloat(item.quantity);
+        const itemUnitPrice = parseFloat(item.unit_price);
+
+        await invoicesRepo.addItem({
+          invoice_id: result.invoice.id,
+          item_id: item.item_id,
+          quantity: itemQuantity,
+          unit_price: itemUnitPrice,
         });
       }
-    } catch (e) {
+
+      // Update quotation status if created from quotation
+      if (selectedQuotation) {
+        const quotationsRepo = new QuotationsRepository();
+        await quotationsRepo.updateStatus(selectedQuotation.id, "converted");
+      }
+
+      openSnackbar({
+        open: true,
+        message: "Invoice created successfully. Stock has been reduced.",
+        variant: "alert",
+        alert: { color: "success" },
+      } as SnackbarProps);
+
+      navigate("/invoices");
+    } catch (e: any) {
       console.error("Error creating invoice:", e);
       openSnackbar({
-        action: false,
         open: true,
-        message: "Invoice could not be created. Please try again.",
-        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        message: `Invoice could not be created: ${e.message}`,
         variant: "alert",
-        alert: {
-          color: "error",
-          variant: "filled",
-        },
-        transition: "Fade",
-        close: true,
-        actionButton: false,
-        maxStack: 3,
-        dense: false,
-        iconVariant: "usedefault",
-      });
+        alert: { color: "error" },
+      } as SnackbarProps);
     }
   }
 
@@ -439,11 +431,13 @@ export function useCreateInvoice() {
   }
 
   async function getItems() {
+    setLoadingItems(true);
     const itemsRepository = new ItemsRepository();
-    const allItems = await itemsRepository.getWithoutFilters();
+    const allItems = await itemsRepository.getByName(itemSearch || "");
     if (allItems?.itemsData) {
       setItems(allItems.itemsData);
     }
+    setLoadingItems(false);
   }
 
   async function getQuotations() {
@@ -460,7 +454,11 @@ export function useCreateInvoice() {
 
   async function loadData() {
     setLoading(true);
-    await Promise.all([getCustomers(), getItems(), getQuotations()]);
+    try {
+      await Promise.all([getCustomers(), getItems(), getQuotations()]);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
     setLoading(false);
   }
 
@@ -475,21 +473,25 @@ export function useCreateInvoice() {
   }, [customerSearch, createInlineCustomer]);
 
   useEffect(() => {
+    getItems();
+  }, [itemSearch]);
+
+  useEffect(() => {
     if (selectedCustomer) {
       const customer = customers.find((c) => c.id === selectedCustomer);
       if (customer) {
-        setSelectedEmail(customer.email);
-        setSelectedPhone(customer.phone);
-        setSelectedMobile(customer.mobile);
-        setSelectedAddress(customer.address);
-        setSelectedSuburb(customer.suburb);
-        setSelectedState(customer.state);
-        setSelectedPostCode(customer.post_code);
+        setSelectedEmail(customer.email || "");
+        setSelectedPhone(customer.phone || "");
+        setSelectedMobile(customer.mobile || "");
+        setSelectedAddress(customer.address || "");
+        setSelectedSuburb(customer.suburb || "");
+        setSelectedState(customer.state || "");
+        setSelectedPostCode(customer.post_code || "");
       }
-    } else {
+    } else if (!createInlineCustomer) {
       resetCustomerData();
     }
-  }, [selectedCustomer]);
+  }, [selectedCustomer, customers, createInlineCustomer]);
 
   return {
     validate,
@@ -506,7 +508,6 @@ export function useCreateInvoice() {
     handleSearchDebounced,
     loadingCustomers,
     createInlineCustomer,
-    setCreateInlineCustomer,
     selectedAddress,
     selectedSuburb,
     selectedState,
@@ -516,17 +517,18 @@ export function useCreateInvoice() {
     selectedPostCode,
     setSelectedCustomer,
     changeAddress,
-    setSelectedSuburb,
-    setSelectedState,
-    setSelectedEmail,
-    setSelectedPhone,
-    setSelectedMobile,
-    setSelectedPostCode,
     selectedCustomer,
     loadFromQuotation,
     selectedQuotation,
     isQuotationLoaded,
     setIsQuotationLoaded,
     setSelectedItems,
+    handleItemSearchDebounced,
+    loadingItems,
+    selectedItemId,
+    setSelectedItemId,
+    setCreateInlineCustomer: setCreateInlineCustomerWithReset,
+    inlineCustomerName,
+    setInlineCustomerName,
   };
 }

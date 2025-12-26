@@ -956,6 +956,183 @@ class StocksRepository {
       return { data: null, error };
     }
   }
+
+  // Add these methods to your existing StocksRepository class
+
+  /**
+   * Direct stock reduction for invoices (no reservation, allows negative)
+   */
+  public async reduceStockForInvoice(
+    itemId: number,
+    warehouseId: number,
+    quantity: number,
+    invoiceId: number
+  ) {
+    try {
+      // 1. Find existing stock record
+      const { data: stockData, error: stockError } = await supabase
+        .from(this.className)
+        .select("id, quantity, reserved")
+        .eq("item", itemId)
+        .eq("warehouse", warehouseId)
+        .limit(1);
+
+      if (stockError) {
+        return {
+          success: false,
+          error: `Database error: ${stockError.message}`,
+        };
+      }
+
+      const currentQuantity = stockData?.[0]?.quantity
+        ? parseFloat(stockData[0].quantity)
+        : 0;
+      const newQuantity = currentQuantity - quantity; // Can be negative
+
+      // 2. Update or create stock record
+      if (stockData && stockData.length > 0) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from(this.className)
+          .update({
+            quantity: newQuantity,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", stockData[0].id);
+
+        if (updateError) {
+          return {
+            success: false,
+            error: `Failed to update stock: ${updateError.message}`,
+          };
+        }
+      } else {
+        // Create new record with negative quantity (if needed)
+        const { error: insertError } = await supabase
+          .from(this.className)
+          .insert({
+            item: itemId,
+            warehouse: warehouseId,
+            quantity: newQuantity, // Can be negative
+            reserved: 0,
+            status: "available",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          return {
+            success: false,
+            error: `Failed to create stock record: ${insertError.message}`,
+          };
+        }
+      }
+
+      return {
+        success: true,
+        previousQuantity: currentQuantity,
+        newQuantity: newQuantity,
+        reduction: quantity,
+        itemId,
+        warehouseId,
+      };
+    } catch (error: any) {
+      console.error("Error reducing stock for invoice:", error);
+      return {
+        success: false,
+        error: `System error: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Restore stock when invoice is cancelled
+   */
+  public async restoreStockFromInvoice(
+    itemId: number,
+    warehouseId: number,
+    quantity: number
+  ) {
+    try {
+      // Find existing stock record
+      const { data: stockData } = await supabase
+        .from(this.className)
+        .select("id, quantity")
+        .eq("item", itemId)
+        .eq("warehouse", warehouseId)
+        .limit(1);
+
+      const currentQuantity = stockData?.[0]?.quantity
+        ? parseFloat(stockData[0].quantity)
+        : 0;
+      const newQuantity = currentQuantity + quantity;
+
+      if (stockData && stockData.length > 0) {
+        // Update existing record
+        const { error } = await supabase
+          .from(this.className)
+          .update({
+            quantity: newQuantity,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", stockData[0].id);
+
+        if (error) throw error;
+      } else {
+        // Create new record
+        const { error } = await supabase.from(this.className).insert({
+          item: itemId,
+          warehouse: warehouseId,
+          quantity: newQuantity,
+          reserved: 0,
+          status: "available",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (error) throw error;
+      }
+
+      return { success: true, newQuantity };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get current available stock (including negative values)
+   */
+  public async getCurrentStock(itemId: number, warehouseId: number = 1) {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .select("quantity, reserved")
+        .eq("item", itemId)
+        .eq("warehouse", warehouseId)
+        .limit(1);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data || data.length === 0) {
+        return { success: true, quantity: 0, reserved: 0, available: 0 };
+      }
+
+      const stock = data[0];
+      const quantity = parseFloat(stock.quantity) || 0;
+      const reserved = parseFloat(stock.reserved) || 0;
+
+      return {
+        success: true,
+        quantity: quantity,
+        reserved: reserved,
+        available: quantity - reserved, // Can be negative
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export default StocksRepository;

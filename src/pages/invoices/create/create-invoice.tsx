@@ -4,7 +4,7 @@ import { ErrorMessage, Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateInvoice } from "./useCreateInvoice";
-import { australianStates, getDateFormattedForField } from "utils/helpers";
+import { australianStates, calculateItemTotal, getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
@@ -18,6 +18,7 @@ import {
   TableRow,
   Paper,
   Typography,
+  Button,
 } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
@@ -54,20 +55,20 @@ export default function CreateInvoice() {
     selectedPhone,
     selectedMobile,
     selectedPostCode,
-    setSelectedCustomer,
-    changeAddress,
-    setSelectedSuburb,
-    setSelectedState,
-    setSelectedEmail,
-    setSelectedPhone,
-    setSelectedMobile,
-    setSelectedPostCode,
     selectedCustomer,
     loadFromQuotation,
     selectedQuotation,
     isQuotationLoaded,
     setSelectedItems,
     setIsQuotationLoaded,
+    handleItemSearchDebounced,
+    loadingItems,
+    selectedItemId,
+    setSelectedItemId,
+    inlineCustomerName,
+    setInlineCustomerName,
+    changeAddress,
+    setSelectedCustomer,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -100,11 +101,14 @@ export default function CreateInvoice() {
 
   return (
     <Formik
-      enableReinitialize
+      enableReinitialize={false}
+      validateOnMount={false}
+      validateOnChange={false}
+      validateOnBlur={true}
       initialValues={{
         invoice_number: `INV-${Date.now()}`,
         contactName: "",
-        inlineCustomerName: "",
+        inlineCustomerName: inlineCustomerName || "",
         phone: selectedPhone || "",
         mobile: selectedMobile || "",
         address: selectedAddress || "",
@@ -126,375 +130,425 @@ export default function CreateInvoice() {
         isSubmitting,
         values,
         setFieldValue,
-      }) => (
-        <Form onSubmit={handleSubmit}>
-          <FormLayout
-            isSubmitting={isSubmitting}
-            submitButtonText={"Create Invoice"}
-            inputs={[
-              <FormInput
-                id={"invoice_number"}
-                name={"invoice_number"}
-                placeholder={"Invoice Number"}
-                label={"Invoice Number"}
-                type={"text"}
-                optional={false}
-                error={touched.invoice_number ? errors.invoice_number : ""}
-              />,
+      }) => {
+        // Auto-populate customer details when selected
+        useEffect(() => {
+          if (selectedCustomer) {
+            const customer = customers.find((c) => c.id === selectedCustomer);
+            if (customer) {
+              // Update Formik values
+              setFieldValue("phone", customer.phone || "");
+              setFieldValue("mobile", customer.mobile || "");
+              setFieldValue("address", customer.address || "");
+              setFieldValue("suburb", customer.suburb || "");
+              setFieldValue("state", customer.state || "");
+              setFieldValue("postCode", customer.post_code || "");
+              setFieldValue("emailAddress", customer.email || "");
+            }
+          } else if (!createInlineCustomer) {
+            // Reset Formik values when no customer selected
+            setFieldValue("phone", "");
+            setFieldValue("mobile", "");
+            setFieldValue("address", "");
+            setFieldValue("suburb", "");
+            setFieldValue("state", "");
+            setFieldValue("postCode", "");
+            setFieldValue("emailAddress", "");
+          }
+        }, [selectedCustomer, customers, createInlineCustomer, setFieldValue]);
 
-              // Show quotation info if loaded from quotation
-              selectedQuotation && (
-                <Box
-                  key="quotation-info"
-                  sx={{
-                    mb: 3,
-                    p: 2,
-                    border: "1px solid",
-                    borderColor: "primary.main",
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom color="primary">
-                    Creating Invoice from Quotation
-                  </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                    <Typography variant="body2">
-                      <strong>Quotation:</strong> #
-                      {selectedQuotation.quotation_number}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Customer:</strong>{" "}
-                      {selectedQuotation.customer?.name}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Total:</strong> $
-                      {selectedQuotation.total?.toFixed(2)}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Items:</strong> {selectedItems.length}
-                    </Typography>
-                  </Box>
-                </Box>
-              ),
-
-              // OPTION TO LOAD FROM QUOTATION (only show if not already loaded from URL)
-              !quotationIdFromUrl && (
-                <Box key="load-quotation" sx={{ mb: 2 }}>
-                  <FormDropdown
-                    id={"quotation_id"}
-                    name={"quotation_id"}
-                    label={"Load from Quotation (Optional)"}
-                    options={[
-                      { label: "Create New Invoice", value: "" },
-                      ...quotations.map((q) => ({
-                        label: `Quotation #${q.quotation_number} - ${q.customer?.name || "Unknown"} - $${q.total}`,
-                        value: q.id.toString(),
-                      })),
-                    ]}
-                    onChange={(e) => {
-                      const quotationId = parseInt(e.target.value);
-                      if (quotationId) {
-                        loadFromQuotation(quotationId);
-                      } else {
-                        // Clear if "Create New Invoice" is selected
-                        setSelectedItems([]);
-                        setFieldValue("total", 0);
-                        setIsQuotationLoaded(false);
-                      }
-                    }}
-                  />
-                </Box>
-              ),
-
-              // CUSTOMER MODULE - EXACTLY LIKE SALES
-              !createInlineCustomer ? (
-                <InputDropdown
-                  id="contactName"
-                  name="contactName"
-                  label="contact-name"
-                  options={customers}
-                  secondaryLabel={
-                    <Box
-                      sx={{
-                        color: theme.palette.primary.main,
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                      }}
-                      onClick={() => {
-                        setCreateInlineCustomer(true);
-                      }}
-                    >
-                      Create Manually
-                    </Box>
-                  }
-                  loading={loadingCustomers}
-                  optional={false}
-                  onChange={handleSearchDebounced}
-                  onSelect={(e) => {
-                    setSelectedCustomer(e.target.value);
-                  }}
-                  onClickCreateNew={() => {
-                    setCreateInlineCustomer(true);
-                  }}
-                  error={errors.contactName}
-                  value={selectedCustomer || ""}
-                />
-              ) : null,
-
-              createInlineCustomer ? (
+        return (
+          <Form onSubmit={handleSubmit}>
+            <FormLayout
+              isSubmitting={isSubmitting}
+              submitButtonText={"Create Invoice"}
+              inputs={[
                 <FormInput
-                  id={"inlineCustomerName"}
-                  name={"inlineCustomerName"}
-                  placeholder={"Contact Name"}
-                  label={"contact-name"}
+                  key="invoice_number"
+                  id={"invoice_number"}
+                  name={"invoice_number"}
+                  placeholder={"Invoice Number"}
+                  label={"Invoice Number"}
                   type={"text"}
-                  secondaryLabel={
-                    <Box
-                      sx={{
-                        color: theme.palette.primary.main,
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                      }}
-                      onClick={() => {
-                        setCreateInlineCustomer(false);
-                      }}
-                    >
-                      Cancel Manual
-                    </Box>
-                  }
-                  error={
-                    touched.inlineCustomerName ? errors.inlineCustomerName : ""
-                  }
-                />
-              ) : null,
+                  optional={false}
+                  error={touched.invoice_number ? errors.invoice_number : ""}
+                />,
 
-              // CONTACT DETAILS - EXACTLY LIKE SALES
-              <FormInput
-                id={"phone"}
-                name={"phone"}
-                placeholder={"Phone"}
-                label={"phone"}
-                type={"text"}
-                value={selectedPhone}
-                onChange={(e) => {
-                  setSelectedPhone(e.target.value);
-                }}
-              />,
-
-              <FormInput
-                id={"mobile"}
-                name={"mobile"}
-                placeholder={"Mobile"}
-                label={"mobile"}
-                type={"text"}
-                value={selectedMobile}
-                onChange={(e) => {
-                  setSelectedMobile(e.target.value);
-                }}
-              />,
-
-              <PlacesInput
-                id="address"
-                name="address"
-                placeholder="Address"
-                onChange={changeAddress}
-                value={selectedAddress}
-                label="address"
-              />,
-
-              <FormInput
-                id={"suburb"}
-                name={"suburb"}
-                placeholder={"Suburb"}
-                label={"suburb"}
-                type={"text"}
-                value={selectedSuburb}
-                onChange={(e) => {
-                  setSelectedSuburb(e.target.value);
-                }}
-              />,
-
-              <FormDropdown
-                id={"state"}
-                name={"state"}
-                label={"state"}
-                useFormattedStrings={false}
-                options={australianStates}
-                value={selectedState}
-                onChange={(e) => {
-                  setSelectedState(e.target.value);
-                }}
-              />,
-
-              <FormInput
-                id={"postCode"}
-                name={"postCode"}
-                placeholder={"Post Code"}
-                label={"post-code"}
-                type={"text"}
-                value={selectedPostCode}
-                onChange={(e) => {
-                  setSelectedPostCode(e.target.value);
-                }}
-              />,
-
-              <FormInput
-                id={"emailAddress"}
-                name={"emailAddress"}
-                placeholder={"Email Address"}
-                label={"email-address"}
-                type={"email"}
-                value={selectedEmail}
-                onChange={(e) => {
-                  setSelectedEmail(e.target.value);
-                }}
-              />,
-
-              // INVOICE DATE
-              <FormInput
-                id={"invoice_date"}
-                name={"invoice_date"}
-                placeholder={"Invoice Date"}
-                label={"Invoice Date"}
-                type={"date"}
-                optional={false}
-                // InputLabelProps={{ shrink: true }}
-                error={touched.invoice_date ? errors.invoice_date : ""}
-              />,
-
-              // ITEMS TABLE
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Items
-                </Typography>
-                <Box
-                  sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
-                >
-                  <FormDropdown
-                    id={"add_item"}
-                    name={"add_item"}
-                    label={"Add Item"}
-                    options={items.map((item) => ({
-                      label: `${item.name} (${item.itemCode}) - $${item.sellPrice}`,
-                      value: item.id.toString(),
-                    }))}
-                    onChange={(e) => {
-                      const itemId = parseInt(e.target.value);
-                      if (itemId) {
-                        const item = items.find((i) => i.id === itemId);
-                        if (item) {
-                          addItem({
-                            item_id: item.id,
-                            name: item.name,
-                            itemCode: item.itemCode,
-                            quantity: 1,
-                            unit_price: item.sellPrice,
-                            total: item.sellPrice,
-                          });
-                        }
-                      }
+                // Show quotation info if loaded from quotation
+                selectedQuotation && (
+                  <Box
+                    key="quotation-info"
+                    sx={{
+                      mb: 3,
+                      p: 2,
+                      border: "1px solid",
+                      borderColor: "primary.main",
+                      borderRadius: 1,
                     }}
+                  >
+                    <Typography variant="h6" gutterBottom color="primary">
+                      Creating Invoice from Quotation
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                      <Typography variant="body2">
+                        <strong>Quotation:</strong> #
+                        {selectedQuotation.quotation_number}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Customer:</strong>{" "}
+                        {selectedQuotation.customer?.name}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Total:</strong> $
+                        {selectedQuotation.total?.toFixed(2)}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Items:</strong> {selectedItems.length}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ),
+
+                // OPTION TO LOAD FROM QUOTATION (only show if not already loaded from URL)
+                !quotationIdFromUrl && (
+                  <Box key="load-quotation" sx={{ mb: 2 }}>
+                    <FormDropdown
+                      key="quotation_id"
+                      id={"quotation_id"}
+                      name={"quotation_id"}
+                      label={"Load from Quotation (Optional)"}
+                      options={[
+                        { label: "Create New Invoice", value: "" },
+                        ...quotations.map((q) => ({
+                          label: `Quotation #${q.quotation_number} - ${q.customer?.name || "Unknown"} - $${q.total?.toFixed(2)}`,
+                          value: q.id.toString(),
+                        })),
+                      ]}
+                      onChange={(e) => {
+                        const quotationId = parseInt(e.target.value);
+                        if (quotationId) {
+                          loadFromQuotation(quotationId);
+                        } else {
+                          // Clear if "Create New Invoice" is selected
+                          setSelectedItems([]);
+                          setIsQuotationLoaded(false);
+                        }
+                      }}
+                    />
+                  </Box>
+                ),
+
+                // CUSTOMER MODULE - EXACTLY LIKE QUOTATION
+                !createInlineCustomer ? (
+                  <InputDropdown
+                    key="contactName"
+                    id="contactName"
+                    name="contactName"
+                    label="Contact Name"
+                    options={customers}
+                    secondaryLabel={
+                      <Box
+                        sx={{
+                          color: theme.palette.primary.main,
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                        onClick={() => {
+                          setCreateInlineCustomer(true);
+                        }}
+                      >
+                        Create Manually
+                      </Box>
+                    }
+                    loading={loadingCustomers}
+                    optional={false}
+                    onChange={handleSearchDebounced}
+                    onSelect={(e) => {
+                      setSelectedCustomer(e.target.value);
+                    }}
+                    onClickCreateNew={() => {
+                      setCreateInlineCustomer(true);
+                    }}
+                    error={errors.contactName}
                   />
-                </Box>
+                ) : null,
 
-                <TableContainer component={Paper} sx={{ mt: 2 }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Item</TableCell>
-                        <TableCell>Code</TableCell>
-                        <TableCell>Quantity</TableCell>
-                        <TableCell>Unit Price</TableCell>
-                        <TableCell>Total</TableCell>
-                        <TableCell>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {selectedItems.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell>{item.itemCode}</TableCell>
-                          <TableCell>
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                updateItem(
-                                  index,
-                                  "quantity",
-                                  parseFloat(e.target.value) || 1
-                                )
-                              }
-                              style={{
-                                width: "80px",
-                                padding: "8px",
-                                border: "1px solid #ccc",
-                                borderRadius: "4px",
-                              }}
-                              min={1}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <input
-                              type="number"
-                              value={item.unit_price}
-                              onChange={(e) =>
-                                updateItem(
-                                  index,
-                                  "unit_price",
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              style={{
-                                width: "100px",
-                                padding: "8px",
-                                border: "1px solid #ccc",
-                                borderRadius: "4px",
-                              }}
-                              min={0}
-                              step="0.01"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            ${(item.quantity * item.unit_price).toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <IconButton onClick={() => removeItem(index)}>
-                              <Trash size={20} />
-                            </IconButton>
-                          </TableCell>
+                createInlineCustomer ? (
+                  <FormInput
+                    key="inlineCustomerName"
+                    id={"inlineCustomerName"}
+                    name={"inlineCustomerName"}
+                    placeholder={"Contact Name"}
+                    label="Contact Name"
+                    type={"text"}
+                    secondaryLabel={
+                      <Box
+                        sx={{
+                          color: theme.palette.primary.main,
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                        onClick={() => {
+                          setCreateInlineCustomer(false);
+                        }}
+                      >
+                        Cancel Manual
+                      </Box>
+                    }
+                    error={
+                      touched.inlineCustomerName ? errors.inlineCustomerName : ""
+                    }
+                    onChange={(e) => {
+                      setFieldValue("inlineCustomerName", e.target.value);
+                      setInlineCustomerName(e.target.value);
+                    }}
+                    value={values.inlineCustomerName}
+                  />
+                ) : null,
+
+                // CONTACT DETAILS - Let Formik manage these fields
+                <FormInput
+                  key="phone"
+                  id={"phone"}
+                  name={"phone"}
+                  placeholder={"Phone"}
+                  label="Phone"
+                  type={"text"}
+                />,
+
+                <FormInput
+                  key="mobile"
+                  id={"mobile"}
+                  name={"mobile"}
+                  placeholder={"Mobile"}
+                  label="Mobile"
+                  type={"text"}
+                />,
+
+                <PlacesInput
+                  key="address"
+                  id="address"
+                  name="address"
+                  placeholder="Address"
+                  onChange={(newValue, actionMeta) => {
+                    changeAddress(newValue, actionMeta);
+                    setFieldValue(
+                      "address",
+                      newValue?.value?.description ?? ""
+                    );
+                  }}
+                  value={selectedAddress}
+                  label="Address"
+                />,
+
+                <FormInput
+                  key="suburb"
+                  id={"suburb"}
+                  name={"suburb"}
+                  placeholder={"Suburb"}
+                  label="Suburb"
+                  type={"text"}
+                />,
+
+                <FormDropdown
+                  key="state"
+                  id={"state"}
+                  name={"state"}
+                  label="State"
+                  useFormattedStrings={false}
+                  options={australianStates.map((state) => ({
+                    label: state,
+                    value: state,
+                  }))}
+                />,
+
+                <FormInput
+                  key="postCode"
+                  id={"postCode"}
+                  name={"postCode"}
+                  placeholder={"Post Code"}
+                  label="Post Code"
+                  type={"text"}
+                />,
+
+                <FormInput
+                  key="emailAddress"
+                  id={"emailAddress"}
+                  name={"emailAddress"}
+                  placeholder={"Email Address"}
+                  label="Email Address"
+                  type={"email"}
+                />,
+
+                // INVOICE DATE
+                <FormInput
+                  key="invoice_date"
+                  id={"invoice_date"}
+                  name={"invoice_date"}
+                  placeholder={"Invoice Date"}
+                  label={"Invoice Date"}
+                  type={"date"}
+                  optional={false}
+                  error={touched.invoice_date ? errors.invoice_date : ""}
+                />,
+
+                // ITEMS TABLE WITH GST - LIKE QUOTATION
+                <Box key="items-section" sx={{ mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Items
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      mb: 2,
+                    }}
+                  >
+                    <InputDropdown
+                      key="item_search"
+                      id="item_search"
+                      name="item_search"
+                      label="Select Item"
+                      options={items}
+                      loading={loadingItems}
+                      optional={false}
+                      onChange={handleItemSearchDebounced}
+                      onSelect={(e) => {
+                        const itemId = parseInt(e.target.value);
+                        if (itemId) {
+                          setSelectedItemId(itemId);
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      startIcon={<Add size={20} />}
+                      onClick={() => {
+                        if (selectedItemId) {
+                          addItem(selectedItemId);
+                          setSelectedItemId(null);
+                        }
+                      }}
+                      sx={{ mt: 4 }}
+                      disabled={!selectedItemId}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                  <TableContainer component={Paper} sx={{ mt: 2 }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Item</TableCell>
+                          <TableCell>Code</TableCell>
+                          <TableCell>Quantity</TableCell>
+                          <TableCell>Unit Price</TableCell>
+                          <TableCell>GST</TableCell>
+                          <TableCell>Total</TableCell>
+                          <TableCell>Actions</TableCell>
                         </TableRow>
-                      ))}
-                      <TableRow>
-                        <TableCell colSpan={4} align="right">
-                          <strong>Total:</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>${totalAmount.toFixed(2)}</strong>
-                        </TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>,
+                      </TableHead>
+                      <TableBody>
+                        {selectedItems.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.name}</TableCell>
+                            <TableCell>{item.itemCode}</TableCell>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <input
+                                  id={`items[${index}].quantity`}
+                                  name={`items[${index}].quantity`}
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    updateItem(
+                                      index,
+                                      "quantity",
+                                      parseFloat(e.target.value)
+                                    );
+                                  }}
+                                  style={{
+                                    width: "80px",
+                                    padding: "8px",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "4px",
+                                  }}
+                                  min={1}
+                                />
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <input
+                                id={`items[${index}].unit_price`}
+                                name={`items[${index}].unit_price`}
+                                type="number"
+                                value={item.unit_price}
+                                onChange={(e) =>
+                                  updateItem(
+                                    index,
+                                    "unit_price",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                style={{
+                                  width: "100px",
+                                  padding: "8px",
+                                  border: "1px solid #ccc",
+                                  borderRadius: "4px",
+                                }}
+                                min={0}
+                                step="0.01"
+                              />
+                            </TableCell>
+                            <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
+                            <TableCell>
+                              ${calculateItemTotal(item).toFixed(2)}
+                            </TableCell>
+                            <TableCell>
+                              <IconButton onClick={() => removeItem(index)}>
+                                <Trash size={20} />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow>
+                          <TableCell colSpan={5} align="right">
+                            <strong>Total:</strong>
+                          </TableCell>
+                          <TableCell>
+                            <strong>${totalAmount.toFixed(2)}</strong>
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>,
 
-              // NOTES
-              <FormInput
-                id={"note"}
-                name={"note"}
-                placeholder={"Notes"}
-                label={"Notes"}
-                type={"text"}
-                isTextArea
-                // rows={3}
-              />,
-            ]}
-          />
-        </Form>
-      )}
+                // NOTES
+                <FormInput
+                  key="note"
+                  id={"note"}
+                  name={"note"}
+                  placeholder={"Notes"}
+                  label={"Notes"}
+                  type={"text"}
+                  isTextArea
+                />,
+              ]}
+            />
+          </Form>
+        );
+      }}
     </Formik>
   );
 }

@@ -1,16 +1,21 @@
 import { ValuesFilterInvoices } from "types";
 import { getDateFormattedForField } from "utils/helpers";
 import supabase from "utils/supabase";
+import StocksRepository from "./stocksRepository";
 
 export interface InvoiceSupabase {
+  id?: number;
   invoice_number: string;
   customer_id: number;
-  quotation_id?: number;
+  quotation_id?: number | null;
   total: number;
-  status?: 'draft' | 'sent' | 'paid' | 'cancelled';
-  invoice_date?: Date;
+  status?: "draft" | "sent" | "paid" | "cancelled" | "converted";
+  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
+  invoice_date?: Date | string;
   note?: string;
   user?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface InvoiceItemSupabase {
@@ -53,7 +58,7 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          `id, invoice_number, customer!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+          `id, invoice_number,delivery_status, customers!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
            quotation_id, quotations ( quotation_number ), total, status, invoice_date, note, created_at, updated_at,
            ${this.itemsClassName}!inner ( quantity, unit_price, items!inner ( id, name, itemCode, sellPrice ) )`,
           { count: "exact" }
@@ -70,7 +75,10 @@ class InvoicesRepository {
           query.ilike("customer.name", `%${filters.customer_name}%`);
         }
         if (filters.quotation_number) {
-          query.ilike("quotations.quotation_number", `%${filters.quotation_number}%`);
+          query.ilike(
+            "quotations.quotation_number",
+            `%${filters.quotation_number}%`
+          );
         }
         if (filters.minimumTotal) {
           query.gte("total", parseFloat(filters.minimumTotal));
@@ -94,10 +102,16 @@ class InvoicesRepository {
           query.lte("created_at", filters.created_at_to);
         }
         if (filters.item_name) {
-          query.ilike(`${this.itemsClassName}.items.name`, `%${filters.item_name}%`);
+          query.ilike(
+            `${this.itemsClassName}.items.name`,
+            `%${filters.item_name}%`
+          );
         }
         if (filters.item_code) {
-          query.ilike(`${this.itemsClassName}.items.itemCode`, `%${filters.item_code}%`);
+          query.ilike(
+            `${this.itemsClassName}.items.itemCode`,
+            `%${filters.item_code}%`
+          );
         }
       }
 
@@ -128,14 +142,41 @@ class InvoicesRepository {
     }
   }
 
+  // Add this method to InvoicesRepository class
+  public async updateDeliveryStatus(
+    id: number,
+    delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned"
+  ) {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .update({
+          delivery_status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error updating delivery status:", error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data };
+    } catch (error: any) {
+      console.error("Error updating delivery status:", error);
+      return { success: false, error: error.message };
+    }
+  }
   public async getSingle(id: number) {
     try {
       const { data: invoiceData, error: invoiceError } = await supabase
         .from(this.className)
         .select(
-          `id, invoice_number, customer_id, customer ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+          `id, invoice_number, delivery_status,customer_id, customers ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
            quotation_id, quotations ( id, quotation_number ), total, status, invoice_date, note, created_at, updated_at,
-           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice ) )`
+           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice,gst ) )`
         )
         .eq("id", id)
         .limit(1)
@@ -152,10 +193,12 @@ class InvoicesRepository {
     try {
       const { data, error } = await supabase
         .from(this.itemsClassName)
-        .select(`
+        .select(
+          `
           *,
           items (id, name, itemCode, sellPrice)
-        `)
+        `
+        )
         .eq("invoice_id", invoiceId);
 
       return { data, error };
@@ -204,10 +247,10 @@ class InvoicesRepository {
     try {
       const { data, error } = await supabase
         .from(this.className)
-        .update({ 
-          status: 'paid', 
+        .update({
+          status: "paid",
           updated_at: new Date(),
-          payment_date: paymentDate || new Date()
+          payment_date: paymentDate || new Date(),
         })
         .eq("id", id)
         .select();
@@ -310,7 +353,7 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          `id, invoice_number, customer!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+          `id, invoice_number, customers!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
            quotation_id, total, status, invoice_date, note, created_at, updated_at`,
           { count: "exact" }
         )
@@ -382,10 +425,12 @@ class InvoicesRepository {
       // Get quotation data
       const { data: quotation } = await supabase
         .from("quotations")
-        .select(`
+        .select(
+          `
           id, quotation_number, customer_id, total, note,
           quotation_items ( item_id, quantity, unit_price )
-        `)
+        `
+        )
         .eq("id", quotationId)
         .single();
 
@@ -397,9 +442,9 @@ class InvoicesRepository {
         customer_id: quotation.customer_id,
         quotation_id: quotation.id,
         total: quotation.total,
-        status: 'draft',
+        status: "draft",
         invoice_date: new Date(),
-        note: quotation.note
+        note: quotation.note,
       };
 
       const createdInvoice = await this.create(invoice);
@@ -412,7 +457,7 @@ class InvoicesRepository {
             invoice_id: createdInvoice.id,
             item_id: item.item_id,
             quantity: item.quantity,
-            unit_price: item.unit_price
+            unit_price: item.unit_price,
           });
         }
       }
@@ -420,13 +465,122 @@ class InvoicesRepository {
       // Update quotation status
       await supabase
         .from("quotations")
-        .update({ status: 'converted' })
+        .update({ status: "converted" })
         .eq("id", quotationId);
 
       return createdInvoice;
     } catch (error) {
       console.error("Error creating invoice from quotation:", error);
       return null;
+    }
+  }
+
+  // Add these methods to your existing InvoicesRepository class
+
+  /**
+   * Create invoice with immediate stock reduction
+   */
+  public async createWithStockReduction(
+    invoice: InvoiceSupabase,
+    items: Array<{ item_id: number; quantity: number }>
+  ) {
+    try {
+      // 1. Create invoice first
+      const createdInvoice = await this.create(invoice);
+      if (!createdInvoice) {
+        return {
+          success: false,
+          error: "Failed to create invoice",
+        };
+      }
+
+      // 2. Reduce stock for each item
+      const stocksRepo = new StocksRepository();
+      const reductionResults = [];
+
+      for (const item of items) {
+        // Direct stock reduction (no validation, allows negative)
+        const reduceResult = await stocksRepo.reduceStockForInvoice(
+          item.item_id,
+          1, // default warehouse
+          item.quantity,
+          createdInvoice.id
+        );
+
+        reductionResults.push({
+          itemId: item.item_id,
+          success: reduceResult.success,
+          error: reduceResult.error,
+          newQuantity: reduceResult.newQuantity,
+        });
+      }
+
+      return {
+        success: true,
+        invoice: createdInvoice,
+        stockReductions: reductionResults,
+      };
+    } catch (error: any) {
+      console.error("Error creating invoice with stock reduction:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Cancel invoice and restore stock
+   */
+  public async cancelInvoice(id: number) {
+    try {
+      // 1. Get invoice items
+      const itemsResult = await this.getItems(id);
+      if (!itemsResult?.data) {
+        return {
+          success: false,
+          error: "Failed to fetch invoice items",
+        };
+      }
+
+      // 2. Restore stock for each item
+      const stocksRepo = new StocksRepository();
+      const restoreResults = [];
+
+      for (const item of itemsResult.data) {
+        const restoreResult = await stocksRepo.restoreStockFromInvoice(
+          item.item_id,
+          1, // default warehouse
+          item.quantity
+        );
+
+        restoreResults.push({
+          itemId: item.item_id,
+          ...restoreResult,
+        });
+      }
+
+      // 3. Update invoice status
+      const { error: statusError } = await supabase
+        .from(this.className)
+        .update({
+          status: "cancelled",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (statusError) {
+        return {
+          success: false,
+          error: `Failed to update invoice status: ${statusError.message}`,
+        };
+      }
+
+      return {
+        success: true,
+        restoredItems: itemsResult.data.length,
+        results: restoreResults,
+      };
+    } catch (error: any) {
+      console.error("Error cancelling invoice:", error);
+      return { success: false, error: error.message };
     }
   }
 }

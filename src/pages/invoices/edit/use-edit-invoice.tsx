@@ -12,14 +12,15 @@ import CustomersRepository, {
   CustomerSupabase,
 } from "utils/repositories/customersRepository";
 import ItemsRepository from "utils/repositories/itemsRepository";
-import QuotationsRepository, {
-  QuotationSupabase,
-} from "utils/repositories/quotationRepo";
+import InvoicesRepository, {
+  InvoiceSupabase,
+} from "utils/repositories/invoicesRepository";
 import StocksRepository from "utils/repositories/stocksRepository";
 
-export interface ValuesEditQuotation {
-  quotation_number: string;
-  customerName: string;
+export interface ValuesEditInvoice {
+  invoice_number: string;
+  contactName: string;
+  inlineCustomerName: string;
   phone: string;
   mobile: string;
   address: string;
@@ -27,14 +28,16 @@ export interface ValuesEditQuotation {
   state: string;
   postCode: string;
   emailAddress: string;
-  valid_until: string;
+  invoice_date: string;
   note: string;
-  status: "draft" | "sent" | "approved" | "cancelled" | "converted";
+  status: "draft" | "sent" | "paid" | "cancelled" | "converted";
+  delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned";
 }
 
-export function useEditQuotation(quotationId: number) {
+export function useEditInvoice(invoiceId: number) {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
@@ -43,18 +46,22 @@ export function useEditQuotation(quotationId: number) {
   const [selectedPhone, setSelectedPhone] = useState<string>("");
   const [selectedMobile, setSelectedMobile] = useState<string>("");
   const [selectedPostCode, setSelectedPostCode] = useState<string>("");
-  const [customerName, setCustomerName] = useState<string>("");
-  const [customerId, setCustomerId] = useState<number | undefined>(undefined);
+  const [selectedCustomer, setSelectedCustomer] = useState<number | undefined>(undefined);
+  const [customerSearch, setCustomerSearch] = useState<string>("");
   const [itemSearch, setItemSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [quotationData, setQuotationData] = useState<any>(null);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
   const [currentStatus, setCurrentStatus] = useState<any>("draft");
+  const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
+  const [inlineCustomerName, setInlineCustomerName] = useState("");
 
-  const [initialValues, setInitialValues] = useState<ValuesEditQuotation>({
-    quotation_number: "",
-    customerName: "",
+  const [initialValues, setInitialValues] = useState<ValuesEditInvoice>({
+    invoice_number: "",
+    contactName: "",
+    inlineCustomerName: "",
     phone: "",
     mobile: "",
     address: "",
@@ -62,14 +69,14 @@ export function useEditQuotation(quotationId: number) {
     state: "",
     postCode: "",
     emailAddress: "",
-    valid_until: "",
+    invoice_date: "",
     note: "",
     status: "draft",
+    delivery_status: "pending",
   });
 
   const totalAmount = selectedItems.reduce(
-    (sum, item) =>
-      sum + parseFloat(item.quantity) * parseFloat(item.unit_price),
+    (sum, item) => sum + calculateItemTotal(item),
     0
   );
 
@@ -80,11 +87,25 @@ export function useEditQuotation(quotationId: number) {
     setSelectedAddress(newValue?.value?.description ?? "");
   }
 
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setCustomerSearch(e.target.value);
+  }
+
+  const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+
   function handleItemSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setItemSearch(e.target.value);
   }
 
   const handleItemSearchDebounced = useDebouncedSearch(handleItemSearchChange);
+
+  const setCreateInlineCustomerWithReset = (value: boolean) => {
+    setCreateInlineCustomer(value);
+    if (!value) {
+      setInlineCustomerName("");
+    }
+  };
+
   const addItem = (itemId: number) => {
     const item = items.find((i) => i.id === itemId);
     if (!item) return;
@@ -114,7 +135,7 @@ export function useEditQuotation(quotationId: number) {
         itemCode: item.itemCode,
         quantity: "1",
         unit_price: item?.sellPrice || 0,
-        gst: item?.gst || false, // Add GST field
+        gst: item?.gst || false,
         total: calculateItemTotal({
           quantity: "1",
           unit_price: item?.sellPrice || 0,
@@ -129,7 +150,6 @@ export function useEditQuotation(quotationId: number) {
   };
 
   const removeItem = (index: number) => {
-    // Just remove from local state - no API calls
     setSelectedItems(selectedItems.filter((_, i) => i !== index));
   };
 
@@ -164,47 +184,54 @@ export function useEditQuotation(quotationId: number) {
     setSelectedItems(updatedItems);
   };
 
-  function validate(values: ValuesEditQuotation) {
-    const errors: Partial<ValuesEditQuotation> = {};
+  function validate(values: ValuesEditInvoice) {
+    const errors: Partial<ValuesEditInvoice> = {};
 
-    if (!values.quotation_number) {
-      errors.quotation_number = "required";
+    if (!values.invoice_number) {
+      errors.invoice_number = "required";
     }
 
-    if (!values.customerName || !values.customerName.trim()) {
-      errors.customerName = "required";
+    if (!createInlineCustomer && !selectedCustomer) {
+      errors.contactName = "required";
+    }
+
+    if (createInlineCustomer && !values.inlineCustomerName.trim()) {
+      errors.inlineCustomerName = "required";
+    }
+
+    if (!values.invoice_date) {
+      errors.invoice_date = "required";
     }
 
     if (!values.status) {
       errors.status = "required" as any;
     }
 
+    if (!values.delivery_status) {
+      errors.delivery_status = "required" as any;
+    }
+
     return errors;
   }
 
-  async function onSubmit(values: ValuesEditQuotation) {
+  async function onSubmit(values: ValuesEditInvoice) {
     try {
       if (selectedItems.length === 0) {
         openSnackbar({
           open: true,
-          message: "Please add at least one item to the quotation",
+          message: "Please add at least one item to the invoice",
           variant: "alert",
           alert: { color: "error" },
         } as SnackbarProps);
         return;
       }
 
-      // Calculate total with GST included
-      const totalWithGST = selectedItems.reduce(
-        (sum, item) => sum + calculateItemTotal(item),
-        0
-      );
-
-      // Update customer details
-      if (customerId) {
-        const customersRepo = new CustomersRepository();
-        await customersRepo.edit(customerId, {
-          name: values.customerName,
+      let customerToUpdate = selectedCustomer;
+      
+      // Handle inline customer creation
+      if (createInlineCustomer) {
+        const newCustomer: CustomerSupabase = {
+          name: values.inlineCustomerName,
           phone: values.phone,
           mobile: values.mobile,
           address: values.address,
@@ -212,59 +239,85 @@ export function useEditQuotation(quotationId: number) {
           state: values.state,
           post_code: values.postCode,
           email: values.emailAddress,
-        });
+        };
+        const customersRepository = new CustomersRepository();
+        const createdCustomer = await customersRepository.create(newCustomer);
+        if (createdCustomer) {
+          customerToUpdate = createdCustomer.id;
+        } else if (createdCustomer === false) {
+          openSnackbar({
+            open: true,
+            message:
+              "Another customer already exists with the same name and address. Please select the customer to continue.",
+            variant: "alert",
+            alert: { color: "error" },
+          } as SnackbarProps);
+          return;
+        } else {
+          openSnackbar({
+            open: true,
+            message:
+              "Customer could not be added successfully. Please try again.",
+            variant: "alert",
+            alert: { color: "error" },
+          } as SnackbarProps);
+          return;
+        }
       }
 
-      const quotationsRepo = new QuotationsRepository();
+      const invoicesRepo = new InvoicesRepository();
       const stocksRepo = new StocksRepository();
 
-      // Get current items from database
-      const currentItemsResult = await quotationsRepo.getItems(quotationId);
+      // Get current invoice items from database
+      const currentItemsResult = await invoicesRepo.getItems(invoiceId);
       const currentItems = currentItemsResult?.data || [];
 
       // Check if status changed to cancelled
       const statusChangedToCancelled =
         currentStatus !== "cancelled" && values.status === "cancelled";
 
-      // If changing to cancelled, release all stock first
-      if (statusChangedToCancelled) {
-        for (const item of currentItems) {
-          const reservations = await stocksRepo.getReservedStockByItem(
-            item.item_id,
-            1
-          );
-          const quotationReservations =
-            reservations.data?.filter(
-              (res: any) =>
-                res.quotation_id === quotationId && res.status === "on_hold"
-            ) || [];
+      // Check if status changed from cancelled to something else
+      const statusChangedFromCancelled =
+        currentStatus === "cancelled" && values.status !== "cancelled";
 
-          for (const reservation of quotationReservations) {
-            await stocksRepo.releaseFromQuotation(
-              quotationId,
-              item.item_id,
-              1,
-              parseFloat(reservation.quantity)
-            );
-          }
+      // Handle stock adjustments based on status changes
+      if (statusChangedToCancelled) {
+        // If changing to cancelled, restore stock
+        for (const item of currentItems) {
+          await stocksRepo.restoreStockFromInvoice(
+            item.item_id,
+            1, // default warehouse
+            item.quantity
+          );
+        }
+      } else if (statusChangedFromCancelled) {
+        // If changing from cancelled back to active, reduce stock again
+        for (const item of selectedItems) {
+          await stocksRepo.reduceStockForInvoice(
+            item.item_id,
+            1,
+            parseFloat(item.quantity),
+            invoiceId
+          );
         }
       }
 
-      // Update quotation status and details with GST-calculated total
-      const updatedQuotation: Partial<QuotationSupabase> = {
-        customer_id: customerId,
-        total: totalWithGST, // Use GST-included total
-        valid_until: values.valid_until ? new Date(values.valid_until) : null,
+      // Update invoice details
+      const updatedInvoice = {
+        customer_id: customerToUpdate,
+        total: totalAmount,
+        invoice_date: values.invoice_date ? new Date(values.invoice_date) : null,
         note: values.note,
         status: values.status,
+        delivery_status: values.delivery_status,
       };
 
-      const updated = await quotationsRepo.edit(quotationId, updatedQuotation);
+      const updated = await invoicesRepo.edit(invoiceId, updatedInvoice as any);
 
       if (!updated) {
         openSnackbar({
           open: true,
-          message: "Quotation could not be updated. Please try again.",
+          message: "Invoice could not be updated. Please try again.",
           variant: "alert",
           alert: { color: "error" },
         } as SnackbarProps);
@@ -282,30 +335,17 @@ export function useEditQuotation(quotationId: number) {
           (item: any) => !newItemIds.includes(item.item_id)
         );
 
-        // Remove items that are no longer in the quotation
+        // Remove items that are no longer in the invoice
         for (const item of itemsToRemove) {
-          // Delete item from quotation_items
-          await quotationsRepo.deleteItem(quotationId, item.item_id);
+          // Delete item from invoice_items
+          await invoicesRepo.deleteItem(invoiceId, item.item_id);
 
-          // Release stock for removed items
-          const reservations = await stocksRepo.getReservedStockByItem(
+          // Restore stock for removed items
+          await stocksRepo.restoreStockFromInvoice(
             item.item_id,
-            1
+            1,
+            item.quantity
           );
-          const quotationReservations =
-            reservations.data?.filter(
-              (res: any) =>
-                res.quotation_id === quotationId && res.status === "on_hold"
-            ) || [];
-
-          for (const reservation of quotationReservations) {
-            await stocksRepo.releaseFromQuotation(
-              quotationId,
-              item.item_id,
-              1,
-              parseFloat(reservation.quantity)
-            );
-          }
         }
 
         // Update or add items
@@ -322,7 +362,7 @@ export function useEditQuotation(quotationId: number) {
             // Update existing item
             const currentQuantity = parseFloat(currentItem.quantity);
 
-            await quotationsRepo.updateItem(quotationId, itemId, {
+            await invoicesRepo.updateItem(invoiceId, itemId, {
               quantity: newQuantity,
               unit_price: itemUnitPrice,
             });
@@ -332,100 +372,73 @@ export function useEditQuotation(quotationId: number) {
               const quantityDiff = newQuantity - currentQuantity;
 
               if (quantityDiff > 0) {
-                // Need more stock
-                const reserveResult = await stocksRepo.reserveForQuotation(
+                // Need more stock reduction
+                await stocksRepo.reduceStockForInvoice(
                   itemId,
                   1,
                   quantityDiff,
-                  quotationId
+                  invoiceId
                 );
-
-                if (!reserveResult.success) {
-                  console.warn(
-                    `Failed to reserve additional stock for item ${itemId}:`,
-                    reserveResult.error
-                  );
-                }
               } else if (quantityDiff < 0) {
-                // Need to release stock
-                const releaseAmount = Math.abs(quantityDiff);
-
-                const reservations = await stocksRepo.getReservedStockByItem(
+                // Need to restore stock
+                const restoreAmount = Math.abs(quantityDiff);
+                await stocksRepo.restoreStockFromInvoice(
                   itemId,
-                  1
+                  1,
+                  restoreAmount
                 );
-                const quotationReservations =
-                  reservations.data?.filter(
-                    (res: any) =>
-                      res.quotation_id === quotationId &&
-                      res.status === "on_hold"
-                  ) || [];
-
-                let remainingToRelease = releaseAmount;
-                for (const reservation of quotationReservations) {
-                  if (remainingToRelease <= 0) break;
-
-                  const releaseQuantity = Math.min(
-                    remainingToRelease,
-                    parseFloat(reservation.quantity)
-                  );
-                  await stocksRepo.releaseFromQuotation(
-                    quotationId,
-                    itemId,
-                    1,
-                    releaseQuantity
-                  );
-                  remainingToRelease -= releaseQuantity;
-                }
               }
             }
           } else {
             // Add new item
-            await quotationsRepo.addItem({
-              quotation_id: quotationId,
+            await invoicesRepo.addItem({
+              invoice_id: invoiceId,
               item_id: itemId,
               quantity: newQuantity,
               unit_price: itemUnitPrice,
             });
 
-            // Reserve stock for new item
-            const reserveResult = await stocksRepo.reserveForQuotation(
+            // Reduce stock for new item
+            await stocksRepo.reduceStockForInvoice(
               itemId,
               1,
               newQuantity,
-              quotationId
+              invoiceId
             );
-
-            if (!reserveResult.success) {
-              console.warn(
-                `Failed to reserve stock for new item ${itemId}:`,
-                reserveResult.error
-              );
-            }
           }
         }
-
-        // Update quotation total with GST
-        await quotationsRepo.updateQuotationTotal(quotationId);
       }
 
       openSnackbar({
         open: true,
-        message: "Quotation updated successfully.",
+        message: "Invoice updated successfully.",
         variant: "alert",
         alert: { color: "success" },
       } as SnackbarProps);
 
-      navigate("/quotations");
+      navigate("/invoices");
     } catch (e: any) {
-      console.error("Error updating quotation:", e);
+      console.error("Error updating invoice:", e);
       openSnackbar({
         open: true,
-        message: `Quotation could not be updated: ${e.message}`,
+        message: `Invoice could not be updated: ${e.message}`,
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
     }
+  }
+
+  async function getCustomers() {
+    setLoadingCustomers(true);
+    const customersRepository = new CustomersRepository();
+    const allCustomers = await customersRepository.getByName(customerSearch);
+    if (allCustomers) {
+      const { customersData, customersError } = allCustomers;
+      if (customersData && !customersError) {
+        setCustomers(customersData);
+      }
+    }
+    setLoadingCustomers(false);
   }
 
   async function getItems() {
@@ -438,58 +451,60 @@ export function useEditQuotation(quotationId: number) {
     setLoadingItems(false);
   }
 
-  async function loadQuotationData() {
-    if (!quotationId) return;
+  async function loadInvoiceData() {
+    if (!invoiceId) return;
 
     setLoading(true);
     try {
-      const quotationsRepo = new QuotationsRepository();
-      const result = await quotationsRepo.getSingle(quotationId);
-
-      if (result?.quotationData) {
-        const quotation = result.quotationData;
-        setQuotationData(quotation);
-        setCurrentStatus(quotation.status);
+      const invoicesRepo = new InvoicesRepository();
+      const result:any = await invoicesRepo.getSingle(invoiceId);
+        console.log("LOADDD INVOICE",result)
+      if (result?.invoiceData) {
+        const invoice = result.invoiceData;
+        setInvoiceData(invoice);
+        setCurrentStatus(invoice.status);
 
         // Set customer data
-        setCustomerId(quotation.customer_id);
-        setCustomerName(quotation.customers?.name || "");
-        setSelectedPhone(quotation.customers?.phone || "");
-        setSelectedMobile(quotation.customers?.mobile || "");
-        setSelectedEmail(quotation.customers?.email || "");
-        setSelectedAddress(quotation.customers?.address || "");
-        setSelectedSuburb(quotation.customers?.suburb || "");
-        setSelectedState(quotation.customers?.state || "");
-        setSelectedPostCode(quotation.customers?.post_code || "");
+        const customerId = invoice.customer_id;
+        setSelectedCustomer(customerId);
+        setSelectedPhone(invoice.customers?.phone || "");
+        setSelectedMobile(invoice.customers?.mobile || "");
+        setSelectedEmail(invoice.customers?.email || "");
+        setSelectedAddress(invoice.customers?.address || "");
+        setSelectedSuburb(invoice.customers?.suburb || "");
+        setSelectedState(invoice.customers?.state || "");
+        setSelectedPostCode(invoice.customers?.post_code || "");
 
         // Set initial form values
         setInitialValues({
-          quotation_number: quotation.quotation_number || "",
-          customerName: quotation.customers?.name || "",
-          phone: quotation.customers?.phone || "",
-          mobile: quotation.customers?.mobile || "",
-          address: quotation.customers?.address || "",
-          suburb: quotation.customers?.suburb || "",
-          state: quotation.customers?.state || "",
-          postCode: quotation.customers?.post_code || "",
-          emailAddress: quotation.customers?.email || "",
-          valid_until: quotation.valid_until
-            ? getDateFormattedForField(new Date(quotation.valid_until))
-            : "",
-          note: quotation.note || "",
-          status: quotation.status || "draft",
+          invoice_number: invoice.invoice_number || "",
+          contactName: invoice.customers?.name || "",
+          inlineCustomerName: "",
+          phone: invoice.customers?.phone || "",
+          mobile: invoice.customers?.mobile || "",
+          address: invoice.customers?.address || "",
+          suburb: invoice.customers?.suburb || "",
+          state: invoice.customers?.state || "",
+          postCode: invoice.customers?.post_code || "",
+          emailAddress: invoice.customers?.email || "",
+          invoice_date: invoice.invoice_date
+            ? getDateFormattedForField(new Date(invoice.invoice_date))
+            : getDateFormattedForField(),
+          note: invoice.note || "",
+          status: invoice.status || "draft",
+          delivery_status: invoice.delivery_status || "pending",
         });
 
         // Set items
-        if (quotation.quotation_items) {
-          const itemsWithDetails = quotation.quotation_items.map(
+        if (invoice.invoice_items) {
+          const itemsWithDetails = invoice.invoice_items.map(
             (item: any) => ({
               item_id: item.item_id,
               name: item.items?.name || "",
               itemCode: item.items?.itemCode || "",
               quantity: item.quantity.toString(),
               unit_price: item.unit_price.toString(),
-              gst: item.items?.gst || false, // Add GST field
+              gst: item.items?.gst || false,
               total: calculateItemTotal({
                 quantity: item.quantity.toString(),
                 unit_price: item.unit_price.toString(),
@@ -501,26 +516,58 @@ export function useEditQuotation(quotationId: number) {
         }
       }
 
-      // Load items
-      await getItems();
+      // Load customers and items
+      await Promise.all([getCustomers(), getItems()]);
     } catch (error) {
-      console.error("Error loading quotation data:", error);
+      console.error("Error loading invoice data:", error);
     }
     setLoading(false);
   }
 
   useEffect(() => {
-    loadQuotationData();
+    loadInvoiceData();
   }, []);
+
+  useEffect(() => {
+    if (!createInlineCustomer) {
+      getCustomers();
+    }
+  }, [customerSearch, createInlineCustomer]);
 
   useEffect(() => {
     getItems();
   }, [itemSearch]);
 
+  // Auto-populate customer details when selected
+  useEffect(() => {
+    if (selectedCustomer) {
+      const customer = customers.find((c) => c.id === selectedCustomer);
+      if (customer) {
+        setSelectedEmail(customer.email || "");
+        setSelectedPhone(customer.phone || "");
+        setSelectedMobile(customer.mobile || "");
+        setSelectedAddress(customer.address || "");
+        setSelectedSuburb(customer.suburb || "");
+        setSelectedState(customer.state || "");
+        setSelectedPostCode(customer.post_code || "");
+      }
+    } else if (!createInlineCustomer) {
+      // Reset customer data
+      setSelectedEmail("");
+      setSelectedPhone("");
+      setSelectedMobile("");
+      setSelectedAddress("");
+      setSelectedSuburb("");
+      setSelectedState("");
+      setSelectedPostCode("");
+    }
+  }, [selectedCustomer, customers, createInlineCustomer]);
+
   return {
     validate,
     onSubmit,
     items,
+    customers,
     loading,
     selectedItems,
     addItem,
@@ -528,6 +575,7 @@ export function useEditQuotation(quotationId: number) {
     updateItem,
     totalAmount,
     loadingItems,
+    loadingCustomers,
     selectedAddress,
     selectedSuburb,
     selectedState,
@@ -536,19 +584,18 @@ export function useEditQuotation(quotationId: number) {
     selectedMobile,
     selectedPostCode,
     changeAddress,
-    setSelectedSuburb,
-    setSelectedState,
-    setSelectedEmail,
-    setSelectedPhone,
-    setSelectedMobile,
-    setSelectedPostCode,
     selectedItemId,
     setSelectedItemId,
     handleItemSearchDebounced,
+    handleSearchDebounced,
     initialValues,
     currentStatus,
-    quotationData,
-    customerName,
-    setCustomerName,
+    invoiceData,
+    selectedCustomer,
+    setSelectedCustomer,
+    createInlineCustomer,
+    setCreateInlineCustomer: setCreateInlineCustomerWithReset,
+    inlineCustomerName,
+    setInlineCustomerName,
   };
 }

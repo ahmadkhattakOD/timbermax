@@ -229,12 +229,12 @@ class QuotationsRepository {
 
   public async updateStatus(
     id: number,
-    status: "draft" | "sent" | "approved" | "cancelled"
+    status: "draft" | "sent" | "approved" | "cancelled" | "converted"
   ) {
     try {
       // Get current status
       const currentQuotation = await this.getSingle(id);
-
+console.log("COMING TILL HERE",currentQuotation)
       if (!currentQuotation?.quotationData) {
         return { success: false, error: "Quotation not found" };
       }

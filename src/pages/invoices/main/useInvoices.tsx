@@ -1,18 +1,60 @@
-import { Checkbox, TableCell, Typography, useTheme } from "@mui/material";
+// hooks/useInvoices.ts (complete version)
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Checkbox,
+  TableCell,
+  Typography,
+  useTheme,
+  IconButton,
+  Tooltip,
+  Box,
+  Button,
+  Menu,
+  MenuItem,
+  Chip,
+} from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import React, { useState, useEffect, useRef } from "react";
-import { FormattedMessage } from "react-intl";
-import { useNavigate } from "react-router";
-import { ValuesFilterInvoices } from "types";
-import { SnackbarProps } from "types/snackbar";
 import {
   getDateFormatted,
   initialRowsPerPage,
   useDebouncedSearch,
 } from "utils/helpers";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
+import {
+  generateAndDownloadInvoicePDF,
+  generateDeliveryNotePDF,
+} from "components/invoice-pdf";
+import { SnackbarProps } from "types/snackbar";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
+import {
+  Download,
+  Send,
+  Wallet,
+  Eye,
+  Printer,
+  Truck,
+  FileText,
+  Package,
+  CheckCircle,
+  ArrowLeft,
+  LucideTruck,
+  X,
+} from "lucide-react";
 
+// Head cells for the table
 const headCells: HeadCell[] = [
   {
     id: "invoice_number",
@@ -27,12 +69,6 @@ const headCells: HeadCell[] = [
     label: "Customer",
   },
   {
-    id: "quotation",
-    numeric: false,
-    disablePadding: true,
-    label: "Quotation",
-  },
-  {
     id: "total",
     numeric: true,
     disablePadding: true,
@@ -45,10 +81,10 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
-    id: "invoice_date",
+    id: "delivery_status",
     numeric: false,
     disablePadding: true,
-    label: "Invoice Date",
+    label: "Delivery",
   },
   {
     id: "items_count",
@@ -57,27 +93,18 @@ const headCells: HeadCell[] = [
     label: "Items",
   },
   {
-    id: "created_at",
+    id: "invoice_date",
     numeric: false,
     disablePadding: true,
-    label: "Created Date",
+    label: "Invoice Date",
+  },
+  {
+    id: "actions",
+    numeric: false,
+    disablePadding: true,
+    label: "Actions",
   },
 ];
-
-export const initialFilters: ValuesFilterInvoices = {
-  invoice_number: "",
-  customer_name: "",
-  quotation_number: "",
-  minimumTotal: "",
-  maximumTotal: "",
-  status: "",
-  invoice_date_from: "",
-  invoice_date_to: "",
-  created_at_from: "",
-  created_at_to: "",
-  item_name: "",
-  item_code: "",
-};
 
 export function useInvoices() {
   const [data, setData] = useState<any[]>([]);
@@ -90,35 +117,218 @@ export function useInvoices() {
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [filters, setFilters] = useState<ValuesFilterInvoices>(initialFilters);
+  const [itemsModalOpen, setItemsModalOpen] = useState(false);
+  const [currentInvoiceItems, setCurrentInvoiceItems] = useState<any[]>([]);
+  const [currentInvoiceInfo, setCurrentInvoiceInfo] = useState<any>(null);
+  const [filters, setFilters] = useState<any>({});
   const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
   const theme = useTheme();
 
-  function goToCreate() {
-    navigate("/invoices/create");
-  }
+  // Delivery status menu state
+  const [deliveryMenuAnchor, setDeliveryMenuAnchor] =
+    useState<null | HTMLElement>(null);
+  const [selectedInvoiceForDelivery, setSelectedInvoiceForDelivery] = useState<
+    number | null
+  >(null);
 
-  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Action functions
+  const goToCreate = () => navigate("/invoices/create");
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let temp = { ...filters };
     temp.invoice_number = e.target.value;
     temp.customer_name = e.target.value;
     setFilters(temp);
-  }
+  };
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
-  function generateTableCells(
+  // View items modal
+  const viewItemsModal = async (invoiceId: number) => {
+    try {
+      const invoicesRepo = new InvoicesRepository();
+      const invoice: any = await invoicesRepo.getSingle(invoiceId);
+
+      if (!invoice?.invoiceData) {
+        openSnackbar({
+          open: true,
+          message: "Invoice not found.",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
+
+      const items = invoice.invoiceData.invoice_items || [];
+
+      if (items.length === 0) {
+        openSnackbar({
+          open: true,
+          message: "No items found in this invoice.",
+          variant: "alert",
+          alert: { color: "info" },
+        } as SnackbarProps);
+        return;
+      }
+
+      const formattedItems = items.map((item: any, index: number) => ({
+        id: index + 1,
+        name: item.items?.name || "Unknown",
+        code: item.items?.itemCode || "N/A",
+        quantity: parseFloat(item.quantity) || 0,
+        unitPrice: parseFloat(item.unit_price) || 0,
+        total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
+      }));
+
+      setCurrentInvoiceItems(formattedItems);
+      setCurrentInvoiceInfo({
+        invoiceNumber: invoice.invoiceData.invoice_number,
+        customerName: invoice.invoiceData.customer?.name,
+        total: invoice.invoiceData.total,
+      });
+      setItemsModalOpen(true);
+    } catch (error: any) {
+      console.error("Error viewing invoice items:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to load invoice items: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+  };
+
+  const closeItemsModal = () => {
+    setItemsModalOpen(false);
+    setCurrentInvoiceItems([]);
+    setCurrentInvoiceInfo(null);
+  };
+
+  // PDF Download functions
+  const downloadInvoicePDF = useCallback(async (invoiceId: number) => {
+    try {
+      setLoading(true);
+      const invoicesRepo = new InvoicesRepository();
+      const invoiceResponse: any = await invoicesRepo.getSingle(invoiceId);
+
+      if (!invoiceResponse?.invoiceData) {
+        throw new Error(`Invoice with ID ${invoiceId} not found`);
+      }
+
+      openSnackbar({
+        open: true,
+        message: "Generating Invoice PDF...",
+        variant: "alert",
+        alert: { color: "info" },
+      } as SnackbarProps);
+
+      const result = await generateAndDownloadInvoicePDF(
+        invoiceResponse.invoiceData
+      );
+
+      if (result.success) {
+        openSnackbar({
+          open: true,
+          message: `Invoice PDF downloaded: ${result.fileName}`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+      } else {
+        throw new Error(result.error || "Failed to download PDF");
+      }
+    } catch (error: any) {
+      console.error("Error downloading invoice PDF:", error);
+      openSnackbar({
+        open: true,
+        message: error.message || "Failed to generate PDF",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const downloadDeliveryNotePDF = useCallback(async (invoiceId: number) => {
+    try {
+      setLoading(true);
+      const invoicesRepo = new InvoicesRepository();
+      const invoiceResponse: any = await invoicesRepo.getSingle(invoiceId);
+
+      if (!invoiceResponse?.invoiceData) {
+        throw new Error(`Invoice with ID ${invoiceId} not found`);
+      }
+
+      openSnackbar({
+        open: true,
+        message: "Generating Delivery Note...",
+        variant: "alert",
+        alert: { color: "info" },
+      } as SnackbarProps);
+
+      const result = await generateDeliveryNotePDF(invoiceResponse.invoiceData);
+
+      if (result.success) {
+        openSnackbar({
+          open: true,
+          message: `Delivery Note downloaded: ${result.fileName}`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+      } else {
+        throw new Error(result.error || "Failed to download delivery note");
+      }
+    } catch (error: any) {
+      console.error("Error downloading delivery note:", error);
+      openSnackbar({
+        open: true,
+        message: error.message || "Failed to generate delivery note",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Generate table cells with all actions
+  const generateTableCells = (
     row: any,
     labelId: string,
     isItemSelected: boolean
-  ) {
+  ) => {
     const itemsCount = row.invoice_items?.length || 0;
-    
+    const canMarkPaid = row.status === "sent" || row.status === "draft";
+    const canCancel = row.status !== "cancelled" && row.status !== "paid";
+    const canMarkSent = row.status === "draft";
+    const canUpdateDelivery = row.status !== "cancelled";
+    const canDownloadPDF = row.status !== "cancelled";
+    const canDownloadDeliveryNote =
+      row.delivery_status &&
+      ["packed", "shipped", "delivered"].includes(row.delivery_status);
+
+    // Status chip colors
+    const statusColors: any = {
+      draft: "warning",
+      sent: "info",
+      paid: "success",
+      cancelled: "error",
+    };
+
+    // Delivery status chip colors
+    const deliveryColors: any = {
+      packed: "info",
+      shipped: "primary",
+      delivered: "success",
+      returned: "error",
+      pending: "warning",
+    };
+
     return (
-      <React.Fragment>
+      <>
         <TableCell padding="checkbox">
           <Checkbox
             color="primary"
@@ -133,54 +343,428 @@ export function useInvoices() {
           id={labelId}
           scope="row"
           padding="none"
-          sx={{ minWidth: 200 }}
-          align="left"
+          sx={{ minWidth: 180 }}
         >
-          {row.invoice_number}
+          <Typography fontWeight={600}>{row.invoice_number}</Typography>
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>
-          {row.customer?.name}
+        <TableCell sx={{ minWidth: 180 }}>
+          <Typography>{row.customer?.name || "N/A"}</Typography>
         </TableCell>
-        <TableCell sx={{ minWidth: 150 }}>
-          {row.quotations?.quotation_number || "N/A"}
+        <TableCell align="right" sx={{ minWidth: 120 }}>
+          <Typography fontWeight={600}>${row.total?.toFixed(2)}</Typography>
         </TableCell>
-        <TableCell align="right" sx={{ minWidth: 150 }}>
-          ${row.total?.toFixed(2)}
+        <TableCell sx={{ minWidth: 120 }}>
+          <Chip
+            label={row.status?.charAt(0).toUpperCase() + row.status?.slice(1)}
+            color={statusColors[row.status] || "default"}
+            size="small"
+            sx={{ fontWeight: 600 }}
+          />
         </TableCell>
-        <TableCell sx={{ minWidth: 150 }}>
-          <Typography
-            sx={{
-              color:
-                row.status === 'paid'
-                  ? theme.palette.success.main
-                  : row.status === 'sent'
-                    ? theme.palette.info.main
-                    : row.status === 'draft'
-                      ? theme.palette.warning.main
-                      : theme.palette.error.main,
+        <TableCell sx={{ minWidth: 120 }}>
+          <Chip
+            label={
+              row.delivery_status
+                ? row.delivery_status.charAt(0).toUpperCase() +
+                  row.delivery_status.slice(1)
+                : "Pending"
+            }
+            color={deliveryColors[row.delivery_status || "pending"]}
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedInvoiceForDelivery(row.id);
+              setDeliveryMenuAnchor(e.currentTarget);
             }}
-          >
-            <FormattedMessage id={row.status} />
+            sx={{
+              cursor: "pointer",
+              fontWeight: 600,
+              "&:hover": { opacity: 0.8 },
+            }}
+          />
+        </TableCell>
+        <TableCell align="center" sx={{ minWidth: 80 }}>
+          <Typography>{itemsCount}</Typography>
+        </TableCell>
+        <TableCell sx={{ minWidth: 120 }}>
+          <Typography variant="body2">
+            {getDateFormatted(row.invoice_date)}
           </Typography>
         </TableCell>
-        <TableCell sx={{ minWidth: 150 }}>
-          {row.invoice_date ? getDateFormatted(row.invoice_date) : "N/A"}
+        <TableCell sx={{ minWidth: 300 }}>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+            {/* Download Invoice PDF */}
+            {canDownloadPDF && (
+              <Tooltip title="Download Invoice PDF">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadInvoicePDF(row.id);
+                  }}
+                  color="primary"
+                >
+                  <Download size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Download Delivery Note */}
+            {canDownloadDeliveryNote && (
+              <Tooltip title="Download Delivery Note">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadDeliveryNotePDF(row.id);
+                  }}
+                  color="warning"
+                >
+                  <Truck size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Mark as Sent */}
+            {canMarkSent && (
+              <Tooltip title="Mark as Sent">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsSent(row.id);
+                  }}
+                  color="info"
+                >
+                  <Send size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Mark as Paid */}
+            {canMarkPaid && (
+              <Tooltip title="Mark as Paid">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsPaid(row.id);
+                  }}
+                  color="success"
+                >
+                  <Wallet size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* View Items */}
+            {itemsCount > 0 && (
+              <Tooltip title="View Items">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    viewItemsModal(row.id);
+                  }}
+                  color="info"
+                >
+                  <Eye size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Cancel Invoice */}
+            {canCancel && (
+              <Tooltip title="Cancel Invoice">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelInvoice(row.id);
+                  }}
+                  color="error"
+                >
+                  <X size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         </TableCell>
-        <TableCell align="center" sx={{ minWidth: 100 }}>
-          {itemsCount}
-        </TableCell>
-        <TableCell sx={{ minWidth: 150 }}>
-          {getDateFormatted(row.created_at)}
-        </TableCell>
-      </React.Fragment>
+      </>
     );
-  }
+  };
 
-  function openDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(true);
-  }
+  // Items modal component
+  const ItemsModal = () => (
+    <Dialog
+      open={itemsModalOpen}
+      onClose={closeItemsModal}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          maxHeight: "70vh",
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: "1px solid #e0e0e0",
+          pb: 2,
+        }}
+      >
+        <Box>
+          <Typography variant="h6" component="div">
+            Invoice Items
+          </Typography>
+          {currentInvoiceInfo && (
+            <Typography variant="body2" color="text.secondary">
+              {currentInvoiceInfo.invoiceNumber} -{" "}
+              {currentInvoiceInfo.customerName}
+            </Typography>
+          )}
+        </Box>
+        <IconButton onClick={closeItemsModal} size="small">
+          <X size={20} />
+        </IconButton>
+      </DialogTitle>
 
-  async function onDelete() {
+      <DialogContent sx={{ pt: 3, pb: 2 }}>
+        <TableContainer component={Paper} variant="outlined">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>#</TableCell>
+                <TableCell>Item Name</TableCell>
+                <TableCell>Code</TableCell>
+                <TableCell align="right">Quantity</TableCell>
+                <TableCell align="right">Unit Price</TableCell>
+                <TableCell align="right">Total</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {currentInvoiceItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.id}</TableCell>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.code}</TableCell>
+                  <TableCell align="right">
+                    {item.quantity.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right">
+                    ${item.unitPrice.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography fontWeight={600}>
+                      ${item.total.toFixed(2)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableCell colSpan={5} align="right">
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Grand Total:
+                  </Typography>
+                </TableCell>
+                <TableCell align="right">
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    ${currentInvoiceInfo?.total?.toFixed(2) || "0.00"}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </DialogContent>
+
+      <DialogActions
+        sx={{
+          borderTop: "1px solid #e0e0e0",
+          pt: 2,
+          pb: 2,
+          px: 3,
+        }}
+      >
+        <Button onClick={closeItemsModal} color="primary" variant="outlined">
+          Close
+        </Button>
+        <Button
+          onClick={() => {
+            if (currentInvoiceInfo?.invoiceNumber) {
+              const invoiceId = data.find(
+                (inv) => inv.invoice_number === currentInvoiceInfo.invoiceNumber
+              )?.id;
+              if (invoiceId) {
+                downloadInvoicePDF(invoiceId);
+              }
+            }
+          }}
+          color="primary"
+          variant="contained"
+          startIcon={<Download size={16} />}
+        >
+          Download PDF
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  // Action functions
+  const markAsSent = async (invoiceId: number) => {
+    try {
+      const invoicesRepo = new InvoicesRepository();
+      const result = await invoicesRepo.updateStatus(invoiceId, "sent");
+
+      if (result) {
+        openSnackbar({
+          open: true,
+          message: "Invoice marked as sent",
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        await getData();
+      } else {
+        throw new Error("Failed to update status");
+      }
+    } catch (error: any) {
+      console.error("Error marking invoice as sent:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to mark as sent: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+  };
+
+  const markAsPaid = async (invoiceId: number) => {
+    try {
+      const invoicesRepo = new InvoicesRepository();
+      const result = await invoicesRepo.markAsPaid(invoiceId);
+
+      if (result) {
+        openSnackbar({
+          open: true,
+          message: "Invoice marked as paid",
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        await getData();
+      } else {
+        throw new Error("Failed to mark as paid");
+      }
+    } catch (error: any) {
+      console.error("Error marking invoice as paid:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to mark as paid: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+  };
+
+  const cancelInvoice = async (invoiceId: number) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to cancel this invoice? This will restore stock."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const invoicesRepo = new InvoicesRepository();
+      const result = await invoicesRepo.cancelInvoice(invoiceId);
+
+      if (result?.success) {
+        openSnackbar({
+          open: true,
+          message: `Invoice cancelled. Stock restored for ${result.restoredItems} items.`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        await getData();
+      } else {
+        openSnackbar({
+          open: true,
+          message: `Failed to cancel invoice: ${result?.error}`,
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+      }
+    } catch (error: any) {
+      console.error("Error cancelling invoice:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to cancel invoice: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+  };
+
+  const handleDeliveryStatusUpdate = async (status: string) => {
+    if (!selectedInvoiceForDelivery) return;
+
+    try {
+      const invoicesRepo = new InvoicesRepository();
+      const invoice: any = await invoicesRepo.getSingle(
+        selectedInvoiceForDelivery
+      );
+      if (!invoice?.invoiceData) {
+        throw new Error("Invoice not found");
+      }
+      // extracting the ones that were joined
+      const { customers, invoice_items, quotations, id, ...restItems } =
+        invoice?.invoiceData;
+      console.log("COMING TILL HERE", restItems);
+      const updatedInvoice = await invoicesRepo.edit(
+        selectedInvoiceForDelivery,
+        {
+          ...restItems,
+          delivery_status: status,
+          updated_at: new Date().toISOString(),
+        }
+      );
+
+      if (updatedInvoice) {
+        openSnackbar({
+          open: true,
+          message: `Delivery status updated to ${status}`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        await getData();
+      } else {
+        throw new Error("Failed to update delivery status");
+      }
+    } catch (error: any) {
+      console.error("Error updating delivery status:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to update delivery status: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setDeliveryMenuAnchor(null);
+      setSelectedInvoiceForDelivery(null);
+    }
+  };
+
+  // Modal functions
+  const openDeleteConfirmModal = () => setDeleteConfirmModalOpen(true);
+  const closeDeleteConfirmModal = () => setDeleteConfirmModalOpen(false);
+  const openFilterModal = () => setFilterModalOpen(true);
+  const closeFilterModal = () => setFilterModalOpen(false);
+
+  const onDelete = async () => {
     const invoicesRepo = new InvoicesRepository();
     const deletedInvoices = await invoicesRepo.delete(selected);
     if (deletedInvoices > 0) {
@@ -188,37 +772,22 @@ export function useInvoices() {
         open: true,
         message: `${deletedInvoices} invoice(s) deleted successfully.`,
         variant: "alert",
-        alert: {
-          color: "success",
-        },
+        alert: { color: "success" },
       } as SnackbarProps);
       setSelected([]);
       await getData();
     } else {
       openSnackbar({
         open: true,
-        message: "Invoice(s) could not be deleted successfully. Please try again.",
+        message: "Invoice(s) could not be deleted. Please try again.",
         variant: "alert",
-        alert: {
-          color: "error",
-        },
+        alert: { color: "error" },
       } as SnackbarProps);
     }
-  }
+  };
 
-  function closeDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(false);
-  }
-
-  function openFilterModal() {
-    setFilterModalOpen(true);
-  }
-
-  function closeFilterModal() {
-    setFilterModalOpen(false);
-  }
-
-  async function getData() {
+  // Data fetching
+  const getData = async () => {
     try {
       setLoading(true);
       const invoicesRepo = new InvoicesRepository();
@@ -235,7 +804,7 @@ export function useInvoices() {
       if (invoices) {
         const { invoicesData, invoicesCount, invoicesError } = invoices;
         if (invoicesData && !invoicesError) {
-          setData(invoicesData);
+          setData(invoicesData as any);
           setDataCount(invoicesCount ?? 0);
         }
       }
@@ -244,85 +813,112 @@ export function useInvoices() {
       console.error("Error fetching invoices:", e);
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     getData();
   }, [order, orderBy, page, rowsPerPage, filters]);
 
-  function getDataCsv() {
+  const getDataCsv = () => {
     try {
-      let csvString = "";
+      let csvString =
+        "Invoice Number,Customer,Total,Status,Delivery Status,Items Count,Invoice Date,Created Date,Note\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let invoice = data[i] as any;
-          csvString += `${invoice.invoice_number ?? ""},${invoice.customer?.name ?? ""},${invoice.quotations?.quotation_number ?? ""},${invoice.total ?? ""},${invoice.status ?? ""},${invoice.invoice_date ? getDateFormatted(invoice.invoice_date) : ""},${invoice.invoice_items?.length || 0},${getDateFormatted(invoice.created_at)}\n`;
+          csvString += `"${invoice.invoice_number ?? ""}","${invoice.customer?.name ?? ""}",${invoice.total ?? ""},"${invoice.status ?? ""}","${invoice.delivery_status ?? "pending"}","${invoice.invoice_items?.length || 0}","${getDateFormatted(invoice.invoice_date)}","${getDateFormatted(invoice.created_at)}","${invoice.note ?? ""}"\n`;
         }
 
         setCsvData(csvString);
 
         setTimeout(() => {
-          csvLink?.current?.link?.click();
+          if (csvLink?.current?.link) {
+            csvLink.current.link.click();
+          }
         }, 2000);
       }
     } catch (e) {
       console.error("Error generating CSV:", e);
     }
-  }
+  };
 
-  async function validateFilters(values: ValuesFilterInvoices) {
-    const errors = {} as ValuesFilterInvoices;
+  const validateFilters = (values: any) => {
+    const errors = {} as any;
     return errors;
-  }
+  };
 
-  async function handleFiltersSubmit(values: ValuesFilterInvoices) {
+  const handleFiltersSubmit = (values: any) => {
     try {
       setFilters(values);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering invoices:", error);
     }
-  }
+  };
 
-  function resetFilters() {
+  const resetFilters = () => {
     setSearchValue("");
-    setFilters(initialFilters);
-  }
+    setFilters({});
+  };
+
+  const updateDeliveryStatus = async (invoiceId: number, status: string) => {
+    return handleDeliveryStatusUpdate(status);
+  };
 
   return {
+    // State
     data,
     dataCount,
     loading,
-    goToCreate,
     order,
-    setOrder,
     orderBy,
-    setOrderBy,
     selected,
-    setSelected,
     page,
-    setPage,
     rowsPerPage,
+    deleteConfirmModalOpen,
+    filterModalOpen,
+    filters,
+    searchValue,
+    csvData,
+    csvLink,
+    deliveryMenuAnchor,
+    selectedInvoiceForDelivery,
+
+    // State setters
+    setOrder,
+    setOrderBy,
+    setSelected,
+    setPage,
     setRowsPerPage,
-    headCells,
+    setSearchValue,
+    setDeliveryMenuAnchor,
+
+    // Functions
+    goToCreate,
     generateTableCells,
     onDelete,
-    deleteConfirmModalOpen,
     openDeleteConfirmModal,
     closeDeleteConfirmModal,
-    filterModalOpen,
     openFilterModal,
     closeFilterModal,
     handleFiltersSubmit,
     validateFilters,
-    filters,
     resetFilters,
     getDataCsv,
-    csvData,
-    csvLink,
     handleSearchDebounced,
-    searchValue,
-    setSearchValue,
+    markAsPaid,
+    cancelInvoice,
+    updateDeliveryStatus,
+    downloadInvoicePDF,
+    downloadDeliveryNotePDF,
+    markAsSent,
+    viewItemsModal,
+
+    // Components
+    ItemsModal,
+
+    // Constants
+    headCells,
   };
 }

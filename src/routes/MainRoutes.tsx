@@ -52,6 +52,7 @@ import EditCommunication from "pages/communication/edit/edit-communication";
 import CreateQuotation from "pages/quotations/create/create-quotation";
 import Quotations from "pages/quotations/quotation";
 import EditQuotation from "pages/quotations/edit/edit-quotation";
+import EditInvoice from "pages/invoices/edit/edit-invoice";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -340,7 +341,7 @@ const MainRoutes = {
       element: <DashboardLayout />,
       children: [
         {
-          path: "invoices/users",
+          path: "invoices",
           element: <Invoices />,
         },
       ],
@@ -352,6 +353,16 @@ const MainRoutes = {
         {
           path: "invoices/create",
           element: <CreateInvoice />,
+        },
+      ],
+    },
+     {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
+          path: "invoices/:id/edit",
+          element: <EditInvoice />,
         },
       ],
     },

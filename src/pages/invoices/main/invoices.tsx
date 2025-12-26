@@ -1,3 +1,4 @@
+// pages/invoices/MainInvoices.tsx
 import Box from "@mui/material/Box";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
@@ -9,14 +10,68 @@ import FormInput from "components/FormInput";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormDropdown from "components/FormDropdown";
-import {
-  getDateTimeFormatted,
-  hasNonEmptyValue,
-} from "utils/helpers";
+import { getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
+import {
+  Button,
+  Typography,
+  Chip,
+  Menu,
+  MenuItem,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import {
+  Download,
+  Truck,
+  Send,
+  Wallet,
+  Eye,
+  Printer,
+  FileText,
+  MoreVertical,
+  Package,
+  CheckCircle,
+  ArrowLeft,
+  LucideTruck,
+} from "lucide-react";
 
-export default function Invoices() {
+// Define filter type
+interface ValuesFilterInvoices {
+  invoice_number: string;
+  customer_name: string;
+  quotation_number: string;
+  minimumTotal: string;
+  maximumTotal: string;
+  status: string;
+  delivery_status: string;
+  invoice_date_from: string;
+  invoice_date_to: string;
+  created_at_from: string;
+  created_at_to: string;
+  item_name: string;
+  item_code: string;
+}
+
+// Initial filters
+const initialFilters: ValuesFilterInvoices = {
+  invoice_number: "",
+  customer_name: "",
+  quotation_number: "",
+  minimumTotal: "",
+  maximumTotal: "",
+  status: "",
+  delivery_status: "",
+  invoice_date_from: "",
+  invoice_date_to: "",
+  created_at_from: "",
+  created_at_to: "",
+  item_name: "",
+  item_code: "",
+};
+
+export default function MainInvoices() {
   const {
     data,
     dataCount,
@@ -51,13 +106,78 @@ export default function Invoices() {
     handleSearchDebounced,
     searchValue,
     setSearchValue,
+    markAsPaid,
+    cancelInvoice,
+    updateDeliveryStatus,
+    downloadInvoicePDF,
+    downloadDeliveryNotePDF,
+    ItemsModal,
+    deliveryMenuAnchor,
+    selectedInvoiceForDelivery,
+    setDeliveryMenuAnchor,
+    markAsSent,
+    viewItemsModal,
   } = useInvoices();
-  
+
+  // Delivery status menu
+  const handleDeliveryMenuClose = () => {
+    setDeliveryMenuAnchor(null);
+  };
+
+  const handleDeliveryStatusClick = (
+    invoiceId: number,
+    event: React.MouseEvent<HTMLElement>
+  ) => {
+    // This would be handled in the generateTableCells
+    // We keep this for the menu component
+  };
+
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         actionButton={
-          <ActionButton text={"add-new-invoice"} onClick={goToCreate} />
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            {selected.length === 1 && (
+              <>
+                <Tooltip title="Download Invoice PDF">
+                  <Button
+                    variant="outlined"
+                    startIcon={<Download size={18} />}
+                    onClick={() => downloadInvoicePDF(selected[0])}
+                    sx={{ gap: 1 }}
+                  >
+                    PDF
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Download Delivery Note">
+                  <Button
+                    variant="outlined"
+                    startIcon={<Truck size={18} />}
+                    onClick={() => downloadDeliveryNotePDF(selected[0])}
+                    sx={{ gap: 1 }}
+                    color="secondary"
+                  >
+                    Delivery Note
+                  </Button>
+                </Tooltip>
+              </>
+            )}
+            {selected.length > 0 && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={openDeleteConfirmModal}
+                sx={{ gap: 1 }}
+              >
+                Delete ({selected.length})
+              </Button>
+            )}
+            <ActionButton
+              text="Create New Invoice"
+              onClick={goToCreate}
+              startIcon={<FileText size={18} />}
+            />
+          </Box>
         }
         filters={
           <Box
@@ -76,19 +196,100 @@ export default function Invoices() {
                 setSearchValue(e.target.value);
                 handleSearchDebounced(e);
               }}
+              // sx={{ width: "300px" }}
             />
-            {hasNonEmptyValue(filters) ? (
+            <Box sx={{ display: "flex", gap: 1 }}>
+              {hasNonEmptyValue(filters) ? (
+                <ActionButton
+                  text="Reset Filters"
+                  color="secondary"
+                  onClick={resetFilters}
+                  variant="outlined"
+                  size="small"
+                />
+              ) : null}
               <ActionButton
-                text={"reset-filters"}
-                color="secondary"
-                onClick={resetFilters}
+                text="Filter"
+                onClick={openFilterModal}
+                variant="outlined"
+                size="small"
               />
-            ) : (
-              <></>
-            )}
+            </Box>
           </Box>
         }
       />
+
+      {/* Bulk Actions Section */}
+      {selected.length > 0 && (
+        <Box
+          sx={{
+            mt: 2,
+            mb: 2,
+            p: 2,
+            backgroundColor: "primary.lighter",
+            borderRadius: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={600}>
+            {selected.length} invoice(s) selected
+          </Typography>
+
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Send size={16} />}
+              onClick={() => {
+                selected.forEach((invoiceId) => markAsSent(invoiceId));
+              }}
+              disabled={loading}
+            >
+              Mark as Sent
+            </Button>
+
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Wallet size={16} />}
+              onClick={() => {
+                selected.forEach((invoiceId) => markAsPaid(invoiceId));
+              }}
+              disabled={loading}
+              color="success"
+            >
+              Mark as Paid
+            </Button>
+
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Download size={16} />}
+              onClick={() => {
+                selected.forEach((invoiceId) => downloadInvoicePDF(invoiceId));
+              }}
+              disabled={loading}
+              color="primary"
+            >
+              Download PDFs
+            </Button>
+
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setSelected([])}
+              disabled={loading}
+            >
+              Clear Selection
+            </Button>
+          </Box>
+        </Box>
+      )}
+
       <DataTable
         data={data}
         dataCount={dataCount}
@@ -110,13 +311,176 @@ export default function Invoices() {
         openFilterModal={openFilterModal}
         onDownload={getDataCsv}
       />
+
+      {/* Delivery Status Menu */}
+      <Menu
+        anchorEl={deliveryMenuAnchor}
+        open={Boolean(deliveryMenuAnchor)}
+        onClose={handleDeliveryMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 200,
+            borderRadius: 1,
+            boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.15)",
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForDelivery) {
+              updateDeliveryStatus(selectedInvoiceForDelivery, "pending");
+              handleDeliveryMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Pending"
+              size="small"
+              sx={{
+                bgcolor: "warning.light",
+                color: "warning.contrastText",
+                minWidth: 80,
+              }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForDelivery) {
+              updateDeliveryStatus(selectedInvoiceForDelivery, "packed");
+              handleDeliveryMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Packed"
+              size="small"
+              sx={{
+                bgcolor: "info.light",
+                color: "info.contrastText",
+                minWidth: 80,
+              }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForDelivery) {
+              updateDeliveryStatus(selectedInvoiceForDelivery, "shipped");
+              handleDeliveryMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Shipped"
+              size="small"
+              sx={{
+                bgcolor: "primary.light",
+                color: "primary.contrastText",
+                minWidth: 80,
+              }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForDelivery) {
+              updateDeliveryStatus(selectedInvoiceForDelivery, "delivered");
+              handleDeliveryMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Delivered"
+              size="small"
+              sx={{
+                bgcolor: "success.light",
+                color: "success.contrastText",
+                minWidth: 80,
+              }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForDelivery) {
+              updateDeliveryStatus(selectedInvoiceForDelivery, "returned");
+              handleDeliveryMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Returned"
+              size="small"
+              sx={{
+                bgcolor: "error.light",
+                color: "error.contrastText",
+                minWidth: 80,
+              }}
+            />
+          </Box>
+        </MenuItem>
+      </Menu>
+
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
         onClose={closeDeleteConfirmModal}
         onDelete={onDelete}
+        // message={`Are you sure you want to delete ${selected.length} selected invoice(s)? This action cannot be undone.`}
       />
+
       <ModalFilters
-        title="filter-invoices"
+        title="Filter Invoices"
         open={filterModalOpen}
         onClose={closeFilterModal}
         form={
@@ -130,96 +494,129 @@ export default function Invoices() {
               <Form onSubmit={handleSubmit}>
                 <FormLayout
                   isSubmitting={isSubmitting}
-                  submitButtonText={"apply"}
+                  submitButtonText="Apply"
                   inputs={[
                     <FormInput
+                      key="invoice_number"
                       id={"invoice_number"}
                       name={"invoice_number"}
-                      placeholder={"Invoice Number"}
-                      label={"invoice-number"}
+                      placeholder={"e.g., INV-2024-001"}
+                      label="Invoice Number"
                       type={"text"}
                     />,
                     <FormInput
+                      key="customer_name"
                       id={"customer_name"}
                       name={"customer_name"}
-                      placeholder={"Customer Name"}
-                      label={"customer-name"}
+                      placeholder={"Customer name"}
+                      label="Customer Name"
                       type={"text"}
                     />,
                     <FormInput
+                      key="quotation_number"
                       id={"quotation_number"}
                       name={"quotation_number"}
-                      placeholder={"Quotation Number"}
-                      label={"quotation-number"}
+                      placeholder={"e.g., QT-2024-001"}
+                      label="Quotation Number"
                       type={"text"}
                     />,
-                    <FormInput
-                      id={"minimumTotal"}
-                      name={"minimumTotal"}
-                      placeholder={"Minimum Total"}
-                      label={"minimum-total"}
-                      type={"number"}
-                      min={0}
-                    />,
-                    <FormInput
-                      id={"maximumTotal"}
-                      name={"maximumTotal"}
-                      placeholder={"Maximum Total"}
-                      label={"maximum-total"}
-                      type={"number"}
-                      min={0}
-                    />,
+                    <Box sx={{ display: "flex", gap: 2 }} key="total_range">
+                      <FormInput
+                        id={"minimumTotal"}
+                        name={"minimumTotal"}
+                        placeholder={"Min"}
+                        label="Min Total"
+                        type={"number"}
+                        min={0}
+                      />
+                      <FormInput
+                        id={"maximumTotal"}
+                        name={"maximumTotal"}
+                        placeholder={"Max"}
+                        label="Max Total"
+                        type={"number"}
+                        min={0}
+                      />
+                    </Box>,
                     <FormDropdown
+                      key="status"
                       id={"status"}
                       name={"status"}
-                      label={"status"}
+                      label="Invoice Status"
                       options={[
-                        "draft",
-                        "sent",
-                        "paid",
-                        "cancelled"
+                        { label: "All Statuses", value: "" },
+                        { label: "Draft", value: "draft" },
+                        { label: "Sent", value: "sent" },
+                        { label: "Paid", value: "paid" },
+                        { label: "Cancelled", value: "cancelled" },
                       ]}
                     />,
-                    <FormInput
-                      id={"invoice_date_from"}
-                      name={"invoice_date_from"}
-                      placeholder={"Invoice Date From"}
-                      label={"invoice-date-from"}
-                      type={"date"}
+                    <FormDropdown
+                      key="delivery_status"
+                      id={"delivery_status"}
+                      name={"delivery_status"}
+                      label="Delivery Status"
+                      options={[
+                        { label: "All Delivery Status", value: "" },
+                        { label: "Pending", value: "pending" },
+                        { label: "Packed", value: "packed" },
+                        { label: "Shipped", value: "shipped" },
+                        { label: "Delivered", value: "delivered" },
+                        { label: "Returned", value: "returned" },
+                      ]}
                     />,
+                    <Box
+                      sx={{ display: "flex", gap: 2 }}
+                      key="invoice_date_range"
+                    >
+                      <FormInput
+                        id={"invoice_date_from"}
+                        name={"invoice_date_from"}
+                        placeholder={"From"}
+                        label="Invoice Date From"
+                        type={"date"}
+                      />
+                      <FormInput
+                        id={"invoice_date_to"}
+                        name={"invoice_date_to"}
+                        placeholder={"To"}
+                        label="Invoice Date To"
+                        type={"date"}
+                      />
+                    </Box>,
+                    <Box
+                      sx={{ display: "flex", gap: 2 }}
+                      key="created_date_range"
+                    >
+                      <FormInput
+                        id={"created_at_from"}
+                        name={"created_at_from"}
+                        placeholder={"From"}
+                        label="Created Date From"
+                        type={"date"}
+                      />
+                      <FormInput
+                        id={"created_at_to"}
+                        name={"created_at_to"}
+                        placeholder={"To"}
+                        label="Created Date To"
+                        type={"date"}
+                      />
+                    </Box>,
                     <FormInput
-                      id={"invoice_date_to"}
-                      name={"invoice_date_to"}
-                      placeholder={"Invoice Date To"}
-                      label={"invoice-date-to"}
-                      type={"date"}
-                    />,
-                    <FormInput
-                      id={"created_at_from"}
-                      name={"created_at_from"}
-                      placeholder={"Created From"}
-                      label={"created-from"}
-                      type={"date"}
-                    />,
-                    <FormInput
-                      id={"created_at_to"}
-                      name={"created_at_to"}
-                      placeholder={"Created To"}
-                      label={"created-to"}
-                      type={"date"}
-                    />,
-                    <FormInput
+                      key="item_name"
                       id={"item_name"}
                       name={"item_name"}
-                      placeholder={"Item Name"}
-                      label={"item-name"}
+                      placeholder={"Item name"}
+                      label="Item Name"
                       type={"text"}
                     />,
                     <FormInput
+                      key="item_code"
                       id={"item_code"}
                       name={"item_code"}
-                      placeholder={"Item Code"}
-                      label={"item-code"}
+                      placeholder={"Item code"}
+                      label="Item Code"
                       type={"text"}
                     />,
                   ]}
@@ -234,18 +631,35 @@ export default function Invoices() {
                   <ActionButton
                     onClick={closeFilterModal}
                     color={"secondary"}
-                    text={"cancel"}
+                    text="Cancel"
+                    variant="outlined"
                   />
-                  <ActionButton type="submit" text={"apply"} />
+                  <ActionButton
+                    type="submit"
+                    text="Apply Filters"
+                    variant="contained"
+                  />
+                  <ActionButton
+                    onClick={() => {
+                      resetFilters();
+                      closeFilterModal();
+                    }}
+                    color={"inherit"}
+                    text="Clear All"
+                    variant="text"
+                  />
                 </Box>
               </Form>
             )}
           </Formik>
         }
       />
+
+      <ItemsModal />
+
       <CSVLink
         data={csvData}
-        headers={headCells.map((cell) => cell.label)}
+        headers={headCells.map((cell) => ({ label: cell.label, key: cell.id }))}
         filename={`invoices_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}
