@@ -45,21 +45,14 @@ const manageAdmin: NavItemType = {
       type: "collapse",
       icon: icons.maintenance,
       children: [
+  
         {
-          id: "sales",
-          title: <FormattedMessage id="sales" />,
-          type: "item",
-          url: "/sales",
-          icon: icons.sales,
-          target: false,
-        },
-        {
-          id: "deliveries",
-          title: <FormattedMessage id="deliveries" />,
-          type: "item",
-          url: "/deliveries",
-          icon: icons.deliveries,
-          target: false,
+          id:"invoices",
+          title:<FormattedMessage id="Invoice" />,
+          type:"item",
+          url:'/invoices',
+          icon:icons.invoices,
+          target:false
         },
         {
           id: "quotations",
