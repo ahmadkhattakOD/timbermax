@@ -4,7 +4,11 @@ import { ErrorMessage, Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateInvoice } from "./useCreateInvoice";
-import { australianStates, calculateItemTotal, getDateFormattedForField } from "utils/helpers";
+import {
+  australianStates,
+  calculateItemTotal,
+  getDateFormattedForField,
+} from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
@@ -69,6 +73,8 @@ export default function CreateInvoice() {
     setInlineCustomerName,
     changeAddress,
     setSelectedCustomer,
+    customerName, // Added from hook
+    setCustomerName, // Added from hook
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -107,7 +113,7 @@ export default function CreateInvoice() {
       validateOnBlur={true}
       initialValues={{
         invoice_number: `INV-${Date.now()}`,
-        contactName: "",
+        contactName: customerName || "", // Use customerName from hook
         inlineCustomerName: inlineCustomerName || "",
         phone: selectedPhone || "",
         mobile: selectedMobile || "",
@@ -137,6 +143,8 @@ export default function CreateInvoice() {
             const customer = customers.find((c) => c.id === selectedCustomer);
             if (customer) {
               // Update Formik values
+              setFieldValue("contactName", customer.name || "");
+              setCustomerName(customer.name || "");
               setFieldValue("phone", customer.phone || "");
               setFieldValue("mobile", customer.mobile || "");
               setFieldValue("address", customer.address || "");
@@ -147,6 +155,8 @@ export default function CreateInvoice() {
             }
           } else if (!createInlineCustomer) {
             // Reset Formik values when no customer selected
+            setFieldValue("contactName", "");
+            setCustomerName("");
             setFieldValue("phone", "");
             setFieldValue("mobile", "");
             setFieldValue("address", "");
@@ -155,7 +165,13 @@ export default function CreateInvoice() {
             setFieldValue("postCode", "");
             setFieldValue("emailAddress", "");
           }
-        }, [selectedCustomer, customers, createInlineCustomer, setFieldValue]);
+        }, [
+          selectedCustomer,
+          customers,
+          createInlineCustomer,
+          setFieldValue,
+          setCustomerName,
+        ]);
 
         return (
           <Form onSubmit={handleSubmit}>
@@ -196,7 +212,7 @@ export default function CreateInvoice() {
                       </Typography>
                       <Typography variant="body2">
                         <strong>Customer:</strong>{" "}
-                        {selectedQuotation.customer?.name}
+                        {selectedQuotation.customers?.name}
                       </Typography>
                       <Typography variant="body2">
                         <strong>Total:</strong> $
@@ -232,45 +248,50 @@ export default function CreateInvoice() {
                           // Clear if "Create New Invoice" is selected
                           setSelectedItems([]);
                           setIsQuotationLoaded(false);
+                          setSelectedCustomer(undefined);
+                          setCustomerName("");
+                          setFieldValue("contactName", "");
                         }
                       }}
                     />
                   </Box>
                 ),
 
-                // CUSTOMER MODULE - EXACTLY LIKE QUOTATION
+                // CUSTOMER MODULE - FIXED: Like Edit Quotation
+                // Only show customer search when no customer is selected
                 !createInlineCustomer ? (
-                  <InputDropdown
+                  // FIX: Use regular FormInput like Edit Quotation
+                  <FormInput
                     key="contactName"
-                    id="contactName"
-                    name="contactName"
-                    label="Contact Name"
-                    options={customers}
-                    secondaryLabel={
-                      <Box
-                        sx={{
-                          color: theme.palette.primary.main,
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                        }}
-                        onClick={() => {
-                          setCreateInlineCustomer(true);
-                        }}
-                      >
-                        Create Manually
-                      </Box>
-                    }
-                    loading={loadingCustomers}
+                    id={"contactName"}
+                    name={"contactName"}
+                    placeholder={"Customer Name"}
+                    label="Customer Name"
+                    type={"text"}
                     optional={false}
-                    onChange={handleSearchDebounced}
-                    onSelect={(e) => {
-                      setSelectedCustomer(e.target.value);
+                    error={touched.contactName ? errors.contactName : ""}
+                    value={customerName}
+                    onChange={(e) => {
+                      setFieldValue("contactName", e.target.value);
+                      setCustomerName(e.target.value);
                     }}
-                    onClickCreateNew={() => {
-                      setCreateInlineCustomer(true);
-                    }}
-                    error={errors.contactName}
+                    secondaryLabel={
+                      !selectedQuotation ? (
+                        <Box
+                          sx={{
+                            color: theme.palette.primary.main,
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                          }}
+                          onClick={() => {
+                            setCreateInlineCustomer(true);
+                          }}
+                        >
+                          Create New Customer
+                        </Box>
+                      ) : null
+                    }
                   />
                 ) : null,
 
@@ -279,8 +300,8 @@ export default function CreateInvoice() {
                     key="inlineCustomerName"
                     id={"inlineCustomerName"}
                     name={"inlineCustomerName"}
-                    placeholder={"Contact Name"}
-                    label="Contact Name"
+                    placeholder={"Customer Name"}
+                    label="Customer Name"
                     type={"text"}
                     secondaryLabel={
                       <Box
@@ -292,13 +313,17 @@ export default function CreateInvoice() {
                         }}
                         onClick={() => {
                           setCreateInlineCustomer(false);
+                          setInlineCustomerName("");
+                          setFieldValue("inlineCustomerName", "");
                         }}
                       >
-                        Cancel Manual
+                        Use Existing Customer
                       </Box>
                     }
                     error={
-                      touched.inlineCustomerName ? errors.inlineCustomerName : ""
+                      touched.inlineCustomerName
+                        ? errors.inlineCustomerName
+                        : ""
                     }
                     onChange={(e) => {
                       setFieldValue("inlineCustomerName", e.target.value);
@@ -308,6 +333,7 @@ export default function CreateInvoice() {
                   />
                 ) : null,
 
+                // Everything else remains EXACTLY the same...
                 // CONTACT DETAILS - Let Formik manage these fields
                 <FormInput
                   key="phone"
@@ -396,9 +422,6 @@ export default function CreateInvoice() {
 
                 // ITEMS TABLE WITH GST - LIKE QUOTATION
                 <Box key="items-section" sx={{ mt: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Items
-                  </Typography>
                   <Box
                     sx={{
                       display: "flex",

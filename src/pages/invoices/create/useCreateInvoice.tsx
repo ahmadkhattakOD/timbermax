@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { parseAddress, useDebouncedSearch, calculateItemTotal } from "utils/helpers";
+import {
+  parseAddress,
+  useDebouncedSearch,
+  calculateItemTotal,
+} from "utils/helpers";
 import { openSnackbar } from "api/snackbar";
 import CustomersRepository, {
   CustomerSupabase,
@@ -52,7 +56,7 @@ export function useCreateInvoice() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isQuotationLoaded, setIsQuotationLoaded] = useState(false);
   const [inlineCustomerName, setInlineCustomerName] = useState("");
-
+  const [customerName, setCustomerName] = useState<string>("");
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateItemTotal(item),
     0
@@ -169,7 +173,7 @@ export function useCreateInvoice() {
       setLoading(true);
       const quotationsRepo = new QuotationsRepository();
       const quotation = await quotationsRepo.getSingle(quotationId);
-
+      console.log("QUOTATION", quotation.quotationData);
       if (quotation?.quotationData) {
         setSelectedQuotation(quotation.quotationData);
         setIsQuotationLoaded(true);
@@ -179,6 +183,7 @@ export function useCreateInvoice() {
           setSelectedCustomer(quotation.quotationData.customers.id);
           setSelectedEmail(quotation.quotationData.customers.email || "");
           setSelectedPhone(quotation.quotationData.customers.phone || "");
+          setCustomerName(quotation.quotationData.customers.name || "");
           setSelectedMobile(quotation.quotationData.customers.mobile || "");
           setSelectedAddress(quotation.quotationData.customers.address || "");
           setSelectedSuburb(quotation.quotationData.customers.suburb || "");
@@ -271,12 +276,16 @@ export function useCreateInvoice() {
       errors.invoice_number = "required";
     }
 
-    if (!createInlineCustomer && !selectedCustomer) {
-      errors.contactName = "required";
-    }
-
-    if (createInlineCustomer && !values.inlineCustomerName.trim()) {
-      errors.inlineCustomerName = "required";
+    if (!createInlineCustomer) {
+      // In existing customer mode, check contactName
+      if (!values.contactName || !values.contactName.trim()) {
+        errors.contactName = "required";
+      }
+    } else {
+      // In inline creation mode, check inlineCustomerName
+      if (!values.inlineCustomerName || !values.inlineCustomerName.trim()) {
+        errors.inlineCustomerName = "required";
+      }
     }
 
     if (!values.invoice_date) {
@@ -298,8 +307,8 @@ export function useCreateInvoice() {
 
   async function onSubmit(values: ValuesCreateInvoice) {
     try {
-      let customerToAdd = selectedCustomer;
-      
+      let customerToAdd;
+
       if (selectedItems.length === 0) {
         openSnackbar({
           open: true,
@@ -310,7 +319,10 @@ export function useCreateInvoice() {
         return;
       }
 
+      const customersRepository = new CustomersRepository();
+
       if (createInlineCustomer) {
+        // Create new customer from inline form
         const newCustomer: CustomerSupabase = {
           name: values.inlineCustomerName,
           phone: values.phone,
@@ -321,7 +333,7 @@ export function useCreateInvoice() {
           post_code: values.postCode,
           email: values.emailAddress,
         };
-        const customersRepository = new CustomersRepository();
+
         const createdCustomer = await customersRepository.create(newCustomer);
         if (createdCustomer) {
           customerToAdd = createdCustomer.id;
@@ -343,6 +355,67 @@ export function useCreateInvoice() {
             alert: { color: "error" },
           } as SnackbarProps);
           return;
+        }
+      } else {
+        // For existing customer mode - find or create customer by name
+        // If we have a selectedCustomer from quotation, use it
+        if (selectedCustomer) {
+          customerToAdd = selectedCustomer;
+        } else {
+          // No customer selected, find or create by name
+          const customerNameToUse = values.contactName;
+
+          // First, try to find existing customer by name
+          const existingCustomers =
+            await customersRepository.getByName(customerNameToUse);
+          let existingCustomer = null;
+
+          if (existingCustomers?.customersData) {
+            existingCustomer = existingCustomers.customersData.find(
+              (c: any) => c.name === customerNameToUse
+            );
+          }
+
+          if (existingCustomer) {
+            // Customer exists, use it
+            customerToAdd = existingCustomer.id;
+          } else {
+            // Customer doesn't exist, create new one
+            const newCustomer: CustomerSupabase = {
+              name: customerNameToUse,
+              phone: values.phone,
+              mobile: values.mobile,
+              address: values.address,
+              suburb: values.suburb,
+              state: values.state,
+              post_code: values.postCode,
+              email: values.emailAddress,
+            };
+
+            const createdCustomer =
+              await customersRepository.create(newCustomer);
+            if (createdCustomer) {
+              customerToAdd = createdCustomer.id;
+            } else if (createdCustomer === false) {
+              openSnackbar({
+                open: true,
+                message:
+                  "Another customer already exists with the same name and address. Please use a different name.",
+                variant: "alert",
+                alert: { color: "error" },
+              } as SnackbarProps);
+              return;
+            } else {
+              openSnackbar({
+                open: true,
+                message:
+                  "Customer could not be added successfully. Please try again.",
+                variant: "alert",
+                alert: { color: "error" },
+              } as SnackbarProps);
+              return;
+            }
+          }
         }
       }
 
@@ -481,6 +554,7 @@ export function useCreateInvoice() {
       const customer = customers.find((c) => c.id === selectedCustomer);
       if (customer) {
         setSelectedEmail(customer.email || "");
+        setCustomerName(customer.name || "");
         setSelectedPhone(customer.phone || "");
         setSelectedMobile(customer.mobile || "");
         setSelectedAddress(customer.address || "");
@@ -530,5 +604,7 @@ export function useCreateInvoice() {
     setCreateInlineCustomer: setCreateInlineCustomerWithReset,
     inlineCustomerName,
     setInlineCustomerName,
+    customerName,
+    setCustomerName,
   };
 }

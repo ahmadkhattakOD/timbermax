@@ -138,10 +138,10 @@ export function useInvoices() {
   const goToCreate = () => navigate("/invoices/create");
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let temp = { ...filters };
-    temp.invoice_number = e.target.value;
-    temp.customer_name = e.target.value;
-    setFilters(temp);
+    setFilters((prev: any) => ({
+      ...prev,
+      search: e.target.value || undefined,
+    }));
   };
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -151,7 +151,7 @@ export function useInvoices() {
     try {
       const invoicesRepo = new InvoicesRepository();
       const invoice: any = await invoicesRepo.getSingle(invoiceId);
-      console.log("INVOICE",invoice)
+      console.log("INVOICE", invoice);
       if (!invoice?.invoiceData) {
         openSnackbar({
           open: true,
@@ -173,7 +173,7 @@ export function useInvoices() {
         } as SnackbarProps);
         return;
       }
-console.log("ITEMSS",items);
+      console.log("ITEMSS", items);
 
       const formattedItems = items.map((item: any, index: number) => ({
         id: index + 1,
@@ -729,8 +729,14 @@ console.log("ITEMSS",items);
         throw new Error("Invoice not found");
       }
       // extracting the ones that were joined
-      const { customers, invoice_items, quotations, id, ...restItems } =
-        invoice?.invoiceData;
+      const {
+        customers,
+        customer,
+        invoice_items,
+        quotations,
+        id,
+        ...restItems
+      } = invoice?.invoiceData;
       console.log("COMING TILL HERE", restItems);
       const updatedInvoice = await invoicesRepo.edit(
         selectedInvoiceForDelivery,
@@ -857,17 +863,24 @@ console.log("ITEMSS",items);
   };
 
   const handleFiltersSubmit = (values: any) => {
-    try {
-      setFilters(values);
-      setFilterModalOpen(false);
-    } catch (error) {
-      console.error("Error filtering invoices:", error);
-    }
+    setFilters((prev: any) => ({
+      ...prev,
+      ...values,
+    }));
+    setFilterModalOpen(false);
   };
 
   const resetFilters = () => {
     setSearchValue("");
-    setFilters({});
+    setFilters({
+      search: undefined,
+      status: undefined,
+      delivery_status: undefined,
+      date_from: undefined,
+      date_to: undefined,
+      min_total: undefined,
+      max_total: undefined,
+    });
   };
 
   const updateDeliveryStatus = async (invoiceId: number, status: string) => {

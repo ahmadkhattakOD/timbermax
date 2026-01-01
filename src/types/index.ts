@@ -16,6 +16,7 @@ export interface ValuesFilterInvoices {
   invoice_number: string;
   customer_name: string;
   quotation_number: string;
+  delivery_status: string;
   minimumTotal: string;
   maximumTotal: string;
   status: string;
@@ -36,9 +37,9 @@ export interface Customer {
   address?: string;
   company?: string;
   abn?: string;
-  post_code?:string;
-  suburb?:string
-  state?:string
+  post_code?: string;
+  suburb?: string;
+  state?: string;
 }
 
 export interface Item {

@@ -58,55 +58,96 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          `id, invoice_number,delivery_status, customers!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
-           quotation_id, quotations ( quotation_number ), total, status, invoice_date, note, created_at, updated_at,
-           ${this.itemsClassName}!inner ( quantity, unit_price, items!inner ( id, name, itemCode, sellPrice ) )`,
+          `
+        id,
+        invoice_number,
+        delivery_status,
+
+        customers!inner (
+          id, name, phone, mobile, email, address, suburb, state, post_code
+        ),
+
+        quotation_id,
+        quotations!inner (
+          quotation_number
+        ),
+
+        total,
+        status,
+        invoice_date,
+        note,
+        created_at,
+        updated_at,
+
+        ${this.itemsClassName}!inner (
+          quantity,
+          unit_price,
+          items!inner (
+            id, name, itemCode, sellPrice
+          )
+        )
+        `,
           { count: "exact" }
         )
-        .order(orderBy, { ascending: ascending })
+        .order(orderBy, { ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
 
       if (filters) {
+        console.log("FILTEDS COMING", filters);
         if (filters.invoice_number) {
           query.ilike("invoice_number", `%${filters.invoice_number}%`);
         }
-        if (filters.customer_name) {
-          query.ilike("customer.name", `%${filters.customer_name}%`);
+        if (filters.delivery_status) {
+          query.ilike("delivery_status", `%${filters.delivery_status}%`);
         }
+
+        if (filters.customer_name) {
+          query.ilike("customers.name", `%${filters.customer_name}%`);
+        }
+
         if (filters.quotation_number) {
           query.ilike(
             "quotations.quotation_number",
             `%${filters.quotation_number}%`
           );
         }
+
         if (filters.minimumTotal) {
           query.gte("total", parseFloat(filters.minimumTotal));
         }
+
         if (filters.maximumTotal) {
           query.lte("total", parseFloat(filters.maximumTotal));
         }
+
         if (filters.status) {
           query.eq("status", filters.status);
         }
+
         if (filters.invoice_date_from) {
           query.gte("invoice_date", filters.invoice_date_from);
         }
+
         if (filters.invoice_date_to) {
           query.lte("invoice_date", filters.invoice_date_to);
         }
+
         if (filters.created_at_from) {
           query.gte("created_at", filters.created_at_from);
         }
+
         if (filters.created_at_to) {
           query.lte("created_at", filters.created_at_to);
         }
+
         if (filters.item_name) {
           query.ilike(
             `${this.itemsClassName}.items.name`,
             `%${filters.item_name}%`
           );
         }
+
         if (filters.item_code) {
           query.ilike(
             `${this.itemsClassName}.items.itemCode`,
@@ -115,13 +156,13 @@ class InvoicesRepository {
         }
       }
 
-      const {
-        data: invoicesData,
-        count: invoicesCount,
-        error: invoicesError,
-      } = await query;
+      const { data, count, error } = await query;
 
-      return { invoicesData, invoicesCount, invoicesError };
+      return {
+        invoicesData: data,
+        invoicesCount: count,
+        invoicesError: error,
+      };
     } catch (error) {
       console.error("Error fetching invoices:", error);
       return null;
