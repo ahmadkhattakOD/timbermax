@@ -92,10 +92,20 @@ class StocksRepository {
       const query = supabase
         .from(this.className)
         .select(
-          "id, item (id, name, itemCode), warehouse (id, name), quantity, reserved, status, reference_id, reference_type, updated_at",
+          `
+    id,
+    item!inner (id, name, itemCode),
+    warehouse!inner (id, name),
+    quantity,
+    reserved,
+    status,
+    reference_id,
+    reference_type,
+    updated_at
+    `,
           { count: "exact" }
         )
-        .order(orderBy, { ascending: ascending })
+        .order(orderBy, { ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
 
@@ -128,7 +138,7 @@ class StocksRepository {
         count: stocksCount,
         error: stocksError,
       } = await query;
-
+      console.log("STOCKS ", stocksData);
       return { stocksData, stocksCount, stocksError };
     } catch (error) {
       console.error("Error fetching stocks:", error);

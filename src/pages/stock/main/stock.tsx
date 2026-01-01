@@ -83,10 +83,10 @@ export default function Stock() {
               }}
             />
             <Box sx={{ display: "flex", gap: 2 }}>
-              <ActionButton
+              {/* <ActionButton
                 text="On Hold Stock"
                 onClick={() => goToStatus("on_hold")}
-              />
+              /> */}
               <ActionButton text="Move Stock" onClick={goToMove} />
               {hasNonEmptyValue(filters) ? (
                 <ActionButton
@@ -151,7 +151,7 @@ export default function Stock() {
                       options={items.map((item) => {
                         return {
                           label: `${item.name} (${item.itemCode})`,
-                          value: item.id.toString(),
+                          value: item.name,
                         };
                       })}
                     />,

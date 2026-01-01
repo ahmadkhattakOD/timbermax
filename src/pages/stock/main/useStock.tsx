@@ -1,4 +1,13 @@
-import { Checkbox, TableCell, Typography, Chip, Box, Tooltip, IconButton, Modal } from "@mui/material";
+import {
+  Checkbox,
+  TableCell,
+  Typography,
+  Chip,
+  Box,
+  Tooltip,
+  IconButton,
+  Modal,
+} from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
@@ -119,7 +128,7 @@ export function useStock() {
 
   function goToStatus(status: string) {
     const params = new URLSearchParams(location.search);
-    params.set('status', status);
+    params.set("status", status);
     navigate(`/stock?${params.toString()}`);
   }
 
@@ -131,24 +140,34 @@ export function useStock() {
     const quantity = parseFloat(row.quantity) || 0;
     const reserved = parseFloat(row.reserved) || 0;
     const available = quantity - reserved;
-    
+
     const getStatusColor = (status: string) => {
-      switch(status) {
-        case 'available': return 'success';
-        case 'on_hold': return 'warning';
-        case 'committed': return 'info';
-        case 'damaged': return 'error';
-        default: return 'default';
+      switch (status) {
+        case "available":
+          return "success";
+        case "on_hold":
+          return "warning";
+        case "committed":
+          return "info";
+        case "damaged":
+          return "error";
+        default:
+          return "default";
       }
     };
 
     const getStatusLabel = (status: string) => {
-      switch(status) {
-        case 'available': return 'Available';
-        case 'on_hold': return 'On Hold';
-        case 'committed': return 'Committed';
-        case 'damaged': return 'Damaged';
-        default: return status;
+      switch (status) {
+        case "available":
+          return "Available";
+        case "on_hold":
+          return "On Hold";
+        case "committed":
+          return "Committed";
+        case "damaged":
+          return "Damaged";
+        default:
+          return status;
       }
     };
 
@@ -177,21 +196,19 @@ export function useStock() {
           {row.warehouse?.name || "Unknown Warehouse"}
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
-          <Typography fontWeight={600}>
-            {quantity.toFixed(2)}
-          </Typography>
+          <Typography fontWeight={600}>{quantity.toFixed(2)}</Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip 
-              label={reserved.toFixed(2)} 
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Chip
+              label={reserved.toFixed(2)}
               size="small"
               color={reserved > 0 ? "warning" : "default"}
               variant={reserved > 0 ? "filled" : "outlined"}
             />
             {reserved > 0 && (
               <Tooltip title="View Reservations">
-                <IconButton 
+                <IconButton
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -222,8 +239,8 @@ export function useStock() {
           </div>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
-          <Chip 
-            label={getStatusLabel(row.status)} 
+          <Chip
+            label={getStatusLabel(row.status)}
             size="small"
             color={getStatusColor(row.status) as any}
             variant="filled"
@@ -233,11 +250,11 @@ export function useStock() {
           {getDateTimeFormatted(row.updated_at, true)}
         </TableCell>
         <TableCell sx={{ minWidth: 100 }}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: "flex", gap: 1 }}>
             {reserved > 0 && (
               <Tooltip title="View Reservations">
-                <IconButton 
-                  size="small" 
+                <IconButton
+                  size="small"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleViewReservations(row);
@@ -259,7 +276,7 @@ export function useStock() {
       id: stockRow.item?.id,
       warehouseId: stockRow.warehouse?.id || 1,
       name: stockRow.item?.name || "Unknown Item",
-      code: stockRow.item?.itemCode || "N/A"
+      code: stockRow.item?.itemCode || "N/A",
     });
     setReservationModalOpen(true);
   };
@@ -272,7 +289,8 @@ export function useStock() {
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setSearchValue(value);
-    
+
+    console.log("VALUEEE",value)
     if (value.trim()) {
       let temp = { ...filters };
       temp.item = value;
@@ -335,7 +353,7 @@ export function useStock() {
       const stocksRepository = new StocksRepository();
       const rangeStart = rowsPerPage * page;
       const rangeEnd = rangeStart + rowsPerPage;
-      
+
       const stocks = await stocksRepository.get(
         orderBy,
         order === "asc",
@@ -344,7 +362,7 @@ export function useStock() {
         rowsPerPage,
         filters
       );
-      
+
       if (stocks) {
         const { stocksData, stocksCount, stocksError } = stocks;
         if (stocksData && !stocksError) {
@@ -362,15 +380,20 @@ export function useStock() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const newFilters = { ...initialFilters };
-    
-    if (params.has('status')) newFilters.status = params.get('status') || '';
-    if (params.has('item')) newFilters.item = params.get('item') || '';
-    if (params.has('warehouse')) newFilters.warehouse = params.get('warehouse') || '';
-    if (params.has('minimumQuantity')) newFilters.minimumQuantity = params.get('minimumQuantity') || '';
-    if (params.has('maximumQuantity')) newFilters.maximumQuantity = params.get('maximumQuantity') || '';
-    if (params.has('updatedAtFrom')) newFilters.updatedAtFrom = params.get('updatedAtFrom') || '';
-    if (params.has('updatedAtTo')) newFilters.updatedAtTo = params.get('updatedAtTo') || '';
-    
+
+    if (params.has("status")) newFilters.status = params.get("status") || "";
+    if (params.has("item")) newFilters.item = params.get("item") || "";
+    if (params.has("warehouse"))
+      newFilters.warehouse = params.get("warehouse") || "";
+    if (params.has("minimumQuantity"))
+      newFilters.minimumQuantity = params.get("minimumQuantity") || "";
+    if (params.has("maximumQuantity"))
+      newFilters.maximumQuantity = params.get("maximumQuantity") || "";
+    if (params.has("updatedAtFrom"))
+      newFilters.updatedAtFrom = params.get("updatedAtFrom") || "";
+    if (params.has("updatedAtTo"))
+      newFilters.updatedAtTo = params.get("updatedAtTo") || "";
+
     if (JSON.stringify(newFilters) !== JSON.stringify(filters)) {
       setFilters(newFilters);
     }
@@ -382,7 +405,8 @@ export function useStock() {
 
   function getDataCsv() {
     try {
-      let csvString = "Item,Item Code,Warehouse,Total Quantity,Reserved,Available,Status,Updated At\n";
+      let csvString =
+        "Item,Item Code,Warehouse,Total Quantity,Reserved,Available,Status,Updated At\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
@@ -390,8 +414,8 @@ export function useStock() {
           const quantity = parseFloat(stock.quantity) || 0;
           const reserved = parseFloat(stock.reserved) || 0;
           const available = quantity - reserved;
-          
-          csvString += `"${stock?.item?.name ?? ''}","${stock?.item?.itemCode ?? ''}","${stock?.warehouse?.name ?? ''}",${quantity},${reserved},${available},"${stock?.status ?? ''}","${stock?.updated_at ?? ''}"\n`;
+
+          csvString += `"${stock?.item?.name ?? ""}","${stock?.item?.itemCode ?? ""}","${stock?.warehouse?.name ?? ""}",${quantity},${reserved},${available},"${stock?.status ?? ""}","${stock?.updated_at ?? ""}"\n`;
         }
 
         setCsvData(csvString);
@@ -416,12 +440,12 @@ export function useStock() {
     try {
       setFilters(values);
       setFilterModalOpen(false);
-      
+
       const params = new URLSearchParams();
       Object.entries(values).forEach(([key, value]) => {
         if (value) params.set(key, value);
       });
-      
+
       navigate(`/stock?${params.toString()}`);
     } catch (error) {
       console.error("Error filtering stocks:", error);
@@ -431,7 +455,7 @@ export function useStock() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
-    navigate('/stock');
+    navigate("/stock");
   }
 
   async function getFilterData() {
@@ -444,7 +468,7 @@ export function useStock() {
           setItems(itemsData);
         }
       }
-      
+
       const warehousesRepository = new WarehousesRepository();
       const allWarehouses = await warehousesRepository.getWithoutFilters();
       if (allWarehouses) {
@@ -482,7 +506,7 @@ export function useStock() {
     csvLink,
     reservationModalOpen,
     selectedItem,
-    
+
     // State setters
     setOrder,
     setOrderBy,
@@ -490,7 +514,7 @@ export function useStock() {
     setPage,
     setRowsPerPage,
     setSearchValue,
-    
+
     // Functions
     goToCreate,
     goToMove,
@@ -508,7 +532,7 @@ export function useStock() {
     handleSearchDebounced,
     handleViewReservations,
     handleCloseReservationModal,
-    
+
     // Constants
     headCells,
   };
