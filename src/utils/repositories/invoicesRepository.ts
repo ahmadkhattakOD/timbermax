@@ -174,9 +174,9 @@ class InvoicesRepository {
       const { data: invoiceData, error: invoiceError } = await supabase
         .from(this.className)
         .select(
-          `id, invoice_number, delivery_status,customer_id, customers ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+          `id, invoice_number, delivery_status,customer_id,customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
            quotation_id, quotations ( id, quotation_number ), total, status, invoice_date, note, created_at, updated_at,
-           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice,gst ) )`
+           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice,gst) )`
         )
         .eq("id", id)
         .limit(1)

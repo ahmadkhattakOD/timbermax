@@ -151,7 +151,7 @@ export function useInvoices() {
     try {
       const invoicesRepo = new InvoicesRepository();
       const invoice: any = await invoicesRepo.getSingle(invoiceId);
-
+      console.log("INVOICE",invoice)
       if (!invoice?.invoiceData) {
         openSnackbar({
           open: true,
@@ -173,6 +173,7 @@ export function useInvoices() {
         } as SnackbarProps);
         return;
       }
+console.log("ITEMSS",items);
 
       const formattedItems = items.map((item: any, index: number) => ({
         id: index + 1,
@@ -180,6 +181,7 @@ export function useInvoices() {
         code: item.items?.itemCode || "N/A",
         quantity: parseFloat(item.quantity) || 0,
         unitPrice: parseFloat(item.unit_price) || 0,
+        gst: item?.items?.gst || false,
         total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
       }));
 
@@ -348,7 +350,7 @@ export function useInvoices() {
           <Typography fontWeight={600}>{row.invoice_number}</Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 180 }}>
-          <Typography>{row.customer?.name || "N/A"}</Typography>
+          <Typography>{row.customers?.name || "N/A"}</Typography>
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 120 }}>
           <Typography fontWeight={600}>${row.total?.toFixed(2)}</Typography>
@@ -543,6 +545,7 @@ export function useInvoices() {
                 <TableCell>Code</TableCell>
                 <TableCell align="right">Quantity</TableCell>
                 <TableCell align="right">Unit Price</TableCell>
+                <TableCell align="right">GST</TableCell>
                 <TableCell align="right">Total</TableCell>
               </TableRow>
             </TableHead>
@@ -560,13 +563,18 @@ export function useInvoices() {
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
+                      {item.gst ? "Yes" : "No"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography fontWeight={600}>
                       ${item.total.toFixed(2)}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ))}
               <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                <TableCell colSpan={5} align="right">
+                <TableCell colSpan={6} align="right">
                   <Typography variant="subtitle1" fontWeight={600}>
                     Grand Total:
                   </Typography>

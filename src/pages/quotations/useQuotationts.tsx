@@ -208,11 +208,19 @@ export function useQuotations() {
     navigate("/quotations/create");
   }
 
+  // function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+  //   let temp = { ...filters };
+  //   temp.quotation_number = e.target.value;
+  //   temp.customer_name = e.target.value;
+  //   setFilters(temp);
+  // }
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    let temp = { ...filters };
-    temp.quotation_number = e.target.value;
-    temp.customer_name = e.target.value;
-    setFilters(temp);
+    const value = e.target.value;
+
+    setFilters((prev) => ({
+      ...prev,
+      quotation_number: value,
+    }));
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);

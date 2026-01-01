@@ -3,31 +3,65 @@ import autoTable from "jspdf-autotable";
 import { Quotation } from "types";
 import { getDateFormatted } from "./helpers";
 
+// Helper function to load and add logo
+const addCompanyLogo = async (doc: jsPDF, xPosition: number = 14, yPosition: number = 20) => {
+  try {
+    // Path to the logo - adjust based on your project structure
+    // If using Next.js, you might need a different approach
+    const logoUrl = '/timber.jpg';
+    
+    // If you're running in a browser environment
+    if (typeof window !== 'undefined') {
+      const response = await fetch(logoUrl);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      return new Promise<void>((resolve, reject) => {
+        reader.onload = function() {
+          const base64 = reader.result as string;
+          // Add image to PDF
+          doc.addImage(base64, 'JPEG', xPosition, yPosition, 30, 15); // Adjust size as needed
+          resolve();
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (error) {
+    console.error("Error loading logo:", error);
+    // Continue without logo if it fails to load
+  }
+};
+
 export const generateAndDownloadQuotationPDF = async (
   quotation: Quotation
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
 
-    // Header
+    // Add company logo in top left corner
+    await addCompanyLogo(doc, 14, 20);
+
+    // Header - moved down to make room for logo
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("QUOTATION", 105, 20, { align: "center" });
+    doc.text("QUOTATION", 105, 45, { align: "center" }); // Increased y from 20 to 45
 
-    // Company Info
+    // Company Info - moved down
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("Your Company Name", 14, 35);
-    doc.text("Company Address Line 1", 14, 40);
-    doc.text("Company Address Line 2", 14, 45);
-    doc.text("Phone: (123) 456-7890 | Email: info@company.com", 14, 50);
+    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60); // Changed company name
+    doc.text("ABN: 95 689 199 773", 14, 65); // Added ABN
+    doc.text("Phone: (123) 456-7890", 14, 70);
+    doc.text("Email: info@timbermax.com.au", 14, 75); // Updated email
+    doc.text("Website: timbermax.com.au", 14, 80); // Added website
 
-    // Quotation Info (right aligned)
+    // Quotation Info (right aligned) - moved down
     doc.setFont("helvetica", "normal");
-    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 35, {
+    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 60, {
       align: "right",
     });
-    doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 40, {
+    doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 65, {
       align: "right",
     });
     doc.text(
@@ -35,28 +69,28 @@ export const generateAndDownloadQuotationPDF = async (
         quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
       }`,
       180,
-      45,
+      70,
       { align: "right" }
     );
 
-    // Customer Info
+    // Customer Info - moved down
     const customer = quotation.customers;
     doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 14, 65);
+    doc.text("BILL TO:", 14, 95); // Increased y from 65 to 95
     doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 70);
-    doc.text(customer?.address || "", 14, 75);
+    doc.text(customer?.name || "N/A", 14, 100); // Increased y
+    doc.text(customer?.address || "", 14, 105); // Increased y
     if (customer?.suburb) {
       doc.text(
         `${customer.suburb} ${customer.state} ${customer.post_code}`,
         14,
-        80
+        110 // Increased y
       );
     }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 85);
-    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 90);
+    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115); // Increased y
+    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120); // Increased y
 
-    // Items Table
+    // Items Table - moved startY down
     const items = quotation.quotation_items || [];
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
@@ -73,8 +107,7 @@ export const generateAndDownloadQuotationPDF = async (
         quantity.toFixed(2),
         `$${unitPrice.toFixed(2)}`,
         gst ? "Yes" : "No",
-        `$${gstAmount.toFixed(2)}`,
-        `$${totalWithGST.toFixed(2)}`,
+        `$${totalWithGST.toFixed(2)}`, // Removed GST Amount column, now showing Total only
       ];
     });
 
@@ -96,7 +129,7 @@ export const generateAndDownloadQuotationPDF = async (
     });
 
     autoTable(doc, {
-      startY: 100,
+      startY: 130, // Increased from 100 to 130
       head: [
         [
           "#",
@@ -105,7 +138,6 @@ export const generateAndDownloadQuotationPDF = async (
           "Qty",
           "Unit Price",
           "GST",
-          "GST Amount",
           "Total",
         ],
       ],
@@ -120,8 +152,7 @@ export const generateAndDownloadQuotationPDF = async (
         3: { cellWidth: 20 }, // Qty
         4: { cellWidth: 30 }, // Unit Price
         5: { cellWidth: 20 }, // GST
-        6: { cellWidth: 30 }, // GST Amount
-        7: { cellWidth: 30 }, // Total
+        6: { cellWidth: 30 }, // Total
       },
     });
 
@@ -179,58 +210,62 @@ export const generateAndDownloadQuotationPDF = async (
   }
 };
 
-// Add new function for Delivery Document
+// Update the Delivery Document function
 export const generateAndDownloadDeliveryDocument = async (
   quotation: Quotation
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
 
-    // Header
+    // Add company logo in top left corner
+    await addCompanyLogo(doc, 14, 20);
+
+    // Header - moved down
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("DELIVERY DOCUMENT", 105, 20, { align: "center" });
+    doc.text("DELIVERY DOCUMENT", 105, 45, { align: "center" });
 
-    // Company Info
+    // Company Info - moved down
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("Your Company Name", 14, 35);
-    doc.text("Company Address Line 1", 14, 40);
-    doc.text("Company Address Line 2", 14, 45);
-    doc.text("Phone: (123) 456-7890", 14, 50);
+    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
+    doc.text("ABN: 95 689 199 773", 14, 65);
+    doc.text("Phone: (123) 456-7890", 14, 70);
+    doc.text("Email: info@timbermax.com.au", 14, 75);
+    doc.text("Website: timbermax.com.au", 14, 80);
 
-    // Document Info (right aligned)
+    // Document Info (right aligned) - moved down
     doc.text(
       `Delivery Document #: ${quotation.quotation_number}-DEL`,
       180,
-      35,
+      60,
       {
         align: "right",
       }
     );
-    doc.text(`Date: ${getDateFormatted(new Date().toISOString())}`, 180, 40, {
+    doc.text(`Date: ${getDateFormatted(new Date().toISOString())}`, 180, 65, {
       align: "right",
     });
-    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 45, {
+    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 70, {
       align: "right",
     });
 
-    // Customer Info
-    const customer = quotation.customers as any; // TODO: fix
+    // Customer Info - moved down
+    const customer = quotation.customers as any;
     doc.setFont("helvetica", "bold");
-    doc.text("DELIVER TO:", 14, 65);
+    doc.text("DELIVER TO:", 14, 100); // Increased y
     doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 70);
-    doc.text(customer?.address || "", 14, 75);
+    doc.text(customer?.name || "N/A", 14, 105);
+    doc.text(customer?.address || "", 14, 110);
     if (customer?.suburb) {
       doc.text(
         `${customer.suburb} ${customer.state} ${customer.post_code}`,
         14,
-        80
+        115
       );
     }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 85);
-    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 90);
+    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 120);
+    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 125);
 
     // Items Table for Delivery
     const items = quotation.quotation_items || [];
@@ -246,7 +281,7 @@ export const generateAndDownloadDeliveryDocument = async (
     });
 
     autoTable(doc, {
-      startY: 100,
+      startY: 135, // Increased from 100
       head: [["#", "Item Description", "Code", "Quantity"]],
       body: tableData,
       theme: "grid",
@@ -257,7 +292,6 @@ export const generateAndDownloadDeliveryDocument = async (
         1: { cellWidth: 80 },
         2: { cellWidth: 30 },
         3: { cellWidth: 30 },
-        4: { cellWidth: 40 },
       },
     });
 
@@ -305,33 +339,36 @@ export const generateAndDownloadDeliveryDocument = async (
   }
 };
 
-// Update the openQuotationPDFInNewTab function to include GST
+// Update the openQuotationPDFInNewTab function
 export const openQuotationPDFInNewTab = async (
   quotation: Quotation
 ): Promise<void> => {
   try {
-    // Create a Blob URL for the PDF
     const doc = new jsPDF();
 
-    // Header
+    // Add company logo
+    await addCompanyLogo(doc, 14, 20);
+
+    // Header - moved down
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("QUOTATION", 105, 20, { align: "center" });
+    doc.text("QUOTATION", 105, 45, { align: "center" });
 
-    // Company Info
+    // Company Info - moved down
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("Your Company Name", 14, 35);
-    doc.text("Company Address Line 1", 14, 40);
-    doc.text("Company Address Line 2", 14, 45);
-    doc.text("Phone: (123) 456-7890 | Email: info@company.com", 14, 50);
+    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
+    doc.text("ABN: 95 689 199 773", 14, 65);
+    doc.text("Phone: (123) 456-7890", 14, 70);
+    doc.text("Email: info@timbermax.com.au", 14, 75);
+    doc.text("Website: timbermax.com.au", 14, 80);
 
-    // Quotation Info (right aligned)
+    // Quotation Info (right aligned) - moved down
     doc.setFont("helvetica", "normal");
-    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 35, {
+    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 60, {
       align: "right",
     });
-    doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 40, {
+    doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 65, {
       align: "right",
     });
     doc.text(
@@ -339,26 +376,26 @@ export const openQuotationPDFInNewTab = async (
         quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
       }`,
       180,
-      45,
+      70,
       { align: "right" }
     );
 
-    // Customer Info
+    // Customer Info - moved down
     const customer = quotation.customers;
     doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 14, 65);
+    doc.text("BILL TO:", 14, 95);
     doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 70);
-    doc.text(customer?.address || "", 14, 75);
+    doc.text(customer?.name || "N/A", 14, 100);
+    doc.text(customer?.address || "", 14, 105);
     if (customer?.suburb) {
       doc.text(
         `${customer.suburb} ${customer.state} ${customer.post_code}`,
         14,
-        80
+        110
       );
     }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 85);
-    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 90);
+    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
+    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120);
 
     // Items Table
     const items = quotation.quotation_items || [];
@@ -377,8 +414,7 @@ export const openQuotationPDFInNewTab = async (
         quantity.toFixed(2),
         `$${unitPrice.toFixed(2)}`,
         gst ? "Yes" : "No",
-        `$${gstAmount.toFixed(2)}`,
-        `$${totalWithGST.toFixed(2)}`,
+        `$${totalWithGST.toFixed(2)}`, // Removed GST Amount column, now showing Total only
       ];
     });
 
@@ -400,7 +436,7 @@ export const openQuotationPDFInNewTab = async (
     });
 
     autoTable(doc, {
-      startY: 100,
+      startY: 130,
       head: [
         [
           "#",
@@ -409,7 +445,6 @@ export const openQuotationPDFInNewTab = async (
           "Qty",
           "Unit Price",
           "GST",
-          "GST Amount",
           "Total",
         ],
       ],
@@ -424,8 +459,7 @@ export const openQuotationPDFInNewTab = async (
         3: { cellWidth: 20 }, // Qty
         4: { cellWidth: 30 }, // Unit Price
         5: { cellWidth: 20 }, // GST
-        6: { cellWidth: 30 }, // GST Amount
-        7: { cellWidth: 30 }, // Total
+        6: { cellWidth: 30 }, // Total
       },
     });
 

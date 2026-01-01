@@ -73,7 +73,7 @@ class QuotationsRepository {
         .from(this.className)
         .select(
           `*,
-          customer:customer_id(*),
+   customer:customer_id!inner(*),
           quotation_items(
             quantity,
             unit_price,
@@ -128,13 +128,13 @@ class QuotationsRepository {
           );
         }
       }
-
+      console.log("filterss", filters);
       const {
         data: quotationsData,
         count: quotationsCount,
         error: quotationsError,
       } = await query;
-
+      console.log("DATAA", quotationsData);
       if (quotationsError) {
         console.error("Error fetching quotations:", quotationsError);
         return { quotationsData: [], quotationsCount: 0, quotationsError };
@@ -234,7 +234,7 @@ class QuotationsRepository {
     try {
       // Get current status
       const currentQuotation = await this.getSingle(id);
-console.log("COMING TILL HERE",currentQuotation)
+      console.log("COMING TILL HERE", currentQuotation);
       if (!currentQuotation?.quotationData) {
         return { success: false, error: "Quotation not found" };
       }
