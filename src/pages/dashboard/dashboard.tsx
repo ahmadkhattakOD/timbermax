@@ -1,338 +1,278 @@
-// project-imports
-import MainCard from "components/MainCard";
-import Chart from "react-apexcharts";
-import { useDashboard } from "./useDashboard";
+import React, { useState } from "react";
+import { Grid, Paper, Typography, Box, Button, Stack } from "@mui/material";
+import { Download, Refresh } from "@mui/icons-material";
 import {
-  Box,
-  Button,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import CircularLoader from "components/CircularLoader";
-import { UserRoles, getDateFormatted } from "utils/helpers";
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import DashboardFilters from "./dashboardFilters";
+import DashboardStats from "./dashboardStats";
+import TopSellingItems from "./TopSellingItem";
+import StockMovementTable from "./StockMovement";
+import LowStockAlert from "./low-stock-alert";
+import CustomerMetrics from "./custom-metric";
+import MonthlySalesChart from "./monthyl-sales-chart";
+import useDashboard from "./useDashboard";
 
-// ==============================|| DASHBOARD PAGE ||============================== //
-
-export default function Dashboard() {
+const Dashboard: React.FC = () => {
   const {
-    loadingSales,
-    salesOptions,
-    salesSeries,
-    salesYear,
-    loadingCommissions,
-    commissionOptions,
-    commissionSeries,
-    commissionYear,
-    userOptions,
-    userSeries,
-    upcomingShows,
-    viewAllShows,
-    viewAllUsers,
-    viewAllStock,
-    viewShow,
-    viewStock,
-    viewAllInvoices,
-    viewReminder,
-    yearOptions,
-    handleSalesYearChange,
-    handleCommissionYearChange,
-    lowInStock,
-    loadingUsers,
-    loadingUpcomingShows,
-    loadingLowInStock,
-    role,
-    pendingCommission,
-    loadingPendingCommission,
-    reminders,
-    loadingReminders,
+    metrics,
+    timeSeriesData,
+    stockMovements,
+    filters,
+    loading,
+    error,
+    updateFilters,
+    fetchDashboardData,
+    exportMonthlyReport,
   } = useDashboard();
-  const theme = useTheme();
+
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const report = await exportMonthlyReport();
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(report, null, 2)], {
+        type: "application/json",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dashboard-report-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  if (loading && !metrics) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <Typography>Loading dashboard...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography color="error">{error}</Typography>
+        <Button onClick={fetchDashboardData} variant="contained" sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
 
   return (
-    <Grid container columnSpacing={"1rem"} rowSpacing={"1rem"}>
-      <Grid item xs={12} md={6}>
-        <MainCard
-          title="Total Sales"
-          secondary={
-            <Box sx={{ width: "100px" }}>
-              <FormControl fullWidth>
-                <InputLabel>Year</InputLabel>
-                <Select
-                  value={salesYear}
-                  label="Year"
-                  onChange={(e) => {
-                    handleSalesYearChange(e.target.value as number);
-                  }}
-                >
-                  {yearOptions.map((year) => (
-                    <MenuItem key={year} value={year}>
-                      {year}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-          }
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mb: 2 }}
         >
-          {loadingSales ? (
-            <Box sx={{ padding: "3rem" }}>
-              <CircularLoader />
-            </Box>
-          ) : (
-            <Chart options={salesOptions} series={salesSeries} type="bar" />
-          )}
-        </MainCard>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Dashboard
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <Button
+              startIcon={<Refresh />}
+              onClick={fetchDashboardData}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+            <Button
+              startIcon={<Download />}
+              onClick={handleExport}
+              disabled={exporting || loading}
+              variant="contained"
+            >
+              {exporting ? "Exporting..." : "Export Report"}
+            </Button>
+          </Stack>
+        </Stack>
+
+        <DashboardFilters filters={filters} onFilterChange={updateFilters} />
+      </Box>
+
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <DashboardStats metrics={metrics} />
       </Grid>
-      <Grid item xs={12} md={6}>
-        <MainCard
-          title="Total Commission"
-          secondary={
-            <Box sx={{ width: "100px" }}>
-              <FormControl fullWidth>
-                <InputLabel>Year</InputLabel>
-                <Select
-                  value={commissionYear}
-                  label="Year"
-                  onChange={(e) => {
-                    handleCommissionYearChange(e.target.value as number);
-                  }}
-                >
-                  {yearOptions.map((year) => (
-                    <MenuItem key={year} value={year}>
-                      {year}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+
+      {/* Charts Section */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Monthly Sales Chart */}
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3, height: "400px" }}>
+            <Typography variant="h6" gutterBottom>
+              Sales Overview
+            </Typography>
+            <MonthlySalesChart data={metrics?.monthlySales || []} />
+          </Paper>
+        </Grid>
+
+        {/* Stock Metrics */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: "400px" }}>
+            <Typography variant="h6" gutterBottom>
+              Stock Status
+            </Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      {
+                        name: "In Stock",
+                        value:
+                          (metrics?.stockMetrics.totalItems || 0) -
+                          (metrics?.stockMetrics.outOfStock || 0),
+                      },
+                      {
+                        name: "Low Stock",
+                        value: metrics?.stockMetrics.lowStock || 0,
+                      },
+                      {
+                        name: "Out of Stock",
+                        value: metrics?.stockMetrics.outOfStock || 0,
+                      },
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent || 1 * 100).toFixed(0)}%`
+                    }
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    <Cell fill="#4CAF50" />
+                    <Cell fill="#FF9800" />
+                    <Cell fill="#F44336" />
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </Box>
-          }
-        >
-          {loadingCommissions ? (
-            <Box sx={{ padding: "3rem" }}>
-              <CircularLoader />
-            </Box>
-          ) : (
-            <Chart
-              options={commissionOptions}
-              series={commissionSeries}
-              type="bar"
+          </Paper>
+        </Grid>
+
+        {/* Weekly Trends */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3, height: "350px" }}>
+            <Typography variant="h6" gutterBottom>
+              Weekly Trends
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={metrics?.weeklyTrends || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="week" />
+                <YAxis />
+                <RechartsTooltip />
+                <Legend />
+                <Bar dataKey="sales" fill="#8884d8" name="Sales ($)" />
+                <Bar dataKey="invoices" fill="#82ca9d" name="Invoices" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Customer Metrics */}
+        <Grid item xs={12} md={6}>
+          <CustomerMetrics metrics={metrics?.customerMetrics} />
+        </Grid>
+      </Grid>
+
+      {/* Data Tables Section */}
+      <Grid container spacing={3}>
+        {/* Top Selling Items */}
+        <Grid item xs={12} md={6}>
+          <TopSellingItems items={metrics?.topSellingItems || []} />
+        </Grid>
+
+        {/* Low Stock Alert */}
+        <Grid item xs={12} md={6}>
+          <LowStockAlert items={metrics?.lowStockItems || []} />
+        </Grid>
+
+        {/* Stock Movements */}
+        <Grid item xs={12}>
+          <StockMovementTable movements={stockMovements} />
+        </Grid>
+      </Grid>
+
+      {/* Time Series Chart */}
+      <Paper sx={{ p: 3, mt: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Daily Activity
+        </Typography>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={timeSeriesData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis yAxisId="left" />
+            <YAxis yAxisId="right" orientation="right" />
+            <RechartsTooltip />
+            <Legend />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="sales"
+              stroke="#8884d8"
+              name="Sales ($)"
+              strokeWidth={2}
             />
-          )}
-        </MainCard>
-      </Grid>
-      {(role !== UserRoles.Admin && role !== UserRoles.SuperAdmin) && (
-        <Grid item xs={12} md={4}>
-          <MainCard
-            title="Pending Commission"
-            secondary={<Button onClick={viewAllInvoices}>View Invoices</Button>}
-          >
-            {loadingPendingCommission ? (
-              <Box sx={{ padding: "3rem" }}>
-                <CircularLoader />
-              </Box>
-            ) : pendingCommission > 0 ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "2rem",
-                }}
-              >
-                <Typography>
-                  Pending commission, awaiting admin approval and payment.
-                </Typography>
-                <Typography variant="h5" sx={{ textAlign: "center" }}>
-                  {pendingCommission.toFixed(2)} (A$)
-                </Typography>
-              </Box>
-            ) : pendingCommission < 0 ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "2rem",
-                }}
-              >
-                <Typography>
-                  Negative commission balance which would be re-adjusted.
-                </Typography>
-                <Typography variant="h5" sx={{ textAlign: "center" }}>
-                  {Math.abs(pendingCommission).toFixed(2)} (A$)
-                </Typography>
-              </Box>
-            ) : (
-              <Box>All your commission has been paid out.</Box>
-            )}
-          </MainCard>
-        </Grid>
-      )}
-      {role === UserRoles.SuperAdmin && (
-        <Grid item xs={12} md={4}>
-          <MainCard
-            title="Users"
-            secondary={<Button onClick={viewAllUsers}>View All</Button>}
-          >
-            {loadingUsers ? (
-              <Box sx={{ padding: "3rem" }}>
-                <CircularLoader />
-              </Box>
-            ) : userSeries.length > 0 ? (
-              <Chart options={userOptions} series={userSeries} type="donut" />
-            ) : (
-              <Typography>No Users Found.</Typography>
-            )}
-          </MainCard>
-        </Grid>
-      )}
-      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
-        <Grid item xs={12} md={4}>
-          <MainCard
-            title="Upcoming Shows"
-            secondary={<Button onClick={viewAllShows}>View All</Button>}
-          >
-            {loadingUpcomingShows ? (
-              <Box sx={{ padding: "3rem" }}>
-                <CircularLoader />
-              </Box>
-            ) : upcomingShows.length > 0 ? (
-              upcomingShows.map((show, idx) => {
-                return (
-                  <Box key={idx}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "0.25rem",
-                        "&:hover": {
-                          backgroundColor: theme.palette.secondary[100],
-                          cursor: "pointer",
-                        },
-                      }}
-                      onClick={() => {
-                        viewShow(show.id);
-                      }}
-                    >
-                      <Typography sx={{ color: theme.palette.text.primary }}>
-                        {show.name}{" "}
-                        {show.suburb || show.state
-                          ? show.suburb
-                            ? `(${show.suburb}${show.state && `, ${show.state}`})`
-                            : `(${show.state})`
-                          : ""}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          color: theme.palette.text.secondary,
-                          textAlign: "right",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {getDateFormatted(show.start_date)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              })
-            ) : (
-              <Typography>No Upcoming Shows Found.</Typography>
-            )}
-          </MainCard>
-        </Grid>
-      )}
-      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
-        <Grid item xs={12} md={4}>
-          <MainCard title="Today's Reminders">
-            {loadingReminders ? (
-              <Box sx={{ padding: "3rem" }}>
-                <CircularLoader />
-              </Box>
-            ) : reminders.length > 0 ? (
-              reminders.map((reminder, idx) => {
-                return (
-                  <Box key={idx}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "0.25rem",
-                        "&:hover": {
-                          backgroundColor: theme.palette.secondary[100],
-                          cursor: "pointer",
-                        },
-                      }}
-                      onClick={() => {
-                        viewReminder(reminder.customer?.id, reminder.id);
-                      }}
-                    >
-                      <Typography sx={{ color: theme.palette.text.primary }}>
-                        {reminder.customer?.name}
-                      </Typography>
-                      <Typography sx={{ color: theme.palette.text.secondary }}>
-                        {reminder.notes.length > 15
-                          ? `${reminder.notes.substring(0, 12)}...`
-                          : reminder.notes}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              })
-            ) : (
-              <Typography>No Reminders Found for Today.</Typography>
-            )}
-          </MainCard>
-        </Grid>
-      )}
-      {(role === UserRoles.Admin || role === UserRoles.SuperAdmin) && (
-        <Grid item xs={12} md={4}>
-          <MainCard
-            title="Low in Stock"
-            secondary={<Button onClick={viewAllStock}>View All</Button>}
-          >
-            {loadingLowInStock ? (
-              <Box sx={{ padding: "3rem" }}>
-                <CircularLoader />
-              </Box>
-            ) : lowInStock.length > 0 ? (
-              lowInStock.map((stock, idx) => {
-                return (
-                  <Box key={idx}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "0.25rem",
-                        "&:hover": {
-                          backgroundColor: theme.palette.secondary[100],
-                          cursor: "pointer",
-                        },
-                      }}
-                      onClick={() => {
-                        viewStock(stock.id);
-                      }}
-                    >
-                      <Typography sx={{ color: theme.palette.text.primary }}>
-                        {stock.item?.name}
-                      </Typography>
-                      <Typography sx={{ color: theme.palette.text.secondary }}>
-                        {stock.quantity}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              })
-            ) : (
-              <Typography>No Stock Found.</Typography>
-            )}
-          </MainCard>
-        </Grid>
-      )}
-    </Grid>
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="invoices"
+              stroke="#82ca9d"
+              name="Invoices"
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="quotations"
+              stroke="#ffc658"
+              name="Quotations"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </Paper>
+    </Box>
   );
-}
+};
+
+export default Dashboard;
