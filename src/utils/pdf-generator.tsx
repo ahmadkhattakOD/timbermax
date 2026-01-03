@@ -64,14 +64,14 @@ export const generateAndDownloadQuotationPDF = async (
     doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 65, {
       align: "right",
     });
-    doc.text(
-      `Valid Until: ${
-        quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
-      }`,
-      180,
-      70,
-      { align: "right" }
-    );
+    // doc.text(
+    //   `Valid Until: ${
+    //     quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
+    //   }`,
+    //   180,
+    //   70,
+    //   { align: "right" }
+    // );
 
     // Customer Info - moved down
     const customer = quotation.customers;
@@ -371,14 +371,14 @@ export const openQuotationPDFInNewTab = async (
     doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 65, {
       align: "right",
     });
-    doc.text(
-      `Valid Until: ${
-        quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
-      }`,
-      180,
-      70,
-      { align: "right" }
-    );
+    // doc.text(
+    //   `Valid Until: ${
+    //     quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
+    //   }`,
+    //   180,
+    //   70,
+    //   { align: "right" }
+    // );
 
     // Customer Info - moved down
     const customer = quotation.customers;

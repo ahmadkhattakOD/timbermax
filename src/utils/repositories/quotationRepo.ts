@@ -106,12 +106,7 @@ class QuotationsRepository {
         if (filters.status) {
           query.eq("status", filters.status);
         }
-        if (filters.valid_until_from) {
-          query.gte("valid_until", filters.valid_until_from);
-        }
-        if (filters.valid_until_to) {
-          query.lte("valid_until", filters.valid_until_to);
-        }
+
         if (filters.created_at_from) {
           query.gte("created_at", filters.created_at_from);
         }
@@ -558,7 +553,17 @@ class QuotationsRepository {
         .from(this.className)
         .select(
           `*,
-          customers!inner(*)`,
+        customer:customer_id!inner(*),
+        quotation_items(
+          quantity,
+          unit_price,
+          items!inner(
+            id,
+            name,
+            itemCode,
+            sellPrice
+          )
+        )`,
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -579,17 +584,21 @@ class QuotationsRepository {
         if (filters.status) {
           query.eq("status", filters.status);
         }
-        if (filters.valid_until_from) {
-          query.gte("valid_until", filters.valid_until_from);
-        }
-        if (filters.valid_until_to) {
-          query.lte("valid_until", filters.valid_until_to);
-        }
+
         if (filters.created_at_from) {
           query.gte("created_at", filters.created_at_from);
         }
         if (filters.created_at_to) {
           query.lte("created_at", filters.created_at_to);
+        }
+        if (filters.item_name) {
+          query.ilike(`quotation_items.items.name`, `%${filters.item_name}%`);
+        }
+        if (filters.item_code) {
+          query.ilike(
+            `quotation_items.items.itemCode`,
+            `%${filters.item_code}%`
+          );
         }
       }
 
@@ -598,6 +607,11 @@ class QuotationsRepository {
         count: quotationsCount,
         error: quotationsError,
       } = await query;
+
+      if (quotationsError) {
+        console.error("Error fetching customer quotations:", quotationsError);
+        return { quotationsData: [], quotationsCount: 0, quotationsError };
+      }
 
       return { quotationsData, quotationsCount, quotationsError };
     } catch (error) {

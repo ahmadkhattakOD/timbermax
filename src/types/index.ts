@@ -4,8 +4,8 @@ export interface ValuesFilterQuotations {
   minimumTotal: string;
   maximumTotal: string;
   status: string;
-  valid_until_from: string;
-  valid_until_to: string;
+  valid_until_from?: string;
+  valid_until_to?: string;
   created_at_from: string;
   created_at_to: string;
   item_name: string;
@@ -79,7 +79,6 @@ export interface Quotation {
   subtotal?: number;
   tax?: number;
   tax_rate?: number;
-  valid_until?: string;
   created_at: string;
   updated_at?: string;
   reference?: string;

@@ -394,8 +394,31 @@ class InvoicesRepository {
       const query = supabase
         .from(this.className)
         .select(
-          `id, invoice_number, customers!inner ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
-           quotation_id, total, status, invoice_date, note, created_at, updated_at`,
+          `
+        id,
+        invoice_number,
+        delivery_status,
+        customers!inner (
+          id, name, phone, mobile, email, address, suburb, state, post_code
+        ),
+        quotation_id,
+        quotations (
+          quotation_number
+        ),
+        total,
+        status,
+        invoice_date,
+        note,
+        created_at,
+        updated_at,
+        ${this.itemsClassName} (
+          quantity,
+          unit_price,
+          items (
+            id, name, itemCode, sellPrice, gst
+          )
+        )
+        `,
           { count: "exact" }
         )
         .order(orderBy, { ascending: ascending })
@@ -416,6 +439,9 @@ class InvoicesRepository {
         if (filters.status) {
           query.eq("status", filters.status);
         }
+        if (filters.delivery_status) {
+          query.eq("delivery_status", filters.delivery_status);
+        }
         if (filters.invoice_date_from) {
           query.gte("invoice_date", filters.invoice_date_from);
         }
@@ -428,6 +454,18 @@ class InvoicesRepository {
         if (filters.created_at_to) {
           query.lte("created_at", filters.created_at_to);
         }
+        if (filters.item_name) {
+          query.ilike(
+            `${this.itemsClassName}.items.name`,
+            `%${filters.item_name}%`
+          );
+        }
+        if (filters.item_code) {
+          query.ilike(
+            `${this.itemsClassName}.items.itemCode`,
+            `%${filters.item_code}%`
+          );
+        }
       }
 
       const {
@@ -436,10 +474,15 @@ class InvoicesRepository {
         error: invoicesError,
       } = await query;
 
+      if (invoicesError) {
+        console.error("Error fetching customer invoices:", invoicesError);
+        return { invoicesData: [], invoicesCount: 0, invoicesError };
+      }
+
       return { invoicesData, invoicesCount, invoicesError };
     } catch (error) {
       console.error("Error fetching customer invoices:", error);
-      return null;
+      return { invoicesData: [], invoicesCount: 0, invoicesError: error };
     }
   }
 

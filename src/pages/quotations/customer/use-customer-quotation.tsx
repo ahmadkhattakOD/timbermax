@@ -1,4 +1,3 @@
-// hooks/useQuotations.ts (UPDATED - Corrected snackbar typings)
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -38,7 +37,6 @@ import {
 } from "utils/helpers";
 import QuotationsRepository from "utils/repositories/quotationRepo";
 import { ValuesFilterQuotations } from "types";
-import StocksRepository from "utils/repositories/stocksRepository";
 import {
   Dialog,
   DialogTitle,
@@ -51,9 +49,8 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
-// Add these missing icon imports
-// import { Download, Visibility, Close, Receipt } from "@mui/icons-material";
 import { SnackbarProps } from "types/snackbar";
+import CustomersRepository from "utils/repositories/customersRepository";
 
 const headCells: HeadCell[] = [
   {
@@ -61,12 +58,6 @@ const headCells: HeadCell[] = [
     numeric: false,
     disablePadding: true,
     label: "Quotation Number",
-  },
-  {
-    id: "customer",
-    numeric: false,
-    disablePadding: true,
-    label: "Customer",
   },
   {
     id: "total",
@@ -92,6 +83,7 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Created Date",
   },
+
   {
     id: "actions",
     numeric: false,
@@ -100,87 +92,20 @@ const headCells: HeadCell[] = [
   },
 ];
 
-async function downloadDeliveryDocument(quotationId: number) {
-  try {
-    const quotationsRepo = new QuotationsRepository();
-    const quotationResponse = await quotationsRepo.getSingle(quotationId);
-
-    if (!quotationResponse?.quotationData) {
-      throw new Error(`Quotation with ID ${quotationId} not found`);
-    }
-
-    const quotation: Quotation = quotationResponse.quotationData;
-
-    openSnackbar({
-      action: false,
-      open: true,
-      message: "Generating Delivery Document...",
-      anchorOrigin: { vertical: "bottom", horizontal: "right" },
-      variant: "alert",
-      alert: {
-        color: "info" as any,
-        variant: "filled",
-      },
-      transition: "Fade",
-      close: true,
-      actionButton: false,
-    } as SnackbarProps);
-
-    const result = await generateAndDownloadDeliveryDocument(quotation);
-
-    if (result.success) {
-      openSnackbar({
-        action: false,
-        open: true,
-        message: `Delivery Document downloaded: ${result.fileName}`,
-        anchorOrigin: { vertical: "bottom", horizontal: "right" },
-        variant: "alert",
-        alert: {
-          color: "success" as any,
-          variant: "filled",
-        },
-        transition: "Fade",
-        close: true,
-        actionButton: false,
-      } as SnackbarProps);
-    } else {
-      throw new Error(result.error || "Failed to download Delivery Document");
-    }
-  } catch (error) {
-    console.error("Error in downloadDeliveryDocument:", error);
-    openSnackbar({
-      action: false,
-      open: true,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to generate Delivery Document",
-      anchorOrigin: { vertical: "bottom", horizontal: "right" },
-      variant: "alert",
-      alert: {
-        color: "error" as any,
-        variant: "filled",
-      },
-      transition: "Fade",
-      close: true,
-      actionButton: false,
-    } as SnackbarProps);
-  } finally {
-  }
-}
 export const initialFilters: ValuesFilterQuotations = {
   quotation_number: "",
   customer_name: "",
   minimumTotal: "",
   maximumTotal: "",
   status: "",
+
   created_at_from: "",
   created_at_to: "",
   item_name: "",
   item_code: "",
 };
 
-export function useQuotations() {
+export function useCustomerQuotations(customerId: number) {
   const [data, setData] = useState<Quotation[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -202,19 +127,23 @@ export function useQuotations() {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  function goToCreate() {
-    navigate("/quotations/create");
+  // Function to fetch customer name
+  async function fetchCustomerName(id: number) {
+    try {
+      const customersRepo = new CustomersRepository();
+      const customer = await customersRepo.getSingle(id);
+      if (customer?.customerData) {
+        return customer.customerData.name;
+      }
+      return "Unknown Customer";
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      return "Unknown Customer";
+    }
   }
 
-  // function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-  //   let temp = { ...filters };
-  //   temp.quotation_number = e.target.value;
-  //   temp.customer_name = e.target.value;
-  //   setFilters(temp);
-  // }
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
-
     setFilters((prev) => ({
       ...prev,
       quotation_number: value,
@@ -222,7 +151,8 @@ export function useQuotations() {
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
-  // Add this function to show items in a modal
+
+  // EXACTLY LIKE ORIGINAL: Add this function to show items in a modal
   async function viewItemsModal(quotationId: number) {
     try {
       const quotationsRepo = new QuotationsRepository();
@@ -266,7 +196,7 @@ export function useQuotations() {
         return;
       }
 
-      // Format items for display
+      // Format items for display - EXACTLY LIKE ORIGINAL
       const formattedItems = items.map((item: any, index: number) => ({
         id: index + 1,
         name: item.items?.name || "Unknown",
@@ -279,7 +209,7 @@ export function useQuotations() {
       setCurrentQuotationItems(formattedItems);
       setCurrentQuotationInfo({
         quotationNumber: quotation.quotationData.quotation_number,
-        customerName: quotation.quotationData.customers?.name,
+        customerName: quotation.quotationData.customers?.name, // Changed from customer to customers
         total: quotation.quotationData.total,
       });
       setItemsModalOpen(true);
@@ -302,14 +232,14 @@ export function useQuotations() {
     }
   }
 
-  // Add function to close the items modal
+  // EXACTLY LIKE ORIGINAL: Add function to close the items modal
   function closeItemsModal() {
     setItemsModalOpen(false);
     setCurrentQuotationItems([]);
     setCurrentQuotationInfo(null);
   }
 
-  // Add this component to your return statement at the bottom
+  // EXACTLY LIKE ORIGINAL: Add this component to your return statement at the bottom
   const ItemsModal = () => (
     <Dialog
       open={itemsModalOpen}
@@ -409,7 +339,6 @@ export function useQuotations() {
     </Dialog>
   );
 
-  // Update the generateTableCells function to add Delivery Document button
   function generateTableCells(
     row: Quotation,
     labelId: string,
@@ -446,7 +375,6 @@ export function useQuotations() {
         >
           {row.quotation_number}
         </TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.customer?.name}</TableCell>
         <TableCell align="right" sx={{ minWidth: 150 }}>
           ${row.total?.toFixed(2)}
         </TableCell>
@@ -476,9 +404,10 @@ export function useQuotations() {
         <TableCell sx={{ minWidth: 150 }}>
           {getDateFormatted(row.created_at)}
         </TableCell>
+
         <TableCell sx={{ minWidth: 350 }}>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {/* Mark as Sent Button (only for draft) */}
+            {/* Mark as Sent Button (only for draft) - EXACTLY LIKE ORIGINAL */}
             {canMarkSent && (
               <Tooltip title="Mark as Sent">
                 <IconButton
@@ -494,7 +423,7 @@ export function useQuotations() {
               </Tooltip>
             )}
 
-            {/* Mark as Approved Button (only for sent) */}
+            {/* Mark as Approved Button (only for sent) - EXACTLY LIKE ORIGINAL */}
             {canMarkApproved && (
               <Tooltip title="Mark as Approved">
                 <IconButton
@@ -510,14 +439,14 @@ export function useQuotations() {
               </Tooltip>
             )}
 
-            {/* View Items Button - Always show if there are items */}
+            {/* View Items Button - Always show if there are items - EXACTLY LIKE ORIGINAL */}
             {itemsCount > 0 && (
               <Tooltip title="View Items">
                 <IconButton
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    viewItemsModal(row.id);
+                    viewItemsModal(row.id); // Using modal view like original
                   }}
                   color="info"
                 >
@@ -526,7 +455,7 @@ export function useQuotations() {
               </Tooltip>
             )}
 
-            {/* Download PDF Button */}
+            {/* Download PDF Button - EXACTLY LIKE ORIGINAL */}
             <Tooltip title="Download Quotation PDF">
               <IconButton
                 size="small"
@@ -540,7 +469,7 @@ export function useQuotations() {
               </IconButton>
             </Tooltip>
 
-            {/* Download Delivery Document Button */}
+            {/* Download Delivery Document Button - EXACTLY LIKE ORIGINAL */}
             {canDownloadDelivery && itemsCount > 0 && (
               <Tooltip title="Download Delivery Document">
                 <IconButton
@@ -556,7 +485,7 @@ export function useQuotations() {
               </Tooltip>
             )}
 
-            {/* Convert to Invoice Button (only for approved quotations) */}
+            {/* Convert to Invoice Button (only for approved quotations) - EXACTLY LIKE ORIGINAL */}
             {isConvertable && (
               <Tooltip title="Convert to Invoice">
                 <IconButton
@@ -572,7 +501,7 @@ export function useQuotations() {
               </Tooltip>
             )}
 
-            {/* Cancel Button (only for non-cancelled quotations) */}
+            {/* Cancel Button (only for non-cancelled quotations) - EXACTLY LIKE ORIGINAL */}
             {isCancellable && (
               <Tooltip title="Cancel Quotation">
                 <IconButton
@@ -592,7 +521,7 @@ export function useQuotations() {
       </>
     );
   }
-  // Add new functions to useQuotations hook
+
   async function markAsSent(quotationId: number) {
     try {
       const quotationsRepo = new QuotationsRepository();
@@ -705,7 +634,7 @@ export function useQuotations() {
     }
   }
 
-  // Update cancelQuotation function
+  // Update cancelQuotation function - EXACTLY LIKE ORIGINAL
   async function cancelQuotation(quotationId: number) {
     if (
       !window.confirm(
@@ -773,6 +702,74 @@ export function useQuotations() {
     }
   }
 
+  async function downloadDeliveryDocument(quotationId: number) {
+    try {
+      const quotationsRepo = new QuotationsRepository();
+      const quotationResponse = await quotationsRepo.getSingle(quotationId);
+
+      if (!quotationResponse?.quotationData) {
+        throw new Error(`Quotation with ID ${quotationId} not found`);
+      }
+
+      const quotation: Quotation = quotationResponse.quotationData;
+
+      openSnackbar({
+        action: false,
+        open: true,
+        message: "Generating Delivery Document...",
+        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        variant: "alert",
+        alert: {
+          color: "info" as any,
+          variant: "filled",
+        },
+        transition: "Fade",
+        close: true,
+        actionButton: false,
+      } as SnackbarProps);
+
+      const result = await generateAndDownloadDeliveryDocument(quotation);
+
+      if (result.success) {
+        openSnackbar({
+          action: false,
+          open: true,
+          message: `Delivery Document downloaded: ${result.fileName}`,
+          anchorOrigin: { vertical: "bottom", horizontal: "right" },
+          variant: "alert",
+          alert: {
+            color: "success" as any,
+            variant: "filled",
+          },
+          transition: "Fade",
+          close: true,
+          actionButton: false,
+        } as SnackbarProps);
+      } else {
+        throw new Error(result.error || "Failed to download Delivery Document");
+      }
+    } catch (error) {
+      console.error("Error in downloadDeliveryDocument:", error);
+      openSnackbar({
+        action: false,
+        open: true,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate Delivery Document",
+        anchorOrigin: { vertical: "bottom", horizontal: "right" },
+        variant: "alert",
+        alert: {
+          color: "error" as any,
+          variant: "filled",
+        },
+        transition: "Fade",
+        close: true,
+        actionButton: false,
+      } as SnackbarProps);
+    }
+  }
+
   function openDeleteConfirmModal() {
     setDeleteConfirmModalOpen(true);
   }
@@ -830,11 +827,15 @@ export function useQuotations() {
 
   async function getData() {
     try {
+      if (!customerId) return;
+
       setLoading(true);
       const quotationsRepo = new QuotationsRepository();
       const rangeStart = rowsPerPage * page;
       const rangeEnd = rangeStart + rowsPerPage;
-      const quotations = await quotationsRepo.get(
+
+      const quotations = await quotationsRepo.getByCustomer(
+        customerId,
         orderBy,
         order === "asc",
         rangeStart,
@@ -842,6 +843,7 @@ export function useQuotations() {
         rowsPerPage,
         filters
       );
+
       if (quotations) {
         const { quotationsData, quotationsCount, quotationsError } = quotations;
         if (quotationsData && !quotationsError) {
@@ -851,24 +853,24 @@ export function useQuotations() {
       }
       setLoading(false);
     } catch (e) {
-      console.error("Error fetching quotations:", e);
+      console.error("Error fetching customer quotations:", e);
       setLoading(false);
     }
   }
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage, filters]);
+  }, [customerId, order, orderBy, page, rowsPerPage, filters]);
 
   function getDataCsv() {
     try {
       let csvString =
-        "Quotation Number,Customer,Total,Status,Items Count,Created Date,Note\n";
+        "Quotation Number,Total,Status,Items Count,Created Date,Note\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let quotation = data[i] as any;
-          csvString += `"${quotation.quotation_number ?? ""}","${quotation.customer?.name ?? ""}",${quotation.total ?? ""},"${quotation.status ?? ""}","${quotation.valid_until ? getDateFormatted(quotation.valid_until) : ""}",${quotation.quotation_items?.length || 0},"${getDateFormatted(quotation.created_at)}","${quotation.note ?? ""}"\n`;
+          csvString += `"${quotation.quotation_number ?? ""}",${quotation.total ?? ""},"${quotation.status ?? ""}",${quotation.quotation_items?.length || 0},"${getDateFormatted(quotation.created_at)}","${quotation.note ?? ""}"\n`;
         }
 
         setCsvData(csvString);
@@ -903,7 +905,7 @@ export function useQuotations() {
     setFilters(initialFilters);
   }
 
-  // PDF Download function - FIXED SNACKBAR TYPES
+  // PDF Download function - EXACTLY LIKE ORIGINAL
   const downloadQuotationPDF = useCallback(
     async (quotationId: number): Promise<void> => {
       try {
@@ -918,7 +920,7 @@ export function useQuotations() {
 
         const quotation: Quotation = quotationResponse.quotationData;
 
-        // Show loading notification - FIXED: Using correct snackbar parameters
+        // Show loading notification - EXACTLY LIKE ORIGINAL
         openSnackbar({
           action: false,
           open: true,
@@ -926,13 +928,7 @@ export function useQuotations() {
           anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
           alert: {
-            color: "info" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
+            color: "info" as any,
             variant: "filled",
           },
           transition: "Fade",
@@ -951,13 +947,7 @@ export function useQuotations() {
             anchorOrigin: { vertical: "bottom", horizontal: "right" },
             variant: "alert",
             alert: {
-              color: "success" as
-                | "success"
-                | "info"
-                | "warning"
-                | "error"
-                | "primary"
-                | "secondary",
+              color: "success" as any,
               variant: "filled",
             },
             transition: "Fade",
@@ -978,13 +968,7 @@ export function useQuotations() {
           anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
           alert: {
-            color: "error" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
+            color: "error" as any,
             variant: "filled",
           },
           transition: "Fade",
@@ -998,7 +982,7 @@ export function useQuotations() {
     []
   );
 
-  // PDF Preview function - FIXED SNACKBAR TYPES
+  // PDF Preview function - EXACTLY LIKE ORIGINAL
   const previewQuotationPDF = useCallback(
     async (quotationId: number): Promise<void> => {
       try {
@@ -1018,13 +1002,7 @@ export function useQuotations() {
           anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
           alert: {
-            color: "info" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
+            color: "info" as any,
             variant: "filled",
           },
           transition: "Fade",
@@ -1044,13 +1022,7 @@ export function useQuotations() {
           anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
           alert: {
-            color: "error" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
+            color: "error" as any,
             variant: "filled",
           },
           transition: "Fade",
@@ -1062,7 +1034,7 @@ export function useQuotations() {
     []
   );
 
-  // Convert quotation to invoice - FIXED SNACKBAR TYPES
+  // Convert quotation to invoice - EXACTLY LIKE ORIGINAL
   async function convertToInvoice(quotationId: number) {
     try {
       const quotationsRepo = new QuotationsRepository();
@@ -1075,13 +1047,7 @@ export function useQuotations() {
           anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
           alert: {
-            color: "error" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
+            color: "error" as any,
             variant: "filled",
           },
           transition: "Fade",
@@ -1101,13 +1067,7 @@ export function useQuotations() {
         anchorOrigin: { vertical: "bottom", horizontal: "right" },
         variant: "alert",
         alert: {
-          color: "info" as
-            | "success"
-            | "info"
-            | "warning"
-            | "error"
-            | "primary"
-            | "secondary",
+          color: "info" as any,
           variant: "filled",
         },
         transition: "Fade",
@@ -1123,13 +1083,7 @@ export function useQuotations() {
         anchorOrigin: { vertical: "bottom", horizontal: "right" },
         variant: "alert",
         alert: {
-          color: "error" as
-            | "success"
-            | "info"
-            | "warning"
-            | "error"
-            | "primary"
-            | "secondary",
+          color: "error" as any,
           variant: "filled",
         },
         transition: "Fade",
@@ -1139,7 +1093,7 @@ export function useQuotations() {
     }
   }
 
-  // View quotation items - FIXED SNACKBAR TYPES
+  // View quotation items - EXACTLY LIKE ORIGINAL (alert version)
   async function viewItems(quotationId: number) {
     try {
       const quotationsRepo = new QuotationsRepository();
@@ -1153,13 +1107,7 @@ export function useQuotations() {
           anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
           alert: {
-            color: "error" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
+            color: "error" as any,
             variant: "filled",
           },
           transition: "Fade",
@@ -1169,7 +1117,6 @@ export function useQuotations() {
         return;
       }
 
-      // Show items in a modal or navigate to a view page
       const items = quotation.quotationData.quotation_items || [];
 
       if (items.length === 0) {
@@ -1180,13 +1127,7 @@ export function useQuotations() {
           anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
           alert: {
-            color: "info" as
-              | "success"
-              | "info"
-              | "warning"
-              | "error"
-              | "primary"
-              | "secondary",
+            color: "info" as any,
             variant: "filled",
           },
           transition: "Fade",
@@ -1216,13 +1157,7 @@ export function useQuotations() {
         anchorOrigin: { vertical: "bottom", horizontal: "right" },
         variant: "alert",
         alert: {
-          color: "error" as
-            | "success"
-            | "info"
-            | "warning"
-            | "error"
-            | "primary"
-            | "secondary",
+          color: "error" as any,
           variant: "filled",
         },
         transition: "Fade",
@@ -1232,7 +1167,7 @@ export function useQuotations() {
     }
   }
 
-  // Return ALL functions and state
+  // Return ALL functions and state - EXACTLY LIKE ORIGINAL
   return {
     // State
     data,
@@ -1258,8 +1193,7 @@ export function useQuotations() {
     setRowsPerPage,
     setSearchValue,
 
-    // Functions
-    goToCreate,
+    // Functions - ALL INCLUDED LIKE ORIGINAL
     generateTableCells,
     onDelete,
     openDeleteConfirmModal,
@@ -1272,11 +1206,13 @@ export function useQuotations() {
     getDataCsv,
     handleSearchDebounced,
     convertToInvoice,
-    viewItems,
+    viewItems, // <-- alert version
     cancelQuotation,
     downloadQuotationPDF,
     previewQuotationPDF,
-    ItemsModal,
+    ItemsModal, // <-- modal component
+    fetchCustomerName,
+
     // Constants
     headCells,
   };
