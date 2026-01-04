@@ -143,7 +143,11 @@ const useDashboard = () => {
           case "quarter":
             const quarter = Math.floor(today.getMonth() / 3);
             const quarterStart = new Date(today.getFullYear(), quarter * 3, 1);
-            const quarterEnd = new Date(today.getFullYear(), (quarter + 1) * 3, 0);
+            const quarterEnd = new Date(
+              today.getFullYear(),
+              (quarter + 1) * 3,
+              0
+            );
             startDate = quarterStart.toISOString().split("T")[0];
             endDate = quarterEnd.toISOString().split("T")[0];
             break;
@@ -171,7 +175,9 @@ const useDashboard = () => {
 
     try {
       // Only calculate dates if we have a time range selected
-      const startDate = filters.startDate ? new Date(filters.startDate) : undefined;
+      const startDate = filters.startDate
+        ? new Date(filters.startDate)
+        : undefined;
       const endDate = filters.endDate ? new Date(filters.endDate) : undefined;
 
       // Fetch all data in parallel
@@ -231,9 +237,7 @@ const useDashboard = () => {
     startDate?: Date,
     endDate?: Date
   ): Promise<number> => {
-    let query = supabase
-      .from("invoices")
-      .select("total, status")
+    let query = supabase.from("invoices").select("total, status");
 
     if (startDate && endDate) {
       query = query
@@ -417,11 +421,8 @@ const useDashboard = () => {
 
     const [
       { data: invoices, error: invoicesError },
-      { data: quotations, error: quotationsError }
-    ] = await Promise.all([
-      invoicesQuery,
-      quotationsQuery
-    ]);
+      { data: quotations, error: quotationsError },
+    ] = await Promise.all([invoicesQuery, quotationsQuery]);
 
     if (invoicesError || quotationsError) {
       throw invoicesError || quotationsError;
@@ -439,7 +440,7 @@ const useDashboard = () => {
     >();
 
     // Process invoices
-    invoices.forEach((invoice) => {
+    invoices?.forEach((invoice) => {
       const date = new Date(invoice.created_at);
       const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
       const monthName = date.toLocaleString("default", {
@@ -463,7 +464,7 @@ const useDashboard = () => {
     });
 
     // Process quotations
-    quotations.forEach((quotation) => {
+    quotations?.forEach((quotation) => {
       const date = new Date(quotation.created_at);
       const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
 
@@ -578,7 +579,8 @@ const useDashboard = () => {
         .lte("created_at", endDate.toISOString());
     }
 
-    const { data: topCustomersData, error: topCustomersError } = await topCustomersQuery;
+    const { data: topCustomersData, error: topCustomersError } =
+      await topCustomersQuery;
 
     if (topCustomersError) throw topCustomersError;
 
@@ -621,7 +623,8 @@ const useDashboard = () => {
         .lte("created_at", endDate.toISOString());
     }
 
-    const { count: newCustomers, error: newCustomersError } = await newCustomersQuery;
+    const { count: newCustomers, error: newCustomersError } =
+      await newCustomersQuery;
 
     if (newCustomersError) throw newCustomersError;
 
@@ -699,11 +702,8 @@ const useDashboard = () => {
 
     const [
       { data: invoices, error: invoicesError },
-      { data: quotations, error: quotationsError }
-    ] = await Promise.all([
-      invoicesQuery,
-      quotationsQuery
-    ]);
+      { data: quotations, error: quotationsError },
+    ] = await Promise.all([invoicesQuery, quotationsQuery]);
 
     if (invoicesError || quotationsError) {
       throw invoicesError || quotationsError;
@@ -713,7 +713,7 @@ const useDashboard = () => {
     const dateMap = new Map<string, TimeSeriesData>();
 
     // Process invoices
-    invoices.forEach((invoice) => {
+    invoices?.forEach((invoice) => {
       const date = new Date(invoice.created_at).toISOString().split("T")[0];
       let dayData = dateMap.get(date);
       if (!dayData) {
@@ -733,7 +733,7 @@ const useDashboard = () => {
     });
 
     // Process quotations
-    quotations.forEach((quotation) => {
+    quotations?.forEach((quotation) => {
       const date = new Date(quotation.created_at).toISOString().split("T")[0];
       let dayData = dateMap.get(date);
       if (!dayData) {
@@ -761,10 +761,8 @@ const useDashboard = () => {
     warehouse?: number
   ): Promise<StockMovement[]> => {
     // Get stock movements from invoices
-    let invoiceMovementsQuery = supabase
-      .from("invoice_items")
-      .select(
-        `
+    let invoiceMovementsQuery = supabase.from("invoice_items").select(
+      `
         quantity,
         unit_price,
         items!inner (id, name, itemCode),
@@ -774,13 +772,11 @@ const useDashboard = () => {
           status
         )
       `
-      );
+    );
 
     // Get stock movements from quotations
-    let quotationMovementsQuery = supabase
-      .from("quotation_items")
-      .select(
-        `
+    let quotationMovementsQuery = supabase.from("quotation_items").select(
+      `
         quantity,
         unit_price,
         items!inner (id, name, itemCode),
@@ -790,7 +786,7 @@ const useDashboard = () => {
           status
         )
       `
-      );
+    );
 
     if (startDate && endDate) {
       invoiceMovementsQuery = invoiceMovementsQuery
@@ -803,11 +799,8 @@ const useDashboard = () => {
 
     const [
       { data: invoiceMovements, error: invoiceError },
-      { data: quotationMovements, error: quotationError }
-    ] = await Promise.all([
-      invoiceMovementsQuery,
-      quotationMovementsQuery
-    ]);
+      { data: quotationMovements, error: quotationError },
+    ] = await Promise.all([invoiceMovementsQuery, quotationMovementsQuery]);
 
     if (invoiceError || quotationError) {
       throw invoiceError || quotationError;
@@ -855,12 +848,15 @@ const useDashboard = () => {
 
   // Export functions
   const exportMonthlyReport = async () => {
-    const startDate = filters.startDate ? new Date(filters.startDate) : undefined;
+    const startDate = filters.startDate
+      ? new Date(filters.startDate)
+      : undefined;
     const endDate = filters.endDate ? new Date(filters.endDate) : undefined;
-    
-    const timeRangeLabel = filters.timeRange === "" 
-      ? "All time" 
-      : `${filters.startDate || ''} to ${filters.endDate || ''}`;
+
+    const timeRangeLabel =
+      filters.timeRange === ""
+        ? "All time"
+        : `${filters.startDate || ""} to ${filters.endDate || ""}`;
 
     const [
       salesData,
@@ -887,7 +883,10 @@ const useDashboard = () => {
         `
         )
         .gte("created_at", startDate ? startDate.toISOString() : "1970-01-01")
-        .lte("created_at", endDate ? endDate.toISOString() : new Date().toISOString()),
+        .lte(
+          "created_at",
+          endDate ? endDate.toISOString() : new Date().toISOString()
+        ),
       supabase
         .from("quotations")
         .select(
@@ -905,7 +904,10 @@ const useDashboard = () => {
         `
         )
         .gte("created_at", startDate ? startDate.toISOString() : "1970-01-01")
-        .lte("created_at", endDate ? endDate.toISOString() : new Date().toISOString()),
+        .lte(
+          "created_at",
+          endDate ? endDate.toISOString() : new Date().toISOString()
+        ),
       fetchStockMovements(startDate, endDate, filters.warehouse),
       fetchTopSellingItems(startDate, endDate, filters.warehouse),
     ]);
