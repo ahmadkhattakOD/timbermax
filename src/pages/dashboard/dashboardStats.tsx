@@ -26,51 +26,44 @@ interface DashboardStatsProps {
 }
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ metrics }) => {
+  console.log("METRICSSSS", metrics);
 
-    console.log("METRICSSSS",metrics);
-    
   const stats = [
     {
       title: "Total Sales",
       value: `$${metrics?.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}`,
       icon: <AttachMoney />,
       color: "#4CAF50",
-      change: "+12%", // You can calculate this from previous period
     },
     {
       title: "Total Invoices",
       value: metrics?.totalInvoices || 0,
       icon: <Receipt />,
       color: "#2196F3",
-      change: "+8%",
     },
     {
       title: "Total Quotations",
       value: metrics?.totalQuotations || 0,
       icon: <Description />,
       color: "#FF9800",
-      change: "+5%",
     },
     {
       title: "Total Customers",
       value: metrics?.totalCustomers || 0,
       icon: <People />,
       color: "#9C27B0",
-      change: "+15%",
     },
     {
       title: "Total Items",
       value: metrics?.stockMetrics?.totalItems || 0,
       icon: <Inventory />,
       color: "#607D8B",
-      change: "+3%",
     },
     {
       title: "Stock Value",
       value: `$${metrics?.stockMetrics?.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}`,
       icon: <ShoppingCart />,
       color: "#795548",
-      change: "+7%",
     },
   ];
 
@@ -96,20 +89,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ metrics }) => {
                   <Typography variant="h5" component="div">
                     {stat.value}
                   </Typography>
-                  <Chip
-                    label={stat.change}
-                    size="small"
-                    sx={{ mt: 1 }}
-                    icon={
-                      stat.change.startsWith("+") ? (
-                        <TrendingUp />
-                      ) : (
-                        <TrendingDown />
-                      )
-                    }
-                    color={stat.change.startsWith("+") ? "success" : "error"}
-                    variant="outlined"
-                  />
                 </Box>
                 <Box
                   sx={{

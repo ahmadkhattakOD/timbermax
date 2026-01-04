@@ -57,6 +57,7 @@ export function useEditInvoice(invoiceId: number) {
   const [currentStatus, setCurrentStatus] = useState<any>("draft");
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
   const [inlineCustomerName, setInlineCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState<string>("");
 
   const [initialValues, setInitialValues] = useState<ValuesEditInvoice>({
     invoice_number: "",
@@ -191,12 +192,16 @@ export function useEditInvoice(invoiceId: number) {
       errors.invoice_number = "required";
     }
 
-    if (!createInlineCustomer && !selectedCustomer) {
-      errors.contactName = "required";
-    }
-
-    if (createInlineCustomer && !values.inlineCustomerName.trim()) {
-      errors.inlineCustomerName = "required";
+    if (!createInlineCustomer) {
+      // In existing customer mode, check contactName
+      if (!values.contactName || !values.contactName.trim()) {
+        errors.contactName = "required";
+      }
+    } else {
+      // In inline creation mode, check inlineCustomerName
+      if (!values.inlineCustomerName || !values.inlineCustomerName.trim()) {
+        errors.inlineCustomerName = "required";
+      }
     }
 
     if (!values.invoice_date) {
@@ -209,6 +214,15 @@ export function useEditInvoice(invoiceId: number) {
 
     if (!values.delivery_status) {
       errors.delivery_status = "required" as any;
+    }
+
+    if (selectedItems.length === 0) {
+      openSnackbar({
+        open: true,
+        message: "Please add at least one item to the invoice",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
     }
 
     return errors;
@@ -226,7 +240,7 @@ export function useEditInvoice(invoiceId: number) {
         return;
       }
 
-      let customerToUpdate = selectedCustomer;
+      let customerToUpdate;
       
       // Handle inline customer creation
       if (createInlineCustomer) {
@@ -262,6 +276,77 @@ export function useEditInvoice(invoiceId: number) {
             alert: { color: "error" },
           } as SnackbarProps);
           return;
+        }
+      } else {
+        // For existing customer mode
+        if (selectedCustomer) {
+          customerToUpdate = selectedCustomer;
+        } else {
+          // No customer selected, find or create by name
+          const customerNameToUse = values.contactName;
+
+          // First, try to find existing customer by name
+          const customersRepository = new CustomersRepository();
+          const existingCustomers = await customersRepository.getByName(customerNameToUse);
+          let existingCustomer = null;
+
+          if (existingCustomers?.customersData) {
+            existingCustomer = existingCustomers.customersData.find(
+              (c: any) => c.name === customerNameToUse
+            );
+          }
+
+          if (existingCustomer) {
+            // Customer exists, use it
+            customerToUpdate = existingCustomer.id;
+            
+            // Update customer details
+            await customersRepository.edit(existingCustomer.id, {
+              name: customerNameToUse,
+              phone: values.phone,
+              mobile: values.mobile,
+              address: values.address,
+              suburb: values.suburb,
+              state: values.state,
+              post_code: values.postCode,
+              email: values.emailAddress,
+            });
+          } else {
+            // Customer doesn't exist, create new one
+            const newCustomer: CustomerSupabase = {
+              name: customerNameToUse,
+              phone: values.phone,
+              mobile: values.mobile,
+              address: values.address,
+              suburb: values.suburb,
+              state: values.state,
+              post_code: values.postCode,
+              email: values.emailAddress,
+            };
+
+            const createdCustomer = await customersRepository.create(newCustomer);
+            if (createdCustomer) {
+              customerToUpdate = createdCustomer.id;
+            } else if (createdCustomer === false) {
+              openSnackbar({
+                open: true,
+                message:
+                  "Another customer already exists with the same name and address. Please use a different name.",
+                variant: "alert",
+                alert: { color: "error" },
+              } as SnackbarProps);
+              return;
+            } else {
+              openSnackbar({
+                open: true,
+                message:
+                  "Customer could not be added successfully. Please try again.",
+                variant: "alert",
+                alert: { color: "error" },
+              } as SnackbarProps);
+              return;
+            }
+          }
         }
       }
 
@@ -302,10 +387,16 @@ export function useEditInvoice(invoiceId: number) {
         }
       }
 
+      // Calculate total with GST
+      const totalWithGST = selectedItems.reduce(
+        (sum, item) => sum + calculateItemTotal(item),
+        0
+      );
+
       // Update invoice details
       const updatedInvoice = {
         customer_id: customerToUpdate,
-        total: totalAmount,
+        total: totalWithGST,
         invoice_date: values.invoice_date ? new Date(values.invoice_date) : null,
         note: values.note,
         status: values.status,
@@ -457,8 +548,8 @@ export function useEditInvoice(invoiceId: number) {
     setLoading(true);
     try {
       const invoicesRepo = new InvoicesRepository();
-      const result:any = await invoicesRepo.getSingle(invoiceId);
-        console.log("LOADDD INVOICE",result)
+      const result: any = await invoicesRepo.getSingle(invoiceId);
+
       if (result?.invoiceData) {
         const invoice = result.invoiceData;
         setInvoiceData(invoice);
@@ -467,6 +558,7 @@ export function useEditInvoice(invoiceId: number) {
         // Set customer data
         const customerId = invoice.customer_id;
         setSelectedCustomer(customerId);
+        setCustomerName(invoice.customers?.name || "");
         setSelectedPhone(invoice.customers?.phone || "");
         setSelectedMobile(invoice.customers?.mobile || "");
         setSelectedEmail(invoice.customers?.email || "");
@@ -540,10 +632,11 @@ export function useEditInvoice(invoiceId: number) {
 
   // Auto-populate customer details when selected
   useEffect(() => {
-    if (selectedCustomer) {
+    if (selectedCustomer && customers.length > 0) {
       const customer = customers.find((c) => c.id === selectedCustomer);
       if (customer) {
         setSelectedEmail(customer.email || "");
+        setCustomerName(customer.name || "");
         setSelectedPhone(customer.phone || "");
         setSelectedMobile(customer.mobile || "");
         setSelectedAddress(customer.address || "");
@@ -554,6 +647,7 @@ export function useEditInvoice(invoiceId: number) {
     } else if (!createInlineCustomer) {
       // Reset customer data
       setSelectedEmail("");
+      setCustomerName("");
       setSelectedPhone("");
       setSelectedMobile("");
       setSelectedAddress("");
@@ -597,5 +691,7 @@ export function useEditInvoice(invoiceId: number) {
     setCreateInlineCustomer: setCreateInlineCustomerWithReset,
     inlineCustomerName,
     setInlineCustomerName,
+    customerName,
+    setCustomerName,
   };
 }
