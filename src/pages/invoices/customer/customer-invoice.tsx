@@ -142,8 +142,14 @@ export default function CustomerInvoices() {
               </Button>
             )}
             <ActionButton
-              text="Back to All Invoices"
+              text="Go to All Invoices"
               onClick={() => navigate("/invoices")}
+              color="secondary"
+              variant="outlined"
+            />
+            <ActionButton
+              text="Go to All customers"
+              onClick={() => navigate("/customers")}
               color="secondary"
               variant="outlined"
             />

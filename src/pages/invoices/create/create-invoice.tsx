@@ -1,6 +1,5 @@
-// project-imports
 import FormLayout from "components/FormLayout";
-import { ErrorMessage, Field, Form, Formik } from "formik";
+import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateInvoice } from "./useCreateInvoice";
@@ -113,7 +112,7 @@ export default function CreateInvoice() {
       validateOnBlur={true}
       initialValues={{
         invoice_number: `INV-${Date.now()}`,
-        contactName: customerName || "", // Use customerName from hook
+        contactName: customerName || "",
         inlineCustomerName: inlineCustomerName || "",
         phone: selectedPhone || "",
         mobile: selectedMobile || "",
@@ -257,24 +256,13 @@ export default function CreateInvoice() {
                   </Box>
                 ),
 
-                // CUSTOMER MODULE - FIXED: Like Edit Quotation
-                // Only show customer search when no customer is selected
                 !createInlineCustomer ? (
-                  // FIX: Use regular FormInput like Edit Quotation
-                  <FormInput
+                  <InputDropdown
                     key="contactName"
-                    id={"contactName"}
-                    name={"contactName"}
-                    placeholder={"Customer Name"}
+                    id="contactName"
+                    name="contactName"
                     label="Customer Name"
-                    type={"text"}
-                    optional={false}
-                    error={touched.contactName ? errors.contactName : ""}
-                    value={customerName}
-                    onChange={(e) => {
-                      setFieldValue("contactName", e.target.value);
-                      setCustomerName(e.target.value);
-                    }}
+                    options={customers}
                     secondaryLabel={
                       !selectedQuotation ? (
                         <Box
@@ -292,6 +280,13 @@ export default function CreateInvoice() {
                         </Box>
                       ) : null
                     }
+                    loading={loadingCustomers}
+                    optional={false}
+                    onChange={handleSearchDebounced}
+                    onSelect={(e) => {
+                      setSelectedCustomer(e.target.value);
+                    }}
+                    error={errors.contactName}
                   />
                 ) : null,
 
@@ -333,8 +328,7 @@ export default function CreateInvoice() {
                   />
                 ) : null,
 
-                // Everything else remains EXACTLY the same...
-                // CONTACT DETAILS - Let Formik manage these fields
+                // CONTACT DETAILS
                 <FormInput
                   key="phone"
                   id={"phone"}
@@ -420,7 +414,7 @@ export default function CreateInvoice() {
                   error={touched.invoice_date ? errors.invoice_date : ""}
                 />,
 
-                // ITEMS TABLE WITH GST - LIKE QUOTATION
+                // ITEMS TABLE WITH GST
                 <Box key="items-section" sx={{ mt: 3 }}>
                   <Box
                     sx={{

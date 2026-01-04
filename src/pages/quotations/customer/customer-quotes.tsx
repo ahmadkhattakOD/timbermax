@@ -69,7 +69,7 @@ export default function CustomerQuotations() {
     };
     loadCustomerName();
   }, [id]);
-
+  console.log("SELECTED", selected);
   return (
     <Box sx={{ width: "100%" }}>
       {/* Customer Header */}
@@ -84,18 +84,18 @@ export default function CustomerQuotations() {
 
       <CreateAndFiltersLayout
         actionButton={
-          <Box sx={{ display: "flex", gap: 2 }}>
-            {selected.length === 1 && (
-              <ActionButton
-                text="Convert to Invoice"
-                onClick={() => convertToInvoice(selected[0])}
-                color="primary"
-              />
-            )}
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             <ActionButton
-              text="Back to All Quotations"
+              text="Go to customers"
+              onClick={() => navigate("/customers")}
+              color="secondary"
+              variant="outlined"
+            />
+            <ActionButton
+              text="Go to quotes"
               onClick={() => navigate("/quotations")}
               color="secondary"
+              variant="outlined"
             />
           </Box>
         }

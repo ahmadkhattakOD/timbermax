@@ -17,7 +17,7 @@
 
   export interface ValuesCreateQuotation {
     quotation_number: string;
-    contactName: string;
+  contactName: string;
     inlineCustomerName: string;
     phone: string;
     mobile: string;

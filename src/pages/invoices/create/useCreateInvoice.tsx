@@ -292,16 +292,6 @@ export function useCreateInvoice() {
       errors.invoice_date = "required";
     }
 
-    if (selectedItems.length === 0) {
-      // Add error handling for items
-      openSnackbar({
-        open: true,
-        message: "Please add at least one item to the invoice",
-        variant: "alert",
-        alert: { color: "error" },
-      } as SnackbarProps);
-    }
-
     return errors;
   }
 
