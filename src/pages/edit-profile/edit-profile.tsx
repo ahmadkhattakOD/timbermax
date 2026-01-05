@@ -89,24 +89,7 @@ export default function EditProfile() {
                         optional={false}
                         disabled
                       />,
-                      <FormInput
-                        id={"commission"}
-                        name={"commission"}
-                        placeholder={"Sales Commission (%)"}
-                        label={"sales-commission-percentage"}
-                        type={"number"}
-                        optional={false}
-                        disabled
-                      />,
-                      <FormInput
-                        id={"secondaryCommission"}
-                        name={"secondaryCommission"}
-                        placeholder={"Closing Commission (%)"}
-                        label={"closing-commission-percentage"}
-                        type={"number"}
-                        optional={false}
-                        disabled
-                      />,
+
                       <FormInput
                         id={"dailyWage"}
                         name={"dailyWage"}
@@ -141,23 +124,6 @@ export default function EditProfile() {
                         name={"role"}
                         label={"role"}
                         optional={false}
-                        disabled
-                      />,
-                      <FormInput
-                        id={"commission"}
-                        name={"commission"}
-                        placeholder={"Commission (%)"}
-                        label={"commission-percentage"}
-                        type={"number"}
-                        optional={false}
-                        disabled
-                      />,
-                      <FormInput
-                        id={"dailyWage"}
-                        name={"dailyWage"}
-                        placeholder={"Daily Wage"}
-                        label={"daily-wage"}
-                        type={"number"}
                         disabled
                       />,
                     ]

@@ -9,9 +9,6 @@ export interface ValuesEditProfile {
   fullName: string;
   email: string;
   role: string;
-  commission: string;
-  secondaryCommission: string;
-  dailyWage: string;
 }
 
 export function useEditProfile() {
