@@ -11,7 +11,6 @@ export default function Footer() {
     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: '24px 16px 0px', mt: 'auto' }}>
       <Stack spacing={1.5} direction="row" justifyContent="space-between" alignItems="center">
         <Link component={RouterLink} to="/dashboard" variant="caption" color="text.primary">
-          Home
         </Link>
       </Stack>
     </Stack>

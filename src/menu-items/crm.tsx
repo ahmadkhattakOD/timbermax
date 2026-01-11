@@ -8,7 +8,6 @@ import { BookSaved, People } from "iconsax-react";
 import { NavItemType } from "types/menu";
 
 // icons
-// icons
 const icons = {
   crm: People,
   customers: BookSaved,

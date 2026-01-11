@@ -72,8 +72,8 @@ export default function CreateInvoice() {
     setInlineCustomerName,
     changeAddress,
     setSelectedCustomer,
-    customerName, // Added from hook
-    setCustomerName, // Added from hook
+    customerName,
+    setCustomerName,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -263,6 +263,10 @@ export default function CreateInvoice() {
                     name="contactName"
                     label="Customer Name"
                     options={customers}
+                    value={
+                      // Find the full customer object based on selectedCustomer ID
+                      customers.find((c) => c.id === selectedCustomer) || null
+                    }
                     secondaryLabel={
                       !selectedQuotation ? (
                         <Box

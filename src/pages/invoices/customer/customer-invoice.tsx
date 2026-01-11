@@ -155,7 +155,7 @@ export default function CustomerInvoices() {
             />
             <ActionButton
               text="Create New Invoice"
-              onClick={() => navigate(`/invoices/create?customer_id=${id}`)}
+              onClick={() => navigate(`/invoices/create?customer=${id}`)}
               startIcon={<FileText size={18} />}
             />
           </Box>

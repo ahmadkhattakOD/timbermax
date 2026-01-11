@@ -15,6 +15,7 @@ import InvoicesRepository, {
 } from "utils/repositories/invoicesRepository";
 import QuotationsRepository from "utils/repositories/quotationRepo";
 import { SnackbarProps } from "types/snackbar";
+import { useSearchParams } from "react-router-dom";
 
 export interface ValuesCreateInvoice {
   invoice_number: string;
@@ -34,6 +35,7 @@ export interface ValuesCreateInvoice {
 
 export function useCreateInvoice() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [customers, setCustomers] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
@@ -61,6 +63,60 @@ export function useCreateInvoice() {
     (sum, item) => sum + calculateItemTotal(item),
     0
   );
+
+  const customerIdFromUrl = searchParams.get("customer");
+
+  // Function to load customer data by ID
+  const loadCustomerById = async (customerId: number) => {
+    try {
+      setLoading(true);
+      const customersRepository = new CustomersRepository();
+      const customerData = await customersRepository.getSingle(customerId);
+      if (customerData) {
+        const customer = customerData.customerData;
+        console.log("Customer details",customer)
+        // Set customer details
+        setSelectedCustomer(customerId);
+        setCustomerName(customer.name || "");
+        setSelectedEmail(customer.email || "");
+        setSelectedPhone(customer.phone || "");
+        setSelectedMobile(customer.mobile || "");
+        setSelectedAddress(customer.address || "");
+        setSelectedSuburb(customer.suburb || "");
+        setSelectedState(customer.state || "");
+        setSelectedPostCode(customer.post_code || "");
+
+        // Add customer to the list if not already there
+        if (!customers.find((c) => c.id === customerId)) {
+          setCustomers((prev) => [...prev, customer]);
+        }
+
+        openSnackbar({
+          open: true,
+          message: `Customer "${customer.name}" loaded from URL`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+      } else {
+        openSnackbar({
+          open: true,
+          message: `Customer with ID ${customerId} not found`,
+          variant: "alert",
+          alert: { color: "warning" },
+        } as SnackbarProps);
+      }
+    } catch (error) {
+      console.error("Error loading customer from URL:", error);
+      openSnackbar({
+        open: true,
+        message: "Failed to load customer data from URL",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   function changeAddress(newValue: any, actionMeta: any) {
     let addressComponents = parseAddress(newValue?.value?.description ?? "");
@@ -479,6 +535,20 @@ export function useCreateInvoice() {
       } as SnackbarProps);
     }
   }
+
+  // Load customer from URL when component mounts
+  useEffect(() => {
+    const loadCustomerFromUrl = async () => {
+      if (customerIdFromUrl) {
+        const customerId = parseInt(customerIdFromUrl);
+        if (customerId && !isNaN(customerId)) {
+          await loadCustomerById(customerId);
+        }
+      }
+    };
+
+    loadCustomerFromUrl();
+  }, [customerIdFromUrl]);
 
   async function getCustomers() {
     setLoadingCustomers(true);
