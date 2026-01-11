@@ -1,0 +1,603 @@
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { getDateFormatted } from "utils/helpers";
+
+export interface InvoiceForPDF {
+  id: number;
+  invoice_number: string;
+  customer?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    mobile?: string;
+    address?: string;
+    suburb?: string;
+    state?: string;
+    post_code?: string;
+  };
+  quotation_id?: number | null;
+  total: number;
+  status: 'draft' | 'sent' | 'paid' | 'cancelled';
+  delivery_status?: 'pending' | 'packed' | 'shipped' | 'delivered' | 'returned';
+  invoice_date: string;
+  note?: string;
+  created_at: string;
+  invoice_items?: Array<{
+    id: number;
+    quantity: number;
+    unit_price: number;
+    total_price?: number;
+    items?: {
+      name?: string;
+      itemCode?: string;
+      gst?: boolean;
+    };
+  }>;
+}
+
+// Helper function to load and add logo (same as quotation example)
+const addCompanyLogo = async (doc: jsPDF, xPosition: number = 14, yPosition: number = 20) => {
+  try {
+    // Path to the logo - same as quotation example
+    const logoUrl = '/timber.jpg';
+    
+    // If you're running in a browser environment
+    if (typeof window !== 'undefined') {
+      const response = await fetch(logoUrl);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      return new Promise<void>((resolve, reject) => {
+        reader.onload = function() {
+          const base64 = reader.result as string;
+          // Add image to PDF
+          doc.addImage(base64, 'JPEG', xPosition, yPosition, 30, 15); // Adjust size as needed
+          resolve();
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (error) {
+    console.error("Error loading logo:", error);
+    // Continue without logo if it fails to load
+  }
+};
+
+// Constants for consistent company branding
+const COMPANY_INFO = {
+  name: "TIMBER MAX SUPPLY PTY LTD",
+  abn: "95 689 199 773",
+  phone: "(123) 456-7890",
+  email: "info@timbermax.com.au",
+  website: "timbermax.com.au"
+};
+
+export const generateAndDownloadInvoicePDF = async (
+  invoice: InvoiceForPDF
+): Promise<{ success: boolean; fileName?: string; error?: string }> => {
+  try {
+    const doc = new jsPDF();
+
+    // Add company logo in top left corner
+    await addCompanyLogo(doc, 14, 20);
+
+    // Header - moved down to make room for logo
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("TAX INVOICE", 105, 45, { align: "center" }); // Increased y from 20 to 45
+
+    // Company Info - moved down (same as quotation)
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(COMPANY_INFO.name, 14, 60); // Use company constant
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65); // Added ABN
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
+
+    // Invoice Info (right aligned) - moved down
+    doc.setFont("helvetica", "normal");
+    doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 60, {
+      align: "right",
+    });
+    doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 180, 65, {
+      align: "right",
+    });
+    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 70, {
+      align: "right",
+    });
+    if (invoice.delivery_status) {
+      doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 75, {
+        align: "right",
+      });
+    }
+    if (invoice.quotation_id) {
+      doc.text(`Ref Quote: ${invoice.quotation_id}`, 180, 80, {
+        align: "right",
+      });
+    }
+
+    // Customer Info - moved down
+    const customer = invoice.customer;
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL TO:", 14, 95); // Increased y from 65 to 95
+    doc.setFont("helvetica", "normal");
+    doc.text(customer?.name || "N/A", 14, 100); // Increased y
+    doc.text(customer?.address || "", 14, 105); // Increased y
+    if (customer?.suburb) {
+      doc.text(
+        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        14,
+        110 // Increased y
+      );
+    }
+    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115); // Increased y
+    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120); // Increased y
+    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 125); // Increased y
+
+    // Items Table - moved startY down
+    const items = invoice.invoice_items || [];
+    const tableData = items.map((item: any, index: number) => {
+      const quantity = parseFloat(item.quantity) || 0;
+      const unitPrice = parseFloat(item.unit_price) || 0;
+      const baseTotal = quantity * unitPrice;
+      const gst = item.items?.gst || false;
+      const gstAmount = gst ? baseTotal * 0.1 : 0;
+      const totalWithGST = baseTotal + gstAmount;
+
+      return [
+        index + 1,
+        item.items?.name || "N/A",
+        item.items?.itemCode || "N/A",
+        quantity.toFixed(2),
+        `$${unitPrice.toFixed(2)}`,
+        gst ? "Yes" : "No",
+        `$${totalWithGST.toFixed(2)}`, // Showing total with GST included
+      ];
+    });
+
+    // Calculate totals
+    let totalBaseAmount = 0;
+    let totalGSTAmount = 0;
+    let grandTotal = 0;
+
+    items.forEach((item: any) => {
+      const quantity = parseFloat(item.quantity) || 0;
+      const unitPrice = parseFloat(item.unit_price) || 0;
+      const baseTotal = quantity * unitPrice;
+      const gst = item.items?.gst || false;
+      const gstAmount = gst ? baseTotal * 0.1 : 0;
+
+      totalBaseAmount += baseTotal;
+      totalGSTAmount += gstAmount;
+      grandTotal += baseTotal + gstAmount;
+    });
+
+    autoTable(doc, {
+      startY: 135, // Increased from 120
+      head: [
+        [
+          "#",
+          "Description",
+          "Code",
+          "Qty",
+          "Unit Price",
+          "GST",
+          "Total",
+        ],
+      ],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 }, // Same blue as quotation
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 10 }, // #
+        1: { cellWidth: 60 }, // Description
+        2: { cellWidth: 25 }, // Code
+        3: { cellWidth: 20 }, // Qty
+        4: { cellWidth: 30 }, // Unit Price
+        5: { cellWidth: 20 }, // GST
+        6: { cellWidth: 30 }, // Total
+      },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+    // Summary Section
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Summary:", 120, finalY);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`Subtotal:`, 120, finalY + 10);
+    doc.text(`GST:`, 120, finalY + 20);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Due:`, 120, finalY + 30);
+
+    doc.text(`$${totalBaseAmount.toFixed(2)}`, 180, finalY + 10, {
+      align: "right",
+    });
+    doc.text(`$${totalGSTAmount.toFixed(2)}`, 180, finalY + 20, {
+      align: "right",
+    });
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, finalY + 30, {
+      align: "right",
+    });
+
+    // Payment Terms
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Terms:", 14, finalY + 50);
+    doc.setFont("helvetica", "normal");
+    doc.text("Please pay within 30 days of invoice date.", 14, finalY + 55);
+    doc.text("Bank Details:", 14, finalY + 60);
+    doc.text("Bank: Commonwealth Bank", 14, finalY + 65);
+    doc.text("BSB: 123-456", 14, finalY + 70);
+    doc.text("Account: 12345678", 14, finalY + 75);
+    doc.text("Reference: " + invoice.invoice_number, 14, finalY + 80);
+
+    // Notes Section
+    if (invoice.note) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Notes:", 14, finalY + 95);
+      doc.setFont("helvetica", "normal");
+      const splitNotes = doc.splitTextToSize(invoice.note, 180);
+      doc.text(splitNotes, 14, finalY + 100);
+    }
+
+    // Footer (same as quotation)
+    doc.setFontSize(8);
+    doc.text(
+      "Thank you for your business!",
+      105,
+      doc.internal.pageSize.height - 20,
+      { align: "center" }
+    );
+    doc.text(
+      "This is a computer-generated invoice. No signature required.",
+      105,
+      doc.internal.pageSize.height - 15,
+      { align: "center" }
+    );
+
+    const fileName = `invoice_${invoice.invoice_number}_${getDateFormatted(
+      new Date().toISOString()
+    )}.pdf`;
+
+    doc.save(fileName);
+
+    return { success: true, fileName };
+  } catch (error: any) {
+    console.error("Error generating invoice PDF:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const openInvoicePDFInNewTab = async (
+  invoice: InvoiceForPDF
+): Promise<void> => {
+  try {
+    const doc = new jsPDF();
+
+    // Add company logo
+    await addCompanyLogo(doc, 14, 20);
+
+    // Header - moved down to make room for logo
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("TAX INVOICE", 105, 45, { align: "center" });
+
+    // Company Info - moved down
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(COMPANY_INFO.name, 14, 60);
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
+
+    // Invoice Info (right aligned) - moved down
+    doc.setFont("helvetica", "normal");
+    doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 60, {
+      align: "right",
+    });
+    doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 180, 65, {
+      align: "right",
+    });
+    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 70, {
+      align: "right",
+    });
+    if (invoice.delivery_status) {
+      doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 75, {
+        align: "right",
+      });
+    }
+    if (invoice.quotation_id) {
+      doc.text(`Ref Quote: ${invoice.quotation_id}`, 180, 80, {
+        align: "right",
+      });
+    }
+
+    // Customer Info - moved down
+    const customer = invoice.customer;
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL TO:", 14, 95);
+    doc.setFont("helvetica", "normal");
+    doc.text(customer?.name || "N/A", 14, 100);
+    doc.text(customer?.address || "", 14, 105);
+    if (customer?.suburb) {
+      doc.text(
+        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        14,
+        110
+      );
+    }
+    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
+    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
+    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 125);
+
+    // Items Table
+    const items = invoice.invoice_items || [];
+    const tableData = items.map((item: any, index: number) => {
+      const quantity = parseFloat(item.quantity) || 0;
+      const unitPrice = parseFloat(item.unit_price) || 0;
+      const baseTotal = quantity * unitPrice;
+      const gst = item.items?.gst || false;
+      const gstAmount = gst ? baseTotal * 0.1 : 0;
+      const totalWithGST = baseTotal + gstAmount;
+
+      return [
+        index + 1,
+        item.items?.name || "N/A",
+        item.items?.itemCode || "N/A",
+        quantity.toFixed(2),
+        `$${unitPrice.toFixed(2)}`,
+        gst ? "Yes" : "No",
+        `$${totalWithGST.toFixed(2)}`,
+      ];
+    });
+
+    // Calculate totals
+    let totalBaseAmount = 0;
+    let totalGSTAmount = 0;
+    let grandTotal = 0;
+
+    items.forEach((item: any) => {
+      const quantity = parseFloat(item.quantity) || 0;
+      const unitPrice = parseFloat(item.unit_price) || 0;
+      const baseTotal = quantity * unitPrice;
+      const gst = item.items?.gst || false;
+      const gstAmount = gst ? baseTotal * 0.1 : 0;
+
+      totalBaseAmount += baseTotal;
+      totalGSTAmount += gstAmount;
+      grandTotal += baseTotal + gstAmount;
+    });
+
+    autoTable(doc, {
+      startY: 135,
+      head: [
+        [
+          "#",
+          "Description",
+          "Code",
+          "Qty",
+          "Unit Price",
+          "GST",
+          "Total",
+        ],
+      ],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 10 }, // #
+        1: { cellWidth: 60 }, // Description
+        2: { cellWidth: 25 }, // Code
+        3: { cellWidth: 20 }, // Qty
+        4: { cellWidth: 30 }, // Unit Price
+        5: { cellWidth: 20 }, // GST
+        6: { cellWidth: 30 }, // Total
+      },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+    // Summary Section
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Summary:", 120, finalY);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`Subtotal:`, 120, finalY + 10);
+    doc.text(`GST:`, 120, finalY + 20);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Due:`, 120, finalY + 30);
+
+    doc.text(`$${totalBaseAmount.toFixed(2)}`, 180, finalY + 10, {
+      align: "right",
+    });
+    doc.text(`$${totalGSTAmount.toFixed(2)}`, 180, finalY + 20, {
+      align: "right",
+    });
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, finalY + 30, {
+      align: "right",
+    });
+
+    // Payment Terms
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Terms:", 14, finalY + 50);
+    doc.setFont("helvetica", "normal");
+    doc.text("Please pay within 30 days of invoice date.", 14, finalY + 55);
+    doc.text("Bank Details:", 14, finalY + 60);
+    doc.text("Bank: Commonwealth Bank", 14, finalY + 65);
+    doc.text("BSB: 123-456", 14, finalY + 70);
+    doc.text("Account: 12345678", 14, finalY + 75);
+    doc.text("Reference: " + invoice.invoice_number, 14, finalY + 80);
+
+    // Notes Section
+    if (invoice.note) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Notes:", 14, finalY + 95);
+      doc.setFont("helvetica", "normal");
+      const splitNotes = doc.splitTextToSize(invoice.note, 180);
+      doc.text(splitNotes, 14, finalY + 100);
+    }
+
+    // Footer
+    doc.setFontSize(8);
+    doc.text(
+      "Thank you for your business!",
+      105,
+      doc.internal.pageSize.height - 20,
+      { align: "center" }
+    );
+    doc.text(
+      "This is a computer-generated invoice. No signature required.",
+      105,
+      doc.internal.pageSize.height - 15,
+      { align: "center" }
+    );
+
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    window.open(pdfUrl, "_blank");
+
+    setTimeout(() => {
+      URL.revokeObjectURL(pdfUrl);
+    }, 1000);
+  } catch (error: any) {
+    console.error("Error opening invoice PDF:", error);
+    throw error;
+  }
+};
+
+export const generateDeliveryNotePDF = async (
+  invoice: InvoiceForPDF
+): Promise<{ success: boolean; fileName?: string; error?: string }> => {
+  try {
+    const doc = new jsPDF();
+
+    // Add company logo
+    await addCompanyLogo(doc, 14, 20);
+
+    // Header - moved down
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("DELIVERY NOTE", 105, 45, { align: "center" });
+
+    // Company Info - moved down (same branding)
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(COMPANY_INFO.name, 14, 60);
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
+
+    // Delivery Info (right aligned) - moved down
+    doc.setFont("helvetica", "normal");
+    doc.text(`Delivery Note #: ${invoice.invoice_number}-DEL`, 180, 60, {
+      align: "right",
+    });
+    doc.text(`Date: ${getDateFormatted(new Date().toISOString())}`, 180, 65, {
+      align: "right",
+    });
+    doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 70, {
+      align: "right",
+    });
+    doc.text(`Status: ${invoice.delivery_status?.toUpperCase() || "PENDING"}`, 180, 75, {
+      align: "right",
+    });
+
+    // Customer Info - moved down
+    const customer = invoice.customer;
+    doc.setFont("helvetica", "bold");
+    doc.text("DELIVER TO:", 14, 95); // Increased y
+    doc.setFont("helvetica", "normal");
+    doc.text(customer?.name || "N/A", 14, 100);
+    doc.text(customer?.address || "", 14, 105);
+    if (customer?.suburb) {
+      doc.text(
+        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        14,
+        110
+      );
+    }
+    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
+    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
+
+    // Items Table (simplified for delivery)
+    const items = invoice.invoice_items || [];
+    const tableData = items.map((item: any, index: number) => {
+      const quantity = parseFloat(item.quantity) || 0;
+      return [
+        index + 1,
+        item.items?.name || "N/A",
+        item.items?.itemCode || "N/A",
+        quantity.toFixed(2),
+        "PENDING", // Received status
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 130, // Increased from 100
+      head: [["#", "Item Description", "Code", "Quantity", "Received"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [34, 139, 34], textColor: 255 }, // Same green as quotation delivery
+      styles: { fontSize: 9 },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 40 },
+      },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 20;
+
+    // Delivery Instructions
+    doc.setFont("helvetica", "bold");
+    doc.text("Delivery Instructions:", 14, finalY);
+    doc.setFont("helvetica", "normal");
+    doc.text("1. Check all items against this delivery note.", 14, finalY + 10);
+    doc.text("2. Report any discrepancies immediately.", 14, finalY + 15);
+    doc.text("3. Ensure packaging is intact.", 14, finalY + 20);
+
+    // Signature Section
+    doc.setFont("helvetica", "bold");
+    doc.text("CUSTOMER SIGNATURE:", 14, finalY + 40);
+    doc.line(14, finalY + 45, 100, finalY + 45);
+    doc.text("Name: ____________________", 14, finalY + 50);
+    doc.text("Date: ____________________", 14, finalY + 55);
+
+    doc.text("DELIVERY PERSON:", 120, finalY + 40);
+    doc.line(120, finalY + 45, 180, finalY + 45);
+    doc.text("Name: ____________________", 120, finalY + 50);
+    doc.text("Date: ____________________", 120, finalY + 55);
+
+    // Footer (similar to quotation delivery)
+    doc.setFontSize(8);
+    doc.text(
+      "This document serves as proof of delivery.",
+      105,
+      doc.internal.pageSize.height - 20,
+      { align: "center" }
+    );
+
+    const fileName = `delivery_note_${invoice.invoice_number}_${getDateFormatted(
+      new Date().toISOString()
+    )}.pdf`;
+
+    doc.save(fileName);
+
+    return { success: true, fileName };
+  } catch (error: any) {
+    console.error("Error generating delivery note:", error);
+    return { success: false, error: error.message };
+  }
+};

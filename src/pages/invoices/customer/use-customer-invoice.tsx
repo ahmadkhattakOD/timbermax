@@ -24,7 +24,7 @@ import InvoicesRepository from "utils/repositories/invoicesRepository";
 import {
   generateAndDownloadInvoicePDF,
   generateDeliveryNotePDF,
-} from "components/invoice-pdf";
+} from "utils/invoice-pdf-generator";
 import { SnackbarProps } from "types/snackbar";
 import {
   Dialog,

@@ -28,7 +28,7 @@ import {
   generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
   openQuotationPDFInNewTab,
-} from "utils/pdf-generator";
+} from "utils/quotation-pdf-generator";
 import { Quotation } from "types";
 import {
   getDateFormatted,

@@ -25,7 +25,7 @@ import InvoicesRepository from "utils/repositories/invoicesRepository";
 import {
   generateAndDownloadInvoicePDF,
   generateDeliveryNotePDF,
-} from "components/invoice-pdf";
+} from "utils/invoice-pdf-generator";
 import { SnackbarProps } from "types/snackbar";
 import {
   Dialog,
@@ -44,13 +44,7 @@ import {
   Send,
   Wallet,
   Eye,
-  Printer,
   Truck,
-  FileText,
-  Package,
-  CheckCircle,
-  ArrowLeft,
-  LucideTruck,
   X,
 } from "lucide-react";
 
@@ -815,6 +809,7 @@ export function useInvoices() {
         rowsPerPage,
         filters
       );
+      console.log("INVOICES",invoices)
       if (invoices) {
         const { invoicesData, invoicesCount, invoicesError } = invoices;
         if (invoicesData && !invoicesError) {

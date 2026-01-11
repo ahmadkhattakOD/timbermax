@@ -59,36 +59,37 @@ class InvoicesRepository {
         .from(this.className)
         .select(
           `
-        id,
-        invoice_number,
-        delivery_status,
+  id,
+  invoice_number,
+  delivery_status,
 
-        customers!inner (
-          id, name, phone, mobile, email, address, suburb, state, post_code
-        ),
+  customers!inner (
+    id, name, phone, mobile, email, address, suburb, state, post_code
+  ),
 
-        quotation_id,
-        quotations!inner (
-          quotation_number
-        ),
+  quotation_id,
+  quotations (
+    quotation_number
+  ),
 
-        total,
-        status,
-        invoice_date,
-        note,
-        created_at,
-        updated_at,
+  total,
+  status,
+  invoice_date,
+  note,
+  created_at,
+  updated_at,
 
-        ${this.itemsClassName}!inner (
-          quantity,
-          unit_price,
-          items!inner (
-            id, name, itemCode, sellPrice
-          )
-        )
-        `,
+  ${this.itemsClassName}!inner (
+    quantity,
+    unit_price,
+    items!inner (
+      id, name, itemCode, sellPrice
+    )
+  )
+  `,
           { count: "exact" }
         )
+
         .order(orderBy, { ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
