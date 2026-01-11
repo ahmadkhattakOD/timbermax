@@ -26,8 +26,6 @@ interface DashboardStatsProps {
 }
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ metrics }) => {
-  console.log("METRICSSSS", metrics);
-
   const stats = [
     {
       title: "Total Sales",

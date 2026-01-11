@@ -19,7 +19,7 @@ import {
 import DashboardFilters from "./dashboardFilters";
 import DashboardStats from "./dashboardStats";
 import TopSellingItems from "./TopSellingItem";
-import StockMovementTable from "./StockMovement";
+import StockMovementTable from "./stock-outs";
 import LowStockAlert from "./low-stock-alert";
 import CustomerMetrics from "./custom-metric";
 import MonthlySalesChart from "./monthyl-sales-chart";
@@ -39,29 +39,6 @@ const Dashboard: React.FC = () => {
   } = useDashboard();
 
   const [exporting, setExporting] = useState(false);
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const report = await exportMonthlyReport();
-      // Create and download JSON file
-      const blob = new Blob([JSON.stringify(report, null, 2)], {
-        type: "application/json",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `dashboard-report-${new Date().toISOString().split("T")[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Export failed:", err);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   if (loading && !metrics) {
     return (
@@ -109,14 +86,6 @@ const Dashboard: React.FC = () => {
               disabled={loading}
             >
               Refresh
-            </Button>
-            <Button
-              startIcon={<Download />}
-              onClick={handleExport}
-              disabled={exporting || loading}
-              variant="contained"
-            >
-              {exporting ? "Exporting..." : "Export Report"}
             </Button>
           </Stack>
         </Stack>
@@ -195,7 +164,11 @@ const Dashboard: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Weekly Trends
             </Typography>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              style={{ paddingBottom: "20px" }}
+            >
               <BarChart data={metrics?.weeklyTrends || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="week" />
@@ -234,42 +207,93 @@ const Dashboard: React.FC = () => {
       </Grid>
 
       {/* Time Series Chart */}
-      <Paper sx={{ p: 3, mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper
+        sx={{
+          p: { xs: 2, sm: 3 },
+          mt: { xs: 2, sm: 4 },
+          overflow: "hidden",
+        }}
+      >
+        <Typography
+          variant={window.innerWidth <= 600 ? "subtitle1" : "h6"}
+          gutterBottom
+          sx={{ fontWeight: 600 }}
+        >
           Daily Activity
         </Typography>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={timeSeriesData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis yAxisId="left" />
-            <YAxis yAxisId="right" orientation="right" />
-            <RechartsTooltip />
-            <Legend />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="sales"
-              stroke="#8884d8"
-              name="Sales ($)"
-              strokeWidth={2}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="invoices"
-              stroke="#82ca9d"
-              name="Invoices"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="quotations"
-              stroke="#ffc658"
-              name="Quotations"
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <Box
+          sx={{
+            width: "100%",
+            height: { xs: 250, sm: 300 },
+            overflowX: "auto",
+            overflowY: "hidden",
+          }}
+        >
+          <ResponsiveContainer
+            width={Math.max(500, window.innerWidth - 80)}
+            height="100%"
+          >
+            <LineChart data={timeSeriesData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: window.innerWidth <= 600 ? 10 : 12 }}
+                interval="preserveStartEnd"
+                minTickGap={window.innerWidth <= 600 ? 20 : 40}
+              />
+              <YAxis
+                yAxisId="left"
+                tick={{ fontSize: window.innerWidth <= 600 ? 10 : 12 }}
+                width={window.innerWidth <= 600 ? 40 : 60}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: window.innerWidth <= 600 ? 10 : 12 }}
+                width={window.innerWidth <= 600 ? 40 : 60}
+              />
+              <RechartsTooltip
+                wrapperStyle={{
+                  fontSize: window.innerWidth <= 600 ? "12px" : "14px",
+                }}
+              />
+              <Legend
+                wrapperStyle={{
+                  paddingTop: window.innerWidth <= 600 ? "5px" : "10px",
+                  fontSize: window.innerWidth <= 600 ? "12px" : "14px",
+                }}
+              />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="sales"
+                stroke="#8884d8"
+                name="Sales ($)"
+                strokeWidth={window.innerWidth <= 600 ? 1.5 : 2}
+                dot={{ r: window.innerWidth <= 600 ? 2 : 4 }}
+                activeDot={{ r: window.innerWidth <= 600 ? 4 : 6 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="invoices"
+                stroke="#82ca9d"
+                name="Invoices"
+                strokeWidth={window.innerWidth <= 600 ? 1.5 : 2}
+                dot={{ r: window.innerWidth <= 600 ? 2 : 4 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="quotations"
+                stroke="#ffc658"
+                name="Quotations"
+                strokeWidth={window.innerWidth <= 600 ? 1.5 : 2}
+                dot={{ r: window.innerWidth <= 600 ? 2 : 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
       </Paper>
     </Box>
   );

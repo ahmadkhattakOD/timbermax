@@ -91,79 +91,89 @@ const useDashboard = () => {
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
 
-  // Helper functions for dates
-  function getStartOfMonth(): string {
-    const date = new Date();
-    date.setDate(1);
-    return date.toISOString().split("T")[0];
-  }
+  // Helper function to get date range
+  const getDateRange = useCallback(() => {
+    let startDate: string | undefined;
+    let endDate: string | undefined;
 
-  function getEndOfMonth(): string {
-    const date = new Date();
-    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    return lastDay.toISOString().split("T")[0];
-  }
+    if (filters.timeRange === "" || !filters.timeRange) {
+      return { startDate: undefined, endDate: undefined };
+    }
 
-  function getStartOfWeek(): string {
-    const date = new Date();
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(date.setDate(diff));
-    return monday.toISOString().split("T")[0];
-  }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    switch (filters.timeRange) {
+      case "today":
+        // Today's date
+        const todayStr = today.toISOString().split("T")[0];
+        startDate = todayStr;
+        endDate = todayStr;
+        break;
+
+      case "week":
+        // Get Monday of this week
+        const weekStart = new Date(today);
+        // Sunday = 0, Monday = 1, ..., Saturday = 6
+        const dayOfWeek = weekStart.getDay();
+        // Calculate difference to Monday
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        weekStart.setDate(today.getDate() - diffToMonday);
+
+        startDate = weekStart.toISOString().split("T")[0];
+        endDate = today.toISOString().split("T")[0];
+        break;
+
+      case "month":
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        startDate = monthStart.toISOString().split("T")[0];
+        endDate = monthEnd.toISOString().split("T")[0];
+        break;
+
+      case "quarter":
+        const quarter = Math.floor(today.getMonth() / 3);
+        const quarterStart = new Date(today.getFullYear(), quarter * 3, 1);
+        const quarterEnd = new Date(today.getFullYear(), (quarter + 1) * 3, 0);
+        startDate = quarterStart.toISOString().split("T")[0];
+        endDate = quarterEnd.toISOString().split("T")[0];
+        break;
+
+      case "year":
+        startDate = `${today.getFullYear()}-01-01`;
+        endDate = `${today.getFullYear()}-12-31`;
+        break;
+
+      case "custom":
+        startDate = filters.startDate;
+        endDate = filters.endDate;
+        break;
+    }
+
+    console.log("Date range calculated:", {
+      timeRange: filters.timeRange,
+      startDate,
+      endDate,
+    });
+    return { startDate, endDate };
+  }, [filters.timeRange, filters.startDate, filters.endDate]);
 
   // Update filters
   const updateFilters = useCallback((newFilters: Partial<DashboardFilters>) => {
     setFilters((prev) => {
       const updated = { ...prev, ...newFilters };
 
-      // Auto-set date ranges based on timeRange
-      if (newFilters.timeRange !== undefined) {
-        const today = new Date();
-        let startDate: string | undefined, endDate: string | undefined;
-
-        switch (updated.timeRange) {
-          case "":
-            // All time - no date filtering
-            startDate = undefined;
-            endDate = undefined;
-            break;
-          case "today":
-            startDate = today.toISOString().split("T")[0];
-            endDate = startDate;
-            break;
-          case "week":
-            startDate = getStartOfWeek();
-            endDate = new Date().toISOString().split("T")[0];
-            break;
-          case "month":
-            startDate = getStartOfMonth();
-            endDate = getEndOfMonth();
-            break;
-          case "quarter":
-            const quarter = Math.floor(today.getMonth() / 3);
-            const quarterStart = new Date(today.getFullYear(), quarter * 3, 1);
-            const quarterEnd = new Date(
-              today.getFullYear(),
-              (quarter + 1) * 3,
-              0
-            );
-            startDate = quarterStart.toISOString().split("T")[0];
-            endDate = quarterEnd.toISOString().split("T")[0];
-            break;
-          case "year":
-            startDate = `${today.getFullYear()}-01-01`;
-            endDate = `${today.getFullYear()}-12-31`;
-            break;
-          default:
-            startDate = updated.startDate;
-            endDate = updated.endDate;
-        }
-
+      // Auto-set date ranges based on timeRange (except custom)
+      if (
+        newFilters.timeRange !== undefined &&
+        newFilters.timeRange !== "custom"
+      ) {
+        const { startDate, endDate } = getDateRange();
         updated.startDate = startDate;
         updated.endDate = endDate;
       }
 
+      console.log("Filters updated:", updated);
       return updated;
     });
   }, []);
@@ -174,11 +184,13 @@ const useDashboard = () => {
     setError(null);
 
     try {
-      // Only calculate dates if we have a time range selected
-      const startDate = filters.startDate
-        ? new Date(filters.startDate)
-        : undefined;
-      const endDate = filters.endDate ? new Date(filters.endDate) : undefined;
+      const { startDate, endDate } = getDateRange();
+
+      console.log("Fetching data with date range:", {
+        timeRange: filters.timeRange,
+        startDate,
+        endDate,
+      });
 
       // Fetch all data in parallel
       const [
@@ -206,7 +218,7 @@ const useDashboard = () => {
         fetchCustomerMetrics(startDate, endDate),
         fetchStockMetrics(filters.warehouse),
         fetchTimeSeriesData(startDate, endDate),
-        fetchStockMovements(startDate, endDate, filters.warehouse),
+        fetchStockOuts(startDate, endDate, filters.warehouse),
       ]);
 
       setMetrics({
@@ -224,101 +236,138 @@ const useDashboard = () => {
 
       setTimeSeriesData(timeSeries);
       setStockMovements(movements);
+
+      console.log("Data fetched successfully");
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       setError("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, getDateRange]);
 
-  // Data fetching functions
+  // Data fetching functions with proper date filtering
   const fetchTotalSales = async (
-    startDate?: Date,
-    endDate?: Date
+    startDate?: string,
+    endDate?: string
   ): Promise<number> => {
-    let query = supabase.from("invoices").select("total, status");
+    console.log("Fetching total sales with:", { startDate, endDate });
+
+    let query = supabase
+      .from("invoices")
+      .select("total, created_at, status")
+      .eq("status", "paid");
 
     if (startDate && endDate) {
       query = query
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching total sales:", error);
+      throw error;
+    }
 
-    return data.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+    const total =
+      data?.reduce((sum, invoice) => sum + (invoice.total || 0), 0) || 0;
+    console.log("Total sales result:", total, "from", data?.length, "invoices");
+    return total;
   };
 
   const fetchTotalQuotations = async (
-    startDate?: Date,
-    endDate?: Date
+    startDate?: string,
+    endDate?: string
   ): Promise<number> => {
+    console.log("Fetching total quotations with:", { startDate, endDate });
+
     let query = supabase
       .from("quotations")
       .select("*", { count: "exact", head: true });
 
     if (startDate && endDate) {
       query = query
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const { count, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching total quotations:", error);
+      throw error;
+    }
 
+    console.log("Total quotations result:", count || 0);
     return count || 0;
   };
 
   const fetchTotalInvoices = async (
-    startDate?: Date,
-    endDate?: Date
+    startDate?: string,
+    endDate?: string
   ): Promise<number> => {
+    console.log("Fetching total invoices with:", { startDate, endDate });
+
     let query = supabase
       .from("invoices")
       .select("*", { count: "exact", head: true });
 
     if (startDate && endDate) {
       query = query
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const { count, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching total invoices:", error);
+      throw error;
+    }
 
+    console.log("Total invoices result:", count || 0);
     return count || 0;
   };
 
   const fetchTotalCustomers = async (
-    startDate?: Date,
-    endDate?: Date
+    startDate?: string,
+    endDate?: string
   ): Promise<number> => {
+    console.log("Fetching total customers with:", { startDate, endDate });
+
     let query = supabase
       .from("customers")
       .select("*", { count: "exact", head: true });
 
     if (startDate && endDate) {
       query = query
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const { count, error } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching total customers:", error);
+      throw error;
+    }
 
+    console.log("Total customers result:", count || 0);
     return count || 0;
   };
 
   const fetchTopSellingItems = async (
-    startDate?: Date,
-    endDate?: Date,
+    startDate?: string,
+    endDate?: string,
     warehouse?: number
   ) => {
+    console.log("Fetching top selling items with:", {
+      startDate,
+      endDate,
+      warehouse,
+    });
+
     let query = supabase
       .from("invoice_items")
       .select(
@@ -336,18 +385,21 @@ const useDashboard = () => {
 
     if (startDate && endDate) {
       query = query
-        .gte("invoices.created_at", startDate.toISOString())
-        .lte("invoices.created_at", endDate.toISOString());
+        .gte("invoices.created_at", `${startDate}T00:00:00`)
+        .lte("invoices.created_at", `${endDate}T23:59:59`);
     }
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching top selling items:", error);
+      throw error;
+    }
 
     // Aggregate by item
     const itemMap = new Map();
 
-    data.forEach((item: any) => {
+    data?.forEach((item: any) => {
       const existing = itemMap.get(item.items.id) || {
         id: item.items.id,
         name: item.items.name,
@@ -356,17 +408,22 @@ const useDashboard = () => {
         revenue: 0,
       };
 
-      existing.quantitySold += item.quantity;
-      existing.revenue += item.quantity * item.unit_price;
+      existing.quantitySold += item.quantity || 0;
+      existing.revenue += (item.quantity || 0) * (item.unit_price || 0);
       itemMap.set(item.items.id, existing);
     });
 
-    return Array.from(itemMap.values())
+    const result = Array.from(itemMap.values())
       .sort((a, b) => b.quantitySold - a.quantitySold)
       .slice(0, 10);
+
+    console.log("Top selling items result:", result.length, "items");
+    return result;
   };
 
   const fetchLowStockItems = async (warehouse?: number) => {
+    console.log("Fetching low stock items with:", { warehouse });
+
     let query = supabase
       .from("stocks")
       .select(
@@ -384,23 +441,33 @@ const useDashboard = () => {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching low stock items:", error);
+      throw error;
+    }
 
-    return data
-      .map((stock: any) => ({
-        id: stock.items.id,
-        name: stock.items.name,
-        itemCode: stock.items.itemCode,
-        quantity: parseFloat(stock.quantity) || 0,
-        reserved: parseFloat(stock.reserved) || 0,
-        available:
-          (parseFloat(stock.quantity) || 0) - (parseFloat(stock.reserved) || 0),
-      }))
-      .sort((a, b) => a.available - b.available)
-      .slice(0, 10);
+    const result =
+      data
+        ?.map((stock: any) => ({
+          id: stock.items.id,
+          name: stock.items.name,
+          itemCode: stock.items.itemCode,
+          quantity: parseFloat(stock.quantity) || 0,
+          reserved: parseFloat(stock.reserved) || 0,
+          available:
+            (parseFloat(stock.quantity) || 0) -
+            (parseFloat(stock.reserved) || 0),
+        }))
+        .sort((a, b) => a.available - b.available)
+        .slice(0, 10) || [];
+
+    console.log("Low stock items result:", result.length, "items");
+    return result;
   };
 
-  const fetchMonthlySales = async (startDate?: Date, endDate?: Date) => {
+  const fetchMonthlySales = async (startDate?: string, endDate?: string) => {
+    console.log("Fetching monthly sales with:", { startDate, endDate });
+
     let invoicesQuery = supabase
       .from("invoices")
       .select("total, created_at, status")
@@ -412,11 +479,11 @@ const useDashboard = () => {
 
     if (startDate && endDate) {
       invoicesQuery = invoicesQuery
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
       quotationsQuery = quotationsQuery
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const [
@@ -425,6 +492,10 @@ const useDashboard = () => {
     ] = await Promise.all([invoicesQuery, quotationsQuery]);
 
     if (invoicesError || quotationsError) {
+      console.error(
+        "Error fetching monthly sales:",
+        invoicesError || quotationsError
+      );
       throw invoicesError || quotationsError;
     }
 
@@ -486,13 +557,17 @@ const useDashboard = () => {
       monthData.quotations += 1;
     });
 
-    // Convert to array and sort
-    return Array.from(monthMap.values()).sort((a, b) =>
+    const result = Array.from(monthMap.values()).sort((a, b) =>
       a.month.localeCompare(b.month)
     );
+
+    console.log("Monthly sales result:", result.length, "months");
+    return result;
   };
 
-  const fetchWeeklyTrends = async (startDate?: Date, endDate?: Date) => {
+  const fetchWeeklyTrends = async (startDate?: string, endDate?: string) => {
+    console.log("Fetching weekly trends with:", { startDate, endDate });
+
     let invoicesQuery = supabase
       .from("invoices")
       .select("total, created_at, status")
@@ -500,13 +575,16 @@ const useDashboard = () => {
 
     if (startDate && endDate) {
       invoicesQuery = invoicesQuery
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const { data: invoices, error: invoicesError } = await invoicesQuery;
 
-    if (invoicesError) throw invoicesError;
+    if (invoicesError) {
+      console.error("Error fetching weekly trends:", invoicesError);
+      throw invoicesError;
+    }
 
     // Group by week
     const weekMap = new Map<
@@ -518,12 +596,15 @@ const useDashboard = () => {
       }
     >();
 
-    invoices.forEach((invoice) => {
+    invoices?.forEach((invoice) => {
       const date = new Date(invoice.created_at);
       const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
+      const dayOfWeek = weekStart.getDay();
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      weekStart.setDate(date.getDate() - diffToMonday);
+
       const weekKey = weekStart.toISOString().split("T")[0];
-      const weekLabel = `Week ${getWeekNumber(date)}`;
+      const weekLabel = `Week ${getWeekNumber(date)} (${weekStart.toISOString().split("T")[0]})`;
 
       let weekData = weekMap.get(weekKey);
       if (!weekData) {
@@ -539,9 +620,12 @@ const useDashboard = () => {
       weekData.invoices += 1;
     });
 
-    return Array.from(weekMap.values()).sort((a, b) =>
+    const result = Array.from(weekMap.values()).sort((a, b) =>
       a.week.localeCompare(b.week)
     );
+
+    console.log("Weekly trends result:", result.length, "weeks");
+    return result;
 
     function getWeekNumber(d: Date): number {
       const date = new Date(d);
@@ -560,7 +644,9 @@ const useDashboard = () => {
     }
   };
 
-  const fetchCustomerMetrics = async (startDate?: Date, endDate?: Date) => {
+  const fetchCustomerMetrics = async (startDate?: string, endDate?: string) => {
+    console.log("Fetching customer metrics with:", { startDate, endDate });
+
     // Get top customers
     let topCustomersQuery = supabase
       .from("invoices")
@@ -575,14 +661,17 @@ const useDashboard = () => {
 
     if (startDate && endDate) {
       topCustomersQuery = topCustomersQuery
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const { data: topCustomersData, error: topCustomersError } =
       await topCustomersQuery;
 
-    if (topCustomersError) throw topCustomersError;
+    if (topCustomersError) {
+      console.error("Error fetching top customers:", topCustomersError);
+      throw topCustomersError;
+    }
 
     // Aggregate by customer
     const customerMap = new Map<
@@ -595,7 +684,7 @@ const useDashboard = () => {
       }
     >();
 
-    topCustomersData.forEach((invoice: any) => {
+    topCustomersData?.forEach((invoice: any) => {
       const existing = customerMap.get(invoice.customers.id) || {
         id: invoice.customers.id,
         name: invoice.customers.name,
@@ -619,22 +708,30 @@ const useDashboard = () => {
 
     if (startDate && endDate) {
       newCustomersQuery = newCustomersQuery
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const { count: newCustomers, error: newCustomersError } =
       await newCustomersQuery;
 
-    if (newCustomersError) throw newCustomersError;
+    if (newCustomersError) {
+      console.error("Error fetching new customers:", newCustomersError);
+      throw newCustomersError;
+    }
 
-    return {
+    const result = {
       topCustomers,
       newCustomers: newCustomers || 0,
     };
+
+    console.log("Customer metrics result:", result);
+    return result;
   };
 
   const fetchStockMetrics = async (warehouse?: number) => {
+    console.log("Fetching stock metrics with:", { warehouse });
+
     let query = supabase.from("stocks").select(`
         quantity,
         reserved,
@@ -647,14 +744,17 @@ const useDashboard = () => {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching stock metrics:", error);
+      throw error;
+    }
 
     let totalItems = 0;
     let totalValue = 0;
     let outOfStock = 0;
     let lowStock = 0;
 
-    data.forEach((stock: any) => {
+    data?.forEach((stock: any) => {
       const quantity = parseFloat(stock.quantity) || 0;
       const reserved = parseFloat(stock.reserved) || 0;
       const available = quantity - reserved;
@@ -671,18 +771,23 @@ const useDashboard = () => {
       }
     });
 
-    return {
+    const result = {
       totalItems,
       totalValue,
       outOfStock,
       lowStock,
     };
+
+    console.log("Stock metrics result:", result);
+    return result;
   };
 
   const fetchTimeSeriesData = async (
-    startDate?: Date,
-    endDate?: Date
+    startDate?: string,
+    endDate?: string
   ): Promise<TimeSeriesData[]> => {
+    console.log("Fetching time series data with:", { startDate, endDate });
+
     let invoicesQuery = supabase
       .from("invoices")
       .select("total, created_at, status");
@@ -693,11 +798,11 @@ const useDashboard = () => {
 
     if (startDate && endDate) {
       invoicesQuery = invoicesQuery
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
       quotationsQuery = quotationsQuery
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString());
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
     const [
@@ -706,6 +811,10 @@ const useDashboard = () => {
     ] = await Promise.all([invoicesQuery, quotationsQuery]);
 
     if (invoicesError || quotationsError) {
+      console.error(
+        "Error fetching time series data:",
+        invoicesError || quotationsError
+      );
       throw invoicesError || quotationsError;
     }
 
@@ -750,16 +859,21 @@ const useDashboard = () => {
     });
 
     // Convert to array and sort
-    return Array.from(dateMap.values()).sort((a, b) =>
+    const result = Array.from(dateMap.values()).sort((a, b) =>
       a.date.localeCompare(b.date)
     );
+
+    console.log("Time series data result:", result.length, "days");
+    return result;
   };
 
-  const fetchStockMovements = async (
-    startDate?: Date,
-    endDate?: Date,
+  const fetchStockOuts = async (
+    startDate?: string,
+    endDate?: string,
     warehouse?: number
   ): Promise<StockMovement[]> => {
+    console.log("Fetching stock outs with:", { startDate, endDate, warehouse });
+
     // Get stock movements from invoices
     let invoiceMovementsQuery = supabase.from("invoice_items").select(
       `
@@ -790,11 +904,11 @@ const useDashboard = () => {
 
     if (startDate && endDate) {
       invoiceMovementsQuery = invoiceMovementsQuery
-        .gte("invoices.created_at", startDate.toISOString())
-        .lte("invoices.created_at", endDate.toISOString());
+        .gte("invoices.created_at", `${startDate}T00:00:00`)
+        .lte("invoices.created_at", `${endDate}T23:59:59`);
       quotationMovementsQuery = quotationMovementsQuery
-        .gte("quotations.created_at", startDate.toISOString())
-        .lte("quotations.created_at", endDate.toISOString());
+        .gte("quotations.created_at", `${startDate}T00:00:00`)
+        .lte("quotations.created_at", `${endDate}T23:59:59`);
     }
 
     const [
@@ -803,6 +917,10 @@ const useDashboard = () => {
     ] = await Promise.all([invoiceMovementsQuery, quotationMovementsQuery]);
 
     if (invoiceError || quotationError) {
+      console.error(
+        "Error fetching stock movements:",
+        invoiceError || quotationError
+      );
       throw invoiceError || quotationError;
     }
 
@@ -841,17 +959,17 @@ const useDashboard = () => {
     });
 
     // Sort by date descending
-    return movements
+    const result = movements
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 50); // Limit to 50 most recent movements
+
+    console.log("Stock movements result:", result.length, "movements");
+    return result;
   };
 
   // Export functions
   const exportMonthlyReport = async () => {
-    const startDate = filters.startDate
-      ? new Date(filters.startDate)
-      : undefined;
-    const endDate = filters.endDate ? new Date(filters.endDate) : undefined;
+    const { startDate, endDate } = getDateRange();
 
     const timeRangeLabel =
       filters.timeRange === ""
@@ -882,10 +1000,10 @@ const useDashboard = () => {
           )
         `
         )
-        .gte("created_at", startDate ? startDate.toISOString() : "1970-01-01")
+        .gte("created_at", startDate ? `${startDate}T00:00:00` : "1970-01-01")
         .lte(
           "created_at",
-          endDate ? endDate.toISOString() : new Date().toISOString()
+          endDate ? `${endDate}T23:59:59` : new Date().toISOString()
         ),
       supabase
         .from("quotations")
@@ -903,12 +1021,12 @@ const useDashboard = () => {
           )
         `
         )
-        .gte("created_at", startDate ? startDate.toISOString() : "1970-01-01")
+        .gte("created_at", startDate ? `${startDate}T00:00:00` : "1970-01-01")
         .lte(
           "created_at",
-          endDate ? endDate.toISOString() : new Date().toISOString()
+          endDate ? `${endDate}T23:59:59` : new Date().toISOString()
         ),
-      fetchStockMovements(startDate, endDate, filters.warehouse),
+      fetchStockOuts(startDate, endDate, filters.warehouse),
       fetchTopSellingItems(startDate, endDate, filters.warehouse),
     ]);
 
@@ -929,10 +1047,15 @@ const useDashboard = () => {
     };
   };
 
-  // Refresh data
+  // Refresh data when filters change
   useEffect(() => {
     fetchDashboardData();
-  }, [fetchDashboardData]);
+  }, [
+    filters.timeRange,
+    filters.startDate,
+    filters.endDate,
+    filters.warehouse,
+  ]);
 
   return {
     metrics,

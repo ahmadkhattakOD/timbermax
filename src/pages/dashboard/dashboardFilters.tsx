@@ -13,10 +13,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import {
-  FilterList,
-  Clear,
-} from "@mui/icons-material";
+import { FilterList, Clear } from "@mui/icons-material";
 import { DashboardFilters as Filters } from "./useDashboard";
 
 interface DashboardFiltersProps {
@@ -30,20 +27,10 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 }) => {
   const timeRanges = [
     { value: "", label: "All time" },
-    { value: "today", label: "Today" },
-    { value: "week", label: "This Week" },
     { value: "month", label: "This Month" },
     { value: "quarter", label: "This Quarter" },
     { value: "year", label: "This Year" },
     { value: "custom", label: "Custom Range" },
-  ];
-
-  const statusOptions = [
-    { value: "", label: "All Status" },
-    { value: "draft", label: "Draft" },
-    { value: "sent", label: "Sent" },
-    { value: "paid", label: "Paid" },
-    { value: "cancelled", label: "Cancelled" },
   ];
 
   const handleClearFilters = () => {
@@ -71,7 +58,11 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         </Tooltip>
       </Stack>
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="center">
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={2}
+        alignItems="center"
+      >
         {/* Time Range */}
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Time Range</InputLabel>
@@ -114,24 +105,15 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           </>
         )}
 
-        {/* Status Filter */}
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={filters.status || ""}
-            label="Status"
-            onChange={(e) => onFilterChange({ status: e.target.value })}
-          >
-            {statusOptions.map((status) => (
-              <MenuItem key={status.value} value={status.value}>
-                {status.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
         {/* Active Filters Display */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flexWrap: "wrap",
+          }}
+        >
           {filters.timeRange !== "" && (
             <Chip
               label={`Time: ${
@@ -139,20 +121,6 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
               }`}
               size="small"
               onDelete={() => onFilterChange({ timeRange: "" })}
-            />
-          )}
-          {filters.warehouse && (
-            <Chip
-              label={`Warehouse: ${filters.warehouse}`}
-              size="small"
-              onDelete={() => onFilterChange({ warehouse: undefined })}
-            />
-          )}
-          {filters.status && (
-            <Chip
-              label={`Status: ${statusOptions.find((s) => s.value === filters.status)?.label}`}
-              size="small"
-              onDelete={() => onFilterChange({ status: undefined })}
             />
           )}
         </Box>

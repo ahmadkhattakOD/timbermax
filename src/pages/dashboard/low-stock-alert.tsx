@@ -11,8 +11,10 @@ import {
   Stack,
   Button,
   LinearProgress,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
-import { Warning, Inventory, Add, Remove } from "@mui/icons-material";
+import { Warning, Inventory } from "@mui/icons-material";
 
 interface LowStockItem {
   id: number;
@@ -28,6 +30,9 @@ interface LowStockAlertProps {
 }
 
 const LowStockAlert: React.FC<LowStockAlertProps> = ({ items }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const getStockLevelColor = (available: number) => {
     if (available <= 0) return "error";
     if (available < 5) return "warning";
@@ -41,82 +46,164 @@ const LowStockAlert: React.FC<LowStockAlertProps> = ({ items }) => {
   };
 
   return (
-    <Paper sx={{ p: 3, height: "100%" }}>
+    <Paper sx={{ 
+      p: isMobile ? 2 : 3, 
+      height: "100%",
+      display: "flex",
+      flexDirection: "column"
+    }}>
       <Stack
         direction="row"
         justifyContent="space-between"
         alignItems="center"
         sx={{ mb: 2 }}
       >
-        <Typography variant="h6" gutterBottom>
+        <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ fontWeight: 600 }}>
           Low Stock Alert
         </Typography>
         <Chip
           icon={<Warning />}
-          label={`${items.filter((item) => item.available < 5).length} items need attention`}
+          label={`${items.filter((item) => item.available < 5).length} items`}
           color="warning"
-          size="small"
+          size={isMobile ? "small" : "medium"}
+          sx={{ fontSize: isMobile ? "0.75rem" : "0.875rem" }}
         />
       </Stack>
 
-      <List dense>
-        {items.slice(0, 5).map((item) => (
-          <ListItem key={item.id}>
-            <ListItemIcon>
-              <Inventory color={getStockLevelColor(item.available)} />
-            </ListItemIcon>
-            <ListItemText
-              primary={
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Typography variant="body2" fontWeight="medium">
+      <Box sx={{ 
+        flex: 1, 
+        overflow: "auto",
+        maxHeight: isMobile ? 300 : 400 
+      }}>
+        <List dense>
+          {items.slice(0, isMobile ? 4 : 5).map((item) => (
+            <ListItem 
+              key={item.id}
+              sx={{
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: "flex-start",
+                py: isMobile ? 1.5 : 1,
+                px: isMobile ? 0.5 : 2,
+                borderBottom: "1px solid #eee"
+              }}
+            >
+              <Box sx={{ 
+                width: "100%", 
+                display: "flex", 
+                alignItems: "center",
+                mb: isMobile ? 1 : 0
+              }}>
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Inventory 
+                    color={getStockLevelColor(item.available)}
+                    sx={{ fontSize: isMobile ? "20px" : "24px" }}
+                  />
+                </ListItemIcon>
+                <Box sx={{ flex: 1, overflow: "hidden" }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="medium"
+                    sx={{
+                      fontSize: isMobile ? "0.875rem" : "0.9rem",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {item.name}
                   </Typography>
-                  <Chip label={item.itemCode} size="small" variant="outlined" />
-                </Stack>
-              }
-              secondary={
-                <Box sx={{ mt: 1 }}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Typography variant="caption" color="textSecondary">
-                      Available: {item.available}
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary">
-                      Reserved: {item.reserved}
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary">
-                      Total: {item.quantity}
-                    </Typography>
-                  </Stack>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(
-                      (item.available / item.quantity) * 100,
-                      100
-                    )}
-                    color={getStockLevelColor(item.available)}
-                    sx={{ mt: 1 }}
+                  <Chip 
+                    label={item.itemCode} 
+                    size="small" 
+                    variant="outlined"
+                    sx={{ fontSize: isMobile ? "0.7rem" : "0.75rem", mt: 0.5 }}
                   />
                 </Box>
-              }
-            />
-          </ListItem>
-        ))}
-        {items.length === 0 && (
-          <ListItem>
-            <ListItemText
-              primary={
-                <Typography color="textSecondary" align="center">
-                  No low stock items
-                </Typography>
-              }
-            />
-          </ListItem>
-        )}
-      </List>
+              </Box>
 
-      {items.length > 5 && (
-        <Box sx={{ mt: 2, textAlign: "center" }}>
-          <Button size="small" variant="text">
+              <Box sx={{ width: "100%", pl: isMobile ? 0 : 6 }}>
+                <Stack 
+                  direction="row" 
+                  justifyContent="space-between" 
+                  sx={{ mb: 1 }}
+                >
+                  <Box>
+                    <Typography variant="caption" color="textSecondary" display="block">
+                      Available
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      fontWeight="medium"
+                      color={getStockLevelColor(item.available)}
+                    >
+                      {item.available}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="textSecondary" display="block">
+                      Reserved
+                    </Typography>
+                    <Typography variant="body2" fontWeight="medium">
+                      {item.reserved}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="textSecondary" display="block">
+                      Total
+                    </Typography>
+                    <Typography variant="body2" fontWeight="medium">
+                      {item.quantity}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min((item.available / item.quantity) * 100, 100)}
+                  color={getStockLevelColor(item.available)}
+                  sx={{ 
+                    height: 6,
+                    borderRadius: 1,
+                    mb: 0.5
+                  }}
+                />
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="caption" color="textSecondary">
+                    Stock Level
+                  </Typography>
+                  <Chip
+                    label={getStockLevelText(item.available)}
+                    size="small"
+                    color={getStockLevelColor(item.available) as any}
+                    sx={{ fontSize: isMobile ? "0.7rem" : "0.75rem" }}
+                  />
+                </Stack>
+              </Box>
+            </ListItem>
+          ))}
+          
+          {items.length === 0 && (
+            <ListItem>
+              <ListItemText
+                primary={
+                  <Typography color="textSecondary" align="center" py={2}>
+                    No low stock items
+                  </Typography>
+                }
+              />
+            </ListItem>
+          )}
+        </List>
+      </Box>
+
+      {items.length > (isMobile ? 4 : 5) && (
+        <Box sx={{ textAlign: "center", pt: 2 }}>
+          <Button 
+            size="small" 
+            variant="text"
+            sx={{ fontSize: isMobile ? "0.75rem" : "0.875rem" }}
+          >
             View all {items.length} items
           </Button>
         </Box>
