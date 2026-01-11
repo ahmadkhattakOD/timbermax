@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { BRAND_COLORS } from "themes/theme/default";
 import { getDateFormatted } from "utils/helpers";
 
 export interface InvoiceForPDF {
@@ -17,8 +18,8 @@ export interface InvoiceForPDF {
   };
   quotation_id?: number | null;
   total: number;
-  status: 'draft' | 'sent' | 'paid' | 'cancelled';
-  delivery_status?: 'pending' | 'packed' | 'shipped' | 'delivered' | 'returned';
+  status: "draft" | "sent" | "paid" | "cancelled";
+  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
   invoice_date: string;
   note?: string;
   created_at: string;
@@ -36,22 +37,26 @@ export interface InvoiceForPDF {
 }
 
 // Helper function to load and add logo (same as quotation example)
-const addCompanyLogo = async (doc: jsPDF, xPosition: number = 14, yPosition: number = 20) => {
+const addCompanyLogo = async (
+  doc: jsPDF,
+  xPosition: number = 14,
+  yPosition: number = 20
+) => {
   try {
     // Path to the logo - same as quotation example
-    const logoUrl = '/timber.jpg';
-    
+    const logoUrl = "/timber.jpg";
+
     // If you're running in a browser environment
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const response = await fetch(logoUrl);
       const blob = await response.blob();
       const reader = new FileReader();
-      
+
       return new Promise<void>((resolve, reject) => {
-        reader.onload = function() {
+        reader.onload = function () {
           const base64 = reader.result as string;
           // Add image to PDF
-          doc.addImage(base64, 'JPEG', xPosition, yPosition, 30, 15); // Adjust size as needed
+          doc.addImage(base64, "JPEG", xPosition, yPosition, 30, 15); // Adjust size as needed
           resolve();
         };
         reader.onerror = reject;
@@ -70,7 +75,7 @@ const COMPANY_INFO = {
   abn: "95 689 199 773",
   phone: "(123) 456-7890",
   email: "info@timbermax.com.au",
-  website: "timbermax.com.au"
+  website: "timbermax.com.au",
 };
 
 export const generateAndDownloadInvoicePDF = async (
@@ -176,20 +181,14 @@ export const generateAndDownloadInvoicePDF = async (
 
     autoTable(doc, {
       startY: 135, // Increased from 120
-      head: [
-        [
-          "#",
-          "Description",
-          "Code",
-          "Qty",
-          "Unit Price",
-          "GST",
-          "Total",
-        ],
-      ],
+      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
       body: tableData,
       theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 }, // Same blue as quotation
+      headStyles: {
+        fillColor: BRAND_COLORS.primary as any,
+        textColor: 255,
+      },
+
       styles: { fontSize: 8 },
       columnStyles: {
         0: { cellWidth: 10 }, // #
@@ -376,20 +375,10 @@ export const openInvoicePDFInNewTab = async (
 
     autoTable(doc, {
       startY: 135,
-      head: [
-        [
-          "#",
-          "Description",
-          "Code",
-          "Qty",
-          "Unit Price",
-          "GST",
-          "Total",
-        ],
-      ],
+      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
       body: tableData,
       theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      headStyles: { fillColor: BRAND_COLORS.primary as any, textColor: 255 },
       styles: { fontSize: 8 },
       columnStyles: {
         0: { cellWidth: 10 }, // #
@@ -508,9 +497,14 @@ export const generateDeliveryNotePDF = async (
     doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 70, {
       align: "right",
     });
-    doc.text(`Status: ${invoice.delivery_status?.toUpperCase() || "PENDING"}`, 180, 75, {
-      align: "right",
-    });
+    doc.text(
+      `Status: ${invoice.delivery_status?.toUpperCase() || "PENDING"}`,
+      180,
+      75,
+      {
+        align: "right",
+      }
+    );
 
     // Customer Info - moved down
     const customer = invoice.customer;
@@ -547,7 +541,7 @@ export const generateDeliveryNotePDF = async (
       head: [["#", "Item Description", "Code", "Quantity", "Received"]],
       body: tableData,
       theme: "grid",
-      headStyles: { fillColor: [34, 139, 34], textColor: 255 }, // Same green as quotation delivery
+      headStyles: { fillColor: BRAND_COLORS.primary as any, textColor: 255 }, // Same green as quotation delivery
       styles: { fontSize: 9 },
       columnStyles: {
         0: { cellWidth: 10 },

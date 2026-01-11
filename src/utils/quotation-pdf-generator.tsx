@@ -2,25 +2,30 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Quotation } from "types";
 import { getDateFormatted } from "./helpers";
+import { BRAND_COLORS } from "themes/theme/default";
 
 // Helper function to load and add logo
-const addCompanyLogo = async (doc: jsPDF, xPosition: number = 14, yPosition: number = 20) => {
+const addCompanyLogo = async (
+  doc: jsPDF,
+  xPosition: number = 14,
+  yPosition: number = 20
+) => {
   try {
     // Path to the logo - adjust based on your project structure
     // If using Next.js, you might need a different approach
-    const logoUrl = '/timber.jpg';
-    
+    const logoUrl = "/timber.jpg";
+
     // If you're running in a browser environment
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const response = await fetch(logoUrl);
       const blob = await response.blob();
       const reader = new FileReader();
-      
+
       return new Promise<void>((resolve, reject) => {
-        reader.onload = function() {
+        reader.onload = function () {
           const base64 = reader.result as string;
           // Add image to PDF
-          doc.addImage(base64, 'JPEG', xPosition, yPosition, 30, 15); // Adjust size as needed
+          doc.addImage(base64, "JPEG", xPosition, yPosition, 30, 15); // Adjust size as needed
           resolve();
         };
         reader.onerror = reject;
@@ -130,21 +135,18 @@ export const generateAndDownloadQuotationPDF = async (
 
     autoTable(doc, {
       startY: 130, // Increased from 100 to 130
-      head: [
-        [
-          "#",
-          "Description",
-          "Code",
-          "Qty",
-          "Unit Price",
-          "GST",
-          "Total",
-        ],
-      ],
+      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
       body: tableData,
       theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      styles: { fontSize: 8 },
+      headStyles: {
+        fillColor: BRAND_COLORS.primary as any,
+        textColor: 255,
+      },
+      styles: {
+        fontSize: 8,
+        lineColor: BRAND_COLORS.tableBorder as any,
+        textColor: BRAND_COLORS.textDark as any,
+      },
       columnStyles: {
         0: { cellWidth: 10 }, // #
         1: { cellWidth: 60 }, // Description
@@ -285,8 +287,15 @@ export const generateAndDownloadDeliveryDocument = async (
       head: [["#", "Item Description", "Code", "Quantity"]],
       body: tableData,
       theme: "grid",
-      headStyles: { fillColor: [34, 139, 34], textColor: 255 }, // Green header
-      styles: { fontSize: 9 },
+      headStyles: {
+        fillColor: BRAND_COLORS.primary as any,
+        textColor: 255,
+      },
+      styles: {
+        fontSize: 8,
+        lineColor: BRAND_COLORS.tableBorder as any,
+        textColor: BRAND_COLORS.textDark as any,
+      },
       columnStyles: {
         0: { cellWidth: 10 },
         1: { cellWidth: 80 },
@@ -437,21 +446,18 @@ export const openQuotationPDFInNewTab = async (
 
     autoTable(doc, {
       startY: 130,
-      head: [
-        [
-          "#",
-          "Description",
-          "Code",
-          "Qty",
-          "Unit Price",
-          "GST",
-          "Total",
-        ],
-      ],
+      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
       body: tableData,
       theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      styles: { fontSize: 8 },
+      headStyles: {
+        fillColor: BRAND_COLORS.primary as any,
+        textColor: 255,
+      },
+      styles: {
+        fontSize: 8,
+        lineColor: BRAND_COLORS.tableBorder as any,
+        textColor: BRAND_COLORS.textDark as any,
+      },
       columnStyles: {
         0: { cellWidth: 10 }, // #
         1: { cellWidth: 60 }, // Description
