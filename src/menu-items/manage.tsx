@@ -45,14 +45,13 @@ const manageAdmin: NavItemType = {
       type: "collapse",
       icon: icons.maintenance,
       children: [
-  
         {
-          id:"invoices",
-          title:<FormattedMessage id="Invoice" />,
-          type:"item",
-          url:'/invoices',
-          icon:icons.invoices,
-          target:false
+          id: "invoices",
+          title: <FormattedMessage id="Invoice" />,
+          type: "item",
+          url: "/invoices",
+          icon: icons.invoices,
+          target: false,
         },
         {
           id: "quotations",
@@ -62,44 +61,12 @@ const manageAdmin: NavItemType = {
           icon: icons.sales,
           target: false,
         },
-        
       ],
     },
   ],
 };
 
-const manageSalesPerson: NavItemType = {
-  id: "manage-pages",
-  type: "group",
-  children: [
-    {
-      id: "manage",
-      title: <FormattedMessage id="manage" />,
-      type: "collapse",
-      icon: icons.maintenance,
-      children: [
-        {
-          id: "sales",
-          title: <FormattedMessage id="sales" />,
-          type: "item",
-          url: "/view-sales",
-          icon: icons.sales,
-          target: false,
-        },
-        {
-          id: "invoices",
-          title: <FormattedMessage id="invoices" />,
-          type: "item",
-          url: "/view-invoices",
-          icon: icons.invoices,
-          target: false,
-        },
-      ],
-    },
-  ],
-};
-
-const manageCloser: NavItemType = {
+const manageWarehouseOperator: NavItemType = {
   id: "manage-pages",
   title: <FormattedMessage id="manage" />,
   type: "group",
@@ -131,4 +98,4 @@ const manageCloser: NavItemType = {
   ],
 };
 
-export default { manageAdmin, manageSalesPerson, manageCloser };
+export default { manageAdmin,  manageWarehouseOperator };

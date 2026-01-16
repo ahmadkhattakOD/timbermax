@@ -1,7 +1,6 @@
 import { openSnackbar } from "api/snackbar";
 import useAuth from "hooks/useAuth";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 
@@ -14,7 +13,6 @@ export interface ValuesEditProfile {
 export function useEditProfile() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [selectedRole, setSelectedRole] = useState<string>("");
   const { editProfile } = useAuth();
 
   function validate(values: ValuesEditProfile) {
@@ -35,9 +33,7 @@ export function useEditProfile() {
           open: true,
           message: "Profile edited successfully.",
           variant: "alert",
-          alert: {
-            color: "success",
-          },
+          alert: { color: "success" },
         } as SnackbarProps);
         getProfile();
       } else {
@@ -46,9 +42,7 @@ export function useEditProfile() {
           message:
             "Profile could not be edited successfully. Please try again.",
           variant: "alert",
-          alert: {
-            color: "error",
-          },
+          alert: { color: "error" },
         } as SnackbarProps);
       }
     } catch (e) {
@@ -56,9 +50,7 @@ export function useEditProfile() {
         open: true,
         message: "Profile could not be edited successfully. Please try again.",
         variant: "alert",
-        alert: {
-          color: "error",
-        },
+        alert: { color: "error" },
       } as SnackbarProps);
     }
   }
@@ -68,16 +60,9 @@ export function useEditProfile() {
     const profilesRepository = new ProfilesRepository();
     const currentUser = await profilesRepository.getCurrentUser();
     if (currentUser) {
-      const profilesRepository = new ProfilesRepository();
-      const existingProfile = await profilesRepository.getSingle(
-        currentUser.id
-      );
-      if (existingProfile) {
-        const { profileData, profileError } = existingProfile;
-        if (profileData && !profileError) {
-          setProfile(profileData);
-          setSelectedRole(profileData.role);
-        }
+      const existingProfile = await profilesRepository.getSingle(currentUser.id);
+      if (existingProfile?.profileData && !existingProfile.profileError) {
+        setProfile(existingProfile.profileData);
       }
     }
     setLoading(false);
@@ -87,5 +72,5 @@ export function useEditProfile() {
     getProfile();
   }, []);
 
-  return { validate, onSubmit, profile, loading, selectedRole };
+  return { validate, onSubmit, profile, loading };
 }

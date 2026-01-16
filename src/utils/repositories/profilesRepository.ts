@@ -1,14 +1,13 @@
 import { ValuesFilterUsers } from "pages/users/main/useUsers";
 import { UserRoles } from "utils/helpers";
 import supabase from "utils/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 export interface ProfileSupabase {
   full_name: string;
   email: string;
   profile_picture: string;
   role: string;
-  daily_wage: number;
-  commissions: number[];
 }
 
 export interface UserSupabase {
@@ -80,15 +79,42 @@ class ProfilesRepository {
     newPassword: string
   ) {
     try {
-      // First, verify old password by signing in
+      // Get current user to verify we have a valid session
+      const { data: currentUserData } = await supabase.auth.getUser();
+      const currentUser = currentUserData?.user;
+
+      if (!currentUser || currentUser.email !== email) {
+        console.error("No current session found or email mismatch");
+        return null;
+      }
+
+      // Create a separate Supabase client instance for password verification
+      // This client won't persist sessions, so it won't affect the main session
+      const supabaseUrl = import.meta.env.VITE_APP_SUPABASE_URL ?? "";
+      const supabaseKey = import.meta.env.VITE_APP_SUPABASE_KEY ?? "";
+      const verificationClient = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+
+      // Verify old password using the separate client (won't affect main session)
       const { data: loginData, error: loginError } =
-        await supabase.auth.signInWithPassword({
+        await verificationClient.auth.signInWithPassword({
           email: email,
           password: oldPassword,
         });
 
       if (loginError || !loginData.user) {
         console.error("Incorrect credentials:", loginError);
+        // No need to restore session since we used a separate client
+        return null;
+      }
+
+      // Verify that the user ID matches the current user
+      if (loginData.user.id !== currentUser.id) {
+        console.error("User ID mismatch");
         return null;
       }
 
@@ -129,7 +155,7 @@ class ProfilesRepository {
         .range(rangeStart, rangeEnd)
         .limit(limit)
         .eq("status", "active")
-        .neq("role", UserRoles.Admin)
+        // .neq("role", UserRoles.Admin)
         .neq("role", UserRoles.SuperAdmin);
 
       if (filters) {

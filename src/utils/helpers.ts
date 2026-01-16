@@ -124,46 +124,30 @@ export function isRouteAllowed(
   role:
     | UserRoles.Admin
     | UserRoles.SuperAdmin
-    | UserRoles.Closer
-    | UserRoles.Both
-    | UserRoles.SalesPerson
+    | UserRoles.WarehouseOperator
     | ""
 ) {
   // TODO: fix and uncomment this
-  // if (role === UserRoles.SuperAdmin) {
-  //   return true;
-  // } else if (role === UserRoles.Admin) {
-  //   let blackListedURLs = ["/user"];
+  if (role === UserRoles.SuperAdmin) {
+    return true;
+  } else if (role === UserRoles.Admin) {
+    let blackListedURLs = ["/user"];
 
-  //   for (let i = 0; i < blackListedURLs.length; i++) {
-  //     if (window.location.href.includes(blackListedURLs[i])) {
-  //       return false;
-  //     }
-  //   }
-  //   return true;
-  // } else if (role === UserRoles.Closer || role === UserRoles.Both) {
-  //   let whiteListedURLs = ["/dashboard", "/close", "/profile", "view-invoices"];
-  //   for (let i = 0; i < whiteListedURLs.length; i++) {
-  //     if (window.location.href.includes(whiteListedURLs[i])) {
-  //       return true;
-  //     }
-  //   }
-  //   return false;
-  // } else if (UserRoles.SalesPerson) {
-  //   let whiteListedURLs = [
-  //     "/dashboard",
-  //     "/profile",
-  //     "/view-sales",
-  //     "view-invoices",
-  //   ];
-
-  //   for (let i = 0; i < whiteListedURLs.length; i++) {
-  //     if (window.location.href.includes(whiteListedURLs[i])) {
-  //       return true;
-  //     }
-  //   }
-  //   return false;
-  // }
+    for (let i = 0; i < blackListedURLs.length; i++) {
+      if (window.location.href.includes(blackListedURLs[i])) {
+        return false;
+      }
+    }
+    return true;
+  } else if (role === UserRoles.WarehouseOperator) {
+    let whiteListedURLs = ["/items", "/stock", "/warehouses", "/profile"];
+    for (let i = 0; i < whiteListedURLs.length; i++) {
+      if (window.location.href.includes(whiteListedURLs[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
   return true;
 }
 
@@ -208,7 +192,6 @@ export const calculateItemTotal = (item: any) => {
 
   return baseTotal + gstAmount;
 };
-
 
 export const opportunityDescriptions = [
   "Electric Bases (Narrow Single)",

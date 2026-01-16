@@ -72,8 +72,6 @@ export function useCreateUser() {
         email: values.email,
         profile_picture: "",
         role: selectedRole,
-        daily_wage: 0,
-        commissions: [],
       };
 
       const profilesRepository = new ProfilesRepository();
@@ -88,20 +86,22 @@ export function useCreateUser() {
             color: "success",
           },
         } as SnackbarProps);
-        // navigate("/users");
+        navigate("/users");
       } else {
         openSnackbar({
           open: true,
-          message: "User could not be added successfully. Please check the console for details.",
+          message:
+            "User could not be added successfully. Please check the console for details.",
           variant: "alert",
           alert: {
             color: "error",
           },
         } as SnackbarProps);
-        // navigate("/users");
+        navigate("/users");
       }
     } catch (e: any) {
-      const errorMessage = e?.message || "User could not be added successfully. Please try again.";
+      const errorMessage =
+        e?.message || "User could not be added successfully. Please try again.";
       console.error("User creation error:", e);
       openSnackbar({
         open: true,
@@ -111,7 +111,7 @@ export function useCreateUser() {
           color: "error",
         },
       } as SnackbarProps);
-      // navigate("/users");
+      navigate("/users");
     }
   }
   return {

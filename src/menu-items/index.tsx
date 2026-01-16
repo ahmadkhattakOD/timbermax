@@ -18,12 +18,12 @@ const menuItemsAdmin: { items: NavItemType[] } = {
   items: [dashboard, crm, manage.manageAdmin, inventory, edit],
 };
 
-const menuItemsSalesPerson: { items: NavItemType[] } = {
-  items: [dashboard, manage.manageSalesPerson, edit],
+const menuItemsWarehouseOperator: { items: NavItemType[] } = {
+  items: [inventory, edit],
 };
 
-const menuItemsCloser: { items: NavItemType[] } = {
-  items: [dashboard, manage.manageCloser, edit],
+export default {
+  menuItemsAdmin,
+  menuItemsSuperAdmin,
+  menuItemsWarehouseOperator,
 };
-
-export default { menuItemsAdmin, menuItemsSuperAdmin, menuItemsSalesPerson, menuItemsCloser };

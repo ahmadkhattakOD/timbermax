@@ -120,30 +120,6 @@ export default function Breadcrumbs({
         }
         return false;
       });
-    } else if (role === UserRoles.Closer || role === UserRoles.Both) {
-      navigation?.menuItemsCloser.items.map((menu: NavItemType) => {
-        if (menu.type && menu.type === "group") {
-          if (menu?.url && menu.url === customLocation) {
-            setMain(menu);
-            setItem(menu);
-          } else {
-            getCollapse(menu as { children: NavItemType[]; type?: string });
-          }
-        }
-        return false;
-      });
-    } else if (role === UserRoles.SalesPerson) {
-      navigation?.menuItemsSalesPerson.items.map((menu: NavItemType) => {
-        if (menu.type && menu.type === "group") {
-          if (menu?.url && menu.url === customLocation) {
-            setMain(menu);
-            setItem(menu);
-          } else {
-            getCollapse(menu as { children: NavItemType[]; type?: string });
-          }
-        }
-        return false;
-      });
     }
   });
 

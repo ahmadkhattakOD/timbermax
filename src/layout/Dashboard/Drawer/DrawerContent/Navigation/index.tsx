@@ -37,16 +37,16 @@ export default function Navigation() {
   const [menuItems, setMenuItems] = useState<{ items: NavItemType[] }>({ items: [] });
 
   useLayoutEffect(() => {
-    // if (role === UserRoles.Admin) {
-    //TODO: fix 
+    if (role === UserRoles.SuperAdmin) {
+    // TODO: fix 
+      setMenuItems(menuItem.menuItemsSuperAdmin);
+    }
+    else if (role === UserRoles.Admin) {
       setMenuItems(menuItem.menuItemsAdmin);
-    // }
-    // else if (role === UserRoles.Closer || role === UserRoles.Both) {
-      // setMenuItems(menuItem.menuItemsCloser);
-    // }
-    // else if (role === UserRoles.SalesPerson) {
-      // setMenuItems(menuItem.menuItemsSalesPerson);
-    // }
+    }
+    else if (role === UserRoles.WarehouseOperator) {
+      setMenuItems(menuItem.menuItemsWarehouseOperator);
+    }
     
   }, [menuItem]);
 

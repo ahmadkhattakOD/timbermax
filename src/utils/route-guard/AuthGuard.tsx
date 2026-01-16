@@ -28,6 +28,7 @@ export default function AuthGuard({ children }: GuardProps) {
     }
   }, [isLoggedIn, navigate, location]);
 //TODO: fix if need
+console.log("ROLEEEE",role)
   if (isRouteAllowed(role as any)) {
     return children;
 }
