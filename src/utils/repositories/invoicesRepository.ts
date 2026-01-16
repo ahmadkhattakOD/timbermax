@@ -587,7 +587,7 @@ class InvoicesRepository {
         // Direct stock reduction (no validation, allows negative)
         const reduceResult = await stocksRepo.reduceStockForInvoice(
           item.item_id,
-          1, // default warehouse
+          // 1, // default warehouse
           item.quantity,
           createdInvoice.id
         );

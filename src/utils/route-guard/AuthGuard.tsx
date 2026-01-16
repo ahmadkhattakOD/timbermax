@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // project-imports
-import useAuth from 'hooks/useAuth';
+import useAuth from "hooks/useAuth";
 
 // types
-import { GuardProps } from 'types/auth';
-import { UserRoles, isRouteAllowed } from 'utils/helpers';
-import { Box } from '@mui/material';
-import Error404 from 'pages/maintenance/error/404';
+import { GuardProps } from "types/auth";
+import { UserRoles, isRouteAllowed } from "utils/helpers";
+import { Box } from "@mui/material";
+import Error404 from "pages/maintenance/error/404";
 
 // ==============================|| AUTH GUARD ||============================== //
 
@@ -19,17 +19,17 @@ export default function AuthGuard({ children }: GuardProps) {
 
   useEffect(() => {
     if (!isLoggedIn) {
-      navigate('login', {
+      navigate("login", {
         state: {
-          from: location.pathname
+          from: location.pathname,
         },
-        replace: true
+        replace: true,
       });
     }
   }, [isLoggedIn, navigate, location]);
-
-  if (isRouteAllowed(role as UserRoles | "")) {
+//TODO: fix if need
+  if (isRouteAllowed(role as any)) {
     return children;
-  }
+}
   return <Error404 />;
 }

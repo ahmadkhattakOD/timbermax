@@ -34,6 +34,7 @@ import { StringColorProps } from "types/password";
 // assets
 import { Eye, EyeSlash } from "iconsax-react";
 import supabase from "utils/supabase";
+import { UserRoles } from "utils/helpers";
 
 // ============================|| JWT - REGISTER ||============================ //
 
@@ -84,30 +85,54 @@ export default function AuthRegister() {
           try {
             console.log("1. Starting registration for:", values.email);
 
-            const { data, error } = await supabase.auth.signUp({
-              email: values.email,
-              password: values.password,
-              options: {
-                data: {
-                  full_name: `${values.firstname} ${values.lastname}`,
-                  first_name: values.firstname,
-                  last_name: values.lastname,
+            // 1️⃣ Signup user
+            const { data: authData, error: authError } =
+              await supabase.auth.signUp({
+                email: values.email,
+                password: values.password,
+                options: {
+                  data: {
+                    full_name: `${values.firstname} ${values.lastname}`,
+                    first_name: values.firstname,
+                    last_name: values.lastname,
+                  },
                 },
-              },
+              });
+
+            console.log("2. Supabase signUp response:", {
+              authData,
+              authError,
             });
 
-            console.log("2. Supabase signUp response:", { data, error });
-
-            if (error) {
-              console.error("3. Signup error:", error);
-              throw error;
+            if (authError || !authData.user) {
+              throw authError || new Error("User not created");
             }
 
-            if (data?.user) {
-              console.log("4. User created in Auth. ID:", data.user.id);
-              console.log("5. User metadata:", data.user.user_metadata);
+            const user = authData.user;
+
+            console.log("3. Auth user created:", user.id);
+
+            // 2️⃣ Insert profile manually
+            const { error: profileError } = await supabase
+              .from("profiles")
+              .insert({
+                id: user.id,
+                email: user.email,
+                full_name: `${values.firstname} ${values.lastname}`,
+                role: UserRoles.SuperAdmin,
+                status: "active",
+                user: user.id,
+                created_at: new Date().toISOString(),
+              });
+
+            if (profileError) {
+              console.error("4. Profile insert failed:", profileError);
+              throw profileError;
             }
 
+            console.log("5. Profile created successfully");
+
+            // 3️⃣ UI success
             if (scriptedRef.current) {
               setStatus({ success: true });
               setSubmitting(false);
@@ -122,16 +147,18 @@ export default function AuthRegister() {
                 },
               } as SnackbarProps);
 
-              // Optional: redirect to login or show success message
               setTimeout(() => {
                 navigate("/login", { replace: true });
               }, 3000);
             }
           } catch (err: any) {
             console.error("Registration error:", err);
+
             if (scriptedRef.current) {
               setStatus({ success: false });
-              setErrors({ submit: err.message || "Registration failed" });
+              setErrors({
+                submit: err.message || "Registration failed",
+              });
               setSubmitting(false);
             }
           }

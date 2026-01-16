@@ -290,7 +290,7 @@ export function useStock() {
     const value = e.target.value;
     setSearchValue(value);
 
-    console.log("VALUEEE",value)
+    console.log("VALUEEE", value);
     if (value.trim()) {
       let temp = { ...filters };
       temp.item = value;

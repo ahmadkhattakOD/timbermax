@@ -335,7 +335,7 @@ export function useEditQuotation(quotationId: number) {
                 // Need more stock
                 const reserveResult = await stocksRepo.reserveForQuotation(
                   itemId,
-                  1,
+                  // 1,
                   quantityDiff,
                   quotationId
                 );
@@ -391,7 +391,7 @@ export function useEditQuotation(quotationId: number) {
             // Reserve stock for new item
             const reserveResult = await stocksRepo.reserveForQuotation(
               itemId,
-              1,
+              // 1,
               newQuantity,
               quotationId
             );

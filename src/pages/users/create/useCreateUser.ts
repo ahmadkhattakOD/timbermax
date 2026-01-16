@@ -14,9 +14,6 @@ export interface ValuesCreateUser {
   password: string;
   confirmPassword: string;
   role: string;
-  commission: string;
-  secondaryCommission: string;
-  dailyWage: string;
 }
 
 export function useCreateUser() {
@@ -60,22 +57,6 @@ export function useCreateUser() {
       errors.role = "required";
     }
 
-    if (values.commission === "" || parseFloat(values.commission) < 0) {
-      errors.commission = "required-valid-number-positive";
-    }
-
-    if (
-      selectedRole === UserRoles.Both &&
-      (values.secondaryCommission === "" ||
-        parseFloat(values.secondaryCommission) < 0)
-    ) {
-      errors.secondaryCommission = "required-valid-number-positive";
-    }
-
-    if (values.dailyWage !== "" && parseFloat(values.dailyWage) < 0) {
-      errors.dailyWage = "required-valid-number-positive";
-    }
-
     return errors;
   }
 
@@ -86,19 +67,13 @@ export function useCreateUser() {
         password: values.password.trim(),
       };
 
-      let commissions = [parseFloat(values.commission)];
-
-      if (selectedRole === UserRoles.Both) {
-        commissions.push(parseFloat(values.secondaryCommission));
-      }
-
       const newProfile: ProfileSupabase = {
         full_name: values.fullName,
         email: values.email,
         profile_picture: "",
         role: selectedRole,
-        daily_wage: parseFloat(values.dailyWage),
-        commissions: commissions,
+        daily_wage: 0,
+        commissions: [],
       };
 
       const profilesRepository = new ProfilesRepository();
@@ -113,27 +88,30 @@ export function useCreateUser() {
             color: "success",
           },
         } as SnackbarProps);
+        // navigate("/users");
       } else {
         openSnackbar({
           open: true,
-          message: "User could not be added successfully. Please try again.",
+          message: "User could not be added successfully. Please check the console for details.",
           variant: "alert",
           alert: {
             color: "error",
           },
         } as SnackbarProps);
+        // navigate("/users");
       }
-      navigate("/users");
-    } catch (e) {
+    } catch (e: any) {
+      const errorMessage = e?.message || "User could not be added successfully. Please try again.";
+      console.error("User creation error:", e);
       openSnackbar({
         open: true,
-        message: "User could not be added successfully. Please try again.",
+        message: errorMessage,
         variant: "alert",
         alert: {
           color: "error",
         },
       } as SnackbarProps);
-      navigate("/users");
+      // navigate("/users");
     }
   }
   return {

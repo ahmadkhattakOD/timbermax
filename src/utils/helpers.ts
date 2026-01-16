@@ -107,12 +107,13 @@ export enum UserRoles {
   Both = "Sales Person & Closer",
   Admin = "Admin",
   SuperAdmin = "Super Admin",
+  WarehouseOperator = "Warehouse Operator",
 }
 
 export const userRoles = [
-  UserRoles.SalesPerson,
-  UserRoles.Closer,
-  UserRoles.Both,
+  UserRoles.SuperAdmin,
+  UserRoles.Admin,
+  UserRoles.WarehouseOperator,
 ];
 
 export const deleteConfirmationText = "I am sure";

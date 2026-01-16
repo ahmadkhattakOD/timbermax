@@ -294,7 +294,7 @@ class QuotationsRepository {
       for (const item of items) {
         const reserveResult = await stocksRepo.reserveForQuotation(
           item.item_id,
-          1, // default warehouse
+          // item.warehouse, // default warehouse
           item.quantity,
           createdQuotation.id
         );

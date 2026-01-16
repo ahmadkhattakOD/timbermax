@@ -380,7 +380,7 @@ export function useEditInvoice(invoiceId: number) {
         for (const item of selectedItems) {
           await stocksRepo.reduceStockForInvoice(
             item.item_id,
-            1,
+            // 1,
             parseFloat(item.quantity),
             invoiceId
           );
@@ -466,7 +466,7 @@ export function useEditInvoice(invoiceId: number) {
                 // Need more stock reduction
                 await stocksRepo.reduceStockForInvoice(
                   itemId,
-                  1,
+                  // 1,
                   quantityDiff,
                   invoiceId
                 );
@@ -492,7 +492,7 @@ export function useEditInvoice(invoiceId: number) {
             // Reduce stock for new item
             await stocksRepo.reduceStockForInvoice(
               itemId,
-              1,
+              // 1,
               newQuantity,
               invoiceId
             );

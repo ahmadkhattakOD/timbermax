@@ -229,7 +229,6 @@ export function useCreateInvoice() {
       setLoading(true);
       const quotationsRepo = new QuotationsRepository();
       const quotation = await quotationsRepo.getSingle(quotationId);
-      console.log("QUOTATION", quotation.quotationData);
       if (quotation?.quotationData) {
         setSelectedQuotation(quotation.quotationData);
         setIsQuotationLoaded(true);

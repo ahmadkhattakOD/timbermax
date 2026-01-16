@@ -26,48 +26,32 @@ export interface InvoiceRulesSupabase {
 class ProfilesRepository {
   private className = "profiles";
 
-  public async create(user: UserSupabase, profile: ProfileSupabase, createdById?: string) {
+  public async create(user: UserSupabase, profile: ProfileSupabase) {
     try {
-      // First, create the user with Supabase Auth using admin API
-      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: user.email,
         password: user.password,
-        email_confirm: true,
       });
 
-      if (userError || !userData.user) {
-        console.error("Error creating auth user:", userError);
-        return null;
-      }
+      if (authError || !authData.user) return null;
 
-      // Then create the profile in the profiles table
       const { data, error } = await supabase
-        .from(this.className)
+        .from("profiles")
         .insert({
-          id: userData.user.id,
+          id: authData.user.id,
+          email: authData.user.email,
           full_name: profile.full_name,
-          email: userData.user.email,
           role: profile.role,
-          daily_wage: profile.daily_wage,
-          commissions: profile.commissions ?? [],
-          profile_picture: profile.profile_picture,
+          profile_picture: profile.profile_picture ?? null,
           status: "active",
-          created_at: new Date().toISOString(),
-          user: createdById, // This matches your edge function logic
         })
         .select()
         .single();
 
-      if (error) {
-        console.error("Error creating profile:", error);
-        // Clean up: delete the auth user if profile creation fails
-        await supabase.auth.admin.deleteUser(userData.user.id);
-        return null;
-      }
+      if (error) return null;
 
       return data;
-    } catch (error) {
-      console.error("Error creating new user:", error);
+    } catch {
       return null;
     }
   }
@@ -97,10 +81,11 @@ class ProfilesRepository {
   ) {
     try {
       // First, verify old password by signing in
-      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: oldPassword,
-      });
+      const { data: loginData, error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email: email,
+          password: oldPassword,
+        });
 
       if (loginError || !loginData.user) {
         console.error("Incorrect credentials:", loginError);
@@ -108,10 +93,10 @@ class ProfilesRepository {
       }
 
       // Then update the password using admin API
-      const { data: updateData, error: updateError } = await supabase.auth.admin.updateUserById(
-        loginData.user.id,
-        { password: newPassword }
-      );
+      const { data: updateData, error: updateError } =
+        await supabase.auth.admin.updateUserById(loginData.user.id, {
+          password: newPassword,
+        });
 
       if (updateError) {
         console.error("Error resetting password:", updateError);

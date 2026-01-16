@@ -337,7 +337,7 @@ class StocksRepository {
 
   public async reserveForQuotation(
     itemId: number,
-    warehouseId: number,
+    // warehouseId: number,
     quantity: number,
     quotationId: number
   ) {
@@ -345,14 +345,18 @@ class StocksRepository {
       // 1. Check available stock
       const { data: stockData, error: stockError } = await supabase
         .from(this.className)
-        .select("id, quantity, reserved")
+        .select("id, quantity, reserved,warehouse")
         .eq("item", itemId)
-        .eq("warehouse", warehouseId)
+        // .eq("warehouse", warehouseId)
         .limit(1);
-
+      console.log("COMING HERE TOOO", {
+        stockError,
+        stockData,
+      });
       if (stockError || !stockData || stockData.length === 0) {
         return { success: false, error: "Stock not found" };
       }
+      console.log("NOT FOUND ERROR DIDNT COME ");
 
       const stock = stockData[0];
       const currentQuantity = parseFloat(stock.quantity) || 0;
@@ -363,7 +367,7 @@ class StocksRepository {
         .from("stock_reservations")
         .insert({
           item_id: itemId,
-          warehouse_id: warehouseId,
+          warehouse_id: stock.warehouse,
           quotation_id: quotationId,
           quantity: quantity,
           status: "on_hold",
@@ -758,7 +762,7 @@ class StocksRepository {
         // Need to reserve more stock
         const result = await this.reserveForQuotation(
           itemId,
-          warehouseId,
+          // warehouseId,
           quantityDiff,
           quotationId
         );
@@ -974,7 +978,7 @@ class StocksRepository {
    */
   public async reduceStockForInvoice(
     itemId: number,
-    warehouseId: number,
+    // warehouseId: number,
     quantity: number,
     invoiceId: number
   ) {
@@ -982,9 +986,9 @@ class StocksRepository {
       // 1. Find existing stock record
       const { data: stockData, error: stockError } = await supabase
         .from(this.className)
-        .select("id, quantity, reserved")
+        .select("id, quantity, reserved,warehouse")
         .eq("item", itemId)
-        .eq("warehouse", warehouseId)
+        // .eq("warehouse", warehouseId)
         .limit(1);
 
       if (stockError) {
@@ -1022,7 +1026,7 @@ class StocksRepository {
           .from(this.className)
           .insert({
             item: itemId,
-            warehouse: warehouseId,
+            warehouse: stockData?.[0]?.warehouse,
             quantity: newQuantity, // Can be negative
             reserved: 0,
             status: "available",
@@ -1044,7 +1048,7 @@ class StocksRepository {
         newQuantity: newQuantity,
         reduction: quantity,
         itemId,
-        warehouseId,
+        // warehouseId,
       };
     } catch (error: any) {
       console.error("Error reducing stock for invoice:", error);
