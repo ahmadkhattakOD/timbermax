@@ -77,7 +77,7 @@ const PlacesInput = ({
           </Typography>
         )}
       </Box>
-      {/* <GooglePlacesAutocomplete
+    <GooglePlacesAutocomplete
         apiKey={import.meta.env.VITE_APP_MAPS_KEY}
         autocompletionRequest={{
           componentRestrictions: { country: ["au"] },
@@ -140,7 +140,7 @@ const PlacesInput = ({
             }),
           },
         }}
-      /> */}
+      /> 
 
       {error && (
         <Typography variant="caption" className="error">

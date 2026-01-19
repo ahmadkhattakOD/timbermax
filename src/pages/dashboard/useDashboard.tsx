@@ -54,8 +54,10 @@ export interface DashboardMetrics {
   stockMetrics: {
     totalItems: number;
     totalValue: number;
-    outOfStock: number;
-    lowStock: number;
+    totalItemCount: number; // Count of unique items, not sum of quantities
+    outOfStock: number; // Items with available <= 0 (includes negative stock)
+    lowStock: number; // Items with 0 < available <= 10
+    inStock: number; // Items with available > 10
   };
 }
 
@@ -749,10 +751,12 @@ const useDashboard = () => {
       throw error;
     }
 
-    let totalItems = 0;
+    let totalItems = 0; // Sum of all quantities
     let totalValue = 0;
-    let outOfStock = 0;
-    let lowStock = 0;
+    let totalItemCount = 0; // Count of unique items
+    let outOfStock = 0; // Items with available <= 0 (includes negative stock)
+    let lowStock = 0; // Items with 0 < available <= 10
+    let inStock = 0; // Items with available > 10
 
     data?.forEach((stock: any) => {
       const quantity = parseFloat(stock.quantity) || 0;
@@ -762,20 +766,24 @@ const useDashboard = () => {
 
       totalItems += quantity;
       totalValue += quantity * purchasePrice;
+      totalItemCount++; // Count each item record
 
       if (available <= 0) {
-        outOfStock++;
-      } else if (available < 10) {
-        // Low stock threshold
-        lowStock++;
+        outOfStock++; // Out of stock (available <= 0, includes negative stock)
+      } else if (available <= 10) {
+        lowStock++; // Low stock (0 < available <= 10)
+      } else {
+        inStock++; // In stock (available > 10)
       }
     });
 
     const result = {
       totalItems,
       totalValue,
+      totalItemCount,
       outOfStock,
       lowStock,
+      inStock,
     };
 
     console.log("Stock metrics result:", result);

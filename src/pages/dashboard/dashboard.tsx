@@ -116,6 +116,7 @@ const Dashboard: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Stock Status
             </Typography>
+
             <Box sx={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -123,9 +124,7 @@ const Dashboard: React.FC = () => {
                     data={[
                       {
                         name: "In Stock",
-                        value:
-                          (metrics?.stockMetrics.totalItems || 0) -
-                          (metrics?.stockMetrics.outOfStock || 0),
+                        value: metrics?.stockMetrics.inStock || 0,
                       },
                       {
                         name: "Low Stock",
@@ -138,18 +137,20 @@ const Dashboard: React.FC = () => {
                     ]}
                     cx="50%"
                     cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
                     labelLine={false}
                     label={({ name, percent }) =>
-                      `${name}: ${(percent || 1 * 100).toFixed(0)}%`
+                      percent && percent > 0.05
+                        ? `${name}: ${(percent * 100).toFixed(0)}%`
+                        : ""
                     }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
                   >
                     <Cell fill="#4CAF50" />
                     <Cell fill="#FF9800" />
                     <Cell fill="#F44336" />
                   </Pie>
+
                   <RechartsTooltip />
                   <Legend />
                 </PieChart>

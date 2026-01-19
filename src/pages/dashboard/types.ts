@@ -42,7 +42,9 @@ export interface DashboardData {
   stockMetrics: {
     totalItems: number;
     totalValue: number;
-    outOfStock: number;
-    lowStock: number;
+    totalItemCount: number; // Count of unique items, not sum of quantities
+    outOfStock: number; // Items with available <= 0 (includes negative stock)
+    lowStock: number; // Items with 0 < available <= 10
+    inStock: number; // Items with available > 10
   };
 }
