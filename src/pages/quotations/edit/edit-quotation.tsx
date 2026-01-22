@@ -435,7 +435,7 @@ export default function EditQuotation() {
                       })}
                       <TableRow>
                         <TableCell colSpan={4} align="right">
-                          <strong>Total:</strong>
+                          <strong>Subtotal:</strong>
                         </TableCell>
                         <TableCell>
                           <strong>${totalAmount.toFixed(2)}</strong>

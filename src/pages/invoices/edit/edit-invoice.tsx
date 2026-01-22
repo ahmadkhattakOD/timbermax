@@ -537,7 +537,7 @@ export default function EditInvoice() {
                         })}
                         <TableRow>
                           <TableCell colSpan={5} align="right">
-                            <strong>Total:</strong>
+                            <strong>Subtotal:</strong>
                           </TableCell>
                           <TableCell>
                             <strong>${totalAmount.toFixed(2)}</strong>

@@ -112,8 +112,8 @@ const Dashboard: React.FC = () => {
 
         {/* Stock Metrics */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, height: "400px" }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ height: "400px" }}>
+            <Typography sx={{ p: 3 }} variant="h6" gutterBottom>
               Stock Status
             </Typography>
 

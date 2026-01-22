@@ -360,7 +360,7 @@ export default function CreateInvoice() {
                     changeAddress(newValue, actionMeta);
                     setFieldValue(
                       "address",
-                      newValue?.value?.description ?? ""
+                      newValue?.value?.description ?? "",
                     );
                   }}
                   value={selectedAddress}
@@ -494,7 +494,7 @@ export default function CreateInvoice() {
                                     updateItem(
                                       index,
                                       "quantity",
-                                      parseFloat(e.target.value)
+                                      parseFloat(e.target.value),
                                     );
                                   }}
                                   style={{
@@ -517,7 +517,7 @@ export default function CreateInvoice() {
                                   updateItem(
                                     index,
                                     "unit_price",
-                                    parseFloat(e.target.value) || 0
+                                    parseFloat(e.target.value) || 0,
                                   )
                                 }
                                 style={{
@@ -543,7 +543,7 @@ export default function CreateInvoice() {
                         ))}
                         <TableRow>
                           <TableCell colSpan={5} align="right">
-                            <strong>Total:</strong>
+                            <strong>Subtotal:</strong>
                           </TableCell>
                           <TableCell>
                             <strong>${totalAmount.toFixed(2)}</strong>

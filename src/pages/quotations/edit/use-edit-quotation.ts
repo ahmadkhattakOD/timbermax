@@ -7,6 +7,7 @@ import {
   useDebouncedSearch,
   getDateFormattedForField,
   calculateItemTotal,
+  calculateSubTotal,
 } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
@@ -67,10 +68,9 @@ export function useEditQuotation(quotationId: number) {
     status: "draft",
   });
 
-  const totalAmount = selectedItems.reduce(
-    (sum, item) =>
-      sum + parseFloat(item.quantity) * parseFloat(item.unit_price),
-    0
+ const totalAmount = selectedItems.reduce(
+    (sum, item) => sum + calculateSubTotal(item),
+    0,
   );
 
   function changeAddress(newValue: any, actionMeta: any) {

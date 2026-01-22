@@ -4,6 +4,7 @@ import {
   parseAddress,
   useDebouncedSearch,
   calculateItemTotal,
+  calculateSubTotal,
 } from "utils/helpers";
 import { openSnackbar } from "api/snackbar";
 import CustomersRepository, {
@@ -61,7 +62,7 @@ export function useCreateInvoice() {
   const [inlineCustomerName, setInlineCustomerName] = useState("");
   const [customerName, setCustomerName] = useState<string>("");
   const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + calculateItemTotal(item),
+    (sum, item) => sum + calculateSubTotal(item),
     0,
   );
 

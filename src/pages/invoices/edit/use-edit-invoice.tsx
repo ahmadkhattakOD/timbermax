@@ -7,6 +7,7 @@ import {
   useDebouncedSearch,
   getDateFormattedForField,
   calculateItemTotal,
+  calculateSubTotal,
 } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
@@ -46,7 +47,9 @@ export function useEditInvoice(invoiceId: number) {
   const [selectedPhone, setSelectedPhone] = useState<string>("");
   const [selectedMobile, setSelectedMobile] = useState<string>("");
   const [selectedPostCode, setSelectedPostCode] = useState<string>("");
-  const [selectedCustomer, setSelectedCustomer] = useState<number | undefined>(undefined);
+  const [selectedCustomer, setSelectedCustomer] = useState<number | undefined>(
+    undefined,
+  );
   const [customerSearch, setCustomerSearch] = useState<string>("");
   const [itemSearch, setItemSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -77,8 +80,8 @@ export function useEditInvoice(invoiceId: number) {
   });
 
   const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + calculateItemTotal(item),
-    0
+    (sum, item) => sum + calculateSubTotal(item),
+    0,
   );
 
   function changeAddress(newValue: any, actionMeta: any) {
@@ -241,7 +244,7 @@ export function useEditInvoice(invoiceId: number) {
       }
 
       let customerToUpdate;
-      
+
       // Handle inline customer creation
       if (createInlineCustomer) {
         const newCustomer: CustomerSupabase = {
@@ -287,19 +290,20 @@ export function useEditInvoice(invoiceId: number) {
 
           // First, try to find existing customer by name
           const customersRepository = new CustomersRepository();
-          const existingCustomers = await customersRepository.getByName(customerNameToUse);
+          const existingCustomers =
+            await customersRepository.getByName(customerNameToUse);
           let existingCustomer = null;
 
           if (existingCustomers?.customersData) {
             existingCustomer = existingCustomers.customersData.find(
-              (c: any) => c.name === customerNameToUse
+              (c: any) => c.name === customerNameToUse,
             );
           }
 
           if (existingCustomer) {
             // Customer exists, use it
             customerToUpdate = existingCustomer.id;
-            
+
             // Update customer details
             await customersRepository.edit(existingCustomer.id, {
               name: customerNameToUse,
@@ -324,7 +328,8 @@ export function useEditInvoice(invoiceId: number) {
               email: values.emailAddress,
             };
 
-            const createdCustomer = await customersRepository.create(newCustomer);
+            const createdCustomer =
+              await customersRepository.create(newCustomer);
             if (createdCustomer) {
               customerToUpdate = createdCustomer.id;
             } else if (createdCustomer === false) {
@@ -372,7 +377,7 @@ export function useEditInvoice(invoiceId: number) {
           await stocksRepo.restoreStockFromInvoice(
             item.item_id,
             1, // default warehouse
-            item.quantity
+            item.quantity,
           );
         }
       } else if (statusChangedFromCancelled) {
@@ -382,7 +387,7 @@ export function useEditInvoice(invoiceId: number) {
             item.item_id,
             // 1,
             parseFloat(item.quantity),
-            invoiceId
+            invoiceId,
           );
         }
       }
@@ -390,14 +395,16 @@ export function useEditInvoice(invoiceId: number) {
       // Calculate total with GST
       const totalWithGST = selectedItems.reduce(
         (sum, item) => sum + calculateItemTotal(item),
-        0
+        0,
       );
 
       // Update invoice details
       const updatedInvoice = {
         customer_id: customerToUpdate,
         total: totalWithGST,
-        invoice_date: values.invoice_date ? new Date(values.invoice_date) : null,
+        invoice_date: values.invoice_date
+          ? new Date(values.invoice_date)
+          : null,
         note: values.note,
         status: values.status,
         delivery_status: values.delivery_status,
@@ -423,7 +430,7 @@ export function useEditInvoice(invoiceId: number) {
 
         // Items to remove (in current but not in new)
         const itemsToRemove = currentItems.filter(
-          (item: any) => !newItemIds.includes(item.item_id)
+          (item: any) => !newItemIds.includes(item.item_id),
         );
 
         // Remove items that are no longer in the invoice
@@ -435,7 +442,7 @@ export function useEditInvoice(invoiceId: number) {
           await stocksRepo.restoreStockFromInvoice(
             item.item_id,
             1,
-            item.quantity
+            item.quantity,
           );
         }
 
@@ -446,7 +453,7 @@ export function useEditInvoice(invoiceId: number) {
           const itemUnitPrice = parseFloat(selectedItem.unit_price);
 
           const currentItem = currentItems.find(
-            (item: any) => item.item_id === itemId
+            (item: any) => item.item_id === itemId,
           );
 
           if (currentItem) {
@@ -468,7 +475,7 @@ export function useEditInvoice(invoiceId: number) {
                   itemId,
                   // 1,
                   quantityDiff,
-                  invoiceId
+                  invoiceId,
                 );
               } else if (quantityDiff < 0) {
                 // Need to restore stock
@@ -476,7 +483,7 @@ export function useEditInvoice(invoiceId: number) {
                 await stocksRepo.restoreStockFromInvoice(
                   itemId,
                   1,
-                  restoreAmount
+                  restoreAmount,
                 );
               }
             }
@@ -494,7 +501,7 @@ export function useEditInvoice(invoiceId: number) {
               itemId,
               // 1,
               newQuantity,
-              invoiceId
+              invoiceId,
             );
           }
         }
@@ -589,21 +596,19 @@ export function useEditInvoice(invoiceId: number) {
 
         // Set items
         if (invoice.invoice_items) {
-          const itemsWithDetails = invoice.invoice_items.map(
-            (item: any) => ({
-              item_id: item.item_id,
-              name: item.items?.name || "",
-              itemCode: item.items?.itemCode || "",
+          const itemsWithDetails = invoice.invoice_items.map((item: any) => ({
+            item_id: item.item_id,
+            name: item.items?.name || "",
+            itemCode: item.items?.itemCode || "",
+            quantity: item.quantity.toString(),
+            unit_price: item.unit_price.toString(),
+            gst: item.items?.gst || false,
+            total: calculateItemTotal({
               quantity: item.quantity.toString(),
               unit_price: item.unit_price.toString(),
               gst: item.items?.gst || false,
-              total: calculateItemTotal({
-                quantity: item.quantity.toString(),
-                unit_price: item.unit_price.toString(),
-                gst: item.items?.gst || false,
-              }).toString(),
-            })
-          );
+            }).toString(),
+          }));
           setSelectedItems(itemsWithDetails);
         }
       }

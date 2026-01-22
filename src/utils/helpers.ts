@@ -7,7 +7,7 @@ export function isNumeric(value: string): boolean {
 export function getDateFormattedForField(date?: string | Date) {
   if (date) {
     return `${new Date(date).getFullYear()}-${(new Date(date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(
-      date
+      date,
     )
       .getDate()
       .toString()
@@ -26,7 +26,7 @@ export function getDateFormatted(date?: string | Date) {
       .toString()
       .padStart(
         2,
-        "0"
+        "0",
       )}-${(new Date(date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(date).getFullYear()}`;
   }
   return `${new Date()
@@ -34,7 +34,7 @@ export function getDateFormatted(date?: string | Date) {
     .toString()
     .padStart(
       2,
-      "0"
+      "0",
     )}-${(new Date().getMonth() + 1).toString().padStart(2, "0")}-${new Date().getFullYear()}`;
 }
 
@@ -125,7 +125,7 @@ export function isRouteAllowed(
     | UserRoles.Admin
     | UserRoles.SuperAdmin
     | UserRoles.WarehouseOperator
-    | ""
+    | "",
 ) {
   // TODO: fix and uncomment this
   if (role === UserRoles.SuperAdmin) {
@@ -188,6 +188,15 @@ export const calculateItemTotal = (item: any) => {
   const price = parseFloat(item.unit_price);
 
   const baseTotal = qty * price;
+
+  return baseTotal;
+};
+
+export const calculateSubTotal = (item: any) => {
+  const qty = parseFloat(item.quantity);
+  const price = parseFloat(item.unit_price);
+
+  const baseTotal = qty * price;
   const gstAmount = item.gst ? baseTotal * 0.1 : 0;
 
   return baseTotal + gstAmount;
@@ -237,7 +246,7 @@ export function stripEmail(email: string) {
 
 export function formEmail(email: string) {
   const emailRegex = new RegExp(
-    /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/
+    /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?$/,
   );
 
   if (emailRegex.test(email)) {
@@ -249,7 +258,7 @@ export function formEmail(email: string) {
 
 export const useDebouncedSearch = (
   callback: Function,
-  delay: number = 1000
+  delay: number = 1000,
 ) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 

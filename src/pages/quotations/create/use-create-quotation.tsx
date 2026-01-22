@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
   calculateItemTotal,
+  calculateSubTotal,
   parseAddress,
   useDebouncedSearch,
 } from "utils/helpers";
@@ -54,8 +55,8 @@ export function useCreateQuotation() {
   const quotationNumberRef = useRef(`QT-${Date.now()}`);
 
   const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + calculateItemTotal(item),
-    0
+    (sum, item) => sum + calculateSubTotal(item),
+    0,
   );
 
   function changeAddress(newValue: any, actionMeta: any) {
@@ -250,7 +251,7 @@ export function useCreateQuotation() {
 
       const result = await quotationsRepo.createWithStockReservation(
         newQuotation,
-        itemsForReservation
+        itemsForReservation,
       );
 
       if (!result.success) {
