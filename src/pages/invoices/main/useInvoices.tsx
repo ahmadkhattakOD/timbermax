@@ -80,6 +80,12 @@ const headCells: HeadCell[] = [
     label: "Items",
   },
   {
+    id: "note",
+    numeric: false,
+    disablePadding: true,
+    label: "Note",
+  },
+  {
     id: "invoice_date",
     numeric: false,
     disablePadding: true,
@@ -374,6 +380,11 @@ export function useInvoices() {
         </TableCell>
         <TableCell align="center" sx={{ minWidth: 80 }}>
           <Typography>{itemsCount}</Typography>
+        </TableCell>
+        <TableCell sx={{ minWidth: 150 }}>
+          <Typography variant="body2">
+            {row.note || "-"}
+          </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Typography variant="body2">

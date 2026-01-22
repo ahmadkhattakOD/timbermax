@@ -306,23 +306,33 @@ export const generateAndDownloadDeliveryDocument = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 20;
 
+    // Notes Section
+    if (quotation.note) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Note:", 14, finalY);
+      doc.setFont("helvetica", "normal");
+      const splitNotes = doc.splitTextToSize(quotation.note, 180);
+      doc.text(splitNotes, 14, finalY + 10);
+    }
+
     // Delivery Instructions
     doc.setFont("helvetica", "bold");
-    doc.text("Delivery Instructions:", 14, finalY);
+    const instructionsY = finalY + (quotation.note ? 30 : 10);
+    doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
     doc.text(
       "Please ensure all items are checked upon delivery.",
       14,
-      finalY + 10
+      instructionsY + 10
     );
 
     // Signature Section
     doc.setFont("helvetica", "bold");
-    doc.text("Customer Signature:", 14, finalY + 40);
-    doc.line(14, finalY + 45, 100, finalY + 45);
+    doc.text("Customer Signature:", 14, instructionsY + 40);
+    doc.line(14, instructionsY + 45, 100, instructionsY + 45);
 
-    doc.text("Delivery Person:", 120, finalY + 40);
-    doc.line(120, finalY + 45, 180, finalY + 45);
+    doc.text("Delivery Person:", 120, instructionsY + 40);
+    doc.line(120, instructionsY + 45, 180, instructionsY + 45);
 
     // Footer
     doc.setFontSize(8);
@@ -495,7 +505,7 @@ export const openQuotationPDFInNewTab = async (
     // Notes Section
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, finalY + 50);
+      doc.text("Note:", 14, finalY + 50);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
       doc.text(splitNotes, 14, finalY + 60);

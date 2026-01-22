@@ -87,10 +87,10 @@ const headCells: HeadCell[] = [
     label: "Items",
   },
   {
-    id: "created_at",
+    id: "note",
     numeric: false,
     disablePadding: true,
-    label: "Created Date",
+    label: "Note",
   },
   {
     id: "actions",
@@ -474,7 +474,7 @@ export function useQuotations() {
           {itemsCount}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
-          {getDateFormatted(row.created_at)}
+          {row.note || "-"}
         </TableCell>
         <TableCell sx={{ minWidth: 350 }}>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>

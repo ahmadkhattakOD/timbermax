@@ -238,7 +238,7 @@ export const generateAndDownloadInvoicePDF = async (
     // Notes Section
     if (invoice.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, finalY + 95);
+      doc.text("Note:", 14, finalY + 95);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
       doc.text(splitNotes, 14, finalY + 100);
@@ -554,25 +554,35 @@ export const generateDeliveryNotePDF = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 20;
 
+    // Notes Section
+    if (invoice.note) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Note:", 14, finalY);
+      doc.setFont("helvetica", "normal");
+      const splitNotes = doc.splitTextToSize(invoice.note, 180);
+      doc.text(splitNotes, 14, finalY + 10);
+    }
+
     // Delivery Instructions
     doc.setFont("helvetica", "bold");
-    doc.text("Delivery Instructions:", 14, finalY);
+    const instructionsY = finalY + (invoice.note ? 30 : 10);
+    doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
-    doc.text("1. Check all items against this delivery note.", 14, finalY + 10);
-    doc.text("2. Report any discrepancies immediately.", 14, finalY + 15);
-    doc.text("3. Ensure packaging is intact.", 14, finalY + 20);
+    doc.text("1. Check all items against this delivery note.", 14, instructionsY + 10);
+    doc.text("2. Report any discrepancies immediately.", 14, instructionsY + 15);
+    doc.text("3. Ensure packaging is intact.", 14, instructionsY + 20);
 
     // Signature Section
     doc.setFont("helvetica", "bold");
-    doc.text("CUSTOMER SIGNATURE:", 14, finalY + 40);
-    doc.line(14, finalY + 45, 100, finalY + 45);
-    doc.text("Name: ____________________", 14, finalY + 50);
-    doc.text("Date: ____________________", 14, finalY + 55);
+    doc.text("CUSTOMER SIGNATURE:", 14, instructionsY + 40);
+    doc.line(14, instructionsY + 45, 100, instructionsY + 45);
+    doc.text("Name: ____________________", 14, instructionsY + 50);
+    doc.text("Date: ____________________", 14, instructionsY + 55);
 
-    doc.text("DELIVERY PERSON:", 120, finalY + 40);
-    doc.line(120, finalY + 45, 180, finalY + 45);
-    doc.text("Name: ____________________", 120, finalY + 50);
-    doc.text("Date: ____________________", 120, finalY + 55);
+    doc.text("DELIVERY PERSON:", 120, instructionsY + 40);
+    doc.line(120, instructionsY + 45, 180, instructionsY + 45);
+    doc.text("Name: ____________________", 120, instructionsY + 50);
+    doc.text("Date: ____________________", 120, instructionsY + 55);
 
     // Footer (similar to quotation delivery)
     doc.setFontSize(8);
