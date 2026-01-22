@@ -57,4 +57,36 @@ const inventory: NavItemType = {
   ],
 };
 
+const inventoryWithoutItems: NavItemType = {
+  id: "inventory-pages",
+  type: "group",
+  children: [
+    {
+      id: "inventory",
+      title: <FormattedMessage id="inventory" />,
+      type: "collapse",
+      icon: icons.inventory,
+      children: [
+        {
+          id: "stock",
+          title: <FormattedMessage id="stock" />,
+          type: "item",
+          url: "/stock",
+          icon: icons.stock,
+          target: false,
+        },
+        {
+          id: "warehouses",
+          title: <FormattedMessage id="warehouses" />,
+          type: "item",
+          url: "/warehouses",
+          icon: icons.warehouses,
+          target: false,
+        },
+      ],
+    },
+  ],
+};
+
 export default inventory;
+export { inventoryWithoutItems };

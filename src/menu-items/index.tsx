@@ -5,7 +5,7 @@ import users from "./users";
 import manage from "./manage";
 import dashboard from "./dashboard";
 import edit from "./edit";
-import inventory from "./inventory";
+import inventory, { inventoryWithoutItems } from "./inventory";
 import crm from "./crm";
 
 // ==============================|| MENU ITEMS ||============================== //
@@ -19,7 +19,7 @@ const menuItemsAdmin: { items: NavItemType[] } = {
 };
 
 const menuItemsWarehouseOperator: { items: NavItemType[] } = {
-  items: [inventory, edit],
+  items: [inventoryWithoutItems, edit],
 };
 
 export default {
