@@ -19,6 +19,8 @@ import { visuallyHidden } from "@mui/utils";
 import { DocumentDownload, Filter, Trash } from "iconsax-react";
 import { useDataTable } from "./useDataTable";
 import { FormattedMessage } from "react-intl";
+import useAuth from "hooks/useAuth";
+import { UserRoles } from "utils/helpers";
 
 export type Order = "asc" | "desc";
 
@@ -47,6 +49,7 @@ interface EnhancedTableToolbarProps {
   openFilterModal?: () => void;
   showFilter?: boolean;
   onDownload?: () => void;
+  canDelete?: boolean;
 }
 
 interface DataTableProps {
@@ -145,6 +148,7 @@ function EnhancedTableToolbar({
   openFilterModal,
   showFilter = true,
   onDownload,
+  canDelete = true,
 }: EnhancedTableToolbarProps) {
   return (
     <Toolbar
@@ -187,8 +191,10 @@ function EnhancedTableToolbar({
         </Tooltip>
       )}
       {numSelected > 0 ? (
-        <Tooltip title="Delete">
-          <IconButton onClick={openDeleteConfirmModal}>
+        <Tooltip
+          title={canDelete ? "Delete" : "You don't have permission to delete"}
+        >
+          <IconButton onClick={openDeleteConfirmModal} disabled={!canDelete}>
             <Trash />
           </IconButton>
         </Tooltip>
@@ -257,6 +263,8 @@ export default function DataTable({
     clickable: clickable,
   });
 
+  const { role } = useAuth();
+  const canDelete = role === UserRoles.SuperAdmin;
   return (
     <Box>
       <Paper sx={{ width: "100%", mb: 2, borderRadius: "8px" }}>
@@ -267,6 +275,7 @@ export default function DataTable({
           openFilterModal={openFilterModal}
           showFilter={showFilter}
           onDownload={onDownload}
+          canDelete={canDelete}
         />
         <TableContainer>
           <Table
