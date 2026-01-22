@@ -161,6 +161,69 @@ class StocksRepository {
     }
   }
 
+
+  public async transferReservedStockToInvoice(
+  quotationId: number,
+  invoiceId: number
+) {
+  try {
+    // 1. Get all reservations for this quotation
+    const { data: reservations, error } = await supabase
+      .from("stock_reservations")
+      .select("id, item_id, warehouse_id, quantity")
+      .eq("quotation_id", quotationId)
+      .eq("status", "on_hold");
+
+    if (error) {
+      return { success: false, error: `Failed to get reservations: ${error.message}` };
+    }
+
+    if (!reservations || reservations.length === 0) {
+      return { success: true, message: "No reservations to transfer", transferred: 0 };
+    }
+
+    let totalTransferred = 0;
+
+    // 2. Process each reservation
+    for (const reservation of reservations) {
+      // Release from reservation
+      const releaseResult = await this.releaseFromQuotation(
+        quotationId,
+        reservation.item_id,
+        reservation.warehouse_id,
+        reservation.quantity
+      );
+
+      if (!releaseResult.success) {
+        console.warn(`Failed to release reservation ${reservation.id}:`, releaseResult.error);
+        continue;
+      }
+
+      // Reduce stock (actual deduction)
+      const reduceResult = await this.reduceStockForInvoice(
+        reservation.item_id,
+        // reservation.warehouse_id,
+        reservation.quantity,
+        invoiceId
+      );
+
+      if (!reduceResult.success) {
+        console.warn(`Failed to reduce stock for item ${reservation.item_id}:`, reduceResult.error);
+        continue;
+      }
+
+      totalTransferred += reservation.quantity;
+    }
+
+    return {
+      success: true,
+      transferred: totalTransferred,
+      reservationsProcessed: reservations.length,
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
   public async getSingle(id: number) {
     try {
       const { data: stockData, error: stockError } = await supabase

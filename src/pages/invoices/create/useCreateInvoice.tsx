@@ -16,6 +16,7 @@ import InvoicesRepository, {
 import QuotationsRepository from "utils/repositories/quotationRepo";
 import { SnackbarProps } from "types/snackbar";
 import { useSearchParams } from "react-router-dom";
+import StocksRepository from "utils/repositories/stocksRepository";
 
 export interface ValuesCreateInvoice {
   invoice_number: string;
@@ -61,7 +62,7 @@ export function useCreateInvoice() {
   const [customerName, setCustomerName] = useState<string>("");
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateItemTotal(item),
-    0
+    0,
   );
 
   const customerIdFromUrl = searchParams.get("customer");
@@ -74,7 +75,7 @@ export function useCreateInvoice() {
       const customerData = await customersRepository.getSingle(customerId);
       if (customerData) {
         const customer = customerData.customerData;
-        console.log("Customer details",customer)
+        console.log("Customer details", customer);
         // Set customer details
         setSelectedCustomer(customerId);
         setCustomerName(customer.name || "");
@@ -244,7 +245,7 @@ export function useCreateInvoice() {
           setSelectedSuburb(quotation.quotationData.customers.suburb || "");
           setSelectedState(quotation.quotationData.customers.state || "");
           setSelectedPostCode(
-            quotation.quotationData.customers.post_code || ""
+            quotation.quotationData.customers.post_code || "",
           );
         }
 
@@ -260,7 +261,7 @@ export function useCreateInvoice() {
               unit_price: item.unit_price,
               gst: item.items?.gst || false,
               total: item.total_price,
-            }))
+            })),
           );
 
           openSnackbar({
@@ -366,6 +367,7 @@ export function useCreateInvoice() {
 
       const customersRepository = new CustomersRepository();
 
+      // Customer creation logic (keep as is)
       if (createInlineCustomer) {
         // Create new customer from inline form
         const newCustomer: CustomerSupabase = {
@@ -402,8 +404,7 @@ export function useCreateInvoice() {
           return;
         }
       } else {
-        // For existing customer mode - find or create customer by name
-        // If we have a selectedCustomer from quotation, use it
+        // For existing customer mode
         if (selectedCustomer) {
           customerToAdd = selectedCustomer;
         } else {
@@ -417,7 +418,7 @@ export function useCreateInvoice() {
 
           if (existingCustomers?.customersData) {
             existingCustomer = existingCustomers.customersData.find(
-              (c: any) => c.name === customerNameToUse
+              (c: any) => c.name === customerNameToUse,
             );
           }
 
@@ -467,62 +468,142 @@ export function useCreateInvoice() {
       const newInvoice: InvoiceSupabase = {
         invoice_number: values.invoice_number,
         customer_id: customerToAdd,
-        quotation_id: selectedQuotation?.id,
+        quotation_id: selectedQuotation?.id || null,
         total: totalAmount,
         invoice_date: new Date(values.invoice_date),
         note: values.note,
         status: "draft",
       };
 
-      // Prepare items for stock reduction (quantity only for stock adjustment)
-      const itemsForStockReduction = selectedItems.map((item) => ({
-        item_id: item.item_id,
-        quantity: parseFloat(item.quantity),
-      }));
-
-      // Create invoice with immediate stock reduction
       const invoicesRepo = new InvoicesRepository();
-      const result = await invoicesRepo.createWithStockReduction(
-        newInvoice,
-        itemsForStockReduction
-      );
+      const stocksRepo = new StocksRepository();
 
-      if (!result.success) {
+      if (selectedQuotation) {
+        // ============================================
+        // CASE 1: Creating invoice FROM QUOTATION
+        // ============================================
+
+        // 1. Create the invoice first
+        const createdInvoice = await invoicesRepo.create(newInvoice);
+
+        if (!createdInvoice) {
+          openSnackbar({
+            open: true,
+            message: "Failed to create invoice",
+            variant: "alert",
+            alert: { color: "error" },
+          } as SnackbarProps);
+          return;
+        }
+
+        const invoiceId = createdInvoice.id;
+
+        // 2. Add invoice items
+        for (const item of selectedItems) {
+          const itemQuantity = parseFloat(item.quantity);
+          const itemUnitPrice = parseFloat(item.unit_price);
+
+          await invoicesRepo.addItem({
+            invoice_id: invoiceId,
+            item_id: item.item_id,
+            quantity: itemQuantity,
+            unit_price: itemUnitPrice,
+          });
+        }
+
+        // 3. TRANSFER RESERVED STOCK from quotation to invoice
+        // This will:
+        //   a) Release the reservations from the quotation
+        //   b) Reduce the actual stock quantity
+        const transferResult = await stocksRepo.transferReservedStockToInvoice(
+          selectedQuotation.id,
+          invoiceId,
+        );
+
+        if (!transferResult.success) {
+          console.error("Stock transfer failed:", transferResult.error);
+
+          // Optional: Rollback the invoice creation
+          // await invoicesRepo.delete([invoiceId]);
+
+          openSnackbar({
+            open: true,
+            message: `Invoice created but stock transfer failed: ${transferResult.error}. Please check stock manually.`,
+            variant: "alert",
+            alert: { color: "warning" },
+          } as SnackbarProps);
+        }
+
+        // 4. Update quotation status to "converted"
+        const quotationsRepo = new QuotationsRepository();
+        const statusUpdate = await quotationsRepo.updateStatus(
+          selectedQuotation.id,
+          "converted",
+        );
+
+        if (!statusUpdate.success) {
+          console.warn(
+            "Failed to update quotation status:",
+            statusUpdate.error,
+          );
+          // Continue anyway since invoice is created
+        }
+
         openSnackbar({
           open: true,
-          message: `Invoice creation failed: ${result.error}`,
+          message: `Invoice created from quotation. ${transferResult.transferred || 0} items transferred from reserved stock.`,
           variant: "alert",
-          alert: { color: "error" },
+          alert: { color: "success" },
         } as SnackbarProps);
-        return;
-      }
+      } else {
+        // ============================================
+        // CASE 2: Creating REGULAR invoice (not from quotation)
+        // ============================================
 
-      // Add invoice items (with GST information)
-      for (const item of selectedItems) {
-        const itemQuantity = parseFloat(item.quantity);
-        const itemUnitPrice = parseFloat(item.unit_price);
-
-        await invoicesRepo.addItem({
-          invoice_id: result.invoice.id,
+        // Prepare items for stock reduction
+        const itemsForStockReduction = selectedItems.map((item) => ({
           item_id: item.item_id,
-          quantity: itemQuantity,
-          unit_price: itemUnitPrice,
-        });
+          quantity: parseFloat(item.quantity),
+        }));
+
+        // Create invoice with immediate stock reduction
+        const result = await invoicesRepo.createWithStockReduction(
+          newInvoice,
+          itemsForStockReduction,
+        );
+
+        if (!result.success) {
+          openSnackbar({
+            open: true,
+            message: `Invoice creation failed: ${result.error}`,
+            variant: "alert",
+            alert: { color: "error" },
+          } as SnackbarProps);
+          return;
+        }
+
+        // Add invoice items
+        for (const item of selectedItems) {
+          const itemQuantity = parseFloat(item.quantity);
+          const itemUnitPrice = parseFloat(item.unit_price);
+
+          await invoicesRepo.addItem({
+            invoice_id: result.invoice.id,
+            item_id: item.item_id,
+            quantity: itemQuantity,
+            unit_price: itemUnitPrice,
+          });
+        }
+
+        openSnackbar({
+          open: true,
+          message: "Invoice created successfully. Stock has been reduced.",
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
       }
 
-      // Update quotation status if created from quotation
-      if (selectedQuotation) {
-        const quotationsRepo = new QuotationsRepository();
-        await quotationsRepo.updateStatus(selectedQuotation.id, "converted");
-      }
-
-      openSnackbar({
-        open: true,
-        message: "Invoice created successfully. Stock has been reduced.",
-        variant: "alert",
-        alert: { color: "success" },
-      } as SnackbarProps);
-
+      // Navigate to invoices page
       navigate("/invoices");
     } catch (e: any) {
       console.error("Error creating invoice:", e);
@@ -578,7 +659,7 @@ export function useCreateInvoice() {
     if (allQuotations?.quotationsData) {
       // Filter only non-converted quotations
       const activeQuotations = allQuotations.quotationsData.filter(
-        (q: any) => q.status !== "converted" && q.status !== "cancelled"
+        (q: any) => q.status !== "converted" && q.status !== "cancelled",
       );
       setQuotations(activeQuotations);
     }
