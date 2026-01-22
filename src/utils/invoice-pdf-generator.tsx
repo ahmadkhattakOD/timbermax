@@ -40,7 +40,7 @@ export interface InvoiceForPDF {
 const addCompanyLogo = async (
   doc: jsPDF,
   xPosition: number = 14,
-  yPosition: number = 20
+  yPosition: number = 20,
 ) => {
   try {
     // Path to the logo - same as quotation example
@@ -79,7 +79,7 @@ const COMPANY_INFO = {
 };
 
 export const generateAndDownloadInvoicePDF = async (
-  invoice: InvoiceForPDF
+  invoice: InvoiceForPDF,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
@@ -134,7 +134,7 @@ export const generateAndDownloadInvoicePDF = async (
       doc.text(
         `${customer.suburb} ${customer.state} ${customer.post_code}`,
         14,
-        110 // Increased y
+        110, // Increased y
       );
     }
     doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115); // Increased y
@@ -146,102 +146,115 @@ export const generateAndDownloadInvoicePDF = async (
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity) || 0;
       const unitPrice = parseFloat(item.unit_price) || 0;
-      const baseTotal = quantity * unitPrice;
+      const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
-      const totalWithGST = baseTotal + gstAmount;
+
+      // Add star (*) to item name if GST applies
+      const itemName = item.items?.name || "N/A";
+      const itemNameWithGst = gst ? `${itemName} *` : itemName;
 
       return [
         index + 1,
-        item.items?.name || "N/A",
+        itemNameWithGst,
         item.items?.itemCode || "N/A",
         quantity.toFixed(2),
         `$${unitPrice.toFixed(2)}`,
-        gst ? "Yes" : "No",
-        `$${totalWithGST.toFixed(2)}`, // Showing total with GST included
+        `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
       ];
     });
 
     // Calculate totals
-    let totalBaseAmount = 0;
-    let totalGSTAmount = 0;
+    let totalSubtotal = 0;
+    let totalGST = 0;
     let grandTotal = 0;
 
     items.forEach((item: any) => {
       const quantity = parseFloat(item.quantity) || 0;
       const unitPrice = parseFloat(item.unit_price) || 0;
-      const baseTotal = quantity * unitPrice;
+      const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
+      const gstAmount = gst ? subtotal * 0.1 : 0;
 
-      totalBaseAmount += baseTotal;
-      totalGSTAmount += gstAmount;
-      grandTotal += baseTotal + gstAmount;
+      totalSubtotal += subtotal;
+      totalGST += gstAmount;
+      grandTotal += subtotal + gstAmount;
     });
 
     autoTable(doc, {
       startY: 135, // Increased from 120
-      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
+      head: [["#", "Description", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
       body: tableData,
       theme: "grid",
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
       },
-
-      styles: { fontSize: 8 },
+      styles: {
+        fontSize: 8,
+        lineColor: BRAND_COLORS.tableBorder as any,
+        textColor: BRAND_COLORS.textDark as any,
+      },
       columnStyles: {
         0: { cellWidth: 10 }, // #
-        1: { cellWidth: 60 }, // Description
+        1: { cellWidth: 70 }, // Description (increased width for star symbol)
         2: { cellWidth: 25 }, // Code
         3: { cellWidth: 20 }, // Qty
         4: { cellWidth: 30 }, // Unit Price
-        5: { cellWidth: 20 }, // GST
-        6: { cellWidth: 30 }, // Total
+        5: { cellWidth: 30 }, // Total (now shows subtotal)
       },
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
 
+    // Add GST note below the table
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(
+      "* Items marked with an asterisk (*) are GST applicable",
+      14,
+      finalY,
+    );
+
     // Summary Section
+    const summaryY = finalY + 10;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("Payment Summary:", 120, finalY);
+    doc.text("Payment Summary:", 120, summaryY);
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal:`, 120, finalY + 10);
-    doc.text(`GST:`, 120, finalY + 20);
+    doc.text(`Subtotal:`, 120, summaryY + 10);
+    doc.text(`GST:`, 120, summaryY + 20);
     doc.setFont("helvetica", "bold");
-    doc.text(`Total Due:`, 120, finalY + 30);
+    doc.text(`Total Due:`, 120, summaryY + 30);
 
-    doc.text(`$${totalBaseAmount.toFixed(2)}`, 180, finalY + 10, {
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, summaryY + 10, {
       align: "right",
     });
-    doc.text(`$${totalGSTAmount.toFixed(2)}`, 180, finalY + 20, {
+    doc.text(`$${totalGST.toFixed(2)}`, 180, summaryY + 20, {
       align: "right",
     });
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, finalY + 30, {
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, summaryY + 30, {
       align: "right",
     });
 
     // Payment Terms
     doc.setFont("helvetica", "bold");
-    doc.text("Payment Terms:", 14, finalY + 50);
+    doc.text("Payment Terms:", 14, summaryY + 50);
     doc.setFont("helvetica", "normal");
-    doc.text("Please pay within 30 days of invoice date.", 14, finalY + 55);
-    doc.text("Bank Details:", 14, finalY + 60);
-    doc.text("Bank: Commonwealth Bank", 14, finalY + 65);
-    doc.text("BSB: 123-456", 14, finalY + 70);
-    doc.text("Account: 12345678", 14, finalY + 75);
-    doc.text("Reference: " + invoice.invoice_number, 14, finalY + 80);
+    doc.text("Please pay within 30 days of invoice date.", 14, summaryY + 55);
+    doc.text("Bank Details:", 14, summaryY + 60);
+    doc.text("Bank: Commonwealth Bank", 14, summaryY + 65);
+    doc.text("BSB: 123-456", 14, summaryY + 70);
+    doc.text("Account: 12345678", 14, summaryY + 75);
+    doc.text("Reference: " + invoice.invoice_number, 14, summaryY + 80);
 
     // Notes Section
     if (invoice.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, finalY + 95);
+      doc.text("Note:", 14, summaryY + 95);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
-      doc.text(splitNotes, 14, finalY + 100);
+      doc.text(splitNotes, 14, summaryY + 100);
     }
 
     // Footer (same as quotation)
@@ -250,17 +263,17 @@ export const generateAndDownloadInvoicePDF = async (
       "Thank you for your business!",
       105,
       doc.internal.pageSize.height - 20,
-      { align: "center" }
+      { align: "center" },
     );
     doc.text(
       "This is a computer-generated invoice. No signature required.",
       105,
       doc.internal.pageSize.height - 15,
-      { align: "center" }
+      { align: "center" },
     );
 
     const fileName = `invoice_${invoice.invoice_number}_${getDateFormatted(
-      new Date().toISOString()
+      new Date().toISOString(),
     )}.pdf`;
 
     doc.save(fileName);
@@ -272,199 +285,8 @@ export const generateAndDownloadInvoicePDF = async (
   }
 };
 
-export const openInvoicePDFInNewTab = async (
-  invoice: InvoiceForPDF
-): Promise<void> => {
-  try {
-    const doc = new jsPDF();
-
-    // Add company logo
-    await addCompanyLogo(doc, 14, 20);
-
-    // Header - moved down to make room for logo
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("TAX INVOICE", 105, 45, { align: "center" });
-
-    // Company Info - moved down
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(COMPANY_INFO.name, 14, 60);
-    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
-    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
-    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
-    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
-
-    // Invoice Info (right aligned) - moved down
-    doc.setFont("helvetica", "normal");
-    doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 60, {
-      align: "right",
-    });
-    doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 180, 65, {
-      align: "right",
-    });
-    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 70, {
-      align: "right",
-    });
-    if (invoice.delivery_status) {
-      doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 75, {
-        align: "right",
-      });
-    }
-    if (invoice.quotation_id) {
-      doc.text(`Ref Quote: ${invoice.quotation_id}`, 180, 80, {
-        align: "right",
-      });
-    }
-
-    // Customer Info - moved down
-    const customer = invoice.customer;
-    doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 14, 95);
-    doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 100);
-    doc.text(customer?.address || "", 14, 105);
-    if (customer?.suburb) {
-      doc.text(
-        `${customer.suburb} ${customer.state} ${customer.post_code}`,
-        14,
-        110
-      );
-    }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
-    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
-    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 125);
-
-    // Items Table
-    const items = invoice.invoice_items || [];
-    const tableData = items.map((item: any, index: number) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const unitPrice = parseFloat(item.unit_price) || 0;
-      const baseTotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
-      const totalWithGST = baseTotal + gstAmount;
-
-      return [
-        index + 1,
-        item.items?.name || "N/A",
-        item.items?.itemCode || "N/A",
-        quantity.toFixed(2),
-        `$${unitPrice.toFixed(2)}`,
-        gst ? "Yes" : "No",
-        `$${totalWithGST.toFixed(2)}`,
-      ];
-    });
-
-    // Calculate totals
-    let totalBaseAmount = 0;
-    let totalGSTAmount = 0;
-    let grandTotal = 0;
-
-    items.forEach((item: any) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const unitPrice = parseFloat(item.unit_price) || 0;
-      const baseTotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
-
-      totalBaseAmount += baseTotal;
-      totalGSTAmount += gstAmount;
-      grandTotal += baseTotal + gstAmount;
-    });
-
-    autoTable(doc, {
-      startY: 135,
-      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
-      body: tableData,
-      theme: "grid",
-      headStyles: { fillColor: BRAND_COLORS.primary as any, textColor: 255 },
-      styles: { fontSize: 8 },
-      columnStyles: {
-        0: { cellWidth: 10 }, // #
-        1: { cellWidth: 60 }, // Description
-        2: { cellWidth: 25 }, // Code
-        3: { cellWidth: 20 }, // Qty
-        4: { cellWidth: 30 }, // Unit Price
-        5: { cellWidth: 20 }, // GST
-        6: { cellWidth: 30 }, // Total
-      },
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-    // Summary Section
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Payment Summary:", 120, finalY);
-
-    doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal:`, 120, finalY + 10);
-    doc.text(`GST:`, 120, finalY + 20);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Total Due:`, 120, finalY + 30);
-
-    doc.text(`$${totalBaseAmount.toFixed(2)}`, 180, finalY + 10, {
-      align: "right",
-    });
-    doc.text(`$${totalGSTAmount.toFixed(2)}`, 180, finalY + 20, {
-      align: "right",
-    });
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, finalY + 30, {
-      align: "right",
-    });
-
-    // Payment Terms
-    doc.setFont("helvetica", "bold");
-    doc.text("Payment Terms:", 14, finalY + 50);
-    doc.setFont("helvetica", "normal");
-    doc.text("Please pay within 30 days of invoice date.", 14, finalY + 55);
-    doc.text("Bank Details:", 14, finalY + 60);
-    doc.text("Bank: Commonwealth Bank", 14, finalY + 65);
-    doc.text("BSB: 123-456", 14, finalY + 70);
-    doc.text("Account: 12345678", 14, finalY + 75);
-    doc.text("Reference: " + invoice.invoice_number, 14, finalY + 80);
-
-    // Notes Section
-    if (invoice.note) {
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, finalY + 95);
-      doc.setFont("helvetica", "normal");
-      const splitNotes = doc.splitTextToSize(invoice.note, 180);
-      doc.text(splitNotes, 14, finalY + 100);
-    }
-
-    // Footer
-    doc.setFontSize(8);
-    doc.text(
-      "Thank you for your business!",
-      105,
-      doc.internal.pageSize.height - 20,
-      { align: "center" }
-    );
-    doc.text(
-      "This is a computer-generated invoice. No signature required.",
-      105,
-      doc.internal.pageSize.height - 15,
-      { align: "center" }
-    );
-
-    const pdfBlob = doc.output("blob");
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-
-    window.open(pdfUrl, "_blank");
-
-    setTimeout(() => {
-      URL.revokeObjectURL(pdfUrl);
-    }, 1000);
-  } catch (error: any) {
-    console.error("Error opening invoice PDF:", error);
-    throw error;
-  }
-};
-
 export const generateDeliveryNotePDF = async (
-  invoice: InvoiceForPDF
+  invoice: InvoiceForPDF,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
@@ -503,7 +325,7 @@ export const generateDeliveryNotePDF = async (
       75,
       {
         align: "right",
-      }
+      },
     );
 
     // Customer Info - moved down
@@ -517,7 +339,7 @@ export const generateDeliveryNotePDF = async (
       doc.text(
         `${customer.suburb} ${customer.state} ${customer.post_code}`,
         14,
-        110
+        110,
       );
     }
     doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
@@ -527,9 +349,13 @@ export const generateDeliveryNotePDF = async (
     const items = invoice.invoice_items || [];
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity) || 0;
+      const gst = item.items?.gst || false;
+      const itemName = item.items?.name || "N/A";
+      const itemNameWithGst = gst ? `${itemName} *` : itemName;
+
       return [
         index + 1,
-        item.items?.name || "N/A",
+        itemNameWithGst,
         item.items?.itemCode || "N/A",
         quantity.toFixed(2),
         "PENDING", // Received status
@@ -541,8 +367,15 @@ export const generateDeliveryNotePDF = async (
       head: [["#", "Item Description", "Code", "Quantity", "Received"]],
       body: tableData,
       theme: "grid",
-      headStyles: { fillColor: BRAND_COLORS.primary as any, textColor: 255 }, // Same green as quotation delivery
-      styles: { fontSize: 9 },
+      headStyles: {
+        fillColor: BRAND_COLORS.primary as any,
+        textColor: 255,
+      }, // Same green as quotation delivery
+      styles: {
+        fontSize: 9,
+        lineColor: BRAND_COLORS.tableBorder as any,
+        textColor: BRAND_COLORS.textDark as any,
+      },
       columnStyles: {
         0: { cellWidth: 10 },
         1: { cellWidth: 80 },
@@ -554,22 +387,40 @@ export const generateDeliveryNotePDF = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 20;
 
+    // Add GST note for delivery note too
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(
+      "* Items marked with an asterisk (*) are GST applicable",
+      14,
+      finalY,
+    );
+
     // Notes Section
+    const noteY = finalY + 10;
     if (invoice.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, finalY);
+      doc.text("Note:", 14, noteY);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
-      doc.text(splitNotes, 14, finalY + 10);
+      doc.text(splitNotes, 14, noteY + 10);
     }
 
     // Delivery Instructions
     doc.setFont("helvetica", "bold");
-    const instructionsY = finalY + (invoice.note ? 30 : 10);
+    const instructionsY = noteY + (invoice.note ? 30 : 10);
     doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
-    doc.text("1. Check all items against this delivery note.", 14, instructionsY + 10);
-    doc.text("2. Report any discrepancies immediately.", 14, instructionsY + 15);
+    doc.text(
+      "1. Check all items against this delivery note.",
+      14,
+      instructionsY + 10,
+    );
+    doc.text(
+      "2. Report any discrepancies immediately.",
+      14,
+      instructionsY + 15,
+    );
     doc.text("3. Ensure packaging is intact.", 14, instructionsY + 20);
 
     // Signature Section
@@ -590,11 +441,11 @@ export const generateDeliveryNotePDF = async (
       "This document serves as proof of delivery.",
       105,
       doc.internal.pageSize.height - 20,
-      { align: "center" }
+      { align: "center" },
     );
 
     const fileName = `delivery_note_${invoice.invoice_number}_${getDateFormatted(
-      new Date().toISOString()
+      new Date().toISOString(),
     )}.pdf`;
 
     doc.save(fileName);

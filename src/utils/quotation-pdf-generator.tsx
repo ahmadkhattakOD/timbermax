@@ -100,42 +100,43 @@ export const generateAndDownloadQuotationPDF = async (
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
-      const baseTotal = quantity * unitPrice;
+      const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
-      const totalWithGST = baseTotal + gstAmount;
+      
+      // Add star (*) to item name if GST applies
+      const itemName = item.items?.name || "N/A";
+      const itemNameWithGst = gst ? `${itemName} *` : itemName;
 
       return [
         index + 1,
-        item.items?.name || "N/A",
+        itemNameWithGst,
         item.items?.itemCode || "N/A",
         quantity.toFixed(2),
         `$${unitPrice.toFixed(2)}`,
-        gst ? "Yes" : "No",
-        `$${totalWithGST.toFixed(2)}`, // Removed GST Amount column, now showing Total only
+        `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
       ];
     });
 
-    // Add GST summary
-    let totalBaseAmount = 0;
-    let totalGSTAmount = 0;
+    // Calculate totals
+    let totalSubtotal = 0;
+    let totalGST = 0;
     let grandTotal = 0;
 
     items.forEach((item: any) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
-      const baseTotal = quantity * unitPrice;
+      const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
+      const gstAmount = gst ? subtotal * 0.1 : 0;
 
-      totalBaseAmount += baseTotal;
-      totalGSTAmount += gstAmount;
-      grandTotal += baseTotal + gstAmount;
+      totalSubtotal += subtotal;
+      totalGST += gstAmount;
+      grandTotal += subtotal + gstAmount;
     });
 
     autoTable(doc, {
       startY: 130, // Increased from 100 to 130
-      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
+      head: [["#", "Description", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -149,45 +150,50 @@ export const generateAndDownloadQuotationPDF = async (
       },
       columnStyles: {
         0: { cellWidth: 10 }, // #
-        1: { cellWidth: 60 }, // Description
+        1: { cellWidth: 70 }, // Description (increased width for star symbol)
         2: { cellWidth: 25 }, // Code
         3: { cellWidth: 20 }, // Qty
         4: { cellWidth: 30 }, // Unit Price
-        5: { cellWidth: 20 }, // GST
-        6: { cellWidth: 30 }, // Total
+        5: { cellWidth: 30 }, // Total (now shows subtotal)
       },
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
 
+    // Add GST note below the table
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("* Items marked with an asterisk (*) are GST applicable", 14, finalY);
+
     // Summary Section
+    const summaryY = finalY + 10;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("Summary:", 120, finalY);
+    doc.text("Summary:", 120, summaryY);
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal:`, 120, finalY + 10);
-    doc.text(`GST:`, 120, finalY + 20);
+    doc.text(`Subtotal:`, 120, summaryY + 10);
+    doc.text(`GST:`, 120, summaryY + 20);
     doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total:`, 120, finalY + 30);
+    doc.text(`Grand Total:`, 120, summaryY + 30);
 
-    doc.text(`$${totalBaseAmount.toFixed(2)}`, 180, finalY + 10, {
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, summaryY + 10, {
       align: "right",
     });
-    doc.text(`$${totalGSTAmount.toFixed(2)}`, 180, finalY + 20, {
+    doc.text(`$${totalGST.toFixed(2)}`, 180, summaryY + 20, {
       align: "right",
     });
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, finalY + 30, {
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, summaryY + 30, {
       align: "right",
     });
 
     // Notes Section
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, finalY + 50);
+      doc.text("Notes:", 14, summaryY + 50);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, finalY + 60);
+      doc.text(splitNotes, 14, summaryY + 60);
     }
 
     // Footer
@@ -273,10 +279,13 @@ export const generateAndDownloadDeliveryDocument = async (
     const items = quotation.quotation_items || [];
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
+      const gst = item.items?.gst || false;
+      const itemName = item.items?.name || "N/A";
+      const itemNameWithGst = gst ? `${itemName} *` : itemName;
 
       return [
         index + 1,
-        item.items?.name || "N/A",
+        itemNameWithGst,
         item.items?.itemCode || "N/A",
         quantity.toFixed(2),
       ];
@@ -306,18 +315,23 @@ export const generateAndDownloadDeliveryDocument = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 20;
 
+    // Add GST note for delivery document too
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("* Items marked with an asterisk (*) are GST applicable", 14, finalY);
+
     // Notes Section
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, finalY);
+      doc.text("Note:", 14, finalY + 10);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, finalY + 10);
+      doc.text(splitNotes, 14, finalY + 20);
     }
 
     // Delivery Instructions
     doc.setFont("helvetica", "bold");
-    const instructionsY = finalY + (quotation.note ? 30 : 10);
+    const instructionsY = finalY + (quotation.note ? 40 : 20);
     doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
     doc.text(
@@ -421,42 +435,43 @@ export const openQuotationPDFInNewTab = async (
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
-      const baseTotal = quantity * unitPrice;
+      const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
-      const totalWithGST = baseTotal + gstAmount;
+      
+      // Add star (*) to item name if GST applies
+      const itemName = item.items?.name || "N/A";
+      const itemNameWithGst = gst ? `${itemName} *` : itemName;
 
       return [
         index + 1,
-        item.items?.name || "N/A",
+        itemNameWithGst,
         item.items?.itemCode || "N/A",
         quantity.toFixed(2),
         `$${unitPrice.toFixed(2)}`,
-        gst ? "Yes" : "No",
-        `$${totalWithGST.toFixed(2)}`, // Removed GST Amount column, now showing Total only
+        `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
       ];
     });
 
-    // Add GST summary
-    let totalBaseAmount = 0;
-    let totalGSTAmount = 0;
+    // Calculate totals
+    let totalSubtotal = 0;
+    let totalGST = 0;
     let grandTotal = 0;
 
     items.forEach((item: any) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
-      const baseTotal = quantity * unitPrice;
+      const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      const gstAmount = gst ? baseTotal * 0.1 : 0;
+      const gstAmount = gst ? subtotal * 0.1 : 0;
 
-      totalBaseAmount += baseTotal;
-      totalGSTAmount += gstAmount;
-      grandTotal += baseTotal + gstAmount;
+      totalSubtotal += subtotal;
+      totalGST += gstAmount;
+      grandTotal += subtotal + gstAmount;
     });
 
     autoTable(doc, {
       startY: 130,
-      head: [["#", "Description", "Code", "Qty", "Unit Price", "GST", "Total"]],
+      head: [["#", "Description", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -470,45 +485,50 @@ export const openQuotationPDFInNewTab = async (
       },
       columnStyles: {
         0: { cellWidth: 10 }, // #
-        1: { cellWidth: 60 }, // Description
+        1: { cellWidth: 70 }, // Description (increased width for star symbol)
         2: { cellWidth: 25 }, // Code
         3: { cellWidth: 20 }, // Qty
         4: { cellWidth: 30 }, // Unit Price
-        5: { cellWidth: 20 }, // GST
-        6: { cellWidth: 30 }, // Total
+        5: { cellWidth: 30 }, // Total (now shows subtotal)
       },
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
 
+    // Add GST note below the table
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("* Items marked with an asterisk (*) are GST applicable", 14, finalY);
+
     // Summary Section
+    const summaryY = finalY + 10;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("Summary:", 120, finalY);
+    doc.text("Summary:", 120, summaryY);
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal:`, 120, finalY + 10);
-    doc.text(`GST:`, 120, finalY + 20);
+    doc.text(`Subtotal:`, 120, summaryY + 10);
+    doc.text(`GST:`, 120, summaryY + 20);
     doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total:`, 120, finalY + 30);
+    doc.text(`Grand Total:`, 120, summaryY + 30);
 
-    doc.text(`$${totalBaseAmount.toFixed(2)}`, 180, finalY + 10, {
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, summaryY + 10, {
       align: "right",
     });
-    doc.text(`$${totalGSTAmount.toFixed(2)}`, 180, finalY + 20, {
+    doc.text(`$${totalGST.toFixed(2)}`, 180, summaryY + 20, {
       align: "right",
     });
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, finalY + 30, {
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, summaryY + 30, {
       align: "right",
     });
 
     // Notes Section
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, finalY + 50);
+      doc.text("Note:", 14, summaryY + 50);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, finalY + 60);
+      doc.text(splitNotes, 14, summaryY + 60);
     }
 
     // Footer
