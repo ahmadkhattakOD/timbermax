@@ -47,7 +47,7 @@ const manageAdmin: NavItemType = {
       children: [
         {
           id: "invoices",
-          title: <FormattedMessage id="Invoice" />,
+          title: <FormattedMessage id="Invoices" />,
           type: "item",
           url: "/invoices",
           icon: icons.invoices,

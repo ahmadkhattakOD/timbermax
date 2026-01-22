@@ -39,14 +39,7 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
-import {
-  Download,
-  Send,
-  Wallet,
-  Eye,
-  Truck,
-  X,
-} from "lucide-react";
+import { Download, Send, Wallet, Eye, Truck, X } from "lucide-react";
 
 // Head cells for the table
 const headCells: HeadCell[] = [
@@ -222,7 +215,7 @@ export function useInvoices() {
       } as SnackbarProps);
 
       const result = await generateAndDownloadInvoicePDF(
-        invoiceResponse.invoiceData
+        invoiceResponse.invoiceData,
       );
 
       if (result.success) {
@@ -294,17 +287,17 @@ export function useInvoices() {
   const generateTableCells = (
     row: any,
     labelId: string,
-    isItemSelected: boolean
+    isItemSelected: boolean,
   ) => {
     const itemsCount = row.invoice_items?.length || 0;
     const canMarkPaid = row.status === "sent" || row.status === "draft";
     const canCancel = row.status !== "cancelled" && row.status !== "paid";
     const canMarkSent = row.status === "draft";
     const canUpdateDelivery = row.status !== "cancelled";
-    const canDownloadPDF = row.status !== "cancelled";
     const canDownloadDeliveryNote =
-      row.delivery_status &&
-      ["packed", "shipped", "delivered"].includes(row.delivery_status);
+      row.status !== "cancelled" && itemsCount > 0;
+
+    const canDownloadPDF = row.status !== "cancelled";
 
     // Status chip colors
     const statusColors: any = {
@@ -599,7 +592,8 @@ export function useInvoices() {
           onClick={() => {
             if (currentInvoiceInfo?.invoiceNumber) {
               const invoiceId = data.find(
-                (inv) => inv.invoice_number === currentInvoiceInfo.invoiceNumber
+                (inv) =>
+                  inv.invoice_number === currentInvoiceInfo.invoiceNumber,
               )?.id;
               if (invoiceId) {
                 downloadInvoicePDF(invoiceId);
@@ -674,7 +668,7 @@ export function useInvoices() {
   const cancelInvoice = async (invoiceId: number) => {
     if (
       !window.confirm(
-        "Are you sure you want to cancel this invoice? This will restore stock."
+        "Are you sure you want to cancel this invoice? This will restore stock.",
       )
     ) {
       return;
@@ -717,7 +711,7 @@ export function useInvoices() {
     try {
       const invoicesRepo = new InvoicesRepository();
       const invoice: any = await invoicesRepo.getSingle(
-        selectedInvoiceForDelivery
+        selectedInvoiceForDelivery,
       );
       if (!invoice?.invoiceData) {
         throw new Error("Invoice not found");
@@ -738,7 +732,7 @@ export function useInvoices() {
           ...restItems,
           delivery_status: status,
           updated_at: new Date().toISOString(),
-        }
+        },
       );
 
       if (updatedInvoice) {
@@ -807,9 +801,8 @@ export function useInvoices() {
         rangeStart,
         rangeEnd,
         rowsPerPage,
-        filters
+        filters,
       );
-      console.log("INVOICES",invoices)
       if (invoices) {
         const { invoicesData, invoicesCount, invoicesError } = invoices;
         if (invoicesData && !invoicesError) {
@@ -877,7 +870,7 @@ export function useInvoices() {
       max_total: undefined,
     });
   };
-  
+
   const updateDeliveryStatus = async (invoiceId: number, status: string) => {
     return handleDeliveryStatusUpdate(status);
   };

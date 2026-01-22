@@ -106,17 +106,13 @@ export default function MainInvoices() {
     handleSearchDebounced,
     searchValue,
     setSearchValue,
-    markAsPaid,
-    cancelInvoice,
+
     updateDeliveryStatus,
-    downloadInvoicePDF,
-    downloadDeliveryNotePDF,
+
     ItemsModal,
     deliveryMenuAnchor,
     selectedInvoiceForDelivery,
     setDeliveryMenuAnchor,
-    markAsSent,
-    viewItemsModal,
   } = useInvoices();
 
   // Delivery status menu
@@ -124,54 +120,11 @@ export default function MainInvoices() {
     setDeliveryMenuAnchor(null);
   };
 
-  const handleDeliveryStatusClick = (
-    invoiceId: number,
-    event: React.MouseEvent<HTMLElement>
-  ) => {
-    // This would be handled in the generateTableCells
-    // We keep this for the menu component
-  };
-
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         actionButton={
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            {selected.length === 1 && (
-              <>
-                <Tooltip title="Download Invoice PDF">
-                  <Button
-                    variant="outlined"
-                    startIcon={<Download size={18} />}
-                    onClick={() => downloadInvoicePDF(selected[0])}
-                    sx={{ gap: 1 }}
-                  >
-                    PDF
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Download Delivery Note">
-                  <Button
-                    variant="outlined"
-                    startIcon={<Truck size={18} />}
-                    onClick={() => downloadDeliveryNotePDF(selected[0])}
-                    sx={{ gap: 1 }}
-                    color="secondary"
-                  >
-                    Delivery Note
-                  </Button>
-                </Tooltip>
-              </>
-            )}
-            {selected.length > 0 && (
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={openDeleteConfirmModal}
-                sx={{ gap: 1 }}
-              >
-                Delete ({selected.length})
-              </Button>
-            )}
             <ActionButton
               text="Create New Invoice"
               onClick={goToCreate}
@@ -218,77 +171,6 @@ export default function MainInvoices() {
           </Box>
         }
       />
-
-      {/* Bulk Actions Section */}
-      {selected.length > 0 && (
-        <Box
-          sx={{
-            mt: 2,
-            mb: 2,
-            p: 2,
-            backgroundColor: "primary.lighter",
-            borderRadius: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 2,
-          }}
-        >
-          <Typography variant="subtitle1" fontWeight={600}>
-            {selected.length} invoice(s) selected
-          </Typography>
-
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Send size={16} />}
-              onClick={() => {
-                selected.forEach((invoiceId) => markAsSent(invoiceId));
-              }}
-              disabled={loading}
-            >
-              Mark as Sent
-            </Button>
-
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Wallet size={16} />}
-              onClick={() => {
-                selected.forEach((invoiceId) => markAsPaid(invoiceId));
-              }}
-              disabled={loading}
-              color="success"
-            >
-              Mark as Paid
-            </Button>
-
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Download size={16} />}
-              onClick={() => {
-                selected.forEach((invoiceId) => downloadInvoicePDF(invoiceId));
-              }}
-              disabled={loading}
-              color="primary"
-            >
-              Download PDFs
-            </Button>
-
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setSelected([])}
-              disabled={loading}
-            >
-              Clear Selection
-            </Button>
-          </Box>
-        </Box>
-      )}
 
       <DataTable
         data={data}
