@@ -251,7 +251,7 @@ export const generateAndDownloadInvoicePDF = async (
     // Notes Section
     if (invoice.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, summaryY + 95);
+      doc.text("Notes:", 14, summaryY + 95);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
       doc.text(splitNotes, 14, summaryY + 100);
@@ -320,7 +320,7 @@ export const generateDeliveryNotePDF = async (
       align: "right",
     });
     doc.text(
-      `Status: ${invoice.delivery_status?.toUpperCase() || "PENDING"}`,
+      `Status: ${invoice.delivery_status?.toUpperCase() || ""}`,
       180,
       75,
       {
@@ -358,7 +358,7 @@ export const generateDeliveryNotePDF = async (
         itemNameWithGst,
         item.items?.itemCode || "N/A",
         quantity.toFixed(2),
-        "PENDING", // Received status
+        "",
       ];
     });
 
@@ -400,7 +400,7 @@ export const generateDeliveryNotePDF = async (
     const noteY = finalY + 10;
     if (invoice.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, noteY);
+      doc.text("Notes:", 14, noteY);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
       doc.text(splitNotes, 14, noteY + 10);

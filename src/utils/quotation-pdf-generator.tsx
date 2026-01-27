@@ -323,7 +323,7 @@ export const generateAndDownloadDeliveryDocument = async (
     // Notes Section
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, finalY + 10);
+      doc.text("Notes:", 14, finalY + 10);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
       doc.text(splitNotes, 14, finalY + 20);
@@ -525,7 +525,7 @@ export const openQuotationPDFInNewTab = async (
     // Notes Section
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Note:", 14, summaryY + 50);
+      doc.text("Notes:", 14, summaryY + 50);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
       doc.text(splitNotes, 14, summaryY + 60);

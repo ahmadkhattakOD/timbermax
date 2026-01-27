@@ -737,7 +737,7 @@ const useDashboard = () => {
     let query = supabase.from("stocks").select(`
         quantity,
         reserved,
-        items!inner (purchasePrice)
+        items!inner (purchasePrice, sellPrice)
       `);
 
     if (warehouse) {
@@ -762,10 +762,10 @@ const useDashboard = () => {
       const quantity = parseFloat(stock.quantity) || 0;
       const reserved = parseFloat(stock.reserved) || 0;
       const available = quantity - reserved;
-      const purchasePrice = stock.items?.purchasePrice || 0;
+      const sellPrice = stock.items?.sellPrice || 0;
 
       totalItems += quantity;
-      totalValue += quantity * purchasePrice;
+      totalValue += quantity * sellPrice;
       totalItemCount++; // Count each item record
 
       if (available <= 0) {

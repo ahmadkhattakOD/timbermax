@@ -1131,13 +1131,21 @@ class StocksRepository {
     quantity: number
   ) {
     try {
-      // Find existing stock record
-      const { data: stockData } = await supabase
+      // Find existing stock record for this item
+      // First try with warehouse ID, then fall back to any warehouse for this item
+      let query = supabase
         .from(this.className)
-        .select("id, quantity")
-        .eq("item", itemId)
-        .eq("warehouse", warehouseId)
-        .limit(1);
+        .select("id, quantity, warehouse");
+
+      // If warehouseId is provided, try to find record with that warehouse
+      if (warehouseId && warehouseId !== 1) {
+        query = query.eq("item", itemId).eq("warehouse", warehouseId);
+      } else {
+        // Default: find any stock record for this item (no warehouse filter)
+        query = query.eq("item", itemId);
+      }
+
+      const { data: stockData } = await query.limit(1);
 
       const currentQuantity = stockData?.[0]?.quantity
         ? parseFloat(stockData[0].quantity)
@@ -1150,19 +1158,20 @@ class StocksRepository {
           .from(this.className)
           .update({
             quantity: newQuantity,
+            status: newQuantity > 0 ? "available" : "out_of_stock",
             updated_at: new Date().toISOString(),
           })
           .eq("id", stockData[0].id);
 
         if (error) throw error;
       } else {
-        // Create new record
+        // Create new record if none exists
         const { error } = await supabase.from(this.className).insert({
           item: itemId,
-          warehouse: warehouseId,
+          warehouse: warehouseId || 1,
           quantity: newQuantity,
           reserved: 0,
-          status: "available",
+          status: newQuantity > 0 ? "available" : "out_of_stock",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -1170,8 +1179,9 @@ class StocksRepository {
         if (error) throw error;
       }
 
-      return { success: true, newQuantity };
+      return { success: true, newQuantity, itemId };
     } catch (error: any) {
+      console.error("Error restoring stock from invoice:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1207,6 +1217,107 @@ class StocksRepository {
         available: quantity - reserved, // Can be negative
       };
     } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Release reserved stock from a cancelled quotation
+   * Reduces the reserved amount back to 0, making the stock available again
+   */
+  public async releaseReservationsFromQuotation(
+    quotationId: number
+  ) {
+    try {
+      // 1. Get all reserved items for this quotation
+      const { data: quotationItems, error: itemError } = await supabase
+        .from("quotation_items")
+        .select("item_id, quantity")
+        .eq("quotation_id", quotationId);
+
+      if (itemError) {
+        return {
+          success: false,
+          error: `Failed to fetch quotation items: ${itemError.message}`,
+        };
+      }
+
+      if (!quotationItems || quotationItems.length === 0) {
+        return {
+          success: true,
+          released: 0,
+          results: [],
+        };
+      }
+
+      // 2. Release reserved stock for each item
+      const releaseResults = [];
+
+      for (const item of quotationItems) {
+        const itemId = item.item_id;
+        const reservedQuantity = item.quantity;
+
+        try {
+          // Get current stock
+          const { data: stockData, error: stockError } = await supabase
+            .from(this.className)
+            .select("id, quantity, reserved")
+            .eq("item", itemId)
+            .limit(1);
+
+          if (stockError || !stockData || stockData.length === 0) {
+            releaseResults.push({
+              itemId,
+              success: false,
+              error: "Stock record not found",
+            });
+            continue;
+          }
+
+          const stock = stockData[0];
+          const currentReserved = parseFloat(stock.reserved) || 0;
+          const newReserved = Math.max(0, currentReserved - reservedQuantity);
+
+          // Update reserved amount
+          const { error: updateError } = await supabase
+            .from(this.className)
+            .update({
+              reserved: newReserved,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", stock.id);
+
+          if (updateError) {
+            releaseResults.push({
+              itemId,
+              success: false,
+              error: `Failed to update stock: ${updateError.message}`,
+            });
+          } else {
+            releaseResults.push({
+              itemId,
+              success: true,
+              releasedQuantity: reservedQuantity,
+              previousReserved: currentReserved,
+              newReserved: newReserved,
+            });
+          }
+        } catch (error: any) {
+          releaseResults.push({
+            itemId,
+            success: false,
+            error: error.message,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        released: quotationItems.length,
+        results: releaseResults,
+      };
+    } catch (error: any) {
+      console.error("Error releasing reservations:", error);
       return { success: false, error: error.message };
     }
   }

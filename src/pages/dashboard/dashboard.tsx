@@ -38,8 +38,6 @@ const Dashboard: React.FC = () => {
     exportMonthlyReport,
   } = useDashboard();
 
-  const [exporting, setExporting] = useState(false);
-
   if (loading && !metrics) {
     return (
       <Box

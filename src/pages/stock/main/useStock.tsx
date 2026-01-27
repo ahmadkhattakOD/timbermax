@@ -135,7 +135,7 @@ export function useStock() {
   function generateTableCells(
     row: any,
     labelId: string,
-    isItemSelected: boolean
+    isItemSelected: boolean,
   ) {
     const quantity = parseFloat(row.quantity) || 0;
     const reserved = parseFloat(row.reserved) || 0;
@@ -247,7 +247,7 @@ export function useStock() {
           />
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
-          {getDateTimeFormatted(row.updated_at, true)}
+          {new Date(row.updated_at).toLocaleDateString()}
         </TableCell>
         <TableCell sx={{ minWidth: 100 }}>
           <Box sx={{ display: "flex", gap: 1 }}>
@@ -360,7 +360,7 @@ export function useStock() {
         rangeStart,
         rangeEnd,
         rowsPerPage,
-        filters
+        filters,
       );
 
       if (stocks) {
