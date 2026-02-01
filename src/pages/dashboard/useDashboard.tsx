@@ -69,15 +69,19 @@ export interface TimeSeriesData {
 }
 
 export interface StockMovement {
+  id?: number;
   itemId: number;
   itemName: string;
   itemCode: string;
   warehouseName: string;
   quantity: number;
-  movementType: "in" | "out";
-  referenceNumber: string;
-  referenceType: "quotation" | "invoice";
+  quantityChange: number;
+  movementType: "in" | "out" | "adjustment" | "reserve" | "release" | "transfer";
+  referenceNumber?: string;
+  referenceType?: "quotation" | "invoice" | "manual" | "system";
   date: string;
+  notes?: string;
+  userName?: string;
 }
 
 const useDashboard = () => {
@@ -220,7 +224,7 @@ const useDashboard = () => {
         fetchCustomerMetrics(startDate, endDate),
         fetchStockMetrics(filters.warehouse),
         fetchTimeSeriesData(startDate, endDate),
-        fetchStockOuts(startDate, endDate, filters.warehouse),
+        fetchAllStockMovements(startDate, endDate, filters.warehouse),
       ]);
 
       setMetrics({
@@ -640,7 +644,7 @@ const useDashboard = () => {
           ((date.getTime() - week1.getTime()) / 86400000 -
             3 +
             ((week1.getDay() + 6) % 7)) /
-            7
+          7
         )
       );
     }
@@ -875,104 +879,68 @@ const useDashboard = () => {
     return result;
   };
 
-  const fetchStockOuts = async (
+  const fetchAllStockMovements = async (
     startDate?: string,
     endDate?: string,
     warehouse?: number
   ): Promise<StockMovement[]> => {
-    console.log("Fetching stock outs with:", { startDate, endDate, warehouse });
+    console.log("Fetching all stock movements with:", { startDate, endDate, warehouse });
 
-    // Get stock movements from invoices
-    let invoiceMovementsQuery = supabase.from("invoice_items").select(
-      `
-        quantity,
-        unit_price,
-        items!inner (id, name, itemCode),
-        invoices!inner (
-          invoice_number,
-          created_at,
-          status
-        )
-      `
-    );
+    let query = supabase
+      .from("stock_movements")
+      .select(`
+        *,
+        items:item_id (id, name, itemCode),
+        warehouses:warehouse_id (id, name),
+        users:user_id (id, full_name, email)
+      `)
+      .order("created_at", { ascending: false })
+      .limit(100); // Limit to 100 most recent movements
 
-    // Get stock movements from quotations
-    let quotationMovementsQuery = supabase.from("quotation_items").select(
-      `
-        quantity,
-        unit_price,
-        items!inner (id, name, itemCode),
-        quotations!inner (
-          quotation_number,
-          created_at,
-          status
-        )
-      `
-    );
-
+    // Apply date filters
     if (startDate && endDate) {
-      invoiceMovementsQuery = invoiceMovementsQuery
-        .gte("invoices.created_at", `${startDate}T00:00:00`)
-        .lte("invoices.created_at", `${endDate}T23:59:59`);
-      quotationMovementsQuery = quotationMovementsQuery
-        .gte("quotations.created_at", `${startDate}T00:00:00`)
-        .lte("quotations.created_at", `${endDate}T23:59:59`);
+      query = query
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`);
     }
 
-    const [
-      { data: invoiceMovements, error: invoiceError },
-      { data: quotationMovements, error: quotationError },
-    ] = await Promise.all([invoiceMovementsQuery, quotationMovementsQuery]);
-
-    if (invoiceError || quotationError) {
-      console.error(
-        "Error fetching stock movements:",
-        invoiceError || quotationError
-      );
-      throw invoiceError || quotationError;
+    // Apply warehouse filter
+    if (warehouse) {
+      query = query.eq("warehouse_id", warehouse);
     }
 
-    const movements: StockMovement[] = [];
+    const { data, error } = await query;
 
-    // Add invoice movements (stock out)
-    invoiceMovements?.forEach((item: any) => {
-      movements.push({
-        itemId: item.items.id,
-        itemName: item.items.name,
-        itemCode: item.items.itemCode,
-        warehouseName: "Main Warehouse",
-        quantity: item.quantity,
-        movementType: "out",
-        referenceNumber: item.invoices.invoice_number,
-        referenceType: "invoice",
-        date: item.invoices.created_at,
-      });
-    });
+    if (error) {
+      console.error("Error fetching stock movements:", error);
+      throw error;
+    }
 
-    // Add quotation movements (stock reserved)
-    quotationMovements?.forEach((item: any) => {
-      if (item.quotations.status !== "cancelled") {
-        movements.push({
-          itemId: item.items.id,
-          itemName: item.items.name,
-          itemCode: item.items.itemCode,
-          warehouseName: "Main Warehouse",
-          quantity: item.quantity,
-          movementType: "out",
-          referenceNumber: item.quotations.quotation_number,
-          referenceType: "quotation",
-          date: item.quotations.created_at,
-        });
-      }
-    });
+    const movements: StockMovement[] = (data || []).map((movement: any) => ({
+      id: movement.id,
+      itemId: movement.items?.id || 0, itemName: movement.items?.name || "Unknown Item",
+      itemCode: movement.items?.itemCode || "",
+      warehouseName: movement.warehouses?.name || "Unknown Warehouse",
+      quantity: movement.quantity_after || 0,
+      quantityChange: movement.quantity_change || 0,
+      movementType: movement.movement_type,
+      referenceNumber: movement.notes?.match(/(?:quotation|invoice) #\w+/i)?.[0] || "",
+      referenceType: getReferenceTypeFromNotes(movement.notes),
+      date: movement.created_at,
+      notes: movement.notes,
+      userName: movement.users?.full_name || "System",
+    }));
 
-    // Sort by date descending
-    const result = movements
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 50); // Limit to 50 most recent movements
+    console.log("All stock movements result:", movements.length, "movements");
+    return movements;
 
-    console.log("Stock movements result:", result.length, "movements");
-    return result;
+    function getReferenceTypeFromNotes(notes?: string): "quotation" | "invoice" | "manual" | "system" {
+      if (!notes) return "system";
+      if (notes.toLowerCase().includes("quotation")) return "quotation";
+      if (notes.toLowerCase().includes("invoice")) return "invoice";
+      if (notes.toLowerCase().includes("manual") || notes.toLowerCase().includes("adjusted")) return "manual";
+      return "system";
+    }
   };
 
   // Export functions
@@ -1034,7 +1002,7 @@ const useDashboard = () => {
           "created_at",
           endDate ? `${endDate}T23:59:59` : new Date().toISOString()
         ),
-      fetchStockOuts(startDate, endDate, filters.warehouse),
+      fetchAllStockMovements(startDate, endDate, filters.warehouse),
       fetchTopSellingItems(startDate, endDate, filters.warehouse),
     ]);
 
