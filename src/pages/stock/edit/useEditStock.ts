@@ -13,6 +13,8 @@ export interface ValuesEditStock {
   item: string;
   warehouse: string;
   quantity: string;
+  newQuantity: string;
+  notes: string;
 }
 
 export function useEditStock() {
@@ -40,18 +42,18 @@ export function useEditStock() {
   async function onSubmit(values: ValuesEditStock) {
     try {
       if (id && isNumeric(id)) {
-        const updatedStock: StockSupabase = {
+        const updatedStock = {
           item: parseInt(values.item),
           warehouse: parseInt(values.warehouse),
-          quantity: parseInt(values.quantity),
+          quantity: parseInt(values.newQuantity),
           updated_at: new Date(),
+          notes: String(values.notes),
         };
 
         const stocksRepository = new StocksRepository();
-        const editedStock = await stocksRepository.edit(
-          parseInt(id),
+        const editedStock = await stocksRepository.create(
           updatedStock,
-          values.item != stock.item.id || values.warehouse != stock.warehouse.id
+          values.notes,
         );
 
         if (editedStock) {

@@ -52,7 +52,7 @@ class InvoicesRepository {
     rangeStart: number,
     rangeEnd: number,
     limit: number,
-    filters?: ValuesFilterInvoices
+    filters?: ValuesFilterInvoices,
   ) {
     try {
       const query = supabase
@@ -87,7 +87,7 @@ class InvoicesRepository {
     )
   )
   `,
-          { count: "exact" }
+          { count: "exact" },
         )
 
         .order(orderBy, { ascending })
@@ -110,7 +110,7 @@ class InvoicesRepository {
         if (filters.quotation_number) {
           query.ilike(
             "quotations.quotation_number",
-            `%${filters.quotation_number}%`
+            `%${filters.quotation_number}%`,
           );
         }
 
@@ -145,14 +145,14 @@ class InvoicesRepository {
         if (filters.item_name) {
           query.ilike(
             `${this.itemsClassName}.items.name`,
-            `%${filters.item_name}%`
+            `%${filters.item_name}%`,
           );
         }
 
         if (filters.item_code) {
           query.ilike(
             `${this.itemsClassName}.items.itemCode`,
-            `%${filters.item_code}%`
+            `%${filters.item_code}%`,
           );
         }
       }
@@ -187,7 +187,12 @@ class InvoicesRepository {
   // Add this method to InvoicesRepository class
   public async updateDeliveryStatus(
     id: number,
-    delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned"
+    delivery_status:
+      | "pending"
+      | "packed"
+      | "shipped"
+      | "delivered"
+      | "returned",
   ) {
     try {
       const { data, error } = await supabase
@@ -218,7 +223,7 @@ class InvoicesRepository {
         .select(
           `id, invoice_number, delivery_status,customer_id,customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
            quotation_id, quotations ( id, quotation_number ), total, status, invoice_date, note, created_at, updated_at,
-           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice,gst) )`
+           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice,gst) )`,
         )
         .eq("id", id)
         .limit(1)
@@ -239,7 +244,7 @@ class InvoicesRepository {
           `
           *,
           items (id, name, itemCode, sellPrice)
-        `
+        `,
         )
         .eq("invoice_id", invoiceId);
 
@@ -389,7 +394,7 @@ class InvoicesRepository {
     rangeStart: number,
     rangeEnd: number,
     limit: number,
-    filters?: ValuesFilterInvoices
+    filters?: ValuesFilterInvoices,
   ) {
     try {
       const query = supabase
@@ -420,7 +425,7 @@ class InvoicesRepository {
           )
         )
         `,
-          { count: "exact" }
+          { count: "exact" },
         )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
@@ -458,13 +463,13 @@ class InvoicesRepository {
         if (filters.item_name) {
           query.ilike(
             `${this.itemsClassName}.items.name`,
-            `%${filters.item_name}%`
+            `%${filters.item_name}%`,
           );
         }
         if (filters.item_code) {
           query.ilike(
             `${this.itemsClassName}.items.itemCode`,
-            `%${filters.item_code}%`
+            `%${filters.item_code}%`,
           );
         }
       }
@@ -514,7 +519,7 @@ class InvoicesRepository {
           `
           id, quotation_number, customer_id, total, note,
           quotation_items ( item_id, quantity, unit_price )
-        `
+        `,
         )
         .eq("id", quotationId)
         .single();
@@ -567,7 +572,7 @@ class InvoicesRepository {
    */
   public async createWithStockReduction(
     invoice: InvoiceSupabase,
-    items: Array<{ item_id: number; quantity: number }>
+    items: Array<{ item_id: number; quantity: number; warehouse_id?: number }>, // Add warehouse_id
   ) {
     try {
       // 1. Create invoice first
@@ -579,21 +584,31 @@ class InvoicesRepository {
         };
       }
 
-      // 2. Reduce stock for each item
+      // 2. Get current user ID
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const userId = user?.id || "system";
+
+      // 3. Reduce stock for each item
       const stocksRepo = new StocksRepository();
       const reductionResults = [];
 
       for (const item of items) {
-        // Direct stock reduction (no validation, allows negative)
+        // Use provided warehouse_id or default to 1
+        const warehouseId = item.warehouse_id || 1;
+
         const reduceResult = await stocksRepo.reduceStockForInvoice(
           item.item_id,
-          // 1, // default warehouse
+          warehouseId, // Pass warehouse ID
           item.quantity,
-          createdInvoice.id
+          createdInvoice.id,
+          userId,
         );
 
         reductionResults.push({
           itemId: item.item_id,
+          warehouseId,
           success: reduceResult.success,
           error: reduceResult.error,
           newQuantity: reduceResult.newQuantity,
@@ -633,7 +648,7 @@ class InvoicesRepository {
         const restoreResult = await stocksRepo.restoreStockFromInvoice(
           item.item_id,
           1, // default warehouse
-          item.quantity
+          item.quantity,
         );
 
         restoreResults.push({

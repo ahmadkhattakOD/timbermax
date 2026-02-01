@@ -12,7 +12,7 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
-import StockReservationsModal from "components/stock-reservation-modal"; 
+import StockReservationsModal from "components/stock-reservation-modal";
 
 export default function Stock() {
   const {
@@ -56,6 +56,10 @@ export default function Stock() {
     reservationModalOpen,
     selectedItem,
     handleCloseReservationModal,
+    historyModalOpen,
+    selectedHistoryItem,
+    handleCloseHistoryModal,
+    StockHistoryModal: StockHistoryModalComponent,
   } = useStock();
 
   return (
@@ -83,10 +87,6 @@ export default function Stock() {
               }}
             />
             <Box sx={{ display: "flex", gap: 2 }}>
-              {/* <ActionButton
-                text="On Hold Stock"
-                onClick={() => goToStatus("on_hold")}
-              /> */}
               <ActionButton text="Move Stock" onClick={goToMove} />
               {hasNonEmptyValue(filters) ? (
                 <ActionButton
@@ -241,8 +241,8 @@ export default function Stock() {
         ref={csvLink}
         target="_blank"
       />
-      
-      {/* Add Stock Reservations Modal */}
+
+      {/* Stock Reservations Modal */}
       {selectedItem && (
         <StockReservationsModal
           open={reservationModalOpen}
@@ -251,6 +251,17 @@ export default function Stock() {
           warehouseId={selectedItem.warehouseId}
           itemName={selectedItem.name}
           itemCode={selectedItem.code}
+        />
+      )}
+
+      {/* Stock History Modal */}
+      {selectedHistoryItem && (
+        <StockHistoryModalComponent
+          open={historyModalOpen}
+          onClose={handleCloseHistoryModal}
+          itemId={selectedHistoryItem.itemId}
+          warehouseId={selectedHistoryItem.warehouseId}
+          itemName={selectedHistoryItem.name}
         />
       )}
     </Box>

@@ -6,7 +6,17 @@ import {
   Box,
   Tooltip,
   IconButton,
-  Modal,
+  Table,
+  TableBody,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -22,7 +32,7 @@ import {
 import ItemsRepository from "utils/repositories/itemsRepository";
 import StocksRepository from "utils/repositories/stocksRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
-import { Eye, EyeSlash } from "iconsax-react";
+import { Eye } from "iconsax-react";
 import StockReservationsModal from "components/stock-reservation-modal";
 
 const headCells: HeadCell[] = [
@@ -63,6 +73,12 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "last_updated_by",
+    numeric: false,
+    disablePadding: true,
+    label: "Last Updated By",
+  },
+  {
     id: "updated_at",
     numeric: false,
     disablePadding: true,
@@ -96,6 +112,169 @@ const initialFilters: ValuesFilterStock = {
   updatedAtTo: "",
 };
 
+// History Modal Component
+const StockHistoryModal = ({
+  open,
+  onClose,
+  itemId,
+  warehouseId,
+  itemName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  itemId: number;
+  warehouseId: number;
+  itemName: string;
+}) => {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      fetchHistory();
+    }
+  }, [open]);
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    const stocksRepo = new StocksRepository();
+    const result = await stocksRepo.getMovementHistoryWithUsers(
+      itemId,
+      warehouseId,
+      100,
+    );
+    if (result.data) {
+      setHistory(result.data);
+    }
+    setLoading(false);
+  };
+
+  const getMovementColor = (type: string) => {
+    switch (type) {
+      case "in":
+        return "success.main";
+      case "out":
+        return "error.main";
+      case "reserve":
+        return "warning.main";
+      case "release":
+        return "info.main";
+      case "adjustment":
+        return "primary.main";
+      default:
+        return "text.primary";
+    }
+  };
+
+  const getMovementIcon = (type: string) => {
+    switch (type) {
+      case "in":
+        return "⬆️";
+      case "out":
+        return "⬇️";
+      case "reserve":
+        return "⏸️";
+      case "release":
+        return "▶️";
+      case "adjustment":
+        return "⚙️";
+      default:
+        return "📝";
+    }
+  };
+
+  const formatUser = (user: any) => {
+    if (!user) return "System";
+    return user.user_metadata?.name || user.email || "Unknown User";
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle>Stock History: {itemName}</DialogTitle>
+      <DialogContent>
+        <TableContainer component={Paper} sx={{ mt: 2, maxHeight: 400 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Date & Time</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>User</TableCell>
+                <TableCell>Before</TableCell>
+                <TableCell>Change</TableCell>
+                <TableCell>After</TableCell>
+                <TableCell>Notes</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    Loading history...
+                  </TableCell>
+                </TableRow>
+              ) : history.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    No history found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                history.map((movement, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      {new Date(movement.created_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <span>{getMovementIcon(movement.movement_type)}</span>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: getMovementColor(movement.movement_type),
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {movement.movement_type.toUpperCase()}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{formatUser(movement.user)}</TableCell>
+                    <TableCell>{movement.quantity_before}</TableCell>
+                    <TableCell>
+                      <Typography
+                        color={
+                          movement.movement_type === "in"
+                            ? "success.main"
+                            : "error.main"
+                        }
+                        fontWeight="bold"
+                      >
+                        {movement.movement_type === "in"
+                          ? "+"
+                          : movement.movement_type === "out"
+                            ? "-"
+                            : ""}
+                        {movement.quantity_change}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{movement.quantity_after}</TableCell>
+                    <TableCell>{movement.notes || "-"}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 export function useStock() {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -113,7 +292,9 @@ export function useStock() {
   const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<any>(null);
   const csvLink = useRef<any>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -247,10 +428,29 @@ export function useStock() {
           />
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
+          <Tooltip title={row.last_updated_by || "System"}>
+            <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+              {row.last_updated_by || "System"}
+            </Typography>
+          </Tooltip>
+        </TableCell>
+        <TableCell sx={{ minWidth: 150 }}>
           {new Date(row.updated_at).toLocaleDateString()}
         </TableCell>
-        <TableCell sx={{ minWidth: 100 }}>
+        <TableCell sx={{ minWidth: 150 }}>
           <Box sx={{ display: "flex", gap: 1 }}>
+            <Tooltip title="View Stock History">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewHistory(row);
+                }}
+                color="primary"
+              >
+                {/* <History size={18} /> */} History
+              </IconButton>
+            </Tooltip>
             {reserved > 0 && (
               <Tooltip title="View Reservations">
                 <IconButton
@@ -281,16 +481,29 @@ export function useStock() {
     setReservationModalOpen(true);
   };
 
+  const handleViewHistory = (stockRow: any) => {
+    setSelectedHistoryItem({
+      itemId: stockRow.item?.id,
+      warehouseId: stockRow.warehouse?.id || 1,
+      name: stockRow.item?.name || "Unknown Item",
+    });
+    setHistoryModalOpen(true);
+  };
+
   const handleCloseReservationModal = () => {
     setReservationModalOpen(false);
     setSelectedItem(null);
+  };
+
+  const handleCloseHistoryModal = () => {
+    setHistoryModalOpen(false);
+    setSelectedHistoryItem(null);
   };
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setSearchValue(value);
 
-    console.log("VALUEEE", value);
     if (value.trim()) {
       let temp = { ...filters };
       temp.item = value;
@@ -354,7 +567,8 @@ export function useStock() {
       const rangeStart = rowsPerPage * page;
       const rangeEnd = rangeStart + rowsPerPage;
 
-      const stocks = await stocksRepository.get(
+      // Use the new method that includes last user info
+      const stocks = await stocksRepository.getStockWithLastUser(
         orderBy,
         order === "asc",
         rangeStart,
@@ -406,7 +620,7 @@ export function useStock() {
   function getDataCsv() {
     try {
       let csvString =
-        "Item,Item Code,Warehouse,Total Quantity,Reserved,Available,Status,Updated At\n";
+        "Item,Item Code,Warehouse,Total Quantity,Reserved,Available,Status,Last Updated By,Updated At\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
@@ -415,7 +629,7 @@ export function useStock() {
           const reserved = parseFloat(stock.reserved) || 0;
           const available = quantity - reserved;
 
-          csvString += `"${stock?.item?.name ?? ""}","${stock?.item?.itemCode ?? ""}","${stock?.warehouse?.name ?? ""}",${quantity},${reserved},${available},"${stock?.status ?? ""}","${stock?.updated_at ?? ""}"\n`;
+          csvString += `"${stock?.item?.name ?? ""}","${stock?.item?.itemCode ?? ""}","${stock?.warehouse?.name ?? ""}",${quantity},${reserved},${available},"${stock?.status ?? ""}","${stock?.last_updated_by ?? "System"}","${stock?.updated_at ?? ""}"\n`;
         }
 
         setCsvData(csvString);
@@ -505,7 +719,9 @@ export function useStock() {
     csvData,
     csvLink,
     reservationModalOpen,
+    historyModalOpen,
     selectedItem,
+    selectedHistoryItem,
 
     // State setters
     setOrder,
@@ -531,9 +747,12 @@ export function useStock() {
     getDataCsv,
     handleSearchDebounced,
     handleViewReservations,
+    handleViewHistory,
     handleCloseReservationModal,
+    handleCloseHistoryModal,
 
     // Constants
     headCells,
+    StockHistoryModal,
   };
 }

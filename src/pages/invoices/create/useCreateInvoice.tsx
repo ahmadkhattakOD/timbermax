@@ -18,6 +18,8 @@ import QuotationsRepository from "utils/repositories/quotationRepo";
 import { SnackbarProps } from "types/snackbar";
 import { useSearchParams } from "react-router-dom";
 import StocksRepository from "utils/repositories/stocksRepository";
+import WarehousesRepository from "utils/repositories/warehousesRepository";
+import supabase from "utils/supabase";
 
 export interface ValuesCreateInvoice {
   invoice_number: string;
@@ -35,13 +37,32 @@ export interface ValuesCreateInvoice {
   quotation_id: string;
 }
 
+export interface InvoiceItem {
+  item_id: number;
+  name: string;
+  itemCode: string;
+  quantity: string;
+  unit_price: number;
+  gst: boolean;
+  total: string;
+  warehouse_id?: number;
+  available_warehouses: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    reserved: number;
+    available: number;
+  }>;
+}
+
 export function useCreateInvoice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [customers, setCustomers] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
-  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [selectedItems, setSelectedItems] = useState<InvoiceItem[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
@@ -61,12 +82,90 @@ export function useCreateInvoice() {
   const [isQuotationLoaded, setIsQuotationLoaded] = useState(false);
   const [inlineCustomerName, setInlineCustomerName] = useState("");
   const [customerName, setCustomerName] = useState<string>("");
+
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateSubTotal(item),
     0,
   );
 
   const customerIdFromUrl = searchParams.get("customer");
+
+  // Function to get ALL warehouses for an item (including those with 0 or negative stock)
+  const getWarehousesForItem = async (itemId: number) => {
+    try {
+      // First get all warehouses
+      const warehousesRepo = new WarehousesRepository();
+      const allWarehouses = await warehousesRepo.getWithoutFilters();
+
+      if (!allWarehouses?.warehousesData) {
+        return [];
+      }
+
+      // Get stock data for this item in all warehouses
+      const { data: stockData, error } = await supabase
+        .from("stocks")
+        .select(
+          `
+          id,
+          quantity,
+          reserved,
+          warehouse
+        `,
+        )
+        .eq("item", itemId);
+
+      if (error) {
+        console.error("Error fetching stock for item:", error);
+        // Return all warehouses with 0 stock if no stock records exist
+        return allWarehouses.warehousesData.map((warehouse) => ({
+          id: warehouse.id,
+          name: warehouse.name,
+          quantity: 0,
+          reserved: 0,
+          available: 0,
+        }));
+      }
+
+      // Create a map of warehouse stock
+      const stockByWarehouse = new Map();
+      if (stockData) {
+        stockData.forEach((stock) => {
+          stockByWarehouse.set(stock.warehouse, {
+            quantity: parseFloat(stock.quantity) || 0,
+            reserved: parseFloat(stock.reserved) || 0,
+            available:
+              (parseFloat(stock.quantity) || 0) -
+              (parseFloat(stock.reserved) || 0),
+          });
+        });
+      }
+
+      // Return all warehouses with their stock data (0 if no stock record)
+      return allWarehouses.warehousesData.map((warehouse) => {
+        const stockInfo = stockByWarehouse.get(warehouse.id);
+        if (stockInfo) {
+          return {
+            id: warehouse.id,
+            name: warehouse.name,
+            quantity: stockInfo.quantity,
+            reserved: stockInfo.reserved,
+            available: stockInfo.available,
+          };
+        } else {
+          return {
+            id: warehouse.id,
+            name: warehouse.name,
+            quantity: 0,
+            reserved: 0,
+            available: 0,
+          };
+        }
+      });
+    } catch (error) {
+      console.error("Error getting warehouses for item:", error);
+      return [];
+    }
+  };
 
   // Function to load customer data by ID
   const loadCustomerById = async (customerId: number) => {
@@ -76,7 +175,6 @@ export function useCreateInvoice() {
       const customerData = await customersRepository.getSingle(customerId);
       if (customerData) {
         const customer = customerData.customerData;
-        console.log("Customer details", customer);
         // Set customer details
         setSelectedCustomer(customerId);
         setCustomerName(customer.name || "");
@@ -156,7 +254,7 @@ export function useCreateInvoice() {
     setSelectedPostCode("");
   }
 
-  const addItem = (itemId: number) => {
+  const addItem = async (itemId: number) => {
     const item = items.find((i) => i.id === itemId);
     if (!item) return;
 
@@ -170,12 +268,33 @@ export function useCreateInvoice() {
 
       updatedItems[existingIndex].quantity = newQuantity.toString();
       updatedItems[existingIndex].total = (
-        newQuantity * parseFloat(updatedItems[existingIndex].unit_price)
+        newQuantity * Number(updatedItems[existingIndex].unit_price)
       ).toString();
       setSelectedItems(updatedItems);
     } else {
-      // Add new item with GST information
-      const newItem = {
+      // Get ALL warehouses for this item (including those with 0 stock)
+      const allWarehouses = await getWarehousesForItem(itemId);
+
+      if (allWarehouses.length === 0) {
+        openSnackbar({
+          open: true,
+          message: `No warehouses found for item "${item.name}"`,
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
+
+      // Sort warehouses by available stock (highest first)
+      const sortedWarehouses = [...allWarehouses].sort(
+        (a, b) => b.available - a.available,
+      );
+
+      // Auto-select warehouse with highest available stock (even if it's 0 or negative)
+      const selectedWarehouse = sortedWarehouses[0].id;
+
+      // Add new item with ALL warehouses
+      const newItem: InvoiceItem = {
         item_id: item.id,
         name: item.name,
         itemCode: item.itemCode,
@@ -183,7 +302,10 @@ export function useCreateInvoice() {
         unit_price: item?.sellPrice || 0,
         gst: item?.gst || false,
         total: item?.sellPrice.toString() || "0",
+        warehouse_id: selectedWarehouse, // Auto-select first (highest stock)
+        available_warehouses: sortedWarehouses,
       };
+
       setSelectedItems([...selectedItems, newItem]);
     }
 
@@ -214,11 +336,13 @@ export function useCreateInvoice() {
       updatedItems[index].quantity = value;
     } else if (field === "unit_price") {
       updatedItems[index].unit_price = value;
+    } else if (field === "warehouse_id") {
+      updatedItems[index].warehouse_id = value;
     }
 
     // Recalculate total for the item including GST
     const quantity = parseFloat(updatedItems[index].quantity);
-    const unit_price = parseFloat(updatedItems[index].unit_price);
+    const unit_price = Number(updatedItems[index].unit_price);
     const baseTotal = quantity * unit_price;
     const gstAmount = updatedItems[index].gst ? baseTotal * 0.1 : 0;
 
@@ -253,17 +377,31 @@ export function useCreateInvoice() {
         // Load items with GST information
         const itemsData = await quotationsRepo.getItems(quotationId);
         if (itemsData?.data) {
-          setSelectedItems(
-            itemsData.data.map((item: any) => ({
-              item_id: item.item_id,
-              name: item.items?.name,
-              itemCode: item.items?.itemCode,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              gst: item.items?.gst || false,
-              total: item.total_price,
-            })),
+          const itemsWithWarehouses = await Promise.all(
+            itemsData.data.map(async (item: any) => {
+              const allWarehouses = await getWarehousesForItem(item.item_id);
+              const sortedWarehouses = [...allWarehouses].sort(
+                (a, b) => b.available - a.available,
+              );
+
+              return {
+                item_id: item.item_id,
+                name: item.items?.name,
+                itemCode: item.items?.itemCode,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                gst: item.items?.gst || false,
+                total: item.total_price,
+                warehouse_id:
+                  sortedWarehouses.length > 0
+                    ? sortedWarehouses[0].id
+                    : undefined,
+                available_warehouses: sortedWarehouses,
+              };
+            }),
           );
+
+          setSelectedItems(itemsWithWarehouses);
 
           openSnackbar({
             action: false,
@@ -354,6 +492,9 @@ export function useCreateInvoice() {
 
   async function onSubmit(values: ValuesCreateInvoice) {
     try {
+      // ✅ ALLOW invoices even if stock is 0 or negative
+      // Just show warnings but don't prevent submission
+
       let customerToAdd;
 
       if (selectedItems.length === 0) {
@@ -368,7 +509,7 @@ export function useCreateInvoice() {
 
       const customersRepository = new CustomersRepository();
 
-      // Customer creation logic (keep as is)
+      // Customer creation logic
       if (createInlineCustomer) {
         // Create new customer from inline form
         const newCustomer: CustomerSupabase = {
@@ -477,7 +618,6 @@ export function useCreateInvoice() {
       };
 
       const invoicesRepo = new InvoicesRepository();
-      const stocksRepo = new StocksRepository();
 
       if (selectedQuotation) {
         // ============================================
@@ -502,7 +642,7 @@ export function useCreateInvoice() {
         // 2. Add invoice items
         for (const item of selectedItems) {
           const itemQuantity = parseFloat(item.quantity);
-          const itemUnitPrice = parseFloat(item.unit_price);
+          const itemUnitPrice = Number(item.unit_price);
 
           await invoicesRepo.addItem({
             invoice_id: invoiceId,
@@ -513,9 +653,7 @@ export function useCreateInvoice() {
         }
 
         // 3. TRANSFER RESERVED STOCK from quotation to invoice
-        // This will:
-        //   a) Release the reservations from the quotation
-        //   b) Reduce the actual stock quantity
+        const stocksRepo = new StocksRepository();
         const transferResult = await stocksRepo.transferReservedStockToInvoice(
           selectedQuotation.id,
           invoiceId,
@@ -523,10 +661,6 @@ export function useCreateInvoice() {
 
         if (!transferResult.success) {
           console.error("Stock transfer failed:", transferResult.error);
-
-          // Optional: Rollback the invoice creation
-          // await invoicesRepo.delete([invoiceId]);
-
           openSnackbar({
             open: true,
             message: `Invoice created but stock transfer failed: ${transferResult.error}. Please check stock manually.`,
@@ -561,13 +695,41 @@ export function useCreateInvoice() {
         // CASE 2: Creating REGULAR invoice (not from quotation)
         // ============================================
 
-        // Prepare items for stock reduction
+        // Prepare items for stock reduction with warehouse IDs
         const itemsForStockReduction = selectedItems.map((item) => ({
           item_id: item.item_id,
           quantity: parseFloat(item.quantity),
+          warehouse_id: item.warehouse_id || 1,
         }));
 
-        // Create invoice with immediate stock reduction
+        // Check for low/negative stock items to show warning
+        const lowStockItems = selectedItems.filter((item) => {
+          if (item.warehouse_id) {
+            const selectedWarehouse = item.available_warehouses.find(
+              (w) => w.id === item.warehouse_id,
+            );
+            const requestedQuantity = parseFloat(item.quantity);
+            return (
+              selectedWarehouse &&
+              requestedQuantity > selectedWarehouse.available
+            );
+          }
+          return false;
+        });
+
+        if (lowStockItems.length > 0) {
+          const warningMessage = `Invoice will create NEGATIVE stock for: ${lowStockItems
+            .map(
+              (item) =>
+                `${item.name} (${item.quantity} > ${item.available_warehouses.find((w) => w.id === item.warehouse_id)?.available || 0} available)`,
+            )
+            .join(", ")}`;
+
+          console.warn("Low stock warning:", warningMessage);
+          // Don't prevent submission, just log warning
+        }
+
+        // Create invoice with warehouse-specific stock reduction
         const result = await invoicesRepo.createWithStockReduction(
           newInvoice,
           itemsForStockReduction,
@@ -586,7 +748,7 @@ export function useCreateInvoice() {
         // Add invoice items
         for (const item of selectedItems) {
           const itemQuantity = parseFloat(item.quantity);
-          const itemUnitPrice = parseFloat(item.unit_price);
+          const itemUnitPrice = Number(item.unit_price);
 
           await invoicesRepo.addItem({
             invoice_id: result.invoice.id,
@@ -596,12 +758,22 @@ export function useCreateInvoice() {
           });
         }
 
-        openSnackbar({
-          open: true,
-          message: "Invoice created successfully. Stock has been reduced.",
-          variant: "alert",
-          alert: { color: "success" },
-        } as SnackbarProps);
+        // Show success message with warning if low stock
+        if (lowStockItems.length > 0) {
+          openSnackbar({
+            open: true,
+            message: `Invoice created successfully! ⚠️ ${lowStockItems.length} item(s) will have negative stock.`,
+            variant: "alert",
+            alert: { color: "warning" },
+          } as SnackbarProps);
+        } else {
+          openSnackbar({
+            open: true,
+            message: "Invoice created successfully.",
+            variant: "alert",
+            alert: { color: "success" },
+          } as SnackbarProps);
+        }
       }
 
       // Navigate to invoices page
@@ -666,10 +838,23 @@ export function useCreateInvoice() {
     }
   }
 
+  async function getAllWarehouses() {
+    const warehousesRepo = new WarehousesRepository();
+    const allWarehouses = await warehousesRepo.getWithoutFilters();
+    if (allWarehouses?.warehousesData) {
+      setWarehouses(allWarehouses.warehousesData);
+    }
+  }
+
   async function loadData() {
     setLoading(true);
     try {
-      await Promise.all([getCustomers(), getItems(), getQuotations()]);
+      await Promise.all([
+        getCustomers(),
+        getItems(),
+        getQuotations(),
+        getAllWarehouses(),
+      ]);
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -713,6 +898,7 @@ export function useCreateInvoice() {
     onSubmit,
     customers,
     items,
+    warehouses,
     quotations,
     loading,
     selectedItems,

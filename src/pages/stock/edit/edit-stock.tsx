@@ -1,11 +1,9 @@
-// project-imports
 import { Box } from "@mui/material";
 import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import CircularLoader from "components/CircularLoader";
-import { australianStates } from "utils/helpers";
 import { useEditStock } from "./useEditStock";
 
 // ==============================|| EDIT WAREHOUSE PAGE ||============================== //
@@ -36,6 +34,8 @@ export default function EditStock() {
         item: stock.item.id.toString() ?? "",
         warehouse: stock.warehouse.id.toString() ?? "",
         quantity: stock.quantity.toString() ?? "",
+        newQuantity: "0",
+        notes: "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -75,10 +75,28 @@ export default function EditStock() {
                 id={"quantity"}
                 name={"quantity"}
                 placeholder={"Quantity"}
-                label={"quantity"}
+                label={"Current Quantity"}
+                type={"number"}
+                disabled
+                error={touched.quantity ? errors.quantity : ("" as any)}
+              />,
+              <FormInput
+                id={"newQuantity"}
+                name={"newQuantity"}
+                placeholder={"Quantity"}
+                label={"Quantity (to add)"}
                 type={"number"}
                 optional={false}
                 error={touched.quantity ? errors.quantity : ("" as any)}
+              />,
+              <FormInput
+                id={"notes"}
+                name={"notes"}
+                placeholder={"Notes (e.g., Purchase Order #12345)"}
+                label={"notes"}
+                type={"text"}
+                optional={true}
+                error={touched.notes ? errors.notes : ""}
               />,
             ]}
           />

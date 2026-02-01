@@ -3,17 +3,19 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import ItemsRepository from "utils/repositories/itemsRepository";
-import StocksRepository, { StockSupabase } from "utils/repositories/stocksRepository";
+import StocksRepository, {
+  StockSupabase,
+} from "utils/repositories/stocksRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
 
 export interface ValuesCreateStock {
   item: string;
   warehouse: string;
   quantity: string;
+  notes?: string; // ✅ Optional notes field
 }
 
 export function useCreateStock() {
-
   const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +32,11 @@ export function useCreateStock() {
       errors.warehouse = "required";
     }
 
-    if (!values.quantity || parseInt(values.quantity) < 0) {
+    if (!values.quantity || parseInt(values.quantity) <= 0) {
       errors.quantity = "required-valid-number";
     }
+
+    // Notes are optional, no validation needed
 
     return errors;
   }
@@ -43,11 +47,17 @@ export function useCreateStock() {
         item: parseInt(values.item),
         warehouse: parseInt(values.warehouse),
         quantity: parseInt(values.quantity),
-        updated_at: new Date()
+        updated_at: new Date(),
       };
 
       const stocksRepository = new StocksRepository();
-      const createdStock = await stocksRepository.create(newStock);
+      
+      // ✅ Pass optional notes to create method
+      // UserId is now handled automatically inside the repository via Supabase auth
+      const createdStock = await stocksRepository.create(
+        newStock,
+        values.notes || undefined  // Pass notes if provided
+      );
 
       if (createdStock) {
         openSnackbar({
@@ -58,6 +68,7 @@ export function useCreateStock() {
             color: "success",
           },
         } as SnackbarProps);
+        navigate("/stock");
       } else {
         openSnackbar({
           open: true,
@@ -69,9 +80,8 @@ export function useCreateStock() {
           },
         } as SnackbarProps);
       }
-
-      navigate("/stock");
     } catch (e) {
+      console.error("Error creating stock:", e);
       openSnackbar({
         open: true,
         message: "Stock could not be added successfully. Please try again.",

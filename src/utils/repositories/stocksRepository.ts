@@ -23,11 +23,99 @@ export interface ReserveStockParams {
   referenceType: "quotation" | "invoice";
 }
 
+export interface StockMovement {
+  id?: number;
+  stock_id?: number | null;
+  item_id: number;
+  warehouse_id: number;
+  user_id: string;
+  movement_type: "in" | "out" | "adjustment" | "reserve" | "release";
+  quantity_change: number;
+  quantity_before: number;
+  quantity_after: number;
+  notes?: string;
+  created_at?: string;
+}
+
 class StocksRepository {
   private className = "stocks";
 
-  public async create(stock: StockSupabase) {
+  /**
+   * Get current user ID from Supabase auth
+   */
+  private async getCurrentUserId(): Promise<string> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user?.id || "system";
+  }
+
+  /**
+   * Record a stock movement for audit trail
+   */
+  private async recordMovement(
+    stockId: number | null,
+    itemId: number,
+    warehouseId: number,
+    userId: string,
+    movementType: "in" | "out" | "adjustment" | "reserve" | "release",
+    quantityChange: number,
+    quantityBefore: number,
+    quantityAfter: number,
+    notes?: string,
+  ): Promise<void> {
     try {
+      await supabase.from("stock_movements").insert({
+        stock_id: stockId,
+        item_id: itemId,
+        warehouse_id: warehouseId,
+        user_id: userId,
+        movement_type: movementType,
+        quantity_change: quantityChange,
+        quantity_before: quantityBefore,
+        quantity_after: quantityAfter,
+        notes: notes,
+        created_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error recording stock movement:", error);
+      // Don't throw - movement tracking shouldn't break stock operations
+    }
+  }
+
+  /**
+   * Get movement history for a stock item
+   */
+  public async getMovementHistory(
+    itemId: number,
+    warehouseId?: number,
+    limit: number = 50,
+  ) {
+    try {
+      let query = supabase
+        .from("stock_movements")
+        .select("*")
+        .eq("item_id", itemId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (warehouseId) {
+        query = query.eq("warehouse_id", warehouseId);
+      }
+
+      const { data, error } = await query;
+      return { data, error };
+    } catch (error) {
+      console.error("Error fetching movement history:", error);
+      return { data: null, error };
+    }
+  }
+
+  public async create(stock: StockSupabase, notes?: string) {
+    try {
+      // Get current user ID
+      const userId = await this.getCurrentUserId();
+
       const { data: existingStockData, error: existingStockError } =
         await supabase
           .from(this.className)
@@ -41,24 +129,41 @@ class StocksRepository {
         existingStockData.length > 0 &&
         !existingStockError
       ) {
+        // UPDATE existing stock
         const existingStock = existingStockData[0];
+        const quantityBefore = parseFloat(existingStock.quantity);
+        const quantityAfter = stock.quantity + quantityBefore;
+
         const { data, error } = await supabase
           .from(this.className)
           .update({
             item: stock.item,
             warehouse: stock.warehouse,
-            quantity: stock.quantity + parseFloat(existingStock.quantity),
+            quantity: quantityAfter,
             reserved: stock.reserved || 0,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingStock.id)
           .select();
-
         if (data && data.length > 0 && error === null) {
+          // 📝 Record movement
+          await this.recordMovement(
+            existingStock.id,
+            stock.item,
+            stock.warehouse,
+            userId,
+            "in",
+            stock.quantity, // Quantity added
+            quantityBefore,
+            quantityAfter,
+            notes || "",
+          );
+
           return data[0];
         }
         return null;
       } else {
+        // CREATE new stock
         const { data, error } = await supabase
           .from(this.className)
           .insert({
@@ -70,6 +175,19 @@ class StocksRepository {
           .select();
 
         if (data && data.length > 0 && error === null) {
+          // 📝 Record movement
+          await this.recordMovement(
+            data[0].id,
+            stock.item,
+            stock.warehouse,
+            userId,
+            "in",
+            stock.quantity, // Initial quantity
+            0, // Was 0 before
+            stock.quantity,
+            notes,
+          );
+
           return data[0];
         }
         return null;
@@ -86,7 +204,7 @@ class StocksRepository {
     rangeStart: number,
     rangeEnd: number,
     limit: number,
-    filters?: ValuesFilterStock
+    filters?: ValuesFilterStock,
   ) {
     try {
       const query = supabase
@@ -103,7 +221,7 @@ class StocksRepository {
     reference_type,
     updated_at
     `,
-          { count: "exact" }
+          { count: "exact" },
         )
         .order(orderBy, { ascending })
         .range(rangeStart, rangeEnd)
@@ -161,75 +279,263 @@ class StocksRepository {
     }
   }
 
-
   public async transferReservedStockToInvoice(
-  quotationId: number,
-  invoiceId: number
-) {
-  try {
-    // 1. Get all reservations for this quotation
-    const { data: reservations, error } = await supabase
-      .from("stock_reservations")
-      .select("id, item_id, warehouse_id, quantity")
-      .eq("quotation_id", quotationId)
-      .eq("status", "on_hold");
+    quotationId: number,
+    invoiceId: number,
+  ) {
+    try {
+      // Get current user ID
+      const userId = await this.getCurrentUserId();
 
-    if (error) {
-      return { success: false, error: `Failed to get reservations: ${error.message}` };
-    }
+      // 1. Get all reservations for this quotation
+      const { data: reservations, error } = await supabase
+        .from("stock_reservations")
+        .select("id, item_id, warehouse_id, quantity")
+        .eq("quotation_id", quotationId)
+        .eq("status", "on_hold");
 
-    if (!reservations || reservations.length === 0) {
-      return { success: true, message: "No reservations to transfer", transferred: 0 };
-    }
-
-    let totalTransferred = 0;
-
-    // 2. Process each reservation
-    for (const reservation of reservations) {
-      // Release from reservation
-      const releaseResult = await this.releaseFromQuotation(
-        quotationId,
-        reservation.item_id,
-        reservation.warehouse_id,
-        reservation.quantity
-      );
-
-      if (!releaseResult.success) {
-        console.warn(`Failed to release reservation ${reservation.id}:`, releaseResult.error);
-        continue;
+      if (error) {
+        return {
+          success: false,
+          error: `Failed to get reservations: ${error.message}`,
+        };
       }
 
-      // Reduce stock (actual deduction)
-      const reduceResult = await this.reduceStockForInvoice(
-        reservation.item_id,
-        // reservation.warehouse_id,
-        reservation.quantity,
-        invoiceId
-      );
-
-      if (!reduceResult.success) {
-        console.warn(`Failed to reduce stock for item ${reservation.item_id}:`, reduceResult.error);
-        continue;
+      if (!reservations || reservations.length === 0) {
+        return {
+          success: true,
+          message: "No reservations to transfer",
+          transferred: 0,
+        };
       }
 
-      totalTransferred += reservation.quantity;
-    }
+      let totalTransferred = 0;
 
-    return {
-      success: true,
-      transferred: totalTransferred,
-      reservationsProcessed: reservations.length,
-    };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+      // 2. Process each reservation
+      for (const reservation of reservations) {
+        // Release from reservation
+        const releaseResult = await this.releaseFromQuotation(
+          quotationId,
+          reservation.item_id,
+          reservation.warehouse_id,
+          reservation.quantity,
+        );
+
+        if (!releaseResult.success) {
+          console.warn(
+            `Failed to release reservation ${reservation.id}:`,
+            releaseResult.error,
+          );
+          continue;
+        }
+
+        // Reduce stock (actual deduction)
+        const reduceResult = await this.reduceStockForInvoice(
+          reservation.item_id,
+          reservation.warehouse_id,
+          reservation.quantity,
+          invoiceId,
+          userId,
+        );
+
+        if (!reduceResult.success) {
+          console.warn(
+            `Failed to reduce stock for item ${reservation.item_id}:`,
+            reduceResult.error,
+          );
+          continue;
+        }
+
+        totalTransferred += reservation.quantity;
+      }
+
+      return {
+        success: true,
+        transferred: totalTransferred,
+        reservationsProcessed: reservations.length,
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
-}
+  // In stocksRepository.ts - Add these methods
+
+  /**
+   * Get last movement for a stock item
+   */
+  public async getLastMovement(stockId: number) {
+    try {
+      const { data, error } = await supabase
+        .from("stock_movements")
+        .select(
+          `
+        *,
+        user:user_id (
+          id,full_name,email
+        )
+      `,
+        )
+        .eq("stock_id", stockId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      console.error("Error fetching last movement:", error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Get movement history for a stock item with user info
+   */
+  public async getMovementHistoryWithUsers(
+    itemId: number,
+    warehouseId?: number,
+    limit: number = 50,
+  ) {
+    try {
+      let query = supabase
+        .from("stock_movements")
+        .select(
+          `
+        *,
+        user:user_id (
+          id,
+          email,
+          full_name
+        ),
+        stock:stock_id (
+          item:item (name, itemCode),
+          warehouse:warehouse (name)
+        )
+      `,
+        )
+        .eq("item_id", itemId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (warehouseId) {
+        query = query.eq("warehouse_id", warehouseId);
+      }
+
+      const { data, error } = await query;
+      console.log("logs ", data);
+
+      return { data, error };
+    } catch (error) {
+      console.error("Error fetching movement history:", error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Get stock data with last user info
+   */
+  public async getStockWithLastUser(
+    orderBy: string,
+    ascending: boolean,
+    rangeStart: number,
+    rangeEnd: number,
+    limit: number,
+    filters?: ValuesFilterStock,
+  ) {
+    try {
+      console.log("Cominggg");
+
+      const query = supabase
+        .from(this.className) // "stocks"
+        .select(
+          `
+    id,
+    item!inner (id, name, itemCode),
+    warehouse!inner (id, name),
+    quantity,
+    reserved,
+    status,
+    reference_id,
+    reference_type,
+    updated_at,
+    stock_movements (
+      *,
+      user:user_id(full_name,email)
+    )
+    `,
+          { count: "exact" },
+        )
+        .order(orderBy, { ascending })
+        .range(rangeStart, rangeEnd)
+        .limit(limit);
+
+      if (filters) {
+        if (filters.item) {
+          query.ilike("item.name", `%${filters.item}%`);
+        }
+        if (filters.warehouse) {
+          query.eq("warehouse", filters.warehouse);
+        }
+        if (filters.status) {
+          query.eq("status", filters.status);
+        }
+        if (filters.minimumQuantity) {
+          query.gte("quantity", parseInt(filters.minimumQuantity));
+        }
+        if (filters.maximumQuantity) {
+          query.lte("quantity", parseInt(filters.maximumQuantity));
+        }
+        if (filters.updatedAtFrom) {
+          query.gte("updated_at", filters.updatedAtFrom);
+        }
+        if (filters.updatedAtTo) {
+          query.lte("updated_at", filters.updatedAtTo);
+        }
+      }
+
+      const {
+        data: stocksData,
+        count: stocksCount,
+        error: stocksError,
+      } = await query;
+
+      // Process data to get last movement info
+      const processedData =
+        stocksData?.map((stock) => {
+          const movements = stock.stock_movements || [];
+          const lastMovement =
+            movements.length > 0
+              ? movements.reduce((latest: any, current: any) => {
+                  return new Date(current.created_at) >
+                    new Date(latest.created_at)
+                    ? current
+                    : latest;
+                }, movements[0])
+              : null;
+
+          return {
+            ...stock,
+            last_movement: lastMovement,
+            last_updated_by:
+              lastMovement?.user?.email ||
+              lastMovement?.user?.full_name ||
+              "System",
+            last_updated_at: lastMovement?.created_at || stock.updated_at,
+          };
+        }) || [];
+
+      console.log("STOCKS WITH HISTORY ", processedData);
+      return { stocksData: processedData, stocksCount, stocksError };
+    } catch (error) {
+      console.error("Error fetching stocks with history:", error);
+      return null;
+    }
+  }
   public async getSingle(id: number) {
     try {
       const { data: stockData, error: stockError } = await supabase
         .from(this.className)
         .select(
-          "id, item (id, name), warehouse (id, name), quantity, reserved, status, reference_id, reference_type, updated_at"
+          "id, item (id, name), warehouse (id, name), quantity, reserved, status, reference_id, reference_type, updated_at",
         )
         .eq("id", id)
         .limit(1)
@@ -247,75 +553,13 @@ class StocksRepository {
       const { data: stocksData, error: stocksError } = await supabase
         .from(this.className)
         .select(
-          "id, item (id, name), warehouse (id, name), quantity, reserved, status, updated_at"
+          "id, item (id, name), warehouse (id, name), quantity, reserved, status, updated_at",
         )
         .eq("warehouse", warehouse);
 
       return { stocksData, stocksError };
     } catch (error) {
       console.error("Error fetching stock:", error);
-      return null;
-    }
-  }
-
-  public async edit(
-    id: number,
-    stock: StockSupabase,
-    changedItemWarehouse: boolean
-  ) {
-    try {
-      if (changedItemWarehouse) {
-        const { data: existingStockData, error: existingStockError } =
-          await supabase
-            .from(this.className)
-            .select("id, quantity, reserved")
-            .eq("item", stock.item)
-            .eq("warehouse", stock.warehouse);
-
-        if (
-          existingStockData &&
-          existingStockData.length > 0 &&
-          !existingStockError
-        ) {
-          const existingStock = existingStockData[0];
-          const { data, error } = await supabase
-            .from(this.className)
-            .update({
-              item: stock.item,
-              warehouse: stock.warehouse,
-              quantity: stock.quantity + parseFloat(existingStock.quantity),
-              reserved:
-                (stock.reserved || 0) +
-                (parseFloat(existingStock.reserved) || 0),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existingStock.id)
-            .select();
-
-          if (data && data.length > 0 && error === null) {
-            await supabase.from(this.className).delete().eq("id", id);
-            return data[0];
-          }
-          return null;
-        }
-        return null;
-      } else {
-        const { data, error } = await supabase
-          .from(this.className)
-          .update({
-            ...stock,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", id)
-          .select();
-
-        if (data && data.length > 0 && error === null) {
-          return data[0];
-        }
-        return null;
-      }
-    } catch (error) {
-      console.error("Error editing stock:", error);
       return null;
     }
   }
@@ -400,26 +644,25 @@ class StocksRepository {
 
   public async reserveForQuotation(
     itemId: number,
-    // warehouseId: number,
+    warehouseId: number,
     quantity: number,
-    quotationId: number
+    quotationId: number,
   ) {
     try {
+      // Get current user ID
+      const userId = await this.getCurrentUserId();
+
       // 1. Check available stock
       const { data: stockData, error: stockError } = await supabase
         .from(this.className)
-        .select("id, quantity, reserved,warehouse")
+        .select("id, quantity, reserved")
         .eq("item", itemId)
-        // .eq("warehouse", warehouseId)
+        .eq("warehouse", warehouseId)
         .limit(1);
-      console.log("COMING HERE TOOO", {
-        stockError,
-        stockData,
-      });
+
       if (stockError || !stockData || stockData.length === 0) {
         return { success: false, error: "Stock not found" };
       }
-      console.log("NOT FOUND ERROR DIDNT COME ");
 
       const stock = stockData[0];
       const currentQuantity = parseFloat(stock.quantity) || 0;
@@ -430,7 +673,7 @@ class StocksRepository {
         .from("stock_reservations")
         .insert({
           item_id: itemId,
-          warehouse_id: stock.warehouse,
+          warehouse_id: warehouseId,
           quotation_id: quotationId,
           quantity: quantity,
           status: "on_hold",
@@ -470,6 +713,19 @@ class StocksRepository {
         };
       }
 
+      // 📝 Record movement
+      await this.recordMovement(
+        stock.id,
+        itemId,
+        warehouseId,
+        userId,
+        "reserve",
+        0, // No quantity change, just reserved
+        currentQuantity,
+        currentQuantity,
+        `Stock reserved for quotation #${quotationId}`,
+      );
+
       return {
         success: true,
         reservationId: reservation.id,
@@ -483,11 +739,12 @@ class StocksRepository {
     }
   }
 
-  // Add these methods to StocksRepository class
-
   // Method to release ALL stock from a quotation (for cancellation)
   public async releaseAllFromQuotation(quotationId: number) {
     try {
+      // Get current user ID
+      const userId = await this.getCurrentUserId();
+
       // 1. Get all reservations for this quotation
       const { data: reservations, error: resError } = await supabase
         .from("stock_reservations")
@@ -528,7 +785,7 @@ class StocksRepository {
         if (updateResError) {
           console.error(
             `Failed to release reservation ${reservation.id}:`,
-            updateResError
+            updateResError,
           );
           continue;
         }
@@ -542,10 +799,11 @@ class StocksRepository {
           .single();
 
         if (stockData) {
+          const currentQuantity = parseFloat(stockData.quantity) || 0;
           const currentReserved = parseFloat(stockData.reserved) || 0;
           const newReserved = Math.max(
             0,
-            currentReserved - reservation.quantity
+            currentReserved - reservation.quantity,
           );
           const newStatus = newReserved === 0 ? "available" : "on_hold";
 
@@ -557,6 +815,19 @@ class StocksRepository {
               updated_at: new Date().toISOString(),
             })
             .eq("id", stockData.id);
+
+          // 📝 Record movement
+          await this.recordMovement(
+            stockData.id,
+            reservation.item_id,
+            reservation.warehouse_id,
+            userId,
+            "release",
+            0, // No quantity change, just unreserved
+            currentQuantity,
+            currentQuantity,
+            `Stock released from quotation #${quotationId}`,
+          );
 
           totalReleased += reservation.quantity;
           releaseResults.push({
@@ -583,9 +854,12 @@ class StocksRepository {
     quotationId: number,
     itemId: number,
     warehouseId: number,
-    quantity: number
+    quantity: number,
   ) {
     try {
+      // Get current user ID
+      const userId = await this.getCurrentUserId();
+
       // 1. Get active reservations for this item and quotation
       const { data: reservations, error: resError } = await supabase
         .from("stock_reservations")
@@ -622,7 +896,7 @@ class StocksRepository {
         const reservationQuantity = parseFloat(reservation.quantity);
         const releaseQuantity = Math.min(
           remainingToRelease,
-          reservationQuantity
+          reservationQuantity,
         );
 
         if (releaseQuantity === reservationQuantity) {
@@ -639,12 +913,12 @@ class StocksRepository {
           if (updateResError) {
             console.error(
               `Failed to release reservation ${reservation.id}:`,
-              updateResError
+              updateResError,
             );
             continue;
           }
         } else {
-          // Partially release reservation - create new reservation for remaining quantity
+          // Partially release reservation
           const { error: updateResError } = await supabase
             .from("stock_reservations")
             .update({
@@ -656,7 +930,7 @@ class StocksRepository {
           if (updateResError) {
             console.error(
               `Failed to partially release reservation ${reservation.id}:`,
-              updateResError
+              updateResError,
             );
             continue;
           }
@@ -683,6 +957,7 @@ class StocksRepository {
           .single();
 
         if (stockData) {
+          const currentQuantity = parseFloat(stockData.quantity) || 0;
           const currentReserved = parseFloat(stockData.reserved) || 0;
           const newReserved = Math.max(0, currentReserved - releaseQuantity);
           const newStatus = newReserved === 0 ? "available" : "on_hold";
@@ -695,6 +970,22 @@ class StocksRepository {
               updated_at: new Date().toISOString(),
             })
             .eq("id", stockData.id);
+
+          // 📝 Record movement (only once per stock update, not per reservation)
+          if (remainingToRelease === quantity) {
+            // First iteration
+            await this.recordMovement(
+              stockData.id,
+              itemId,
+              warehouseId,
+              userId,
+              "release",
+              0,
+              currentQuantity,
+              currentQuantity,
+              `Stock released from quotation #${quotationId} (${quantity} units)`,
+            );
+          }
         }
 
         remainingToRelease -= releaseQuantity;
@@ -734,7 +1025,7 @@ class StocksRepository {
   public async getItemReservationsForQuotation(
     quotationId: number,
     itemId: number,
-    warehouseId: number = 1
+    warehouseId: number = 1,
   ) {
     try {
       const { data, error } = await supabase
@@ -808,7 +1099,7 @@ class StocksRepository {
     itemId: number,
     warehouseId: number,
     oldQuantity: number,
-    newQuantity: number
+    newQuantity: number,
   ) {
     try {
       const quantityDiff = newQuantity - oldQuantity;
@@ -825,9 +1116,9 @@ class StocksRepository {
         // Need to reserve more stock
         const result = await this.reserveForQuotation(
           itemId,
-          // warehouseId,
+          warehouseId,
           quantityDiff,
-          quotationId
+          quotationId,
         );
 
         return {
@@ -841,7 +1132,7 @@ class StocksRepository {
           quotationId,
           itemId,
           warehouseId,
-          Math.abs(quantityDiff)
+          Math.abs(quantityDiff),
         );
 
         return {
@@ -859,6 +1150,7 @@ class StocksRepository {
       };
     }
   }
+
   public async getReservationsByQuotation(quotationId: number) {
     try {
       const { data, error } = await supabase
@@ -868,7 +1160,7 @@ class StocksRepository {
         *,
         items:item_id (id, name, itemCode),
         warehouses:warehouse_id (id, name)
-      `
+      `,
         )
         .eq("quotation_id", quotationId)
         .order("created_at", { ascending: false });
@@ -897,7 +1189,7 @@ class StocksRepository {
       name
     )
   )
-`
+`,
         )
         .eq("item_id", itemId)
         .eq("warehouse_id", warehouseId)
@@ -913,17 +1205,16 @@ class StocksRepository {
 
   public async getTotalReservedForItem(
     itemId: number,
-    warehouseId: number = 1
+    warehouseId: number = 1,
   ) {
     try {
-      console.log("COMINGGG");
       const { data, error } = await supabase
         .from("stock_reservations")
         .select("quantity")
         .eq("item_id", itemId)
         .eq("warehouse_id", warehouseId)
         .eq("status", "on_hold");
-      console.log("DATA", data);
+
       if (error) return { success: false, error: error.message };
 
       const totalReserved =
@@ -938,6 +1229,7 @@ class StocksRepository {
       return { success: false, error: error.message };
     }
   }
+
   public async getTotalStock(itemId: number, warehouseId: number = 1) {
     try {
       const { data, error } = await supabase
@@ -986,7 +1278,7 @@ class StocksRepository {
   public async canReserveStock(
     itemId: number,
     warehouseId: number,
-    quantity: number
+    quantity: number,
   ) {
     try {
       const result = await this.getAvailableStock(itemId, warehouseId);
@@ -999,9 +1291,9 @@ class StocksRepository {
 
       return {
         ...result,
-        canReserve: result.totalAvailable || 1 >= quantity,
+        canReserve: (result.totalAvailable ?? 0) >= quantity,
         requested: quantity,
-        sufficient: result.totalAvailable || 1 >= quantity, // TODO:
+        sufficient: (result.totalAvailable ?? 0) >= quantity,
       };
     } catch (error: any) {
       console.error("Error checking if can reserve stock:", error);
@@ -1022,7 +1314,7 @@ class StocksRepository {
           *,
           items (id, name, itemCode),
           warehouses (id, name)
-        `
+        `,
         )
         .eq("status", status)
         .order("updated_at", { ascending: false });
@@ -1034,24 +1326,25 @@ class StocksRepository {
     }
   }
 
-  // Add these methods to your existing StocksRepository class
-
   /**
    * Direct stock reduction for invoices (no reservation, allows negative)
    */
   public async reduceStockForInvoice(
     itemId: number,
-    // warehouseId: number,
+    warehouseId: number,
     quantity: number,
-    invoiceId: number
+    invoiceId: number,
+    userId?: string, // Make optional
   ) {
     try {
-      // 1. Find existing stock record
+      // Get current user ID if not provided
+      const currentUserId = userId || (await this.getCurrentUserId());
+
       const { data: stockData, error: stockError } = await supabase
         .from(this.className)
-        .select("id, quantity, reserved,warehouse")
+        .select("id, quantity, reserved, warehouse")
         .eq("item", itemId)
-        // .eq("warehouse", warehouseId)
+        .eq("warehouse", warehouseId) // Use provided warehouseId
         .limit(1);
 
       if (stockError) {
@@ -1061,49 +1354,43 @@ class StocksRepository {
         };
       }
 
-      const currentQuantity = stockData?.[0]?.quantity
-        ? parseFloat(stockData[0].quantity)
-        : 0;
-      const newQuantity = currentQuantity - quantity; // Can be negative
-
-      // 2. Update or create stock record
-      if (stockData && stockData.length > 0) {
-        // Update existing record
-        const { error: updateError } = await supabase
-          .from(this.className)
-          .update({
-            quantity: newQuantity,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", stockData[0].id);
-
-        if (updateError) {
-          return {
-            success: false,
-            error: `Failed to update stock: ${updateError.message}`,
-          };
-        }
-      } else {
-        // Create new record with negative quantity (if needed)
-        const { error: insertError } = await supabase
-          .from(this.className)
-          .insert({
-            item: itemId,
-            warehouse: stockData?.[0]?.warehouse,
-            quantity: newQuantity, // Can be negative
-            reserved: 0,
-            status: "available",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-
-        if (insertError) {
-          return {
-            success: false,
-            error: `Failed to create stock record: ${insertError.message}`,
-          };
-        }
+      if (!stockData || stockData.length === 0) {
+        return {
+          success: false,
+          error: `Stock record not found for item ${itemId} in warehouse ${warehouseId}`,
+        };
       }
+
+      const currentQuantity = parseFloat(stockData[0].quantity) || 0;
+      const newQuantity = currentQuantity - quantity;
+
+      const { error: updateError } = await supabase
+        .from(this.className)
+        .update({
+          quantity: newQuantity,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", stockData[0].id);
+
+      if (updateError) {
+        return {
+          success: false,
+          error: `Failed to update stock: ${updateError.message}`,
+        };
+      }
+
+      // 📝 Record movement with POSITIVE quantity
+      await this.recordMovement(
+        stockData[0].id,
+        itemId,
+        warehouseId,
+        currentUserId,
+        "out",
+        quantity, // Positive quantity
+        currentQuantity,
+        newQuantity,
+        `Stock reduced for invoice #${invoiceId}`,
+      );
 
       return {
         success: true,
@@ -1111,7 +1398,7 @@ class StocksRepository {
         newQuantity: newQuantity,
         reduction: quantity,
         itemId,
-        // warehouseId,
+        warehouseId,
       };
     } catch (error: any) {
       console.error("Error reducing stock for invoice:", error);
@@ -1128,20 +1415,19 @@ class StocksRepository {
   public async restoreStockFromInvoice(
     itemId: number,
     warehouseId: number,
-    quantity: number
+    quantity: number,
   ) {
     try {
-      // Find existing stock record for this item
-      // First try with warehouse ID, then fall back to any warehouse for this item
+      // Get current user ID
+      const userId = await this.getCurrentUserId();
+
       let query = supabase
         .from(this.className)
         .select("id, quantity, warehouse");
 
-      // If warehouseId is provided, try to find record with that warehouse
       if (warehouseId && warehouseId !== 1) {
         query = query.eq("item", itemId).eq("warehouse", warehouseId);
       } else {
-        // Default: find any stock record for this item (no warehouse filter)
         query = query.eq("item", itemId);
       }
 
@@ -1153,7 +1439,6 @@ class StocksRepository {
       const newQuantity = currentQuantity + quantity;
 
       if (stockData && stockData.length > 0) {
-        // Update existing record
         const { error } = await supabase
           .from(this.className)
           .update({
@@ -1164,19 +1449,49 @@ class StocksRepository {
           .eq("id", stockData[0].id);
 
         if (error) throw error;
+
+        // 📝 Record movement
+        await this.recordMovement(
+          stockData[0].id,
+          itemId,
+          warehouseId,
+          userId,
+          "in",
+          quantity, // Positive for restoration
+          currentQuantity,
+          newQuantity,
+          `Stock restored from cancelled invoice`,
+        );
       } else {
-        // Create new record if none exists
-        const { error } = await supabase.from(this.className).insert({
-          item: itemId,
-          warehouse: warehouseId || 1,
-          quantity: newQuantity,
-          reserved: 0,
-          status: newQuantity > 0 ? "available" : "out_of_stock",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        const { data, error } = await supabase
+          .from(this.className)
+          .insert({
+            item: itemId,
+            warehouse: warehouseId || 1,
+            quantity: newQuantity,
+            reserved: 0,
+            status: newQuantity > 0 ? "available" : "out_of_stock",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select();
 
         if (error) throw error;
+
+        if (data && data.length > 0) {
+          // 📝 Record movement
+          await this.recordMovement(
+            data[0].id,
+            itemId,
+            warehouseId,
+            userId,
+            "in",
+            quantity,
+            currentQuantity,
+            newQuantity,
+            `Stock restored from cancelled invoice`,
+          );
+        }
       }
 
       return { success: true, newQuantity, itemId };
@@ -1186,9 +1501,6 @@ class StocksRepository {
     }
   }
 
-  /**
-   * Get current available stock (including negative values)
-   */
   public async getCurrentStock(itemId: number, warehouseId: number = 1) {
     try {
       const { data, error } = await supabase
@@ -1214,22 +1526,15 @@ class StocksRepository {
         success: true,
         quantity: quantity,
         reserved: reserved,
-        available: quantity - reserved, // Can be negative
+        available: quantity - reserved,
       };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
   }
 
-  /**
-   * Release reserved stock from a cancelled quotation
-   * Reduces the reserved amount back to 0, making the stock available again
-   */
-  public async releaseReservationsFromQuotation(
-    quotationId: number
-  ) {
+  public async releaseReservationsFromQuotation(quotationId: number) {
     try {
-      // 1. Get all reserved items for this quotation
       const { data: quotationItems, error: itemError } = await supabase
         .from("quotation_items")
         .select("item_id, quantity")
@@ -1250,7 +1555,6 @@ class StocksRepository {
         };
       }
 
-      // 2. Release reserved stock for each item
       const releaseResults = [];
 
       for (const item of quotationItems) {
@@ -1258,7 +1562,6 @@ class StocksRepository {
         const reservedQuantity = item.quantity;
 
         try {
-          // Get current stock
           const { data: stockData, error: stockError } = await supabase
             .from(this.className)
             .select("id, quantity, reserved")
@@ -1278,7 +1581,6 @@ class StocksRepository {
           const currentReserved = parseFloat(stock.reserved) || 0;
           const newReserved = Math.max(0, currentReserved - reservedQuantity);
 
-          // Update reserved amount
           const { error: updateError } = await supabase
             .from(this.className)
             .update({

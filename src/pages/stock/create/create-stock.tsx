@@ -27,6 +27,7 @@ export default function CreateStock() {
       </Box>
     );
   }
+
   return (
     <Formik
       enableReinitialize
@@ -34,6 +35,7 @@ export default function CreateStock() {
         item: "",
         warehouse: "",
         quantity: "",
+        notes: "",
       }}
       validate={validate}
       onSubmit={onSubmit}
@@ -63,7 +65,10 @@ export default function CreateStock() {
                 optional={false}
                 error={touched.warehouse ? errors.warehouse : ""}
                 options={warehouses.map((warehouse) => {
-                  return { label: warehouse.name, value: warehouse.id.toString() };
+                  return {
+                    label: warehouse.name,
+                    value: warehouse.id.toString(),
+                  };
                 })}
               />,
               <FormInput
@@ -74,6 +79,16 @@ export default function CreateStock() {
                 type={"number"}
                 optional={false}
                 error={touched.quantity ? errors.quantity : ""}
+              />,
+              // ✅ Add notes field (optional)
+              <FormInput
+                id={"notes"}
+                name={"notes"}
+                placeholder={"Notes (e.g., Purchase Order #12345)"}
+                label={"notes"}
+                type={"text"}
+                optional={true}
+                error={touched.notes ? errors.notes : ""}
               />,
             ]}
           />
