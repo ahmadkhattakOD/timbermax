@@ -643,12 +643,14 @@ export function useCreateInvoice() {
         for (const item of selectedItems) {
           const itemQuantity = parseFloat(item.quantity);
           const itemUnitPrice = Number(item.unit_price);
+          const warehouseId = item.warehouse_id || 1; // Get warehouse_id
 
           await invoicesRepo.addItem({
             invoice_id: invoiceId,
             item_id: item.item_id,
             quantity: itemQuantity,
             unit_price: itemUnitPrice,
+            warehouse_id: warehouseId,
           });
         }
 
@@ -700,6 +702,7 @@ export function useCreateInvoice() {
           item_id: item.item_id,
           quantity: parseFloat(item.quantity),
           warehouse_id: item.warehouse_id || 1,
+          unit_price: Number(item.unit_price),
         }));
 
         // Check for low/negative stock items to show warning
@@ -746,17 +749,19 @@ export function useCreateInvoice() {
         }
 
         // Add invoice items
-        for (const item of selectedItems) {
-          const itemQuantity = parseFloat(item.quantity);
-          const itemUnitPrice = Number(item.unit_price);
+        // for (const item of selectedItems) {
+        //   const itemQuantity = parseFloat(item.quantity);
+        //   const itemUnitPrice = Number(item.unit_price);
+        //   const warehouseId = item.warehouse_id || 1;
 
-          await invoicesRepo.addItem({
-            invoice_id: result.invoice.id,
-            item_id: item.item_id,
-            quantity: itemQuantity,
-            unit_price: itemUnitPrice,
-          });
-        }
+        //   await invoicesRepo.addItem({
+        //     invoice_id: result.invoice.id,
+        //     item_id: item.item_id,
+        //     quantity: itemQuantity,
+        //     unit_price: itemUnitPrice,
+        //     warehouse_id: warehouseId,
+        //   });
+        // }
 
         // Show success message with warning if low stock
         if (lowStockItems.length > 0) {

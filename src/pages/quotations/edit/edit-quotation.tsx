@@ -17,18 +17,26 @@ import {
   Paper,
   Typography,
   Button,
+  useTheme,
+  Select,
+  MenuItem,
+  FormControl,
+  Chip,
+  Alert,
 } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
 import { useParams, useNavigate } from "react-router-dom";
 import ActionButton from "components/ActionButton";
+import { useEffect } from "react";
 
 // ==============================|| EDIT QUOTATION PAGE ||============================== //
 
 export default function EditQuotation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const {
     validate,
@@ -49,12 +57,6 @@ export default function EditQuotation() {
     selectedMobile,
     selectedPostCode,
     changeAddress,
-    setSelectedSuburb,
-    setSelectedState,
-    setSelectedEmail,
-    setSelectedPhone,
-    setSelectedMobile,
-    setSelectedPostCode,
     selectedItemId,
     setSelectedItemId,
     handleItemSearchDebounced,
@@ -136,17 +138,22 @@ export default function EditQuotation() {
             text="Back to Quotations"
             onClick={() => navigate("/quotations")}
           />
-          {/* {currentStatus !== "cancelled" && currentStatus !== "converted" && (
-            <ActionButton
-              text="View Details"
-              onClick={() => navigate(`/quotations/view/${id}`)}
-              color="info"
-            />
-          )} */}
         </Box>
       </Box>
     );
   }
+
+  // Calculate low stock items for warning
+  const lowStockItems = selectedItems.filter(item => {
+    if (item.warehouse_id) {
+      const selectedWarehouse = item.available_warehouses.find(
+        w => w.id === item.warehouse_id
+      );
+      const requestedQuantity = parseFloat(item.quantity);
+      return selectedWarehouse && requestedQuantity > selectedWarehouse.available;
+    }
+    return false;
+  });
 
   return (
     <Formik
@@ -170,6 +177,24 @@ export default function EditQuotation() {
             cancelButtonText="Cancel"
             onCancel={() => navigate("/quotations")}
             inputs={[
+              // Low stock warning banner
+              lowStockItems.length > 0 && (
+                <Alert 
+                  key="low-stock-warning" 
+                  severity="warning" 
+                  sx={{ mb: 2 }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body1" fontWeight="bold">
+                      ⚠️ Stock Reservation Alert
+                    </Typography>
+                    <Typography variant="body2">
+                      {lowStockItems.length} item(s) have insufficient stock. Changes will still be saved.
+                    </Typography>
+                  </Box>
+                </Alert>
+              ),
+
               <FormInput
                 key="quotation_number"
                 id={"quotation_number"}
@@ -220,10 +245,9 @@ export default function EditQuotation() {
                 placeholder={"Phone"}
                 label="Phone"
                 type={"text"}
-                value={selectedPhone}
+                value={values.phone}
                 onChange={(e) => {
                   setFieldValue("phone", e.target.value);
-                  setSelectedPhone(e.target.value);
                 }}
               />,
 
@@ -234,10 +258,9 @@ export default function EditQuotation() {
                 placeholder={"Mobile"}
                 label="Mobile"
                 type={"text"}
-                value={selectedMobile}
+                value={values.mobile}
                 onChange={(e) => {
                   setFieldValue("mobile", e.target.value);
-                  setSelectedMobile(e.target.value);
                 }}
               />,
 
@@ -250,7 +273,7 @@ export default function EditQuotation() {
                   changeAddress(newValue, actionMeta);
                   setFieldValue("address", newValue?.value?.description ?? "");
                 }}
-                value={selectedAddress}
+                value={values.address}
                 label="Address"
               />,
 
@@ -261,10 +284,9 @@ export default function EditQuotation() {
                 placeholder={"Suburb"}
                 label="Suburb"
                 type={"text"}
-                value={selectedSuburb}
+                value={values.suburb}
                 onChange={(e) => {
                   setFieldValue("suburb", e.target.value);
-                  setSelectedSuburb(e.target.value);
                 }}
               />,
 
@@ -278,10 +300,9 @@ export default function EditQuotation() {
                   label: state,
                   value: state,
                 }))}
-                value={selectedState}
+                value={values.state}
                 onChange={(e) => {
                   setFieldValue("state", e.target.value);
-                  setSelectedState(e.target.value);
                 }}
               />,
 
@@ -292,10 +313,9 @@ export default function EditQuotation() {
                 placeholder={"Post Code"}
                 label="Post Code"
                 type={"text"}
-                value={selectedPostCode}
+                value={values.postCode}
                 onChange={(e) => {
                   setFieldValue("postCode", e.target.value);
-                  setSelectedPostCode(e.target.value);
                 }}
               />,
 
@@ -306,13 +326,27 @@ export default function EditQuotation() {
                 placeholder={"Email Address"}
                 label="Email Address"
                 type={"email"}
-                value={selectedEmail}
+                value={values.emailAddress}
                 onChange={(e) => {
                   setFieldValue("emailAddress", e.target.value);
-                  setSelectedEmail(e.target.value);
                 }}
               />,
 
+              // VALID UNTIL DATE
+              <FormInput
+                key="valid_until"
+                id={"valid_until"}
+                name={"valid_until"}
+                placeholder={"Valid Until"}
+                label="Valid Until"
+                type={"date"}
+                value={values.valid_until}
+                onChange={(e) => {
+                  setFieldValue("valid_until", e.target.value);
+                }}
+              />,
+
+              // ITEMS TABLE WITH WAREHOUSE SELECTION
               <Box key="items-section">
                 <Box
                   sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
@@ -348,105 +382,202 @@ export default function EditQuotation() {
                     Add
                   </Button>
                 </Box>
-                <TableContainer component={Paper} sx={{ mt: 2 }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Item</TableCell>
-                        <TableCell>Code</TableCell>
-                        <TableCell>Quantity</TableCell>
-                        <TableCell>Unit Price</TableCell>
-                        <TableCell>GST</TableCell>
-
-                        <TableCell>Total</TableCell>
-                        <TableCell>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {selectedItems.map((item, index) => {
-                        return (
-                          <TableRow key={index}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell>{item.itemCode}</TableCell>
-                            <TableCell>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
+                
+                {selectedItems.length === 0 ? (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    No items in this quotation. Add items to update.
+                  </Alert>
+                ) : (
+                  <TableContainer component={Paper} sx={{ mt: 2 }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Item</TableCell>
+                          <TableCell>Code</TableCell>
+                          <TableCell>Warehouse</TableCell>
+                          <TableCell>Available</TableCell>
+                          <TableCell>Quantity</TableCell>
+                          <TableCell>Unit Price</TableCell>
+                          <TableCell>GST</TableCell>
+                          <TableCell>Total</TableCell>
+                          <TableCell>Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedItems.map((item, index) => {
+                          const selectedWarehouse = item.warehouse_id 
+                            ? item.available_warehouses.find(w => w.id === item.warehouse_id)
+                            : null;
+                          
+                          const availableStock = selectedWarehouse?.available || 0;
+                          const currentQuantity = parseFloat(item.quantity);
+                          const isLowStock = availableStock < currentQuantity;
+                          
+                          return (
+                            <TableRow 
+                              key={index}
+                              sx={{
+                                backgroundColor: isLowStock ? 'rgba(255, 165, 0, 0.05)' : 'inherit'
+                              }}
+                            >
+                              <TableCell>{item.name}</TableCell>
+                              <TableCell>{item.itemCode}</TableCell>
+                              
+                              <TableCell>
+                                <FormControl 
+                                  size="small" 
+                                  sx={{ minWidth: 120 }}
+                                  error={!item.warehouse_id}
+                                >
+                                  <Select
+                                    value={item.warehouse_id || ''}
+                                    onChange={(e) => updateItem(index, "warehouse_id", Number(e.target.value))}
+                                    displayEmpty
+                                    disabled={item.available_warehouses.length === 1}
+                                  >
+                                    <MenuItem value="" disabled>
+                                      Select Warehouse
+                                    </MenuItem>
+                                    {item.available_warehouses.map((warehouse) => (
+                                      <MenuItem 
+                                        key={warehouse.id} 
+                                        value={warehouse.id}
+                                      >
+                                        {warehouse.name} ({warehouse.available} available)
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                  {!item.warehouse_id && (
+                                    <Typography variant="caption" color="error">
+                                      Required
+                                    </Typography>
+                                  )}
+                                </FormControl>
+                              </TableCell>
+                              
+                              <TableCell>
+                                {selectedWarehouse ? (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography 
+                                      variant="body2" 
+                                      color={availableStock < 0 ? "error" : availableStock < currentQuantity ? "warning" : "success"}
+                                      fontWeight={availableStock < currentQuantity ? "bold" : "normal"}
+                                    >
+                                      {availableStock}
+                                    </Typography>
+                                    {isLowStock && (
+                                      <Chip 
+                                        label="Low" 
+                                        size="small" 
+                                        color="warning" 
+                                        variant="outlined"
+                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                      />
+                                    )}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    Select warehouse
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              
+                              <TableCell>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <input
+                                    id={`items[${index}].quantity`}
+                                    name={`items[${index}].quantity`}
+                                    type="number"
+                                    value={item.quantity}
+                                    onChange={(e) => {
+                                      updateItem(
+                                        index,
+                                        "quantity",
+                                        parseFloat(e.target.value),
+                                      );
+                                    }}
+                                    style={{
+                                      width: "80px",
+                                      padding: "8px",
+                                      border: `1px solid ${isLowStock ? '#ff9800' : '#ccc'}`,
+                                      borderRadius: "4px",
+                                      backgroundColor: isLowStock ? '#fffaf0' : 'white'
+                                    }}
+                                    min={1}
+                                  />
+                                  {isLowStock && (
+                                    <Typography 
+                                      variant="caption" 
+                                      color="warning"
+                                      sx={{ display: 'block', mt: 0.5 }}
+                                    >
+                                      Insufficient stock
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </TableCell>
+                              
+                              <TableCell>
                                 <input
-                                  id={`items[${index}].quantity`}
-                                  name={`items[${index}].quantity`}
+                                  id={`items[${index}].unit_price`}
+                                  name={`items[${index}].unit_price`}
                                   type="number"
-                                  value={item.quantity}
-                                  onChange={(e) => {
+                                  value={item.unit_price}
+                                  onChange={(e) =>
                                     updateItem(
                                       index,
-                                      "quantity",
-                                      parseFloat(e.target.value)
-                                    );
-                                  }}
+                                      "unit_price",
+                                      parseFloat(e.target.value) || 0,
+                                    )
+                                  }
                                   style={{
-                                    width: "80px",
+                                    width: "100px",
                                     padding: "8px",
                                     border: "1px solid #ccc",
                                     borderRadius: "4px",
                                   }}
-                                  min={1}
+                                  min={0}
+                                  step="0.01"
                                 />
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <input
-                                id={`items[${index}].unit_price`}
-                                name={`items[${index}].unit_price`}
-                                type="number"
-                                value={item.unit_price}
-                                onChange={(e) =>
-                                  updateItem(
-                                    index,
-                                    "unit_price",
-                                    parseFloat(e.target.value) || 0
-                                  )
-                                }
-                                style={{
-                                  width: "100px",
-                                  padding: "8px",
-                                  border: "1px solid #ccc",
-                                  borderRadius: "4px",
-                                }}
-                                min={0}
-                                step="0.01"
-                              />
-                            </TableCell>
-                            <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
-                            <TableCell>
-                              ${calculateItemTotal(item).toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                              <IconButton onClick={() => removeItem(index)}>
-                                <Trash size={20} />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                      <TableRow>
-                        <TableCell colSpan={4} align="right">
-                          <strong>Subtotal:</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>${totalAmount.toFixed(2)}</strong>
-                        </TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                              </TableCell>
+                              
+                              <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
+                              
+                              <TableCell>
+                                ${calculateItemTotal(item).toFixed(2)}
+                              </TableCell>
+                              
+                              <TableCell>
+                                <IconButton onClick={() => removeItem(index)}>
+                                  <Trash size={20} />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        
+                        <TableRow>
+                          <TableCell colSpan={7} align="right">
+                            <strong>Total:</strong>
+                          </TableCell>
+                          <TableCell>
+                            <strong>${totalAmount.toFixed(2)}</strong>
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
               </Box>,
 
+              // NOTES
               <FormInput
                 key="note"
                 id={"note"}
@@ -455,6 +586,10 @@ export default function EditQuotation() {
                 label="Notes"
                 type={"text"}
                 isTextArea
+                value={values.note}
+                onChange={(e) => {
+                  setFieldValue("note", e.target.value);
+                }}
               />,
             ]}
           />

@@ -23,6 +23,7 @@ export interface InvoiceItemSupabase {
   item_id: number;
   quantity: number;
   unit_price: number;
+  warehouse_id?: number;
 }
 
 class InvoicesRepository {
@@ -221,9 +222,14 @@ class InvoicesRepository {
       const { data: invoiceData, error: invoiceError } = await supabase
         .from(this.className)
         .select(
-          `id, invoice_number, delivery_status,customer_id,customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
-           quotation_id, quotations ( id, quotation_number ), total, status, invoice_date, note, created_at, updated_at,
-           ${this.itemsClassName} ( id, item_id, quantity, unit_price, total_price, items ( id, name, itemCode, sellPrice,gst) )`,
+          `id, invoice_number, delivery_status, customer_id,
+         customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
+         quotation_id, quotations ( id, quotation_number ), 
+         total, status, invoice_date, note, created_at, updated_at,
+         ${this.itemsClassName} ( 
+           id, item_id, quantity, unit_price, total_price, warehouse_id,
+           items ( id, name, itemCode, sellPrice, gst ) 
+         )`,
         )
         .eq("id", id)
         .limit(1)
@@ -255,11 +261,17 @@ class InvoicesRepository {
     }
   }
 
-  public async addItem(item: InvoiceItemSupabase) {
+  public async addItem(item: InvoiceItemSupabase & { warehouse_id?: number }) {
     try {
       const { data, error } = await supabase
         .from(this.itemsClassName)
-        .insert(item)
+        .insert({
+          invoice_id: item.invoice_id,
+          item_id: item.item_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          warehouse_id: item.warehouse_id || 1, // Default to warehouse 1 if not provided
+        })
         .select();
 
       if (data && data.length > 0 && error === null) {
@@ -572,7 +584,12 @@ class InvoicesRepository {
    */
   public async createWithStockReduction(
     invoice: InvoiceSupabase,
-    items: Array<{ item_id: number; quantity: number; warehouse_id?: number }>, // Add warehouse_id
+    items: Array<{
+      item_id: number;
+      quantity: number;
+      warehouse_id?: number;
+      unit_price: number; // ADD this
+    }>,
   ) {
     try {
       // 1. Create invoice first
@@ -590,17 +607,26 @@ class InvoicesRepository {
       } = await supabase.auth.getUser();
       const userId = user?.id || "system";
 
-      // 3. Reduce stock for each item
+      // 3. Reduce stock for each item AND save items with warehouse_id
       const stocksRepo = new StocksRepository();
       const reductionResults = [];
 
       for (const item of items) {
-        // Use provided warehouse_id or default to 1
         const warehouseId = item.warehouse_id || 1;
 
+        // Save invoice item WITH warehouse_id and unit_price
+        await this.addItem({
+          invoice_id: createdInvoice.id,
+          item_id: item.item_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price || 0, // Use actual unit_price
+          warehouse_id: warehouseId,
+        });
+
+        // Reduce stock
         const reduceResult = await stocksRepo.reduceStockForInvoice(
           item.item_id,
-          warehouseId, // Pass warehouse ID
+          warehouseId,
           item.quantity,
           createdInvoice.id,
           userId,

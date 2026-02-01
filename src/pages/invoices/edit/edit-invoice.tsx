@@ -3,7 +3,7 @@ import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
-import { useEditInvoice } from "./use-edit-invoice";
+import { InvoiceItem, useEditInvoice } from "./use-edit-invoice";
 import { australianStates, calculateItemTotal } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
@@ -19,7 +19,13 @@ import {
   Typography,
   Button,
   useTheme,
+  Select,
+  MenuItem,
+  FormControl,
+  Chip,
+  Alert,
 } from "@mui/material";
+
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
@@ -140,7 +146,8 @@ export default function EditInvoice() {
           <br />
           Delivery status:{" "}
           <strong>
-            {invoiceData?.delivery_status?.charAt(0).toUpperCase() + invoiceData?.delivery_status?.slice(1) || "Pending"}
+            {invoiceData?.delivery_status?.charAt(0).toUpperCase() +
+              invoiceData?.delivery_status?.slice(1) || "Pending"}
           </strong>
         </Typography>
         <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
@@ -322,7 +329,9 @@ export default function EditInvoice() {
                       </Box>
                     }
                     error={
-                      touched.inlineCustomerName ? errors.inlineCustomerName : ""
+                      touched.inlineCustomerName
+                        ? errors.inlineCustomerName
+                        : ""
                     }
                     onChange={(e) => {
                       setFieldValue("inlineCustomerName", e.target.value);
@@ -358,7 +367,10 @@ export default function EditInvoice() {
                   placeholder="Address"
                   onChange={(newValue, actionMeta) => {
                     changeAddress(newValue, actionMeta);
-                    setFieldValue("address", newValue?.value?.description ?? "");
+                    setFieldValue(
+                      "address",
+                      newValue?.value?.description ?? "",
+                    );
                   }}
                   value={selectedAddress}
                   label="Address"
@@ -418,7 +430,12 @@ export default function EditInvoice() {
                 // ITEMS TABLE WITH GST
                 <Box key="items-section">
                   <Box
-                    sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      mb: 2,
+                    }}
                   >
                     <InputDropdown
                       key="item_search"
@@ -457,6 +474,8 @@ export default function EditInvoice() {
                         <TableRow>
                           <TableCell>Item</TableCell>
                           <TableCell>Code</TableCell>
+                          <TableCell>Warehouse</TableCell>
+                          <TableCell>Available</TableCell>
                           <TableCell>Quantity</TableCell>
                           <TableCell>Unit Price</TableCell>
                           <TableCell>GST</TableCell>
@@ -465,79 +484,324 @@ export default function EditInvoice() {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {selectedItems.map((item:any, index:number) => {
-                          return (
-                            <TableRow key={index}>
-                              <TableCell>{item.name}</TableCell>
-                              <TableCell>{item.itemCode}</TableCell>
-                              <TableCell>
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                  }}
-                                >
+                        {selectedItems.map(
+                          (item: InvoiceItem, index: number) => {
+                            // Find the selected warehouse info
+                            const selectedWarehouse = item.warehouse_id
+                              ? item.available_warehouses.find(
+                                  (w) => w.id === item.warehouse_id,
+                                )
+                              : null;
+
+                            const availableStock =
+                              selectedWarehouse?.available || 0;
+                            const currentQuantity = parseFloat(item.quantity);
+                            const isLowStock = availableStock < currentQuantity;
+                            const isNegativeStock = availableStock < 0;
+
+                            return (
+                              <TableRow
+                                key={index}
+                                sx={{
+                                  backgroundColor: isNegativeStock
+                                    ? "rgba(255, 0, 0, 0.05)"
+                                    : isLowStock
+                                      ? "rgba(255, 165, 0, 0.05)"
+                                      : "inherit",
+                                }}
+                              >
+                                <TableCell>{item.name}</TableCell>
+                                <TableCell>{item.itemCode}</TableCell>
+
+                                <TableCell>
+                                  <FormControl
+                                    size="small"
+                                    sx={{ minWidth: 150 }}
+                                    error={!item.warehouse_id}
+                                  >
+                                    <Select
+                                      value={item.warehouse_id || ""}
+                                      onChange={(e) =>
+                                        updateItem(
+                                          index,
+                                          "warehouse_id",
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                      displayEmpty
+                                      disabled={
+                                        item.available_warehouses.length === 1
+                                      }
+                                    >
+                                      <MenuItem value="" disabled>
+                                        Select Warehouse
+                                      </MenuItem>
+                                      {item.available_warehouses.map(
+                                        (warehouse) => {
+                                          // Determine status color
+                                          let statusColor = "text.primary";
+                                          if (warehouse.available < 0)
+                                            statusColor = "error.main";
+                                          else if (
+                                            warehouse.available <
+                                            currentQuantity
+                                          )
+                                            statusColor = "warning.main";
+                                          else statusColor = "success.main";
+
+                                          return (
+                                            <MenuItem
+                                              key={warehouse.id}
+                                              value={warehouse.id}
+                                            >
+                                              <Box
+                                                sx={{
+                                                  display: "flex",
+                                                  justifyContent:
+                                                    "space-between",
+                                                  width: "100%",
+                                                }}
+                                              >
+                                                <Typography variant="body2">
+                                                  {warehouse.name}
+                                                </Typography>
+                                                <Typography
+                                                  variant="body2"
+                                                  sx={{
+                                                    color: statusColor,
+                                                    fontWeight:
+                                                      warehouse.available <
+                                                      currentQuantity
+                                                        ? "bold"
+                                                        : "normal",
+                                                  }}
+                                                >
+                                                  {warehouse.available} avail
+                                                </Typography>
+                                              </Box>
+                                            </MenuItem>
+                                          );
+                                        },
+                                      )}
+                                    </Select>
+                                    {!item.warehouse_id && (
+                                      <Typography
+                                        variant="caption"
+                                        color="error"
+                                      >
+                                        Required
+                                      </Typography>
+                                    )}
+                                  </FormControl>
+                                </TableCell>
+
+                                <TableCell>
+                                  {selectedWarehouse ? (
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        color={
+                                          isNegativeStock
+                                            ? "error"
+                                            : isLowStock
+                                              ? "warning"
+                                              : "success"
+                                        }
+                                        fontWeight={
+                                          isLowStock || isNegativeStock
+                                            ? "bold"
+                                            : "normal"
+                                        }
+                                      >
+                                        {availableStock}
+                                      </Typography>
+                                      {isNegativeStock && (
+                                        <Chip
+                                          label="Negative"
+                                          size="small"
+                                          color="error"
+                                          variant="outlined"
+                                          sx={{
+                                            height: 20,
+                                            fontSize: "0.7rem",
+                                          }}
+                                        />
+                                      )}
+                                      {isLowStock && !isNegativeStock && (
+                                        <Chip
+                                          label="Low"
+                                          size="small"
+                                          color="warning"
+                                          variant="outlined"
+                                          sx={{
+                                            height: 20,
+                                            fontSize: "0.7rem",
+                                          }}
+                                        />
+                                      )}
+                                    </Box>
+                                  ) : (
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                    >
+                                      Select warehouse
+                                    </Typography>
+                                  )}
+                                </TableCell>
+
+                                <TableCell>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                    }}
+                                  >
+                                    <input
+                                      id={`items[${index}].quantity`}
+                                      name={`items[${index}].quantity`}
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => {
+                                        updateItem(
+                                          index,
+                                          "quantity",
+                                          parseFloat(e.target.value),
+                                        );
+                                      }}
+                                      style={{
+                                        width: "80px",
+                                        padding: "8px",
+                                        border: `1px solid ${
+                                          isNegativeStock
+                                            ? "#f44336"
+                                            : isLowStock
+                                              ? "#ff9800"
+                                              : "#ccc"
+                                        }`,
+                                        borderRadius: "4px",
+                                        backgroundColor: isNegativeStock
+                                          ? "#ffebee"
+                                          : isLowStock
+                                            ? "#fffaf0"
+                                            : "white",
+                                      }}
+                                      min={1}
+                                    />
+                                    {(isLowStock || isNegativeStock) && (
+                                      <Typography
+                                        variant="caption"
+                                        color={
+                                          isNegativeStock ? "error" : "warning"
+                                        }
+                                        sx={{ display: "block", mt: 0.5 }}
+                                      >
+                                        {isNegativeStock
+                                          ? "Negative stock will be created"
+                                          : "Will create negative stock"}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </TableCell>
+
+                                <TableCell>
                                   <input
-                                    id={`items[${index}].quantity`}
-                                    name={`items[${index}].quantity`}
+                                    id={`items[${index}].unit_price`}
+                                    name={`items[${index}].unit_price`}
                                     type="number"
-                                    value={item.quantity}
-                                    onChange={(e) => {
+                                    value={item.unit_price}
+                                    onChange={(e) =>
                                       updateItem(
                                         index,
-                                        "quantity",
-                                        parseFloat(e.target.value)
-                                      );
-                                    }}
+                                        "unit_price",
+                                        parseFloat(e.target.value) || 0,
+                                      )
+                                    }
                                     style={{
-                                      width: "80px",
+                                      width: "100px",
                                       padding: "8px",
                                       border: "1px solid #ccc",
                                       borderRadius: "4px",
                                     }}
-                                    min={1}
+                                    min={0}
+                                    step="0.01"
                                   />
-                                </Box>
-                              </TableCell>
-                              <TableCell>
-                                <input
-                                  id={`items[${index}].unit_price`}
-                                  name={`items[${index}].unit_price`}
-                                  type="number"
-                                  value={item.unit_price}
-                                  onChange={(e) =>
-                                    updateItem(
-                                      index,
-                                      "unit_price",
-                                      parseFloat(e.target.value) || 0
-                                    )
-                                  }
-                                  style={{
-                                    width: "100px",
-                                    padding: "8px",
-                                    border: "1px solid #ccc",
-                                    borderRadius: "4px",
-                                  }}
-                                  min={0}
-                                  step="0.01"
-                                />
-                              </TableCell>
-                              <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
-                              <TableCell>
-                                ${calculateItemTotal(item).toFixed(2)}
-                              </TableCell>
-                              <TableCell>
-                                <IconButton onClick={() => removeItem(index)}>
-                                  <Trash size={20} />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
+                                </TableCell>
+
+                                <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
+
+                                <TableCell>
+                                  <Typography
+                                    fontWeight="bold"
+                                    color={
+                                      isNegativeStock
+                                        ? "error"
+                                        : isLowStock
+                                          ? "warning"
+                                          : "inherit"
+                                    }
+                                  >
+                                    ${calculateItemTotal(item).toFixed(2)}
+                                  </Typography>
+                                </TableCell>
+
+                                <TableCell>
+                                  <IconButton onClick={() => removeItem(index)}>
+                                    <Trash size={20} />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          },
+                        )}
+
+                        {/* Warning row for negative stock items */}
+                        {selectedItems.some((item) => {
+                          const selectedWarehouse = item.warehouse_id
+                            ? item.available_warehouses.find(
+                                (w) => w.id === item.warehouse_id,
+                              )
+                            : null;
+                          const availableStock =
+                            selectedWarehouse?.available || 0;
+                          const currentQuantity = parseFloat(item.quantity);
+                          return availableStock < currentQuantity;
+                        }) && (
+                          <TableRow>
+                            <TableCell colSpan={9}>
+                              <Box
+                                sx={{
+                                  p: 2,
+                                  backgroundColor: "warning.light",
+                                  borderRadius: 1,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Typography variant="body2" fontWeight="bold">
+                                  ⚠️ Low Stock Alert:
+                                </Typography>
+                                <Typography variant="body2">
+                                  Some items will create negative stock. Invoice
+                                  will still be created.
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Total row */}
                         <TableRow>
-                          <TableCell colSpan={5} align="right">
-                            <strong>Subtotal:</strong>
+                          <TableCell colSpan={7} align="right">
+                            <strong>Total:</strong>
                           </TableCell>
                           <TableCell>
                             <strong>${totalAmount.toFixed(2)}</strong>

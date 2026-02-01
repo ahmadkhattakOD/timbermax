@@ -1,5 +1,5 @@
 import FormLayout from "components/FormLayout";
-import { ErrorMessage, Field, Form, Formik } from "formik";
+import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateQuotation } from "./use-create-quotation";
@@ -17,12 +17,17 @@ import {
   TableRow,
   Paper,
   Typography,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  Chip,
+  Alert,
 } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
-import { useEffect, useState } from "react";
-import { Button } from "@mui/material";
+import { useEffect } from "react";
 
 // ==============================|| CREATE QUOTATION PAGE ||============================== //
 
@@ -59,6 +64,8 @@ export default function CreateQuotation() {
     inlineCustomerName,
     quotationNumberRef,
     setInlineCustomerName,
+    customerName,
+    setCustomerName,
   } = useCreateQuotation();
 
   const theme = useTheme();
@@ -79,6 +86,18 @@ export default function CreateQuotation() {
     );
   }
 
+  // Calculate low stock items for warning
+  const lowStockItems = selectedItems.filter(item => {
+    if (item.warehouse_id) {
+      const selectedWarehouse = item.available_warehouses.find(
+        w => w.id === item.warehouse_id
+      );
+      const requestedQuantity = parseFloat(item.quantity);
+      return selectedWarehouse && requestedQuantity > selectedWarehouse.available;
+    }
+    return false;
+  });
+
   return (
     <Formik
       enableReinitialize={false}
@@ -87,15 +106,15 @@ export default function CreateQuotation() {
       validateOnBlur={true}
       initialValues={{
         quotation_number: String(quotationNumberRef.current),
-        contactName: "",
-        inlineCustomerName: inlineCustomerName,
-        phone: selectedPhone,
-        mobile: selectedMobile,
-        address: selectedAddress,
-        suburb: selectedSuburb,
-        state: selectedState,
-        postCode: selectedPostCode,
-        emailAddress: selectedEmail,
+        contactName: customerName || "",
+        inlineCustomerName: inlineCustomerName || "",
+        phone: selectedPhone || "",
+        mobile: selectedMobile || "",
+        address: selectedAddress || "",
+        suburb: selectedSuburb || "",
+        state: selectedState || "",
+        postCode: selectedPostCode || "",
+        emailAddress: selectedEmail || "",
         valid_until: "",
         note: "",
       }}
@@ -115,6 +134,8 @@ export default function CreateQuotation() {
             const customer = customers.find((c) => c.id === selectedCustomer);
             if (customer) {
               // Update Formik values
+              setFieldValue("contactName", customer.name || "");
+              setCustomerName(customer.name || "");
               setFieldValue("phone", customer.phone || "");
               setFieldValue("mobile", customer.mobile || "");
               setFieldValue("address", customer.address || "");
@@ -125,6 +146,8 @@ export default function CreateQuotation() {
             }
           } else if (!createInlineCustomer) {
             // Reset Formik values when no customer selected
+            setFieldValue("contactName", "");
+            setCustomerName("");
             setFieldValue("phone", "");
             setFieldValue("mobile", "");
             setFieldValue("address", "");
@@ -133,13 +156,38 @@ export default function CreateQuotation() {
             setFieldValue("postCode", "");
             setFieldValue("emailAddress", "");
           }
-        }, [selectedCustomer, customers, createInlineCustomer, setFieldValue]);
+        }, [
+          selectedCustomer,
+          customers,
+          createInlineCustomer,
+          setFieldValue,
+          setCustomerName,
+        ]);
+
         return (
           <Form onSubmit={handleSubmit}>
             <FormLayout
               isSubmitting={isSubmitting}
               submitButtonText="Create a Quote"
               inputs={[
+                // Low stock warning banner
+                lowStockItems.length > 0 && (
+                  <Alert
+                    key="low-stock-warning"
+                    severity="warning"
+                    sx={{ mb: 2 }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body1" fontWeight="bold">
+                        ⚠️ Stock Reservation Alert
+                      </Typography>
+                      <Typography variant="body2">
+                        {lowStockItems.length} item(s) have insufficient stock. Quotation will still be created.
+                      </Typography>
+                    </Box>
+                  </Alert>
+                ),
+
                 <FormInput
                   key="quotation_number"
                   id={"quotation_number"}
@@ -161,6 +209,9 @@ export default function CreateQuotation() {
                     name="contactName"
                     label="Contact Name"
                     options={customers}
+                    value={
+                      customers.find((c) => c.id === selectedCustomer) || null
+                    }
                     secondaryLabel={
                       <Box
                         sx={{
@@ -181,9 +232,6 @@ export default function CreateQuotation() {
                     onChange={handleSearchDebounced}
                     onSelect={(e) => {
                       setSelectedCustomer(e.target.value);
-                    }}
-                    onClickCreateNew={() => {
-                      setCreateInlineCustomer(true);
                     }}
                     error={errors.contactName}
                   />
@@ -207,6 +255,8 @@ export default function CreateQuotation() {
                         }}
                         onClick={() => {
                           setCreateInlineCustomer(false);
+                          setInlineCustomerName("");
+                          setFieldValue("inlineCustomerName", "");
                         }}
                       >
                         Cancel Manual
@@ -219,13 +269,13 @@ export default function CreateQuotation() {
                     }
                     onChange={(e) => {
                       setFieldValue("inlineCustomerName", e.target.value);
-                      setInlineCustomerName(e.target.value); // Update the state in hook
+                      setInlineCustomerName(e.target.value);
                     }}
                     value={values.inlineCustomerName}
                   />
                 ) : null,
 
-                // CONTACT DETAILS - Let Formik manage these fields
+                // CONTACT DETAILS
                 <FormInput
                   key="phone"
                   id={"phone"}
@@ -298,6 +348,18 @@ export default function CreateQuotation() {
                   label="Email Address"
                   type={"email"}
                 />,
+
+                // VALID UNTIL DATE
+                <FormInput
+                  key="valid_until"
+                  id={"valid_until"}
+                  name={"valid_until"}
+                  placeholder={"Valid Until"}
+                  label="Valid Until"
+                  type={"date"}
+                />,
+
+                // NOTES
                 <FormInput
                   key="note"
                   id={"note"}
@@ -307,7 +369,8 @@ export default function CreateQuotation() {
                   type={"text"}
                   isTextArea
                 />,
-                // ITEMS TABLE
+
+                // ITEMS TABLE WITH WAREHOUSE SELECTION
                 <Box key="items-section">
                   <Box
                     sx={{
@@ -348,103 +411,199 @@ export default function CreateQuotation() {
                       Add
                     </Button>
                   </Box>
-                  <TableContainer component={Paper} sx={{ mt: 2 }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Item</TableCell>
-                          <TableCell>Code</TableCell>
-                          <TableCell>Quantity</TableCell>
-                          <TableCell>Unit Price</TableCell>
-                          <TableCell>GST</TableCell>
-                          <TableCell>Total</TableCell>
-                          <TableCell>Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {selectedItems.map((item, index) => {
-                          return (
-                            <TableRow key={index}>
-                              <TableCell>{item.name}</TableCell>
-                              <TableCell>{item.itemCode}</TableCell>
-                              <TableCell>
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                  }}
-                                >
+
+                  {selectedItems.length === 0 ? (
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                      No items added yet. Select an item and click "Add" to add items to the quotation.
+                    </Alert>
+                  ) : (
+                    <TableContainer component={Paper} sx={{ mt: 2 }}>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Item</TableCell>
+                            <TableCell>Code</TableCell>
+                            <TableCell>Warehouse</TableCell>
+                            <TableCell>Available</TableCell>
+                            <TableCell>Quantity</TableCell>
+                            <TableCell>Unit Price</TableCell>
+                            <TableCell>GST</TableCell>
+                            <TableCell>Total</TableCell>
+                            <TableCell>Actions</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {selectedItems.map((item, index) => {
+                            const selectedWarehouse = item.warehouse_id
+                              ? item.available_warehouses.find(w => w.id === item.warehouse_id)
+                              : null;
+
+                            const availableStock = selectedWarehouse?.available || 0;
+                            const currentQuantity = parseFloat(item.quantity);
+                            const isLowStock = availableStock < currentQuantity;
+
+                            return (
+                              <TableRow
+                                key={index}
+                                sx={{
+                                  backgroundColor: isLowStock ? 'rgba(255, 165, 0, 0.05)' : 'inherit'
+                                }}
+                              >
+                                <TableCell>{item.name}</TableCell>
+                                <TableCell>{item.itemCode}</TableCell>
+
+                                <TableCell>
+                                  <FormControl
+                                    size="small"
+                                    sx={{ minWidth: 120 }}
+                                    error={!item.warehouse_id}
+                                  >
+                                    <Select
+                                      value={item.warehouse_id || ''}
+                                      onChange={(e) => updateItem(index, "warehouse_id", Number(e.target.value))}
+                                      displayEmpty
+                                      disabled={item.available_warehouses.length === 1}
+                                    >
+                                      <MenuItem value="" disabled>
+                                        Select Warehouse
+                                      </MenuItem>
+                                      {item.available_warehouses.map((warehouse) => (
+                                        <MenuItem
+                                          key={warehouse.id}
+                                          value={warehouse.id}
+                                        >
+                                          {warehouse.name} ({warehouse.available} available)
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                    {!item.warehouse_id && (
+                                      <Typography variant="caption" color="error">
+                                        Required
+                                      </Typography>
+                                    )}
+                                  </FormControl>
+                                </TableCell>
+
+                                <TableCell>
+                                  {selectedWarehouse ? (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography
+                                        variant="body2"
+                                        color={availableStock < 0 ? "error" : availableStock < currentQuantity ? "warning" : "success"}
+                                        fontWeight={availableStock < currentQuantity ? "bold" : "normal"}
+                                      >
+                                        {availableStock}
+                                      </Typography>
+                                      {isLowStock && (
+                                        <Chip
+                                          label="Low"
+                                          size="small"
+                                          color="warning"
+                                          variant="outlined"
+                                          sx={{ height: 20, fontSize: '0.7rem' }}
+                                        />
+                                      )}
+                                    </Box>
+                                  ) : (
+                                    <Typography variant="body2" color="text.secondary">
+                                      Select warehouse
+                                    </Typography>
+                                  )}
+                                </TableCell>
+
+                                <TableCell>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                    }}
+                                  >
+                                    <input
+                                      id={`items[${index}].quantity`}
+                                      name={`items[${index}].quantity`}
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => {
+                                        updateItem(
+                                          index,
+                                          "quantity",
+                                          parseFloat(e.target.value),
+                                        );
+                                      }}
+                                      style={{
+                                        width: "80px",
+                                        padding: "8px",
+                                        border: `1px solid ${isLowStock ? '#ff9800' : '#ccc'}`,
+                                        borderRadius: "4px",
+                                        backgroundColor: isLowStock ? '#fffaf0' : 'white'
+                                      }}
+                                      min={1}
+                                    />
+                                    {isLowStock && (
+                                      <Typography
+                                        variant="caption"
+                                        color="warning"
+                                        sx={{ display: 'block', mt: 0.5 }}
+                                      >
+                                        Insufficient stock
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </TableCell>
+
+                                <TableCell>
                                   <input
-                                    id={`items[${index}].quantity`}
-                                    name={`items[${index}].quantity`}
+                                    id={`items[${index}].unit_price`}
+                                    name={`items[${index}].unit_price`}
                                     type="number"
-                                    value={item.quantity}
-                                    onChange={(e) => {
+                                    value={item.unit_price}
+                                    onChange={(e) =>
                                       updateItem(
                                         index,
-                                        "quantity",
-                                        parseFloat(e.target.value)
-                                      );
-                                    }}
+                                        "unit_price",
+                                        parseFloat(e.target.value) || 0,
+                                      )
+                                    }
                                     style={{
-                                      width: "80px",
+                                      width: "100px",
                                       padding: "8px",
                                       border: "1px solid #ccc",
                                       borderRadius: "4px",
                                     }}
-                                    min={1}
+                                    min={0}
+                                    step="0.01"
                                   />
-                                </Box>
-                              </TableCell>
-                              <TableCell>
-                                <input
-                                  id={`items[${index}].unit_price`}
-                                  name={`items[${index}].unit_price`}
-                                  type="number"
-                                  value={item.unit_price}
-                                  onChange={(e) =>
-                                    updateItem(
-                                      index,
-                                      "unit_price",
-                                      parseFloat(e.target.value) || 0
-                                    )
-                                  }
-                                  style={{
-                                    width: "100px",
-                                    padding: "8px",
-                                    border: "1px solid #ccc",
-                                    borderRadius: "4px",
-                                  }}
-                                  min={0}
-                                  step="0.01"
-                                />
-                              </TableCell>
-                              <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
+                                </TableCell>
 
-                              <TableCell>
-                               ${calculateItemTotal(item).toFixed(2)}
-                              </TableCell>
-                              <TableCell>
-                                <IconButton onClick={() => removeItem(index)}>
-                                  <Trash size={20} />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        <TableRow>
-                          <TableCell colSpan={4} align="right">
-                            <strong>Total:</strong>
-                          </TableCell>
-                          <TableCell>
-                            <strong>${totalAmount.toFixed(2)}</strong>
-                          </TableCell>
-                          <TableCell></TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                                <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
+
+                                <TableCell>
+                                  ${calculateItemTotal(item).toFixed(2)}
+                                </TableCell>
+
+                                <TableCell>
+                                  <IconButton onClick={() => removeItem(index)}>
+                                    <Trash size={20} />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+
+                          <TableRow>
+                            <TableCell colSpan={7} align="right">
+                              <strong>Total:</strong>
+                            </TableCell>
+                            <TableCell>
+                              <strong>${totalAmount.toFixed(2)}</strong>
+                            </TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
                 </Box>,
               ]}
             />

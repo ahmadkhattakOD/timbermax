@@ -60,6 +60,7 @@ export interface QuotationItem {
   unit_price: number;
   total_price: number;
   description?: string;
+  warehouse_id?: number;
 }
 
 export interface Quotation {

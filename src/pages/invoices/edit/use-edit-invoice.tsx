@@ -17,6 +17,8 @@ import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
 import StocksRepository from "utils/repositories/stocksRepository";
+import WarehousesRepository from "utils/repositories/warehousesRepository";
+import supabase from "utils/supabase";
 
 export interface ValuesEditInvoice {
   invoice_number: string;
@@ -35,11 +37,31 @@ export interface ValuesEditInvoice {
   delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned";
 }
 
+export interface InvoiceItem {
+  item_id: number;
+  name: string;
+  itemCode: string;
+  quantity: string;
+  unit_price: number;
+  gst: boolean;
+  total: string;
+  warehouse_id?: number;
+  available_warehouses: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    reserved: number;
+    available: number;
+  }>;
+  original_quantity?: number; // Store original quantity for comparison
+}
+
 export function useEditInvoice(invoiceId: number) {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [selectedItems, setSelectedItems] = useState<InvoiceItem[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedSuburb, setSelectedSuburb] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
@@ -84,6 +106,83 @@ export function useEditInvoice(invoiceId: number) {
     0,
   );
 
+  // Function to get ALL warehouses for an item (including those with 0 or negative stock)
+  const getWarehousesForItem = async (itemId: number) => {
+    try {
+      // First get all warehouses
+      const warehousesRepo = new WarehousesRepository();
+      const allWarehouses = await warehousesRepo.getWithoutFilters();
+
+      if (!allWarehouses?.warehousesData) {
+        return [];
+      }
+
+      // Get stock data for this item in all warehouses
+      const { data: stockData, error } = await supabase
+        .from("stocks")
+        .select(
+          `
+          id,
+          quantity,
+          reserved,
+          warehouse
+        `,
+        )
+        .eq("item", itemId);
+
+      if (error) {
+        console.error("Error fetching stock for item:", error);
+        // Return all warehouses with 0 stock if no stock records exist
+        return allWarehouses.warehousesData.map((warehouse) => ({
+          id: warehouse.id,
+          name: warehouse.name,
+          quantity: 0,
+          reserved: 0,
+          available: 0,
+        }));
+      }
+
+      // Create a map of warehouse stock
+      const stockByWarehouse = new Map();
+      if (stockData) {
+        stockData.forEach((stock) => {
+          stockByWarehouse.set(stock.warehouse, {
+            quantity: parseFloat(stock.quantity) || 0,
+            reserved: parseFloat(stock.reserved) || 0,
+            available:
+              (parseFloat(stock.quantity) || 0) -
+              (parseFloat(stock.reserved) || 0),
+          });
+        });
+      }
+
+      // Return all warehouses with their stock data (0 if no stock record)
+      return allWarehouses.warehousesData.map((warehouse) => {
+        const stockInfo = stockByWarehouse.get(warehouse.id);
+        if (stockInfo) {
+          return {
+            id: warehouse.id,
+            name: warehouse.name,
+            quantity: stockInfo.quantity,
+            reserved: stockInfo.reserved,
+            available: stockInfo.available,
+          };
+        } else {
+          return {
+            id: warehouse.id,
+            name: warehouse.name,
+            quantity: 0,
+            reserved: 0,
+            available: 0,
+          };
+        }
+      });
+    } catch (error) {
+      console.error("Error getting warehouses for item:", error);
+      return [];
+    }
+  };
+
   function changeAddress(newValue: any, actionMeta: any) {
     let addressComponents = parseAddress(newValue?.value?.description ?? "");
     setSelectedSuburb(addressComponents.suburb);
@@ -110,7 +209,7 @@ export function useEditInvoice(invoiceId: number) {
     }
   };
 
-  const addItem = (itemId: number) => {
+  const addItem = async (itemId: number) => {
     const item = items.find((i) => i.id === itemId);
     if (!item) return;
 
@@ -123,29 +222,45 @@ export function useEditInvoice(invoiceId: number) {
       const newQuantity = parseFloat(updatedItems[existingIndex].quantity) + 1;
 
       updatedItems[existingIndex].quantity = newQuantity.toString();
-      // Recalculate total with GST
-      const quantity = newQuantity;
-      const unitPrice = parseFloat(updatedItems[existingIndex].unit_price);
-      const baseTotal = quantity * unitPrice;
-      const gstAmount = updatedItems[existingIndex].gst ? baseTotal * 0.1 : 0;
-
-      updatedItems[existingIndex].total = (baseTotal + gstAmount).toString();
+      updatedItems[existingIndex].total = (
+        newQuantity * Number(updatedItems[existingIndex].unit_price)
+      ).toString();
       setSelectedItems(updatedItems);
     } else {
-      // Add new item with GST
-      const newItem = {
+      // Get ALL warehouses for this item
+      const allWarehouses = await getWarehousesForItem(itemId);
+
+      if (allWarehouses.length === 0) {
+        openSnackbar({
+          open: true,
+          message: `No warehouses found for item "${item.name}"`,
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
+
+      // Sort warehouses by available stock (highest first)
+      const sortedWarehouses = [...allWarehouses].sort(
+        (a, b) => b.available - a.available,
+      );
+
+      // Auto-select warehouse with highest available stock
+      const selectedWarehouse = sortedWarehouses[0].id;
+
+      // Add new item with warehouses
+      const newItem: InvoiceItem = {
         item_id: item.id,
         name: item.name,
         itemCode: item.itemCode,
         quantity: "1",
         unit_price: item?.sellPrice || 0,
         gst: item?.gst || false,
-        total: calculateItemTotal({
-          quantity: "1",
-          unit_price: item?.sellPrice || 0,
-          gst: item?.gst || false,
-        }).toString(),
+        total: item?.sellPrice.toString() || "0",
+        warehouse_id: selectedWarehouse,
+        available_warehouses: sortedWarehouses,
       };
+
       setSelectedItems([...selectedItems, newItem]);
     }
 
@@ -176,11 +291,13 @@ export function useEditInvoice(invoiceId: number) {
       updatedItems[index].quantity = value;
     } else if (field === "unit_price") {
       updatedItems[index].unit_price = value;
+    } else if (field === "warehouse_id") {
+      updatedItems[index].warehouse_id = value;
     }
 
-    // Recalculate total for the item with GST
+    // Recalculate total for the item including GST
     const quantity = parseFloat(updatedItems[index].quantity);
-    const unit_price = parseFloat(updatedItems[index].unit_price);
+    const unit_price = Number(updatedItems[index].unit_price);
     const baseTotal = quantity * unit_price;
     const gstAmount = updatedItems[index].gst ? baseTotal * 0.1 : 0;
 
@@ -196,12 +313,10 @@ export function useEditInvoice(invoiceId: number) {
     }
 
     if (!createInlineCustomer) {
-      // In existing customer mode, check contactName
       if (!values.contactName || !values.contactName.trim()) {
         errors.contactName = "required";
       }
     } else {
-      // In inline creation mode, check inlineCustomerName
       if (!values.inlineCustomerName || !values.inlineCustomerName.trim()) {
         errors.inlineCustomerName = "required";
       }
@@ -228,6 +343,17 @@ export function useEditInvoice(invoiceId: number) {
       } as SnackbarProps);
     }
 
+    // Validate warehouse selection for all items
+    const missingWarehouse = selectedItems.some((item) => !item.warehouse_id);
+    if (missingWarehouse) {
+      openSnackbar({
+        open: true,
+        message: "Please select a warehouse for all items",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+
     return errors;
   }
 
@@ -237,6 +363,18 @@ export function useEditInvoice(invoiceId: number) {
         openSnackbar({
           open: true,
           message: "Please add at least one item to the invoice",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        return;
+      }
+
+      // Check for missing warehouse selection
+      const missingWarehouse = selectedItems.some((item) => !item.warehouse_id);
+      if (missingWarehouse) {
+        openSnackbar({
+          open: true,
+          message: "Please select a warehouse for all items",
           variant: "alert",
           alert: { color: "error" },
         } as SnackbarProps);
@@ -281,14 +419,10 @@ export function useEditInvoice(invoiceId: number) {
           return;
         }
       } else {
-        // For existing customer mode
         if (selectedCustomer) {
           customerToUpdate = selectedCustomer;
         } else {
-          // No customer selected, find or create by name
           const customerNameToUse = values.contactName;
-
-          // First, try to find existing customer by name
           const customersRepository = new CustomersRepository();
           const existingCustomers =
             await customersRepository.getByName(customerNameToUse);
@@ -301,10 +435,7 @@ export function useEditInvoice(invoiceId: number) {
           }
 
           if (existingCustomer) {
-            // Customer exists, use it
             customerToUpdate = existingCustomer.id;
-
-            // Update customer details
             await customersRepository.edit(existingCustomer.id, {
               name: customerNameToUse,
               phone: values.phone,
@@ -316,7 +447,6 @@ export function useEditInvoice(invoiceId: number) {
               email: values.emailAddress,
             });
           } else {
-            // Customer doesn't exist, create new one
             const newCustomer: CustomerSupabase = {
               name: customerNameToUse,
               phone: values.phone,
@@ -358,35 +488,36 @@ export function useEditInvoice(invoiceId: number) {
       const invoicesRepo = new InvoicesRepository();
       const stocksRepo = new StocksRepository();
 
-      // Get current invoice items from database
+      // Get current invoice items from database (with warehouse info if available)
       const currentItemsResult = await invoicesRepo.getItems(invoiceId);
       const currentItems = currentItemsResult?.data || [];
 
-      // Check if status changed to cancelled
+      // Check status changes
       const statusChangedToCancelled =
         currentStatus !== "cancelled" && values.status === "cancelled";
 
-      // Check if status changed from cancelled to something else
       const statusChangedFromCancelled =
         currentStatus === "cancelled" && values.status !== "cancelled";
 
       // Handle stock adjustments based on status changes
       if (statusChangedToCancelled) {
-        // If changing to cancelled, restore stock
+        // If changing to cancelled, restore stock for each item in its respective warehouse
         for (const item of currentItems) {
+          const warehouseId = item.warehouse_id || 1; // Default to warehouse 1 if not specified
           await stocksRepo.restoreStockFromInvoice(
             item.item_id,
-            1, // default warehouse
+            warehouseId,
             item.quantity,
           );
         }
       } else if (statusChangedFromCancelled) {
         // If changing from cancelled back to active, reduce stock again
-        for (const item of selectedItems) {
+        for (const selectedItem of selectedItems) {
+          const warehouseId = selectedItem.warehouse_id || 1;
           await stocksRepo.reduceStockForInvoice(
-            item.item_id,
-            // 1,
-            parseFloat(item.quantity),
+            selectedItem.item_id,
+            warehouseId,
+            parseFloat(selectedItem.quantity),
             invoiceId,
           );
         }
@@ -438,10 +569,11 @@ export function useEditInvoice(invoiceId: number) {
           // Delete item from invoice_items
           await invoicesRepo.deleteItem(invoiceId, item.item_id);
 
-          // Restore stock for removed items
+          // Restore stock for removed items in the correct warehouse
+          const warehouseId = item.warehouse_id || 1;
           await stocksRepo.restoreStockFromInvoice(
             item.item_id,
-            1,
+            warehouseId,
             item.quantity,
           );
         }
@@ -450,56 +582,96 @@ export function useEditInvoice(invoiceId: number) {
         for (const selectedItem of selectedItems) {
           const itemId = selectedItem.item_id;
           const newQuantity = parseFloat(selectedItem.quantity);
-          const itemUnitPrice = parseFloat(selectedItem.unit_price);
+          const itemUnitPrice = Number(selectedItem.unit_price);
+          const warehouseId = selectedItem.warehouse_id || 1;
 
           const currentItem = currentItems.find(
             (item: any) => item.item_id === itemId,
           );
 
-          if (currentItem) {
-            // Update existing item
-            const currentQuantity = parseFloat(currentItem.quantity);
+          console.log("=======================================");
+          console.log("Processing item ID:", itemId);
+          console.log("Current item from DB:", currentItem);
+          console.log("Current quantity from DB:", currentItem?.quantity);
+          console.log("New quantity from form:", newQuantity);
 
+          if (currentItem) {
+            const currentQuantity = parseFloat(currentItem.quantity);
+            const currentWarehouseId = currentItem.warehouse_id || 1;
+
+            console.log("Parsed current quantity:", currentQuantity);
+            console.log("Current warehouse:", currentWarehouseId);
+            console.log("New warehouse:", warehouseId);
+
+            // Update invoice item with warehouse
             await invoicesRepo.updateItem(invoiceId, itemId, {
               quantity: newQuantity,
               unit_price: itemUnitPrice,
+              warehouse_id: warehouseId,
             });
 
-            // Adjust stock if quantity changed
-            if (newQuantity !== currentQuantity) {
+            // Adjust stock if quantity changed OR warehouse changed
+            if (
+              newQuantity !== currentQuantity ||
+              warehouseId !== currentWarehouseId
+            ) {
               const quantityDiff = newQuantity - currentQuantity;
 
-              if (quantityDiff > 0) {
-                // Need more stock reduction
-                await stocksRepo.reduceStockForInvoice(
-                  itemId,
-                  // 1,
-                  quantityDiff,
-                  invoiceId,
-                );
-              } else if (quantityDiff < 0) {
-                // Need to restore stock
-                const restoreAmount = Math.abs(quantityDiff);
+              if (warehouseId !== currentWarehouseId) {
+                // Warehouse changed - two clear movements
                 await stocksRepo.restoreStockFromInvoice(
                   itemId,
-                  1,
-                  restoreAmount,
+                  currentWarehouseId,
+                  currentQuantity,
                 );
+
+                await stocksRepo.reduceStockForInvoice(
+                  itemId,
+                  warehouseId,
+                  newQuantity,
+                  invoiceId,
+                  undefined,
+                  `Invoice #${invoiceId} edited: Moved to Warehouse ${warehouseId}`,
+                );
+              } else {
+                console.log("QUANITY DIFF", quantityDiff);
+
+                // Same warehouse, quantity change - single movement
+                if (quantityDiff > 0) {
+                  // Increased
+                  await stocksRepo.reduceStockForInvoice(
+                    itemId,
+                    warehouseId,
+                    quantityDiff,
+                    invoiceId,
+                    undefined,
+                    `Invoice #${invoiceId} edited: Quantity increased by ${quantityDiff}`,
+                  );
+                } else if (quantityDiff < 0) {
+                  // Decreased
+                  await stocksRepo.restoreStockFromInvoice(
+                    itemId,
+                    warehouseId,
+                    Math.abs(quantityDiff),
+                    `Invoice #${invoiceId} edited: Quantity decreased by ${Math.abs(quantityDiff)}`,
+                  );
+                }
               }
             }
           } else {
-            // Add new item
+            // Add new item with warehouse
             await invoicesRepo.addItem({
               invoice_id: invoiceId,
               item_id: itemId,
               quantity: newQuantity,
               unit_price: itemUnitPrice,
+              warehouse_id: warehouseId,
             });
 
-            // Reduce stock for new item
+            // Reduce stock for new item in specified warehouse
             await stocksRepo.reduceStockForInvoice(
               itemId,
-              // 1,
+              warehouseId,
               newQuantity,
               invoiceId,
             );
@@ -509,7 +681,7 @@ export function useEditInvoice(invoiceId: number) {
 
       openSnackbar({
         open: true,
-        message: "Invoice updated successfully.",
+        message: "Invoice updated successfully with stock tracking.",
         variant: "alert",
         alert: { color: "success" },
       } as SnackbarProps);
@@ -547,6 +719,14 @@ export function useEditInvoice(invoiceId: number) {
       setItems(allItems.itemsData);
     }
     setLoadingItems(false);
+  }
+
+  async function getAllWarehouses() {
+    const warehousesRepo = new WarehousesRepository();
+    const allWarehouses = await warehousesRepo.getWithoutFilters();
+    if (allWarehouses?.warehousesData) {
+      setWarehouses(allWarehouses.warehousesData);
+    }
   }
 
   async function loadInvoiceData() {
@@ -594,27 +774,38 @@ export function useEditInvoice(invoiceId: number) {
           delivery_status: invoice.delivery_status || "pending",
         });
 
-        // Set items
+        // Load items with warehouse information
         if (invoice.invoice_items) {
-          const itemsWithDetails = invoice.invoice_items.map((item: any) => ({
-            item_id: item.item_id,
-            name: item.items?.name || "",
-            itemCode: item.items?.itemCode || "",
-            quantity: item.quantity.toString(),
-            unit_price: item.unit_price.toString(),
-            gst: item.items?.gst || false,
-            total: calculateItemTotal({
-              quantity: item.quantity.toString(),
-              unit_price: item.unit_price.toString(),
-              gst: item.items?.gst || false,
-            }).toString(),
-          }));
-          setSelectedItems(itemsWithDetails);
+          const itemsWithWarehouses = await Promise.all(
+            invoice.invoice_items.map(async (item: any) => {
+              const allWarehouses = await getWarehousesForItem(item.item_id);
+              const sortedWarehouses = [...allWarehouses].sort(
+                (a, b) => b.available - a.available,
+              );
+
+              return {
+                item_id: item.item_id,
+                name: item.items?.name || "",
+                itemCode: item.items?.itemCode || "",
+                quantity: item.quantity.toString(),
+                unit_price: item.unit_price.toString(),
+                gst: item.items?.gst || false,
+                total: calculateItemTotal({
+                  quantity: item.quantity.toString(),
+                  unit_price: item.unit_price.toString(),
+                  gst: item.items?.gst || false,
+                }).toString(),
+                warehouse_id: item.warehouse_id || 1,
+                available_warehouses: sortedWarehouses,
+              };
+            }),
+          );
+          setSelectedItems(itemsWithWarehouses);
         }
       }
 
-      // Load customers and items
-      await Promise.all([getCustomers(), getItems()]);
+      // Load customers, items, and warehouses
+      await Promise.all([getCustomers(), getItems(), getAllWarehouses()]);
     } catch (error) {
       console.error("Error loading invoice data:", error);
     }

@@ -29,6 +29,7 @@ export interface QuotationItemSupabase {
   quantity: number;
   unit_price: number;
   total_price?: number;
+  warehouse_id?: number; // ADDED
   created_at?: string;
   updated_at?: string;
 }
@@ -66,25 +67,24 @@ class QuotationsRepository {
     rangeStart: number = 0,
     rangeEnd: number = 9,
     limit: number = 10,
-    filters?: ValuesFilterQuotations
+    filters?: ValuesFilterQuotations,
   ) {
     try {
       const query = supabase
         .from(this.className)
         .select(
           `*,
-   customer:customer_id!inner(*),
+          customer:customer_id!inner(*),
           quotation_items(
-            quantity,
-            unit_price,
+            *,
             items!inner(
               id,
               name,
               itemCode,
               sellPrice
             )
-          )`,
-          { count: "exact" }
+          )`, // ADDED * to include all fields including warehouse_id
+          { count: "exact" },
         )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
@@ -119,17 +119,17 @@ class QuotationsRepository {
         if (filters.item_code) {
           query.ilike(
             `quotation_items.items.itemCode`,
-            `%${filters.item_code}%`
+            `%${filters.item_code}%`,
           );
         }
       }
-      console.log("filterss", filters);
+
       const {
         data: quotationsData,
         count: quotationsCount,
         error: quotationsError,
       } = await query;
-      console.log("DATAA", quotationsData);
+
       if (quotationsError) {
         console.error("Error fetching quotations:", quotationsError);
         return { quotationsData: [], quotationsCount: 0, quotationsError };
@@ -166,7 +166,7 @@ class QuotationsRepository {
           quotation_items(
             *,
             items!inner(*)
-          )`
+          )`,
         )
         .eq("id", id)
         .limit(1)
@@ -185,7 +185,7 @@ class QuotationsRepository {
         .from(this.itemsClassName)
         .select(
           `*,
-          items!inner(*)`
+          items!inner(*)`,
         )
         .eq("quotation_id", quotationId);
 
@@ -224,12 +224,11 @@ class QuotationsRepository {
 
   public async updateStatus(
     id: number,
-    status: "draft" | "sent" | "approved" | "cancelled" | "converted"
+    status: "draft" | "sent" | "approved" | "cancelled" | "converted",
   ) {
     try {
       // Get current status
       const currentQuotation = await this.getSingle(id);
-      console.log("COMING TILL HERE", currentQuotation);
       if (!currentQuotation?.quotationData) {
         return { success: false, error: "Quotation not found" };
       }
@@ -250,6 +249,26 @@ class QuotationsRepository {
         if (!releaseResult.success) {
           console.error("Failed to release stock:", releaseResult.error);
           // Continue with status update but log the error
+        }
+      }
+
+      // If changing from cancelled back to active, re-reserve stock
+      if (
+        currentStatus === "cancelled" &&
+        (status === "draft" || status === "sent" || status === "approved")
+      ) {
+        // Get quotation items and re-reserve stock
+        const { data: items } = await this.getItems(id);
+        if (items) {
+          const stocksRepo = new StocksRepository();
+          for (const item of items) {
+            await stocksRepo.reserveForQuotation(
+              item.item_id,
+              item.warehouse_id || 1,
+              item.quantity,
+              id,
+            );
+          }
         }
       }
 
@@ -275,10 +294,10 @@ class QuotationsRepository {
     }
   }
 
-  // When creating a quotation, reserve stock
+  // When creating a quotation, reserve stock with warehouse support
   public async createWithStockReservation(
     quotation: QuotationSupabase,
-    items: Array<{ item_id: number; quantity: number }>
+    items: Array<{ item_id: number; quantity: number; warehouse_id?: number }>, // UPDATED: Added warehouse_id
   ) {
     try {
       // 1. Create quotation
@@ -287,33 +306,33 @@ class QuotationsRepository {
         return { success: false, error: "Failed to create quotation" };
       }
 
-      // 2. Reserve stock for each item
+      // 2. Reserve stock for each item with warehouse
       const stocksRepo = new StocksRepository();
       const reservationResults = [];
 
       for (const item of items) {
+        const warehouseId = item.warehouse_id || 1; // Default to warehouse 1
+        
         const reserveResult = await stocksRepo.reserveForQuotation(
           item.item_id,
-          // item.warehouse, // default warehouse
+          warehouseId, // PASS warehouse_id
           item.quantity,
-          createdQuotation.id
+          createdQuotation.id,
         );
 
         reservationResults.push({
           itemId: item.item_id,
+          warehouseId: warehouseId,
           success: reserveResult.success,
           error: reserveResult.error,
         });
 
-        // If any reservation fails, you might want to rollback
+        // If any reservation fails, log it
         if (!reserveResult.success) {
           console.error(
-            `Failed to reserve stock for item ${item.item_id}:`,
-            reserveResult.error
+            `Failed to reserve stock for item ${item.item_id} in warehouse ${warehouseId}:`,
+            reserveResult.error,
           );
-          // Optional: Rollback the quotation creation
-          // await this.delete([createdQuotation.id]);
-          // return { success: false, error: `Failed to reserve stock for item ${item.item_id}` };
         }
       }
 
@@ -353,6 +372,13 @@ class QuotationsRepository {
 
   public async delete(ids: readonly number[]) {
     try {
+      // First release all stock reservations for each quotation
+      const stocksRepo = new StocksRepository();
+      for (const id of ids) {
+        await stocksRepo.releaseAllFromQuotation(id);
+      }
+
+      // Then delete the quotations
       const { data, error } = await supabase
         .from(this.className)
         .delete()
@@ -372,6 +398,26 @@ class QuotationsRepository {
 
   public async deleteItem(quotationId: number, itemId: number) {
     try {
+      // First get the item details to release stock
+      const { data: itemData } = await supabase
+        .from(this.itemsClassName)
+        .select("quantity, warehouse_id")
+        .eq("quotation_id", quotationId)
+        .eq("item_id", itemId)
+        .single();
+
+      if (itemData) {
+        // Release the reserved stock
+        const stocksRepo = new StocksRepository();
+        await stocksRepo.releaseFromQuotation(
+          quotationId,
+          itemId,
+          itemData.warehouse_id || 1,
+          itemData.quantity,
+        );
+      }
+
+      // Then delete the item
       const { data, error } = await supabase
         .from(this.itemsClassName)
         .delete()
@@ -393,33 +439,81 @@ class QuotationsRepository {
   public async updateItem(
     quotationId: number,
     itemId: number,
-    updates: Partial<QuotationItemSupabase>
+    updates: Partial<QuotationItemSupabase>,
   ) {
     try {
+      // First get current item details
+      const { data: currentItem } = await supabase
+        .from(this.itemsClassName)
+        .select("quantity, unit_price, warehouse_id")
+        .eq("quotation_id", quotationId)
+        .eq("item_id", itemId)
+        .single();
+
+      if (!currentItem) {
+        console.error("Item not found");
+        return null;
+      }
+
       let finalUpdates = { ...updates };
 
       // Recalculate total_price if quantity or unit_price changes
       if (updates.quantity !== undefined || updates.unit_price !== undefined) {
-        const { data: currentItem } = await supabase
-          .from(this.itemsClassName)
-          .select("quantity, unit_price")
-          .eq("quotation_id", quotationId)
-          .eq("item_id", itemId)
-          .single();
+        const quantity =
+          updates.quantity !== undefined
+            ? updates.quantity
+            : currentItem.quantity;
+        const unit_price =
+          updates.unit_price !== undefined
+            ? updates.unit_price
+            : currentItem.unit_price;
+        finalUpdates.total_price = quantity * unit_price;
+      }
 
-        if (currentItem) {
-          const quantity =
-            updates.quantity !== undefined
-              ? updates.quantity
-              : currentItem.quantity;
-          const unit_price =
-            updates.unit_price !== undefined
-              ? updates.unit_price
-              : currentItem.unit_price;
-          finalUpdates.total_price = quantity * unit_price;
+      // Handle stock movements atomically - only if quantity or warehouse changed
+      if (updates.quantity !== undefined || updates.warehouse_id !== undefined) {
+        const stocksRepo = new StocksRepository();
+        const oldQuantity = currentItem.quantity;
+        const newQuantity = updates.quantity !== undefined ? updates.quantity : oldQuantity;
+        const oldWarehouseId = currentItem.warehouse_id || 1;
+        const newWarehouseId = updates.warehouse_id !== undefined ? updates.warehouse_id : oldWarehouseId;
+
+        // Only proceed if there's an actual change
+        if (oldQuantity !== newQuantity || oldWarehouseId !== newWarehouseId) {
+          if (oldWarehouseId !== newWarehouseId) {
+            // Warehouse changed: use atomic transfer method
+            const transferResult = await stocksRepo.transferReservationBetweenWarehouses(
+              quotationId,
+              itemId,
+              oldWarehouseId,
+              newWarehouseId,
+              oldQuantity,
+              newQuantity,
+            );
+            
+            if (!transferResult.success) {
+              console.error("Failed to transfer reservation between warehouses:", transferResult.error);
+              // Continue with item update but log the error
+            }
+          } else if (oldQuantity !== newQuantity) {
+            // Same warehouse, quantity change: use atomic adjustment
+            const adjustResult = await stocksRepo.adjustStockReservation(
+              quotationId,
+              itemId,
+              newWarehouseId,
+              oldQuantity,
+              newQuantity,
+            );
+            
+            if (!adjustResult.success) {
+              console.error("Failed to adjust stock reservation:", adjustResult.error);
+              // Continue with item update but log the error
+            }
+          }
         }
       }
 
+      // Update the item in database
       const { data, error } = await supabase
         .from(this.itemsClassName)
         .update({
@@ -435,6 +529,10 @@ class QuotationsRepository {
         console.error("Error updating quotation item:", error);
         return null;
       }
+      
+      // Update quotation total
+      await this.updateQuotationTotal(quotationId);
+      
       return data;
     } catch (error) {
       console.error("Error updating quotation item:", error);
@@ -444,36 +542,15 @@ class QuotationsRepository {
 
   public async updateQuotationTotal(quotationId: number) {
     try {
-      // Calculate new total from items (including GST if stored separately)
-      const { data: items, error: itemsError } = await supabase
-        .from(this.itemsClassName)
-        .select("quantity, unit_price")
-        .eq("quotation_id", quotationId);
-
-      if (itemsError) {
-        return { success: false, error: itemsError.message };
-      }
-
-      // This calculates base total without GST
-      const baseTotal =
-        items?.reduce(
-          (sum, item) =>
-            sum +
-            parseFloat(item.quantity.toString()) *
-              parseFloat(item.unit_price.toString()),
-          0
-        ) || 0;
-
-      // If you need to add GST, you'll need to fetch GST information for each item
-      // Option 1: If GST is stored in quotation_items
+      // Calculate new total from items with GST
       const { data: itemsWithGST } = await supabase
         .from(this.itemsClassName)
         .select(
           `
-        quantity, 
-        unit_price,
-        items!inner(gst)
-      `
+          quantity, 
+          unit_price,
+          items!inner(gst)
+        `,
         )
         .eq("quotation_id", quotationId);
 
@@ -486,15 +563,13 @@ class QuotationsRepository {
           const gst = item.items?.gst ? base * 0.1 : 0;
           totalWithGST += base + gst;
         });
-      } else {
-        totalWithGST = baseTotal;
       }
 
       // Update quotation total
       const { error: updateError } = await supabase
         .from(this.className)
         .update({
-          total: totalWithGST, // Use GST-included total
+          total: totalWithGST,
           updated_at: new Date().toISOString(),
         })
         .eq("id", quotationId);
@@ -546,7 +621,7 @@ class QuotationsRepository {
     rangeStart: number = 0,
     rangeEnd: number = 9,
     limit: number = 10,
-    filters?: ValuesFilterQuotations
+    filters?: ValuesFilterQuotations,
   ) {
     try {
       const query = supabase
@@ -555,8 +630,7 @@ class QuotationsRepository {
           `*,
         customer:customer_id!inner(*),
         quotation_items(
-          quantity,
-          unit_price,
+          *,
           items!inner(
             id,
             name,
@@ -564,7 +638,7 @@ class QuotationsRepository {
             sellPrice
           )
         )`,
-          { count: "exact" }
+          { count: "exact" },
         )
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
@@ -597,7 +671,7 @@ class QuotationsRepository {
         if (filters.item_code) {
           query.ilike(
             `quotation_items.items.itemCode`,
-            `%${filters.item_code}%`
+            `%${filters.item_code}%`,
           );
         }
       }
@@ -632,6 +706,41 @@ class QuotationsRepository {
     } catch (error) {
       console.error("Error fetching active quotations:", error);
       return { quotationsData: [], quotationsError: error };
+    }
+  }
+
+  // NEW METHOD: Check stock availability for multiple items
+  public async checkStockAvailability(
+    items: Array<{ item_id: number; quantity: number; warehouse_id?: number }>,
+  ) {
+    try {
+      const availabilityResults = [];
+      const stocksRepo = new StocksRepository();
+
+      for (const item of items) {
+        const warehouseId = item.warehouse_id || 1;
+        const result = await stocksRepo.canReserveStock(
+          item.item_id,
+          warehouseId,
+          item.quantity,
+        );
+
+        availabilityResults.push({
+          item_id: item.item_id,
+          warehouse_id: warehouseId,
+          quantity: item.quantity,
+          ...result,
+        });
+      }
+
+      return {
+        success: true,
+        results: availabilityResults,
+        allAvailable: availabilityResults.every((r) => r.canReserve),
+      };
+    } catch (error: any) {
+      console.error("Error checking stock availability:", error);
+      return { success: false, error: error.message };
     }
   }
 }

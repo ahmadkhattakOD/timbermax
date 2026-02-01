@@ -83,13 +83,13 @@ export default function CreateItem() {
                   alignItems: "center",
                   gap: "8px",
                   maxWidth: "10%",
-                  background: "#fafafa",
                 }}
               >
                 <FormInput
                   id={"gst"}
                   name={"gst"}
                   placeholder={"gst"}
+                  secondaryLabel={null}
                   label={"gst"}
                   optional={true}
                   type={"checkbox"}
