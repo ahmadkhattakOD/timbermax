@@ -88,9 +88,9 @@ export default function CreateItem() {
                 <FormInput
                   id={"gst"}
                   name={"gst"}
-                  placeholder={"gst"}
+                  placeholder={"GST"}
                   secondaryLabel={null}
-                  label={"gst"}
+                  label={"GST"}
                   optional={true}
                   type={"checkbox"}
                   error={touched.name ? errors.name : ""}

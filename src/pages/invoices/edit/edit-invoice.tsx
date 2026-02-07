@@ -278,6 +278,7 @@ export default function EditInvoice() {
                     name="contactName"
                     label="Customer Name"
                     options={customers}
+                    value={customers.find((c) => c.id === selectedCustomer) || null}
                     secondaryLabel={
                       <Box
                         sx={{

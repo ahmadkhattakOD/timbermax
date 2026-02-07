@@ -13,6 +13,7 @@ import {
   Menu,
   MenuItem,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -126,6 +127,22 @@ export function useInvoices() {
   const [selectedInvoiceForDelivery, setSelectedInvoiceForDelivery] = useState<
     number | null
   >(null);
+  // track actions in-progress per-invoice to avoid double clicks
+  const [actionLoadingIds, setActionLoadingIds] = useState<Set<number>>(
+    new Set(),
+  );
+
+  const addActionLoadingId = (id: number) =>
+    setActionLoadingIds((prev) => new Set(prev).add(id));
+
+  const removeActionLoadingId = (id: number) =>
+    setActionLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
+  const isActionLoading = (id: number) => actionLoadingIds.has(id);
 
   // Action functions
   const goToCreate = () => navigate("/invoices/create");
@@ -142,6 +159,7 @@ export function useInvoices() {
   // View items modal
   const viewItemsModal = async (invoiceId: number) => {
     try {
+      addActionLoadingId(invoiceId);
       const invoicesRepo = new InvoicesRepository();
       const invoice: any = await invoicesRepo.getSingle(invoiceId);
       console.log("INVOICE", invoice);
@@ -178,11 +196,19 @@ export function useInvoices() {
         total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
       }));
 
+      // compute grand total including GST (GST assumed 10% when item.gst is true)
+      const includedTotal = formattedItems.reduce((acc: number, it: any) => {
+        const base = Number(it.total) || 0;
+        const gstAmt = it.gst ? base * 0.1 : 0;
+        return acc + base + gstAmt;
+      }, 0);
+
       setCurrentInvoiceItems(formattedItems);
       setCurrentInvoiceInfo({
         invoiceNumber: invoice.invoiceData.invoice_number,
         customerName: invoice.invoiceData.customer?.name,
-        total: invoice.invoiceData.total,
+        // overwrite total with GST-included total for display in the modal
+        total: includedTotal,
       });
       setItemsModalOpen(true);
     } catch (error: any) {
@@ -193,6 +219,8 @@ export function useInvoices() {
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
+    } finally {
+      removeActionLoadingId(invoiceId);
     }
   };
 
@@ -206,6 +234,7 @@ export function useInvoices() {
   const downloadInvoicePDF = useCallback(async (invoiceId: number) => {
     try {
       setLoading(true);
+      addActionLoadingId(invoiceId);
       const invoicesRepo = new InvoicesRepository();
       const invoiceResponse: any = await invoicesRepo.getSingle(invoiceId);
 
@@ -244,12 +273,14 @@ export function useInvoices() {
       } as SnackbarProps);
     } finally {
       setLoading(false);
+      removeActionLoadingId(invoiceId);
     }
   }, []);
 
   const downloadDeliveryNotePDF = useCallback(async (invoiceId: number) => {
     try {
       setLoading(true);
+      addActionLoadingId(invoiceId);
       const invoicesRepo = new InvoicesRepository();
       const invoiceResponse: any = await invoicesRepo.getSingle(invoiceId);
 
@@ -286,6 +317,7 @@ export function useInvoices() {
       } as SnackbarProps);
     } finally {
       setLoading(false);
+      removeActionLoadingId(invoiceId);
     }
   }, []);
 
@@ -346,7 +378,32 @@ export function useInvoices() {
           <Typography>{row.customers?.name || "N/A"}</Typography>
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 120 }}>
-          <Typography fontWeight={600}>${row.total?.toFixed(2)}</Typography>
+          {/* show total including GST (invoice stored total is GST-excluded) */}
+          <Typography fontWeight={600}>
+            $
+            {(() => {
+              try {
+                const items = row.invoice_items || [];
+                if (items.length == 0) {
+                  return row.total.toFixed(2);
+                }
+                const totalWithGst = items.reduce((acc: number, it: any) => {
+                  const qty = Number(it.quantity) || 0;
+                  const priceVal =
+                    it.unit_price !== undefined && it.unit_price !== null
+                      ? it.unit_price
+                      : it.items?.sellPrice;
+                  const price = Number(priceVal) || 0;
+                  const base = qty * price;
+                  const gstAmt = it.items?.gst || it.gst ? base * 0.1 : 0;
+                  return acc + base + gstAmt;
+                }, 0);
+                return totalWithGst.toFixed(2);
+              } catch (e) {
+                return (Number(row.total) || 0).toFixed(2);
+              }
+            })()}
+          </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Chip
@@ -382,9 +439,7 @@ export function useInvoices() {
           <Typography>{itemsCount}</Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
-          <Typography variant="body2">
-            {row.note || "-"}
-          </Typography>
+          <Typography variant="body2">{row.note || "-"}</Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Typography variant="body2">
@@ -396,96 +451,138 @@ export function useInvoices() {
             {/* Download Invoice PDF */}
             {canDownloadPDF && (
               <Tooltip title="Download Invoice PDF">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    downloadInvoicePDF(row.id);
-                  }}
-                  color="primary"
-                >
-                  <Download size={18} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadInvoicePDF(row.id);
+                    }}
+                    color="primary"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <Download size={18} />
+                    )}
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
 
             {/* Download Delivery Note */}
             {canDownloadDeliveryNote && (
               <Tooltip title="Download Delivery Note">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    downloadDeliveryNotePDF(row.id);
-                  }}
-                  color="warning"
-                >
-                  <Truck size={18} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadDeliveryNotePDF(row.id);
+                    }}
+                    color="warning"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <Truck size={18} />
+                    )}
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
 
             {/* Mark as Sent */}
             {canMarkSent && (
               <Tooltip title="Mark as Sent">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markAsSent(row.id);
-                  }}
-                  color="info"
-                >
-                  <Send size={18} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAsSent(row.id);
+                    }}
+                    color="info"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <Send size={18} />
+                    )}
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
 
             {/* Mark as Paid */}
             {canMarkPaid && (
               <Tooltip title="Mark as Paid">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markAsPaid(row.id);
-                  }}
-                  color="success"
-                >
-                  <Wallet size={18} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAsPaid(row.id);
+                    }}
+                    color="success"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <Wallet size={18} />
+                    )}
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
 
             {/* View Items */}
             {itemsCount > 0 && (
               <Tooltip title="View Items">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    viewItemsModal(row.id);
-                  }}
-                  color="info"
-                >
-                  <Eye size={18} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      viewItemsModal(row.id);
+                    }}
+                    color="info"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
 
             {/* Cancel Invoice */}
             {canCancel && (
               <Tooltip title="Cancel Invoice">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    cancelInvoice(row.id);
-                  }}
-                  color="error"
-                >
-                  <X size={18} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cancelInvoice(row.id);
+                    }}
+                    color="error"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <X size={18} />
+                    )}
+                  </IconButton>
+                </span>
               </Tooltip>
             )}
           </Box>
@@ -624,6 +721,7 @@ export function useInvoices() {
   // Action functions
   const markAsSent = async (invoiceId: number) => {
     try {
+      addActionLoadingId(invoiceId);
       const invoicesRepo = new InvoicesRepository();
       const result = await invoicesRepo.updateStatus(invoiceId, "sent");
 
@@ -646,11 +744,14 @@ export function useInvoices() {
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
+    } finally {
+      removeActionLoadingId(invoiceId);
     }
   };
 
   const markAsPaid = async (invoiceId: number) => {
     try {
+      addActionLoadingId(invoiceId);
       const invoicesRepo = new InvoicesRepository();
       const result = await invoicesRepo.markAsPaid(invoiceId);
 
@@ -673,6 +774,8 @@ export function useInvoices() {
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
+    } finally {
+      removeActionLoadingId(invoiceId);
     }
   };
 
@@ -686,6 +789,7 @@ export function useInvoices() {
     }
 
     try {
+      addActionLoadingId(invoiceId);
       const invoicesRepo = new InvoicesRepository();
       const result = await invoicesRepo.cancelInvoice(invoiceId);
 
@@ -713,6 +817,8 @@ export function useInvoices() {
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
+    } finally {
+      removeActionLoadingId(invoiceId);
     }
   };
 

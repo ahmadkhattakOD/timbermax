@@ -19,7 +19,7 @@ export default function Default(mode: ThemeMode): PaletteThemeProps {
     "#9C6A3A", // main brown
     "#87592F",
     "#704826",
-    "#5A381E",
+    "#5A381E",  
     "#422815",
   ];
 

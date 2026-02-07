@@ -15,7 +15,7 @@ const menuItemsSuperAdmin: { items: NavItemType[] } = {
 };
 
 const menuItemsAdmin: { items: NavItemType[] } = {
-  items: [crm, manage.manageAdmin, inventory, edit],
+  items: [crm, manage.manageAdmin, inventoryWithoutItems, edit],
 };
 
 const menuItemsWarehouseOperator: { items: NavItemType[] } = {

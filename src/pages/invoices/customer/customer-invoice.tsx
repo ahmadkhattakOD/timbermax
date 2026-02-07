@@ -194,7 +194,7 @@ export default function CustomerInvoices() {
       />
 
       {/* Bulk Actions Section */}
-      {selected.length > 0 && (
+      {/* {selected.length > 0 && (
         <Box
           sx={{
             mt: 2,
@@ -262,7 +262,7 @@ export default function CustomerInvoices() {
             </Button>
           </Box>
         </Box>
-      )}
+      )} */}
 
       <DataTable
         data={data}

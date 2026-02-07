@@ -58,36 +58,69 @@ class InvoicesRepository {
     try {
       const query = supabase
         .from(this.className)
+        //       .select(
+        //         `
+        // id,
+        // invoice_number,
+        // delivery_status,
+
+        // customers!inner (
+        //   id, name, phone, mobile, email, address, suburb, state, post_code
+        // ),
+
+        // quotation_id,
+        // quotations (
+        //   quotation_number
+        // ),
+
+        // total,
+        // status,
+        // invoice_date,
+        // note,
+        // created_at,
+        // updated_at,
+
+        // ${this.itemsClassName}!inner (
+        //   quantity,
+        //   unit_price,
+        //   items!inner (
+        //     id, name, itemCode, sellPrice
+        //   )
+        // )
+        // `,
+        //         { count: "exact" },
+        //       )
+
         .select(
           `
-  id,
-  invoice_number,
-  delivery_status,
+id,
+invoice_number,
+delivery_status,
 
-  customers!inner (
-    id, name, phone, mobile, email, address, suburb, state, post_code
-  ),
+customers (
+  id, name, phone, mobile, email, address, suburb, state, post_code
+),
 
-  quotation_id,
-  quotations (
-    quotation_number
-  ),
+quotation_id,
+quotations (
+  quotation_number
+),
 
-  total,
-  status,
-  invoice_date,
-  note,
-  created_at,
-  updated_at,
+total,
+status,
+invoice_date,
+note,
+created_at,
+updated_at,
 
-  ${this.itemsClassName}!inner (
-    quantity,
-    unit_price,
-    items!inner (
-      id, name, itemCode, sellPrice
-    )
+${this.itemsClassName} (
+  quantity,
+  unit_price,
+  items (
+    id, name, itemCode, sellPrice,gst
   )
-  `,
+)
+`,
           { count: "exact" },
         )
 
@@ -657,7 +690,23 @@ class InvoicesRepository {
    */
   public async cancelInvoice(id: number) {
     try {
-      // 1. Get invoice items
+      // 1. Get invoice details (for invoice number in notes)
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from(this.className)
+        .select("invoice_number")
+        .eq("id", id)
+        .limit(1);
+
+      if (invoiceError || !invoiceData || invoiceData.length === 0) {
+        return {
+          success: false,
+          error: "Failed to fetch invoice details",
+        };
+      }
+
+      const invoiceNumber = invoiceData[0].invoice_number;
+
+      // 2. Get invoice items
       const itemsResult = await this.getItems(id);
       if (!itemsResult?.data) {
         return {
@@ -666,24 +715,30 @@ class InvoicesRepository {
         };
       }
 
-      // 2. Restore stock for each item
+      // 3. Restore stock for each item using the correct warehouse_id
       const stocksRepo = new StocksRepository();
       const restoreResults = [];
 
       for (const item of itemsResult.data) {
+        // Use the warehouse_id from the invoice item, fallback to 1 if not set
+        const warehouseId = item.warehouse_id || 1;
+        
+        // Pass notes with invoice number for audit trail
         const restoreResult = await stocksRepo.restoreStockFromInvoice(
           item.item_id,
-          1, // default warehouse
+          warehouseId,
           item.quantity,
+          `Stock restored from cancelled invoice #${invoiceNumber}`,
         );
 
         restoreResults.push({
           itemId: item.item_id,
+          warehouseId: warehouseId,
           ...restoreResult,
         });
       }
 
-      // 3. Update invoice status
+      // 4. Update invoice status
       const { error: statusError } = await supabase
         .from(this.className)
         .update({
