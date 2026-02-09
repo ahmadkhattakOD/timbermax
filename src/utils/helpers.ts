@@ -283,6 +283,47 @@ export const stateAbbreviations = {
   WA: "Western Australia",
 };
 
+export interface ParsedAddress {
+  street: string;
+  suburb: string;
+  state: string;
+  postCode: string;
+  country: string;
+}
+
+export function parseAddress2(fullAddress: string): ParsedAddress {
+  if (!fullAddress) {
+    return { street: '', suburb: '', state: '', postCode: '', country: '' };
+  }
+
+  const parts = fullAddress.split(',').map(part => part.trim());
+  
+  // Default values
+  const result: ParsedAddress = {
+    street: '',
+    suburb: '',
+    state: '',
+    postCode: '',
+    country: 'Australia'
+  };
+
+  // Australian address parsing logic
+  if (parts.length >= 1) result.street = parts[0];
+  if (parts.length >= 2) result.suburb = parts[1];
+  
+  // Handle state and postcode (usually last parts)
+  if (parts.length >= 3) {
+    const lastParts = parts[parts.length - 1].split(' ');
+    if (lastParts.length >= 2) {
+      // Assuming format like "VIC 3000" or "NSW 2000"
+      result.state = lastParts[0];
+      result.postCode = lastParts[1];
+    }
+  }
+
+  return result;
+}
+
 export function parseAddress(address: string): {
   streetAddress: string;
   suburb: string;

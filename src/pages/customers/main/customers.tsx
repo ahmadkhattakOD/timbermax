@@ -52,6 +52,7 @@ export default function Customers() {
     handleSearchDebounced,
     searchValue,
     setSearchValue,
+    AddressModal,
   } = useCustomers();
 
   return (
@@ -111,6 +112,10 @@ export default function Customers() {
         openFilterModal={openFilterModal}
         onDownload={getDataCsv}
       />
+      
+      {/* Address Modal */}
+      <AddressModal />
+      
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
         onClose={closeDeleteConfirmModal}
@@ -213,7 +218,7 @@ export default function Customers() {
       <CSVLink
         data={csvData}
         headers={headCells.map((cell) => cell.label)}
-        filename={`shows_${getDateTimeFormatted()}.csv`}
+        filename={`customers_${getDateTimeFormatted()}.csv`}
         className="hidden"
         ref={csvLink}
         target="_blank"

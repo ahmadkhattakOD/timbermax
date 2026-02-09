@@ -2,6 +2,14 @@ import { ValuesFilterCustomers } from "pages/customers/main/useCustomers";
 import { extendedDataLimit } from "utils/helpers";
 import supabase from "utils/supabase";
 
+export interface CustomerAddress {
+  address: string;
+  suburb: string;
+  state: string;
+  post_code: string;
+  is_primary?: boolean; // Flag to mark primary address
+}
+
 export interface CustomerSupabase {
   name: string;
   email?: string;
@@ -11,6 +19,7 @@ export interface CustomerSupabase {
   suburb?: string;
   state?: string;
   post_code?: string;
+  addresses?: CustomerAddress[];
   // tags: string[];
   // lost_reason?: string;
   notes?: string;
@@ -21,22 +30,36 @@ class CustomersRepository {
 
   public async create(customer: CustomerSupabase) {
     try {
-      const query = supabase.from(this.className).select();
+      // Convert to database format
+      const dbCustomer: any = {
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        mobile: customer.mobile,
+        notes: customer.notes,
+      };
 
-      if (customer.address) {
-        query.eq("name", customer.name);
-        query.eq("address", customer.address);
+      // Handle addresses array
+      if (customer.addresses && customer.addresses.length > 0) {
+        dbCustomer.addresses = customer.addresses;
 
-        const { data: existingData, error: existingError } = await query;
-
-        if (existingData && existingData.length > 0 && !existingError) {
-          return false;
+        // For backward compatibility, also set the primary address to individual fields
+        const primaryAddress =
+          customer.addresses.find((addr) => addr.is_primary) ||
+          customer.addresses[0];
+        if (primaryAddress) {
+          dbCustomer.address = primaryAddress.address;
+          dbCustomer.suburb = primaryAddress.suburb;
+          dbCustomer.state = primaryAddress.state;
+          dbCustomer.post_code = primaryAddress.post_code;
         }
+      } else {
+        dbCustomer.addresses = [];
       }
 
       const { data, error } = await supabase
         .from(this.className)
-        .insert(customer)
+        .insert(dbCustomer)
         .select();
 
       if (data && data.length > 0 && error === null) {
@@ -55,7 +78,7 @@ class CustomersRepository {
     rangeStart: number,
     rangeEnd: number,
     limit: number,
-    filters?: ValuesFilterCustomers
+    filters?: ValuesFilterCustomers,
   ) {
     try {
       const query = supabase
@@ -123,9 +146,7 @@ class CustomersRepository {
     try {
       const { data: customersData, error: customersError } = await supabase
         .from(this.className)
-        .select(
-          "id, name, email, phone, mobile, address, suburb, state, post_code"
-        )
+        .select("id, name, email, phone, mobile, addresses, notes")
         .order("name", { ascending: true })
         .ilike("name", `%${name}%`)
         .limit(extendedDataLimit);
@@ -155,23 +176,19 @@ class CustomersRepository {
 
   public async edit(id: number, customer: CustomerSupabase) {
     try {
-      const query = supabase.from(this.className).select();
-
-      if (customer.address) {
-        query.eq("name", customer.name);
-        query.eq("address", customer.address);
-        query.neq("id", id);
-
-        const { data: existingData, error: existingError } = await query;
-
-        if (existingData && existingData.length > 0 && !existingError) {
-          return false;
-        }
-      }
+      // Convert to database format
+      const dbCustomer = {
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        mobile: customer.mobile,
+        addresses: customer.addresses || [],
+        notes: customer.notes,
+      };
 
       const { data, error } = await supabase
         .from(this.className)
-        .update(customer)
+        .update(dbCustomer)
         .eq("id", id)
         .select();
 

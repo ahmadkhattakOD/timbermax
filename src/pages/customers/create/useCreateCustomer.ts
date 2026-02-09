@@ -2,9 +2,9 @@ import { openSnackbar } from "api/snackbar";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { parseAddress } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
+  CustomerAddress,
 } from "utils/repositories/customersRepository";
 
 export interface ValuesCreateCustomer {
@@ -12,48 +12,49 @@ export interface ValuesCreateCustomer {
   email: string;
   phone: string;
   mobile: string;
-  address: string;
-  suburb: string;
-  state: string;
-  postCode: string;
-  lostReason: string;
   notes: string;
 }
 
 export function useCreateCustomer() {
-  const [selectedAddress, setSelectedAddress] = useState<string>("");
-  const [selectedSuburb, setSelectedSuburb] = useState<string>("");
-  const [selectedState, setSelectedState] = useState<string>("");
+  const [addresses, setAddresses] = useState<CustomerAddress[]>([{
+    address: "",
+    suburb: "",
+    state: "",
+    post_code: "",
+    is_primary: true,
+  }]);
   const navigate = useNavigate();
 
-  function changeAddress(newValue: any, actionMeta: any) {
-    let addressComponents = parseAddress(newValue?.value?.description ?? "");
-    setSelectedSuburb(addressComponents.suburb);
-    setSelectedState(addressComponents.state);
-    setSelectedAddress(newValue?.value?.description ?? "");
-  }
-
   function validate(values: ValuesCreateCustomer) {
-    const errors = {} as ValuesCreateCustomer;
+    const errors: any = {};
 
     if (!values.name.trim()) {
       errors.name = "required";
     }
 
+    // Validate addresses if needed
+    if (addresses.length === 0) {
+      errors.addresses = "At least one address is required";
+    }
+
     return errors;
   }
 
-  async function onSubmit(values: ValuesCreateCustomer) {
+  async function onSubmit(values: ValuesCreateCustomer, formikActions?: any, currentAddresses?: CustomerAddress[]) {
     try {
+      const addressesToSave = currentAddresses || addresses;
+      
+      // Filter out empty addresses
+      const filteredAddresses = addressesToSave.filter(addr => 
+        addr.address.trim() || addr.suburb.trim() || addr.state.trim() || addr.post_code.trim()
+      );
+
       const newCustomer: CustomerSupabase = {
         name: values.name,
         email: values.email,
         phone: values.phone,
         mobile: values.mobile,
-        address: selectedAddress,
-        suburb: selectedSuburb,
-        state: selectedState,
-        post_code: values.postCode,
+        addresses: filteredAddresses,
         notes: values.notes,
       };
 
@@ -92,16 +93,17 @@ export function useCreateCustomer() {
         },
       } as SnackbarProps);
       navigate("/customers");
+    } finally {
+      if (formikActions) {
+        formikActions.setSubmitting(false);
+      }
     }
   }
+  
   return {
     validate,
     onSubmit,
-    changeAddress,
-    selectedAddress,
-    selectedSuburb,
-    setSelectedSuburb,
-    selectedState,
-    setSelectedState,
+    addresses,
+    setAddresses,
   };
 }

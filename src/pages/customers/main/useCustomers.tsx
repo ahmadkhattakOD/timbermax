@@ -1,16 +1,19 @@
-import { Checkbox, TableCell } from "@mui/material";
+import {
+  Checkbox,
+  TableCell,
+  Button,
+  Typography,
+  Box,
+  Modal
+} from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import React, { useState, useEffect, useRef } from "react";
-import { FormattedMessage } from "react-intl";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import {
-  getDateFormatted,
-  initialRowsPerPage,
-  useDebouncedSearch,
-} from "utils/helpers";
+import { initialRowsPerPage, useDebouncedSearch } from "utils/helpers";
 import CustomersRepository from "utils/repositories/customersRepository";
+import { CustomerAddress } from "utils/repositories/customersRepository";
 
 const headCells: HeadCell[] = [
   {
@@ -41,26 +44,32 @@ const headCells: HeadCell[] = [
     id: "address",
     numeric: false,
     disablePadding: true,
-    label: "Address",
+    label: "Primary Address",
   },
   {
-    id: "suburb",
+    id: "other_addresses",
     numeric: false,
     disablePadding: true,
-    label: "Suburb",
+    label: "Other Addresses",
   },
-  {
-    id: "state",
-    numeric: false,
-    disablePadding: true,
-    label: "State",
-  },
-  {
-    id: "post_code",
-    numeric: false,
-    disablePadding: true,
-    label: "Post Code",
-  },
+  // {
+  //   id: "suburb",
+  //   numeric: false,
+  //   disablePadding: true,
+  //   label: "Suburb",
+  // },
+  // {
+  //   id: "state",
+  //   numeric: false,
+  //   disablePadding: true,
+  //   label: "State",
+  // },
+  // {
+  //   id: "post_code",
+  //   numeric: false,
+  //   disablePadding: true,
+  //   label: "Post Code",
+  // },
   {
     id: "notes",
     numeric: false,
@@ -108,6 +117,13 @@ export function useCustomers() {
   const csvLink = useRef<any>();
   const navigate = useNavigate();
 
+  // State for address modal
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [selectedCustomerAddresses, setSelectedCustomerAddresses] = useState<
+    CustomerAddress[]
+  >([]);
+  const [selectedCustomerName, setSelectedCustomerName] = useState<string>("");
+
   function goToCreate() {
     navigate("/customers/new");
   }
@@ -120,11 +136,47 @@ export function useCustomers() {
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
 
+  const openAddressModal = (
+    addresses: CustomerAddress[],
+    customerName: string,
+  ) => {
+    setSelectedCustomerAddresses(addresses);
+    setSelectedCustomerName(customerName);
+    setAddressModalOpen(true);
+  };
+
+  const closeAddressModal = () => {
+    setAddressModalOpen(false);
+    setSelectedCustomerAddresses([]);
+    setSelectedCustomerName("");
+  };
+
   function generateTableCells(
     row: any,
     labelId: string,
-    isItemSelected: boolean
+    isItemSelected: boolean,
   ) {
+    // Get primary address
+    const primaryAddress = row.addresses?.find(
+      (addr: CustomerAddress) => addr.is_primary,
+    ) ||
+      row.addresses?.[0] || {
+        address: row.address || "",
+        suburb: row.suburb || "",
+        state: row.state || "",
+        post_code: row.post_code || "",
+      };
+
+    // Get other addresses (non-primary)
+    const otherAddresses =
+      row.addresses?.filter(
+        (addr: CustomerAddress) =>
+          !addr.is_primary &&
+          (addr.address || addr.suburb || addr.state || addr.post_code),
+      ) || [];
+
+    const hasOtherAddresses = otherAddresses.length > 0;
+
     return (
       <React.Fragment>
         <TableCell padding="checkbox">
@@ -140,10 +192,49 @@ export function useCustomers() {
         <TableCell sx={{ minWidth: 200 }}>{row.email}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.phone}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.mobile}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.address}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.suburb}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.state}</TableCell>
-        <TableCell sx={{ minWidth: 200 }}>{row.post_code}</TableCell>
+
+        {/* Primary Address */}
+        <TableCell sx={{ minWidth: 250 }}>
+          {primaryAddress.address ? (
+            <Box>
+              <Typography variant="body2">{primaryAddress.address}</Typography>
+              <Typography variant="caption" color="textSecondary">
+                {primaryAddress.suburb && `${primaryAddress.suburb}, `}
+                {primaryAddress.state} {primaryAddress.post_code}
+              </Typography>
+              {primaryAddress.is_primary && (
+                <Typography variant="caption" color="primary" display="block">
+                  (Primary)
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            "-"
+          )}
+        </TableCell>
+
+        {/* Other Addresses */}
+        <TableCell sx={{ minWidth: 200 }}>
+          {hasOtherAddresses ? (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                openAddressModal(row.addresses, row.name);
+              }}
+            >
+              {otherAddresses.length}{" "}
+              {otherAddresses.length === 1 ? "address" : "addresses"}
+            </Button>
+          ) : (
+            "-"
+          )}
+        </TableCell>
+        {/* 
+        <TableCell sx={{ minWidth: 200 }}>{primaryAddress.suburb}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{primaryAddress.state}</TableCell>
+        <TableCell sx={{ minWidth: 200 }}>{primaryAddress.post_code}</TableCell> */}
         <TableCell sx={{ minWidth: 200 }}>{row.notes}</TableCell>
       </React.Fragment>
     );
@@ -204,7 +295,7 @@ export function useCustomers() {
         rangeStart,
         rangeEnd,
         rowsPerPage,
-        filters
+        filters,
       );
       if (customers) {
         const { customersData, customersCount, customersError } = customers;
@@ -231,7 +322,29 @@ export function useCustomers() {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let customer = data[i] as any;
-          csvString += `${customer?.name ?? ""},${customer?.milestone ?? ""},${customer?.email ?? ""},${customer?.phone ?? ""},${customer?.expected_close_date ?? ""},${customer?.actual_close_date ?? ""},${customer?.address ?? ""},${customer?.suburb ?? ""},${customer?.state ?? ""},${customer?.post_code ?? ""},${customer?.notes ?? ""}\n`;
+
+          // Get primary address
+          const primaryAddress = customer.addresses?.find(
+            (addr: CustomerAddress) => addr.is_primary,
+          ) ||
+            customer.addresses?.[0] || {
+              address: customer.address || "",
+              suburb: customer.suburb || "",
+              state: customer.state || "",
+              post_code: customer.post_code || "",
+            };
+
+          // Get all addresses for CSV
+          const allAddresses =
+            customer.addresses
+              ?.map(
+                (addr: CustomerAddress, index: number) =>
+                  `${index + 1}. ${addr.address || ""}, ${addr.suburb || ""} ${addr.state || ""} ${addr.post_code || ""}${addr.is_primary ? " (Primary)" : ""}`,
+              )
+              .join("; ") ||
+            `${primaryAddress.address || ""}, ${primaryAddress.suburb || ""} ${primaryAddress.state || ""} ${primaryAddress.post_code || ""}`;
+
+          csvString += `${customer?.name ?? ""},${customer?.email ?? ""},${customer?.phone ?? ""},${customer?.mobile ?? ""},${allAddresses},${customer?.notes ?? ""}\n`;
         }
 
         setCsvData(csvString);
@@ -265,6 +378,94 @@ export function useCustomers() {
     setSearchValue("");
     setFilters(initialFilters);
   }
+
+  // Address Modal Component
+  const AddressModal = () => (
+    <Modal
+      open={addressModalOpen}
+      onClose={closeAddressModal}
+      aria-labelledby="address-modal-title"
+      aria-describedby="address-modal-description"
+    >
+      <Box
+        sx={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: 500,
+          maxWidth: "90vw",
+          bgcolor: "background.paper",
+          borderRadius: 2,
+          boxShadow: 24,
+          p: 4,
+          maxHeight: "80vh",
+          overflow: "auto",
+        }}
+      >
+        <Typography
+          id="address-modal-title"
+          variant="h6"
+          component="h2"
+          gutterBottom
+        >
+          Addresses for {selectedCustomerName}
+        </Typography>
+
+        <Box sx={{ mt: 2 }}>
+          {selectedCustomerAddresses.map((address, index) => (
+            <Box
+              key={index}
+              sx={{
+                p: 2,
+                mb: 2,
+                border: "1px solid",
+                borderColor: address.is_primary ? "primary.main" : "grey.300",
+                borderRadius: 1,
+                bgcolor: address.is_primary ? "primary.light" : "transparent",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="medium">
+                    Address {index + 1}
+                    {address.is_primary && (
+                      <Typography
+                        component="span"
+                        color="primary"
+                        sx={{ ml: 1 }}
+                      >
+                        (Primary)
+                      </Typography>
+                    )}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    {address.address}
+                  </Typography>
+                  <Typography variant="body2">
+                    {address.suburb && `${address.suburb}, `}
+                    {address.state} {address.post_code}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+
+        <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
+          <Button onClick={closeAddressModal} variant="outlined">
+            Close
+          </Button>
+        </Box>
+      </Box>
+    </Modal>
+  );
 
   return {
     data,
@@ -300,5 +501,9 @@ export function useCustomers() {
     handleSearchDebounced,
     searchValue,
     setSearchValue,
+    AddressModal,
+    addressModalOpen,
+    selectedCustomerAddresses,
+    selectedCustomerName,
   };
 }

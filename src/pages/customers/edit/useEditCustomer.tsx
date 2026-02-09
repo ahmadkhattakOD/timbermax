@@ -18,6 +18,7 @@ import {
 } from "utils/helpers";
 import CommunicationRepository from "utils/repositories/communicationRepository";
 import CustomersRepository, {
+  CustomerAddress,
   CustomerSupabase,
 } from "utils/repositories/customersRepository";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
@@ -262,12 +263,13 @@ export interface ValuesEditCustomer {
   email: string;
   phone: string;
   mobile: string;
-  address: string;
-  suburb: string;
-  state: string;
-  postCode: string;
-  lostReason: string;
+  address?: string;
+  suburb?: string;
+  state?: string;
+  postCode?: string;
+  // lostReason: string;
   notes: string;
+  addresses?: any;
 }
 
 export function useEditCustomer() {
@@ -329,6 +331,16 @@ export function useEditCustomer() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const [addresses, setAddresses] = useState<CustomerAddress[]>([
+    {
+      address: "",
+      suburb: "",
+      state: "",
+      post_code: "",
+      is_primary: true,
+    },
+  ]);
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (
@@ -357,21 +369,28 @@ export function useEditCustomer() {
       errors.name = "required";
     }
 
+    // Validate addresses if needed
+    if (addresses.length === 0) {
+      errors.addresses = "At least one address is required";
+    }
+
     return errors;
   }
 
-  async function onSubmit(values: ValuesEditCustomer) {
+ async function onSubmit(values: ValuesEditCustomer) {
     try {
       if (id && isNumeric(id)) {
+        // Filter out empty addresses
+        const filteredAddresses = addresses.filter(addr => 
+          addr.address.trim() || addr.suburb.trim() || addr.state.trim() || addr.post_code.trim()
+        );
+
         const updatedCustomer: CustomerSupabase = {
           name: values.name,
           email: values.email,
           phone: values.phone,
           mobile: values.mobile,
-          address: selectedAddress,
-          suburb: selectedSuburb,
-          state: selectedState,
-          post_code: values.postCode,
+          addresses: filteredAddresses,
           notes: values.notes,
         };
 
@@ -404,7 +423,7 @@ export function useEditCustomer() {
           openSnackbar({
             open: true,
             message:
-              "Customer could not be added successfully. Please try again.",
+              "Customer could not be edited successfully. Please try again.",
             variant: "alert",
             alert: {
               color: "error",
@@ -451,9 +470,21 @@ export function useEditCustomer() {
         const { customerData, customerError } = existingCustomer;
         if (customerData && !customerError) {
           setCustomer(customerData);
-          setSelectedAddress(customerData.address);
-          setSelectedSuburb(customerData.suburb);
-          setSelectedState(customerData.state);
+          
+          // Load addresses from the database
+          if (customerData.addresses && customerData.addresses.length > 0) {
+            setAddresses(customerData.addresses);
+          } else {
+            // Fallback to legacy single address fields
+            const legacyAddress: CustomerAddress = {
+              address: customerData.address || "",
+              suburb: customerData.suburb || "",
+              state: customerData.state || "",
+              post_code: customerData.post_code || "",
+              is_primary: true,
+            };
+            setAddresses([legacyAddress]);
+          }
         }
       }
     }
@@ -475,7 +506,7 @@ export function useEditCustomer() {
   function generateTableCellsSales(
     row: any,
     labelId: string,
-    isItemSelected: boolean
+    isItemSelected: boolean,
   ) {
     return (
       <React.Fragment>
@@ -505,7 +536,7 @@ export function useEditCustomer() {
                 <Typography key={idx}>
                   - {opportunity} <br />
                 </Typography>
-              )
+              ),
             )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
@@ -533,7 +564,7 @@ export function useEditCustomer() {
           {row.total}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-        {row.total - row.deposit}
+          {row.total - row.deposit}
         </TableCell>
 
         <TableCell sx={{ minWidth: 200 }}>
@@ -630,7 +661,7 @@ export function useEditCustomer() {
           rangeStart,
           rangeEnd,
           rowsPerPageSales,
-          filtersSales
+          filtersSales,
         );
         if (sales) {
           const { salesData, salesCount, salesError } = sales;
@@ -759,7 +790,7 @@ export function useEditCustomer() {
   function generateTableCellsCommunication(
     row: any,
     labelId: string,
-    isItemSelected: boolean
+    isItemSelected: boolean,
   ) {
     return (
       <React.Fragment>
@@ -849,7 +880,7 @@ export function useEditCustomer() {
           rangeStart,
           rangeEnd,
           rowsPerPageSales,
-          filtersCommunication
+          filtersCommunication,
         );
         if (communication) {
           const { communicationData, communicationCount, communicationError } =
@@ -901,7 +932,7 @@ export function useEditCustomer() {
   }
 
   async function validateFiltersCommunication(
-    values: ValuesFilterCommunication
+    values: ValuesFilterCommunication,
   ) {
     const errors = {} as ValuesFilterCommunication;
 
@@ -909,7 +940,7 @@ export function useEditCustomer() {
   }
 
   async function handleFiltersSubmitCommunication(
-    values: ValuesFilterCommunication
+    values: ValuesFilterCommunication,
   ) {
     try {
       setFiltersCommunication(values);
@@ -1005,5 +1036,7 @@ export function useEditCustomer() {
     csvDataCommunication,
     csvLinkCommunication,
     setSearchParams,
+    addresses,
+    setAddresses
   };
 }
