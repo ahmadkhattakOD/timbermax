@@ -108,16 +108,25 @@ export default function MainInvoices() {
     setSearchValue,
 
     updateDeliveryStatus,
+    updateInvoiceStatus,
 
     ItemsModal,
     deliveryMenuAnchor,
     selectedInvoiceForDelivery,
     setDeliveryMenuAnchor,
+    statusMenuAnchor,
+    selectedInvoiceForStatus,
+    setStatusMenuAnchor,
   } = useInvoices();
 
   // Delivery status menu
   const handleDeliveryMenuClose = () => {
     setDeliveryMenuAnchor(null);
+  };
+
+  // Invoice status menu
+  const handleStatusMenuClose = () => {
+    setStatusMenuAnchor(null);
   };
 
   return (
@@ -349,6 +358,131 @@ export default function MainInvoices() {
                 color: "error.contrastText",
                 minWidth: 80,
               }}
+            />
+          </Box>
+        </MenuItem>
+      </Menu>
+
+      {/* Invoice Status Menu */}
+      <Menu
+        anchorEl={statusMenuAnchor}
+        open={Boolean(statusMenuAnchor)}
+        onClose={handleStatusMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 200,
+            borderRadius: 1,
+            boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.15)",
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForStatus) {
+              updateInvoiceStatus(selectedInvoiceForStatus, "draft");
+              handleStatusMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Draft"
+              size="small"
+              color="warning"
+              sx={{ minWidth: 80 }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForStatus) {
+              updateInvoiceStatus(selectedInvoiceForStatus, "sent");
+              handleStatusMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Sent"
+              size="small"
+              color="info"
+              sx={{ minWidth: 80 }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForStatus) {
+              updateInvoiceStatus(selectedInvoiceForStatus, "paid");
+              handleStatusMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Paid"
+              size="small"
+              color="success"
+              sx={{ minWidth: 80 }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForStatus) {
+              if (
+                window.confirm(
+                  "Are you sure you want to cancel this invoice? This will restore stock."
+                )
+              ) {
+                updateInvoiceStatus(selectedInvoiceForStatus, "cancelled");
+                handleStatusMenuClose();
+              }
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Cancelled"
+              size="small"
+              color="error"
+              sx={{ minWidth: 80 }}
             />
           </Box>
         </MenuItem>

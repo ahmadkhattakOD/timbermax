@@ -28,6 +28,7 @@ import {
   InputLabel,
   Alert,
   Chip,
+  Grid,
 } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
@@ -81,6 +82,10 @@ export default function CreateInvoice() {
     setSelectedCustomer,
     customerName,
     setCustomerName,
+    // New properties for address selection
+    customerAddresses,
+    selectedAddressIndex,
+    handleAddressSelect,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -191,30 +196,23 @@ export default function CreateInvoice() {
           setCustomerName,
         ]);
 
+        // When an address is selected from dropdown, populate all address fields
+        useEffect(() => {
+          if (selectedAddressIndex !== -1 && customerAddresses.length > 0) {
+            const selectedAddr = customerAddresses[selectedAddressIndex];
+            setFieldValue("address", selectedAddr.address || "");
+            setFieldValue("suburb", selectedAddr.suburb || "");
+            setFieldValue("state", selectedAddr.state || "");
+            setFieldValue("postCode", selectedAddr.post_code || "");
+          }
+        }, [selectedAddressIndex, customerAddresses, setFieldValue]);
+
         return (
           <Form onSubmit={handleSubmit}>
             <FormLayout
               isSubmitting={isSubmitting}
               submitButtonText={"Create Invoice"}
               inputs={[
-                // Low stock warning banner
-                lowStockItems.length > 0 && (
-                  <Alert 
-                    key="low-stock-warning" 
-                    severity="warning" 
-                    sx={{ mb: 2 }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body1" fontWeight="bold">
-                        ⚠️ Low Stock Alert
-                      </Typography>
-                      <Typography variant="body2">
-                        {lowStockItems.length} item(s) will have negative stock. Invoice will still be created.
-                      </Typography>
-                    </Box>
-                  </Alert>
-                ),
-
                 <FormInput
                   key="invoice_number"
                   id={"invoice_number"}
@@ -227,7 +225,7 @@ export default function CreateInvoice() {
                 />,
 
                 // Show quotation info if loaded from quotation
-                selectedQuotation && (
+                selectedQuotation ? (
                   <Box
                     key="quotation-info"
                     sx={{
@@ -259,10 +257,10 @@ export default function CreateInvoice() {
                       </Typography>
                     </Box>
                   </Box>
-                ),
+                ) : null,
 
                 // OPTION TO LOAD FROM QUOTATION (only show if not already loaded from URL)
-                !quotationIdFromUrl && (
+                !quotationIdFromUrl ? (
                   <Box key="load-quotation" sx={{ mb: 2 }}>
                     <FormDropdown
                       key="quotation_id"
@@ -291,7 +289,7 @@ export default function CreateInvoice() {
                       }}
                     />
                   </Box>
-                ),
+                ) : null,
 
                 !createInlineCustomer ? (
                   <InputDropdown
@@ -301,7 +299,6 @@ export default function CreateInvoice() {
                     label="Customer Name"
                     options={customers}
                     value={
-                      // Find the full customer object based on selectedCustomer ID
                       customers.find((c) => c.id === selectedCustomer) || null
                     }
                     secondaryLabel={
@@ -369,6 +366,15 @@ export default function CreateInvoice() {
                   />
                 ) : null,
 
+                <FormInput
+                  key="emailAddress"
+                  id={"emailAddress"}
+                  name={"emailAddress"}
+                  placeholder={"Email Address"}
+                  label="Email Address"
+                  type={"email"}
+                />,
+
                 // CONTACT DETAILS
                 <FormInput
                   key="phone"
@@ -388,61 +394,6 @@ export default function CreateInvoice() {
                   type={"text"}
                 />,
 
-                <PlacesInput
-                  key="address"
-                  id="address"
-                  name="address"
-                  placeholder="Address"
-                  onChange={(newValue, actionMeta) => {
-                    changeAddress(newValue, actionMeta);
-                    setFieldValue(
-                      "address",
-                      newValue?.value?.description ?? "",
-                    );
-                  }}
-                  value={selectedAddress}
-                  label="Address"
-                />,
-
-                <FormInput
-                  key="suburb"
-                  id={"suburb"}
-                  name={"suburb"}
-                  placeholder={"Suburb"}
-                  label="Suburb"
-                  type={"text"}
-                />,
-
-                <FormDropdown
-                  key="state"
-                  id={"state"}
-                  name={"state"}
-                  label="State"
-                  useFormattedStrings={false}
-                  options={australianStates.map((state) => ({
-                    label: state,
-                    value: state,
-                  }))}
-                />,
-
-                <FormInput
-                  key="postCode"
-                  id={"postCode"}
-                  name={"postCode"}
-                  placeholder={"Post Code"}
-                  label="Post Code"
-                  type={"text"}
-                />,
-
-                <FormInput
-                  key="emailAddress"
-                  id={"emailAddress"}
-                  name={"emailAddress"}
-                  placeholder={"Email Address"}
-                  label="Email Address"
-                  type={"email"}
-                />,
-
                 // INVOICE DATE
                 <FormInput
                   key="invoice_date"
@@ -455,8 +406,197 @@ export default function CreateInvoice() {
                   error={touched.invoice_date ? errors.invoice_date : ""}
                 />,
 
-                // ITEMS TABLE WITH WAREHOUSE SELECTION
-                <Box key="items-section" sx={{ mt: 3 }}>
+                // ADDRESS SECTION - full width
+                <Box key="address-section" {...{fullWidth: true}}>
+                  {/* For existing customers with addresses */}
+                  {!createInlineCustomer && selectedCustomer && customerAddresses.length > 0 ? (
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <FormDropdown
+                          key="address-select"
+                          id={"address-select"}
+                          name={"address-select"}
+                          label="Select Delivery Address"
+                          useFormattedStrings={false}
+                          options={customerAddresses.map((addr, index) => ({
+                            label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`,
+                            value: index.toString(),
+                          }))}
+                          value={selectedAddressIndex.toString()}
+                          onChange={(e) => {
+                            const index = parseInt(e.target.value);
+                            handleAddressSelect(index);
+                          }}
+                          optional={false}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <PlacesInput
+                          key="address"
+                          id="address"
+                          name="address"
+                          placeholder="Address"
+                          onChange={(newValue, actionMeta) => {
+                            changeAddress(newValue, actionMeta);
+                            setFieldValue(
+                              "address",
+                              newValue?.value?.description ?? ""
+                            );
+                          }}
+                          value={values.address}
+                          label="Address"
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormInput
+                          key="suburb"
+                          id={"suburb"}
+                          name={"suburb"}
+                          placeholder={"Suburb"}
+                          label="Suburb"
+                          type={"text"}
+                          value={values.suburb}
+                          onChange={(e) => setFieldValue("suburb", e.target.value)}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormDropdown
+                          key="state"
+                          id={"state"}
+                          name={"state"}
+                          label="State"
+                          useFormattedStrings={false}
+                          options={australianStates.map((state) => ({
+                            label: state,
+                            value: state,
+                          }))}
+                          value={values.state}
+                          onChange={(e) => setFieldValue("state", e.target.value)}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormInput
+                          key="postCode"
+                          id={"postCode"}
+                          name={"postCode"}
+                          placeholder={"Post Code"}
+                          label="Post Code"
+                          type={"text"}
+                          value={values.postCode}
+                          onChange={(e) => setFieldValue("postCode", e.target.value)}
+                        />
+                      </Grid>
+                    </Grid>
+                  ) : (
+                    // For inline customers or customers without addresses
+                    <Box>
+                      {!createInlineCustomer && selectedCustomer && customerAddresses.length === 0 ? (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          No addresses found for this customer. Please enter address manually below.
+                        </Alert>
+                      ) : null}
+
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <PlacesInput
+                            key="address"
+                            id="address"
+                            name="address"
+                            placeholder="Address"
+                            onChange={(newValue, actionMeta) => {
+                              changeAddress(newValue, actionMeta);
+                              setFieldValue(
+                                "address",
+                                newValue?.value?.description ?? ""
+                              );
+                            }}
+                            value={values.address}
+                            label="Address"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <FormInput
+                            key="suburb"
+                            id={"suburb"}
+                            name={"suburb"}
+                            placeholder={"Suburb"}
+                            label="Suburb"
+                            type={"text"}
+                            value={values.suburb}
+                            onChange={(e) => setFieldValue("suburb", e.target.value)}
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <FormDropdown
+                            key="state"
+                            id={"state"}
+                            name={"state"}
+                            label="State"
+                            useFormattedStrings={false}
+                            options={australianStates.map((state) => ({
+                              label: state,
+                              value: state,
+                            }))}
+                            value={values.state}
+                            onChange={(e) => setFieldValue("state", e.target.value)}
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <FormInput
+                            key="postCode"
+                            id={"postCode"}
+                            name={"postCode"}
+                            placeholder={"Post Code"}
+                            label="Post Code"
+                            type={"text"}
+                            value={values.postCode}
+                            onChange={(e) => setFieldValue("postCode", e.target.value)}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+                </Box>,
+
+                // NOTES
+                <FormInput
+                  key="note"
+                  id={"note"}
+                  name={"note"}
+                  placeholder={"Notes"}
+                  label={"Notes"}
+                  type={"text"}
+                  isTextArea
+                />,
+
+                // Low stock warning banner
+                lowStockItems.length > 0 ? (
+                  <Alert
+                    key="low-stock-warning"
+                    severity="warning"
+                    sx={{ mb: 2 }}
+                    {...{fullWidth: true}}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body1" fontWeight="bold">
+                        Low Stock Alert
+                      </Typography>
+                      <Typography variant="body2">
+                        {lowStockItems.length} item(s) will have negative stock. Invoice will still be created.
+                      </Typography>
+                    </Box>
+                  </Alert>
+                ) : null,
+
+                // ITEMS TABLE WITH WAREHOUSE SELECTION - full width at end
+                <Box key="items-section" {...{fullWidth: true}} sx={{ mt: 3 }}>
                   <Box
                     sx={{
                       display: "flex",
@@ -496,7 +636,7 @@ export default function CreateInvoice() {
                       Add
                     </Button>
                   </Box>
-                  
+
                   {selectedItems.length === 0 ? (
                     <Alert severity="info" sx={{ mt: 2 }}>
                       No items added yet. Select an item and click "Add" to add items to the invoice.
@@ -519,16 +659,16 @@ export default function CreateInvoice() {
                         </TableHead>
                         <TableBody>
                           {selectedItems.map((item, index) => {
-                            const selectedWarehouse = item.warehouse_id 
+                            const selectedWarehouse = item.warehouse_id
                               ? item.available_warehouses.find(w => w.id === item.warehouse_id)
                               : null;
-                            
+
                             const availableStock = selectedWarehouse?.available || 0;
                             const currentQuantity = parseFloat(item.quantity);
                             const isLowStock = availableStock < currentQuantity;
-                            
+
                             return (
-                              <TableRow 
+                              <TableRow
                                 key={index}
                                 sx={{
                                   backgroundColor: isLowStock ? 'rgba(255, 165, 0, 0.05)' : 'inherit'
@@ -537,8 +677,8 @@ export default function CreateInvoice() {
                                 <TableCell>{item.name}</TableCell>
                                 <TableCell>{item.itemCode}</TableCell>
                                 <TableCell>
-                                  <FormControl 
-                                    size="small" 
+                                  <FormControl
+                                    size="small"
                                     sx={{ minWidth: 120 }}
                                     error={!item.warehouse_id}
                                   >
@@ -552,8 +692,8 @@ export default function CreateInvoice() {
                                         Select Warehouse
                                       </MenuItem>
                                       {item.available_warehouses.map((warehouse) => (
-                                        <MenuItem 
-                                          key={warehouse.id} 
+                                        <MenuItem
+                                          key={warehouse.id}
                                           value={warehouse.id}
                                         >
                                           {warehouse.name} ({warehouse.available} available)
@@ -570,18 +710,18 @@ export default function CreateInvoice() {
                                 <TableCell>
                                   {selectedWarehouse ? (
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Typography 
-                                        variant="body2" 
+                                      <Typography
+                                        variant="body2"
                                         color={availableStock < 0 ? "error" : availableStock < currentQuantity ? "warning" : "success"}
                                         fontWeight={availableStock < currentQuantity ? "bold" : "normal"}
                                       >
                                         {availableStock}
                                       </Typography>
                                       {isLowStock && (
-                                        <Chip 
-                                          label="Low" 
-                                          size="small" 
-                                          color="warning" 
+                                        <Chip
+                                          label="Low"
+                                          size="small"
+                                          color="warning"
                                           variant="outlined"
                                           sx={{ height: 20, fontSize: '0.7rem' }}
                                         />
@@ -623,8 +763,8 @@ export default function CreateInvoice() {
                                       min={1}
                                     />
                                     {isLowStock && (
-                                      <Typography 
-                                        variant="caption" 
+                                      <Typography
+                                        variant="caption"
                                         color="warning"
                                         sx={{ display: 'block', mt: 0.5 }}
                                       >
@@ -682,17 +822,6 @@ export default function CreateInvoice() {
                     </TableContainer>
                   )}
                 </Box>,
-
-                // NOTES
-                <FormInput
-                  key="note"
-                  id={"note"}
-                  name={"note"}
-                  placeholder={"Notes"}
-                  label={"Notes"}
-                  type={"text"}
-                  isTextArea
-                />,
               ]}
             />
           </Form>

@@ -20,6 +20,11 @@ export interface QuotationSupabase {
   user?: string;
   created_at?: string;
   updated_at?: string;
+  // Address snapshot fields - saved with each quotation
+  address?: string;
+  suburb?: string;
+  state?: string;
+  post_code?: string;
 }
 
 export interface QuotationItemSupabase {

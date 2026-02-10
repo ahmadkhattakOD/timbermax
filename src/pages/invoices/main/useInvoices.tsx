@@ -127,6 +127,14 @@ export function useInvoices() {
   const [selectedInvoiceForDelivery, setSelectedInvoiceForDelivery] = useState<
     number | null
   >(null);
+
+  // Invoice status menu state
+  const [statusMenuAnchor, setStatusMenuAnchor] =
+    useState<null | HTMLElement>(null);
+  const [selectedInvoiceForStatus, setSelectedInvoiceForStatus] = useState<
+    number | null
+  >(null);
+
   // track actions in-progress per-invoice to avoid double clicks
   const [actionLoadingIds, setActionLoadingIds] = useState<Set<number>>(
     new Set(),
@@ -410,7 +418,16 @@ export function useInvoices() {
             label={row.status?.charAt(0).toUpperCase() + row.status?.slice(1)}
             color={statusColors[row.status] || "default"}
             size="small"
-            sx={{ fontWeight: 600 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedInvoiceForStatus(row.id);
+              setStatusMenuAnchor(e.currentTarget);
+            }}
+            sx={{
+              fontWeight: 600,
+              cursor: "pointer",
+              "&:hover": { opacity: 0.8 },
+            }}
           />
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
@@ -992,6 +1009,72 @@ export function useInvoices() {
     return handleDeliveryStatusUpdate(status);
   };
 
+  const handleStatusUpdate = async (status: string) => {
+    if (!selectedInvoiceForStatus) return;
+
+    try {
+      const invoicesRepo = new InvoicesRepository();
+
+      // Use the appropriate method based on status
+      if (status === "paid") {
+        const result = await invoicesRepo.markAsPaid(selectedInvoiceForStatus);
+        if (result) {
+          openSnackbar({
+            open: true,
+            message: "Invoice marked as paid",
+            variant: "alert",
+            alert: { color: "success" },
+          } as SnackbarProps);
+          await getData();
+        } else {
+          throw new Error("Failed to mark as paid");
+        }
+      } else if (status === "cancelled") {
+        const result = await invoicesRepo.cancelInvoice(selectedInvoiceForStatus);
+        if (result?.success) {
+          openSnackbar({
+            open: true,
+            message: `Invoice cancelled. Stock restored for ${result.restoredItems} items.`,
+            variant: "alert",
+            alert: { color: "success" },
+          } as SnackbarProps);
+          await getData();
+        } else {
+          throw new Error(result?.error || "Failed to cancel invoice");
+        }
+      } else {
+        // For draft and sent status, use updateStatus
+        const result = await invoicesRepo.updateStatus(selectedInvoiceForStatus, status as any);
+        if (result) {
+          openSnackbar({
+            open: true,
+            message: `Invoice status updated to ${status}`,
+            variant: "alert",
+            alert: { color: "success" },
+          } as SnackbarProps);
+          await getData();
+        } else {
+          throw new Error("Failed to update status");
+        }
+      }
+    } catch (error: any) {
+      console.error("Error updating invoice status:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to update status: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setStatusMenuAnchor(null);
+      setSelectedInvoiceForStatus(null);
+    }
+  };
+
+  const updateInvoiceStatus = async (invoiceId: number, status: string) => {
+    return handleStatusUpdate(status);
+  };
+
   return {
     // State
     data,
@@ -1010,6 +1093,8 @@ export function useInvoices() {
     csvLink,
     deliveryMenuAnchor,
     selectedInvoiceForDelivery,
+    statusMenuAnchor,
+    selectedInvoiceForStatus,
 
     // State setters
     setOrder,
@@ -1019,6 +1104,7 @@ export function useInvoices() {
     setRowsPerPage,
     setSearchValue,
     setDeliveryMenuAnchor,
+    setStatusMenuAnchor,
 
     // Functions
     goToCreate,
@@ -1036,6 +1122,7 @@ export function useInvoices() {
     markAsPaid,
     cancelInvoice,
     updateDeliveryStatus,
+    updateInvoiceStatus,
     downloadInvoicePDF,
     downloadDeliveryNotePDF,
     markAsSent,

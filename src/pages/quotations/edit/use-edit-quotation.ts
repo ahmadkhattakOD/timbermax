@@ -1,5 +1,5 @@
 import { openSnackbar } from "api/snackbar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
@@ -11,6 +11,7 @@ import {
 } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
+  CustomerAddress,
 } from "utils/repositories/customersRepository";
 import ItemsRepository from "utils/repositories/itemsRepository";
 import QuotationsRepository, {
@@ -53,6 +54,12 @@ export interface QuotationItem {
   }>;
 }
 
+// Interface for customer address with selection
+export interface CustomerAddressWithSelection extends CustomerAddress {
+  id?: number;
+  displayText?: string;
+}
+
 export function useEditQuotation(quotationId: number) {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
@@ -72,6 +79,10 @@ export function useEditQuotation(quotationId: number) {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [quotationData, setQuotationData] = useState<any>(null);
   const [currentStatus, setCurrentStatus] = useState<any>("draft");
+  
+  // New states for customer addresses
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
 
   const [initialValues, setInitialValues] = useState<ValuesEditQuotation>({
     quotation_number: "",
@@ -165,11 +176,107 @@ export function useEditQuotation(quotationId: number) {
     }
   };
 
+  // Function to fetch customer addresses
+  const fetchCustomerAddresses = useCallback(async (customerId: number, quotationAddress?: { address: string; suburb: string; state: string; post_code: string }) => {
+    try {
+      const customersRepo = new CustomersRepository();
+      const customerResponse = await customersRepo.getSingle(customerId);
+
+      if (customerResponse?.customerData) {
+        const customer = customerResponse.customerData;
+        let addresses: CustomerAddressWithSelection[] = [];
+
+        // Check if addresses array exists
+        if (customer.addresses && customer.addresses.length > 0) {
+          addresses = customer.addresses.map((addr: CustomerAddress, index: number) => ({
+            ...addr,
+            id: index,
+            displayText: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`
+          }));
+        } else {
+          // Fallback to individual fields for backward compatibility
+          if (customer.address) {
+            addresses.push({
+              address: customer.address || '',
+              suburb: customer.suburb || '',
+              state: customer.state || '',
+              post_code: customer.post_code || '',
+              is_primary: true,
+              id: 0,
+              displayText: `${customer.address || ''}, ${customer.suburb || ''} ${customer.state || ''} ${customer.post_code || ''} (Primary)`
+            });
+          }
+        }
+
+        setCustomerAddresses(addresses);
+
+        // Match against the quotation's saved address, not the customer's current address
+        const addrToMatch = quotationAddress || {
+          address: customer.address || '',
+          suburb: customer.suburb || '',
+          state: customer.state || '',
+          post_code: customer.post_code || '',
+        };
+
+        const matchingIndex = addresses.findIndex(addr =>
+          addr.address === addrToMatch.address &&
+          addr.suburb === addrToMatch.suburb &&
+          addr.state === addrToMatch.state &&
+          addr.post_code === addrToMatch.post_code
+        );
+
+        if (matchingIndex !== -1) {
+          setSelectedAddressIndex(matchingIndex);
+        } else if (addresses.length > 0) {
+          // If no exact match, select the primary or first address
+          const primaryIndex = addresses.findIndex(addr => addr.is_primary);
+          setSelectedAddressIndex(primaryIndex !== -1 ? primaryIndex : 0);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching customer addresses:', error);
+      setCustomerAddresses([]);
+      setSelectedAddressIndex(-1);
+    }
+  }, []);
+
+  // Handle address selection
+  const handleAddressSelect = (index: number) => {
+    if (index >= 0 && index < customerAddresses.length) {
+      setSelectedAddressIndex(index);
+      const selectedAddr = customerAddresses[index];
+      
+      setSelectedAddress(selectedAddr.address);
+      setSelectedSuburb(selectedAddr.suburb);
+      setSelectedState(selectedAddr.state);
+      setSelectedPostCode(selectedAddr.post_code);
+      
+      // Update initial values
+      setInitialValues(prev => ({
+        ...prev,
+        address: selectedAddr.address,
+        suburb: selectedAddr.suburb,
+        state: selectedAddr.state,
+        postCode: selectedAddr.post_code,
+      }));
+    }
+  };
+
   function changeAddress(newValue: any, actionMeta: any) {
-    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    const addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedAddress(newValue?.value?.description ?? "");
     setSelectedSuburb(addressComponents.suburb);
     setSelectedState(addressComponents.state);
-    setSelectedAddress(newValue?.value?.description ?? "");
+    setSelectedPostCode("");
+
+    // Update initial values
+    setInitialValues(prev => ({
+      ...prev,
+      address: newValue?.value?.description ?? "",
+      suburb: addressComponents.suburb,
+      state: addressComponents.state,
+      postCode: "",
+    }));
   }
 
   function handleItemSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -344,15 +451,38 @@ export function useEditQuotation(quotationId: number) {
       // Update customer details
       if (customerId) {
         const customersRepo = new CustomersRepository();
+        
+        // Create updated addresses array
+        let updatedAddresses = customerAddresses;
+        
+        // If a different address was selected, update it in the addresses array
+        if (selectedAddressIndex !== -1 && customerAddresses.length > 0) {
+          updatedAddresses = [...customerAddresses];
+          updatedAddresses[selectedAddressIndex] = {
+            ...updatedAddresses[selectedAddressIndex],
+            address: values.address,
+            suburb: values.suburb,
+            state: values.state,
+            post_code: values.postCode,
+          };
+        } else if (customerAddresses.length === 0) {
+          // If no addresses exist, create one
+          updatedAddresses = [{
+            address: values.address,
+            suburb: values.suburb,
+            state: values.state,
+            post_code: values.postCode,
+            is_primary: true
+          }];
+        }
+        
         await customersRepo.edit(customerId, {
           name: values.customerName,
           phone: values.phone,
           mobile: values.mobile,
-          address: values.address,
-          suburb: values.suburb,
-          state: values.state,
-          post_code: values.postCode,
           email: values.emailAddress,
+          notes: values.note,
+          addresses: updatedAddresses
         });
       }
 
@@ -396,12 +526,18 @@ export function useEditQuotation(quotationId: number) {
       }
 
       // Update quotation status and details with GST-calculated total
+      // Also update the address snapshot in the quotation
       const updatedQuotation: Partial<QuotationSupabase> = {
         customer_id: customerId,
         total: totalWithGST,
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
         status: values.status,
+        // Save address snapshot to quotation
+        address: values.address,
+        suburb: values.suburb,
+        state: values.state,
+        post_code: values.postCode,
       };
 
       const updated = await quotationsRepo.edit(quotationId, updatedQuotation);
@@ -553,15 +689,31 @@ export function useEditQuotation(quotationId: number) {
         setCurrentStatus(quotation.status);
 
         // Set customer data
-        setCustomerId(quotation.customer_id);
+        const customerId = quotation.customer_id;
+        setCustomerId(customerId);
+        
+        // Fetch customer addresses, matching against the quotation's saved address
+        if (customerId) {
+          fetchCustomerAddresses(customerId, {
+            address: quotation.address || '',
+            suburb: quotation.suburb || '',
+            state: quotation.state || '',
+            post_code: quotation.post_code || '',
+          });
+        }
+
+        // Set customer name and contact details
         setCustomerName(quotation.customers?.name || "");
         setSelectedPhone(quotation.customers?.phone || "");
         setSelectedMobile(quotation.customers?.mobile || "");
         setSelectedEmail(quotation.customers?.email || "");
-        setSelectedAddress(quotation.customers?.address || "");
-        setSelectedSuburb(quotation.customers?.suburb || "");
-        setSelectedState(quotation.customers?.state || "");
-        setSelectedPostCode(quotation.customers?.post_code || "");
+        
+        // Use address from quotation (snapshot) instead of customer's current address
+        // This ensures we show the address that was saved with the quotation
+        setSelectedAddress(quotation.address || "");
+        setSelectedSuburb(quotation.suburb || "");
+        setSelectedState(quotation.state || "");
+        setSelectedPostCode(quotation.post_code || "");
 
         // Set initial form values
         setInitialValues({
@@ -569,10 +721,10 @@ export function useEditQuotation(quotationId: number) {
           customerName: quotation.customers?.name || "",
           phone: quotation.customers?.phone || "",
           mobile: quotation.customers?.mobile || "",
-          address: quotation.customers?.address || "",
-          suburb: quotation.customers?.suburb || "",
-          state: quotation.customers?.state || "",
-          postCode: quotation.customers?.post_code || "",
+          address: quotation.address || quotation.customers?.address || "",
+          suburb: quotation.suburb || quotation.customers?.suburb || "",
+          state: quotation.state || quotation.customers?.state || "",
+          postCode: quotation.post_code || quotation.customers?.post_code || "",
           emailAddress: quotation.customers?.email || "",
           valid_until: quotation.valid_until
             ? getDateFormattedForField(new Date(quotation.valid_until))
@@ -654,5 +806,10 @@ export function useEditQuotation(quotationId: number) {
     quotationData,
     customerName,
     setCustomerName,
+    // New properties for address selection
+    customerAddresses,
+    selectedAddressIndex,
+    handleAddressSelect,
+    customerId,
   };
 }

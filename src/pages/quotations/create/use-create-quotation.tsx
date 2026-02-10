@@ -1,5 +1,5 @@
 import { openSnackbar } from "api/snackbar";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
@@ -10,6 +10,7 @@ import {
 } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
+  CustomerAddress,
 } from "utils/repositories/customersRepository";
 import ItemsRepository from "utils/repositories/itemsRepository";
 import QuotationsRepository, {
@@ -42,6 +43,7 @@ export interface QuotationItem {
   gst: boolean;
   total: string;
   warehouse_id?: number;
+  
   available_warehouses: Array<{
     id: number;
     name: string;
@@ -49,6 +51,12 @@ export interface QuotationItem {
     reserved: number;
     available: number;
   }>;
+}
+
+// Interface for customer address with selection
+export interface CustomerAddressWithSelection extends CustomerAddress {
+  id?: number;
+  displayText?: string;
 }
 
 export function useCreateQuotation() {
@@ -73,6 +81,17 @@ export function useCreateQuotation() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [inlineCustomerName, setInlineCustomerName] = useState("");
   const [customerName, setCustomerName] = useState<string>("");
+  
+  // New states for customer addresses
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
+  const [selectedAddressDetails, setSelectedAddressDetails] = useState({
+    address: '',
+    suburb: '',
+    state: '',
+    post_code: '',
+  });
+  
   const quotationNumberRef = useRef(`QT-${Date.now()}`);
 
   const totalAmount = selectedItems.reduce(
@@ -148,17 +167,126 @@ export function useCreateQuotation() {
     }
   };
 
+  // Function to fetch customer addresses
+  const fetchCustomerAddresses = useCallback(async (customerId: number) => {
+    try {
+      const customersRepo = new CustomersRepository();
+      const customerResponse = await customersRepo.getSingle(customerId);
+      
+      if (customerResponse?.customerData) {
+        const customer = customerResponse.customerData;
+        let addresses: CustomerAddressWithSelection[] = [];
+        
+        // Check if addresses array exists
+        if (customer.addresses && customer.addresses.length > 0) {
+          addresses = customer.addresses.map((addr: CustomerAddress, index: number) => ({
+            ...addr,
+            id: index,
+            displayText: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`
+          }));
+        } else {
+          // Fallback to individual fields for backward compatibility
+          if (customer.address) {
+            addresses.push({
+              address: customer.address || '',
+              suburb: customer.suburb || '',
+              state: customer.state || '',
+              post_code: customer.post_code || '',
+              is_primary: true,
+              id: 0,
+              displayText: `${customer.address || ''}, ${customer.suburb || ''} ${customer.state || ''} ${customer.post_code || ''} (Primary)`
+            });
+          }
+        }
+        
+        setCustomerAddresses(addresses);
+        
+        // Automatically select the primary address if available
+        const primaryIndex = addresses.findIndex(addr => addr.is_primary);
+        if (primaryIndex !== -1) {
+          setSelectedAddressIndex(primaryIndex);
+          setSelectedAddressDetails({
+            address: addresses[primaryIndex].address,
+            suburb: addresses[primaryIndex].suburb,
+            state: addresses[primaryIndex].state,
+            post_code: addresses[primaryIndex].post_code,
+          });
+        } else if (addresses.length > 0) {
+          // Select the first address if no primary is set
+          setSelectedAddressIndex(0);
+          setSelectedAddressDetails({
+            address: addresses[0].address,
+            suburb: addresses[0].suburb,
+            state: addresses[0].state,
+            post_code: addresses[0].post_code,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching customer addresses:', error);
+      setCustomerAddresses([]);
+      setSelectedAddressIndex(-1);
+      setSelectedAddressDetails({
+        address: '',
+        suburb: '',
+        state: '',
+        post_code: '',
+      });
+    }
+  }, []);
+
   function changeAddress(newValue: any, actionMeta: any) {
-    let addressComponents = parseAddress(newValue?.value?.description ?? "");
-    setSelectedSuburb(addressComponents.suburb);
-    setSelectedState(addressComponents.state);
-    setSelectedAddress(newValue?.value?.description ?? "");
+    if (selectedCustomer && selectedAddressIndex !== -1 && customerAddresses.length > 0) {
+      // Update selected address details
+      const addressComponents = parseAddress(newValue?.value?.description ?? "");
+      const newAddressDetails = {
+        address: newValue?.value?.description ?? "",
+        suburb: addressComponents.suburb,
+        state: addressComponents.state,
+        post_code: "",
+      };
+      
+      setSelectedAddressDetails(newAddressDetails);
+      
+      // Update the specific address in the addresses array
+      const updatedAddresses = [...customerAddresses];
+      updatedAddresses[selectedAddressIndex] = {
+        ...updatedAddresses[selectedAddressIndex],
+        ...newAddressDetails,
+      };
+      setCustomerAddresses(updatedAddresses);
+    } else {
+      // For inline customers, use the existing behavior
+      const addressComponents = parseAddress(newValue?.value?.description ?? "");
+      setSelectedSuburb(addressComponents.suburb);
+      setSelectedState(addressComponents.state);
+      setSelectedAddress(newValue?.value?.description ?? "");
+      setSelectedAddressDetails({
+        address: newValue?.value?.description ?? "",
+        suburb: addressComponents.suburb,
+        state: addressComponents.state,
+        post_code: "",
+      });
+    }
   }
 
   const setCreateInlineCustomerWithReset = (value: boolean) => {
     setCreateInlineCustomer(value);
     if (!value) {
       setInlineCustomerName("");
+      // Reset address details when switching back to existing customer mode
+      if (selectedCustomer && customerAddresses.length > 0) {
+        const primaryIndex = customerAddresses.findIndex(addr => addr.is_primary);
+        if (primaryIndex !== -1) {
+          setSelectedAddressIndex(primaryIndex);
+          setSelectedAddressDetails({
+            address: customerAddresses[primaryIndex].address,
+            suburb: customerAddresses[primaryIndex].suburb,
+            state: customerAddresses[primaryIndex].state,
+            post_code: customerAddresses[primaryIndex].post_code,
+          });
+        }
+      }
     }
   };
 
@@ -182,7 +310,35 @@ export function useCreateQuotation() {
     setSelectedSuburb("");
     setSelectedState("");
     setSelectedPostCode("");
+    setSelectedAddressDetails({
+      address: '',
+      suburb: '',
+      state: '',
+      post_code: '',
+    });
+    setCustomerAddresses([]);
+    setSelectedAddressIndex(-1);
   }
+
+  // Handle address selection
+  const handleAddressSelect = (index: number) => {
+    if (index >= 0 && index < customerAddresses.length) {
+      setSelectedAddressIndex(index);
+      const selectedAddr = customerAddresses[index];
+      const newAddressDetails = {
+        address: selectedAddr.address,
+        suburb: selectedAddr.suburb,
+        state: selectedAddr.state,
+        post_code: selectedAddr.post_code,
+      };
+      
+      setSelectedAddressDetails(newAddressDetails);
+      setSelectedAddress(selectedAddr.address);
+      setSelectedSuburb(selectedAddr.suburb);
+      setSelectedState(selectedAddr.state);
+      setSelectedPostCode(selectedAddr.post_code);
+    }
+  };
 
   const addItem = async (itemId: number) => {
     const item = items.find((i) => i.id === itemId);
@@ -335,11 +491,15 @@ export function useCreateQuotation() {
           name: values.inlineCustomerName,
           phone: values.phone,
           mobile: values.mobile,
-          address: values.address,
-          suburb: values.suburb,
-          state: values.state,
-          post_code: values.postCode,
           email: values.emailAddress,
+          notes: values.note,
+          addresses: [{
+            address: values.address,
+            suburb: values.suburb,
+            state: values.state,
+            post_code: values.postCode,
+            is_primary: true
+          }]
         };
         const customersRepository = new CustomersRepository();
         const createdCustomer = await customersRepository.create(newCustomer);
@@ -387,11 +547,15 @@ export function useCreateQuotation() {
               name: customerNameToUse,
               phone: values.phone,
               mobile: values.mobile,
-              address: values.address,
-              suburb: values.suburb,
-              state: values.state,
-              post_code: values.postCode,
               email: values.emailAddress,
+              notes: values.note,
+              addresses: [{
+                address: values.address,
+                suburb: values.suburb,
+                state: values.state,
+                post_code: values.postCode,
+                is_primary: true
+              }]
             };
 
             const createdCustomer =
@@ -421,6 +585,16 @@ export function useCreateQuotation() {
         }
       }
 
+      // Use selected address details for the quotation snapshot
+      const quotationAddress = selectedCustomer && customerAddresses.length > 0 && selectedAddressIndex !== -1
+        ? selectedAddressDetails
+        : {
+            address: values.address,
+            suburb: values.suburb,
+            state: values.state,
+            post_code: values.postCode,
+          };
+
       const newQuotation: QuotationSupabase = {
         quotation_number: values.quotation_number,
         customer_id: customerToAdd,
@@ -428,6 +602,11 @@ export function useCreateQuotation() {
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
         status: "draft",
+        // Save address snapshot to quotation
+        address: quotationAddress.address,
+        suburb: quotationAddress.suburb,
+        state: quotationAddress.state,
+        post_code: quotationAddress.post_code,
       };
 
       const quotationsRepo = new QuotationsRepository();
@@ -590,15 +769,25 @@ export function useCreateQuotation() {
         setCustomerName(customer.name || "");
         setSelectedPhone(customer.phone || "");
         setSelectedMobile(customer.mobile || "");
-        setSelectedAddress(customer.address || "");
-        setSelectedSuburb(customer.suburb || "");
-        setSelectedState(customer.state || "");
-        setSelectedPostCode(customer.post_code || "");
+        
+        // Fetch addresses for the selected customer
+        fetchCustomerAddresses(selectedCustomer);
       }
     } else if (!createInlineCustomer) {
       resetCustomerData();
     }
-  }, [selectedCustomer, customers, createInlineCustomer]);
+  }, [selectedCustomer, customers, createInlineCustomer, fetchCustomerAddresses]);
+
+  // Update Formik values when address details change
+  useEffect(() => {
+    if (selectedCustomer && customerAddresses.length > 0 && selectedAddressIndex !== -1) {
+      const selectedAddr = customerAddresses[selectedAddressIndex];
+      setSelectedAddress(selectedAddr.address);
+      setSelectedSuburb(selectedAddr.suburb);
+      setSelectedState(selectedAddr.state);
+      setSelectedPostCode(selectedAddr.post_code);
+    }
+  }, [selectedAddressIndex, customerAddresses, selectedCustomer]);
 
   return {
     validate,
@@ -634,5 +823,11 @@ export function useCreateQuotation() {
     setInlineCustomerName,
     customerName,
     setCustomerName,
+    // New properties for address selection
+    customerAddresses,
+    selectedAddressIndex,
+    selectedAddressDetails,
+    handleAddressSelect,
+    setSelectedAddressDetails,
   };
 }

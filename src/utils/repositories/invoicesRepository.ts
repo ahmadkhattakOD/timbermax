@@ -16,6 +16,10 @@ export interface InvoiceSupabase {
   user?: string;
   created_at?: string;
   updated_at?: string;
+  address?: string;
+  suburb?: string;
+  state?: string;
+  post_code?: string;
 }
 
 export interface InvoiceItemSupabase {
@@ -256,8 +260,9 @@ ${this.itemsClassName} (
         .from(this.className)
         .select(
           `id, invoice_number, delivery_status, customer_id,
-         customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ), 
-         quotation_id, quotations ( id, quotation_number ), 
+         address, suburb, state, post_code,
+         customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ),
+         quotation_id, quotations ( id, quotation_number ),
          total, status, invoice_date, note, created_at, updated_at,
          ${this.itemsClassName} ( 
            id, item_id, quantity, unit_price, total_price, warehouse_id,

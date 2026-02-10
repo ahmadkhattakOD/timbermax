@@ -23,6 +23,7 @@ import {
   FormControl,
   Chip,
   Alert,
+  Grid,
 } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
@@ -66,6 +67,10 @@ export default function CreateQuotation() {
     setInlineCustomerName,
     customerName,
     setCustomerName,
+    // New properties for address selection
+    customerAddresses,
+    selectedAddressIndex,
+    handleAddressSelect,
   } = useCreateQuotation();
 
   const theme = useTheme();
@@ -138,10 +143,6 @@ export default function CreateQuotation() {
               setCustomerName(customer.name || "");
               setFieldValue("phone", customer.phone || "");
               setFieldValue("mobile", customer.mobile || "");
-              setFieldValue("address", customer.address || "");
-              setFieldValue("suburb", customer.suburb || "");
-              setFieldValue("state", customer.state || "");
-              setFieldValue("postCode", customer.post_code || "");
               setFieldValue("emailAddress", customer.email || "");
             }
           } else if (!createInlineCustomer) {
@@ -164,30 +165,23 @@ export default function CreateQuotation() {
           setCustomerName,
         ]);
 
+        // When an address is selected from dropdown, populate all address fields
+        useEffect(() => {
+          if (selectedAddressIndex !== -1 && customerAddresses.length > 0) {
+            const selectedAddr = customerAddresses[selectedAddressIndex];
+            setFieldValue("address", selectedAddr.address || "");
+            setFieldValue("suburb", selectedAddr.suburb || "");
+            setFieldValue("state", selectedAddr.state || "");
+            setFieldValue("postCode", selectedAddr.post_code || "");
+          }
+        }, [selectedAddressIndex, customerAddresses, setFieldValue]);
+
         return (
           <Form onSubmit={handleSubmit}>
             <FormLayout
               isSubmitting={isSubmitting}
               submitButtonText="Create a Quote"
               inputs={[
-                // Low stock warning banner
-                lowStockItems.length > 0 && (
-                  <Alert
-                    key="low-stock-warning"
-                    severity="warning"
-                    sx={{ mb: 2 }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body1" fontWeight="bold">
-                        ⚠️ Stock Reservation Alert
-                      </Typography>
-                      <Typography variant="body2">
-                        {lowStockItems.length} item(s) have insufficient stock. Quotation will still be created.
-                      </Typography>
-                    </Box>
-                  </Alert>
-                ),
-
                 <FormInput
                   key="quotation_number"
                   id={"quotation_number"}
@@ -294,52 +288,6 @@ export default function CreateQuotation() {
                   type={"text"}
                 />,
 
-                <PlacesInput
-                  key="address"
-                  id="address"
-                  name="address"
-                  placeholder="Address"
-                  onChange={(newValue, actionMeta) => {
-                    changeAddress(newValue, actionMeta);
-                    setFieldValue(
-                      "address",
-                      newValue?.value?.description ?? ""
-                    );
-                  }}
-                  value={selectedAddress}
-                  label="Address"
-                />,
-
-                <FormInput
-                  key="suburb"
-                  id={"suburb"}
-                  name={"suburb"}
-                  placeholder={"Suburb"}
-                  label="Suburb"
-                  type={"text"}
-                />,
-
-                <FormDropdown
-                  key="state"
-                  id={"state"}
-                  name={"state"}
-                  label="State"
-                  useFormattedStrings={false}
-                  options={australianStates.map((state) => ({
-                    label: state,
-                    value: state,
-                  }))}
-                />,
-
-                <FormInput
-                  key="postCode"
-                  id={"postCode"}
-                  name={"postCode"}
-                  placeholder={"Post Code"}
-                  label="Post Code"
-                  type={"text"}
-                />,
-
                 <FormInput
                   key="emailAddress"
                   id={"emailAddress"}
@@ -359,6 +307,165 @@ export default function CreateQuotation() {
                   type={"date"}
                 />,
 
+                // ADDRESS SECTION - full width
+                <Box key="address-section" {...{fullWidth: true}}>
+                  {/* For existing customers with addresses */}
+                  {!createInlineCustomer && selectedCustomer && customerAddresses.length > 0 ? (
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <FormDropdown
+                          key="address-select"
+                          id={"address-select"}
+                          name={"address-select"}
+                          label="Select Delivery Address"
+                          useFormattedStrings={false}
+                          options={customerAddresses.map((addr, index) => ({
+                            label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`,
+                            value: index.toString(),
+                          }))}
+                          value={selectedAddressIndex.toString()}
+                          onChange={(e) => {
+                            const index = parseInt(e.target.value);
+                            handleAddressSelect(index);
+                          }}
+                          optional={false}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <PlacesInput
+                          key="address"
+                          id="address"
+                          name="address"
+                          placeholder="Address"
+                          onChange={(newValue, actionMeta) => {
+                            changeAddress(newValue, actionMeta);
+                            setFieldValue(
+                              "address",
+                              newValue?.value?.description ?? ""
+                            );
+                          }}
+                          value={values.address}
+                          label="Address"
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormInput
+                          key="suburb"
+                          id={"suburb"}
+                          name={"suburb"}
+                          placeholder={"Suburb"}
+                          label="Suburb"
+                          type={"text"}
+                          value={values.suburb}
+                          onChange={(e) => setFieldValue("suburb", e.target.value)}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormDropdown
+                          key="state"
+                          id={"state"}
+                          name={"state"}
+                          label="State"
+                          useFormattedStrings={false}
+                          options={australianStates.map((state) => ({
+                            label: state,
+                            value: state,
+                          }))}
+                          value={values.state}
+                          onChange={(e) => setFieldValue("state", e.target.value)}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormInput
+                          key="postCode"
+                          id={"postCode"}
+                          name={"postCode"}
+                          placeholder={"Post Code"}
+                          label="Post Code"
+                          type={"text"}
+                          value={values.postCode}
+                          onChange={(e) => setFieldValue("postCode", e.target.value)}
+                        />
+                      </Grid>
+                    </Grid>
+                  ) : (
+                    // For inline customers or customers without addresses
+                    <Box>
+                      {!createInlineCustomer && selectedCustomer && customerAddresses.length === 0 ? (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          No addresses found for this customer. Please enter address manually below.
+                        </Alert>
+                      ) : null}
+
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <PlacesInput
+                            key="address"
+                            id="address"
+                            name="address"
+                            placeholder="Address"
+                            onChange={(newValue, actionMeta) => {
+                              changeAddress(newValue, actionMeta);
+                              setFieldValue(
+                                "address",
+                                newValue?.value?.description ?? ""
+                              );
+                            }}
+                            value={values.address}
+                            label="Address"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <FormInput
+                            key="suburb"
+                            id={"suburb"}
+                            name={"suburb"}
+                            placeholder={"Suburb"}
+                            label="Suburb"
+                            type={"text"}
+                            value={values.suburb}
+                            onChange={(e) => setFieldValue("suburb", e.target.value)}
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <FormDropdown
+                            key="state"
+                            id={"state"}
+                            name={"state"}
+                            label="State"
+                            useFormattedStrings={false}
+                            options={australianStates.map((state) => ({
+                              label: state,
+                              value: state,
+                            }))}
+                            value={values.state}
+                            onChange={(e) => setFieldValue("state", e.target.value)}
+                          />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <FormInput
+                            key="postCode"
+                            id={"postCode"}
+                            name={"postCode"}
+                            placeholder={"Post Code"}
+                            label="Post Code"
+                            type={"text"}
+                            value={values.postCode}
+                            onChange={(e) => setFieldValue("postCode", e.target.value)}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+                </Box>,
+
                 // NOTES
                 <FormInput
                   key="note"
@@ -370,8 +477,26 @@ export default function CreateQuotation() {
                   isTextArea
                 />,
 
-                // ITEMS TABLE WITH WAREHOUSE SELECTION
-                <Box key="items-section">
+                // Low stock warning banner - full width
+                lowStockItems.length > 0 ? (
+                  <Alert
+                    key="low-stock-warning"
+                    severity="warning"
+                    {...{fullWidth: true}}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body1" fontWeight="bold">
+                        Stock Reservation Alert
+                      </Typography>
+                      <Typography variant="body2">
+                        {lowStockItems.length} item(s) have insufficient stock. Quotation will still be created.
+                      </Typography>
+                    </Box>
+                  </Alert>
+                ) : null,
+
+                // ITEMS TABLE WITH WAREHOUSE SELECTION - full width, at the end
+                <Box key="items-section" {...{fullWidth: true}}>
                   <Box
                     sx={{
                       display: "flex",

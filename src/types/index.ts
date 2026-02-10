@@ -86,6 +86,47 @@ export interface Quotation {
   note?: string;
   terms?: string;
   quotation_items?: QuotationItem[];
+  // Address snapshot fields - saved with each quotation
+  address?: string;
+  suburb?: string;
+  state?: string;
+  post_code?: string;
+  valid_until?: string | Date;
+}
+
+export interface InvoiceItem {
+  id: number;
+  invoice_id: number;
+  item_id: number;
+  items?: Item;
+  quantity: number;
+  unit_price: number;
+  total_price?: number;
+  warehouse_id?: number;
+  gst?: boolean;
+}
+
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  customer_id: number;
+  customer?: Customer;
+  customers?: Customer;
+  quotation_id?: number | null;
+  quotations?: Quotation;
+  status: "draft" | "sent" | "paid" | "cancelled";
+  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
+  total: number;
+  invoice_date: string | Date;
+  note?: string;
+  created_at: string;
+  updated_at?: string;
+  // Address snapshot fields - saved with each invoice
+  address?: string;
+  suburb?: string;
+  state?: string;
+  post_code?: string;
+  invoice_items?: InvoiceItem[];
 }
 
 export interface PDFGenerationResult {

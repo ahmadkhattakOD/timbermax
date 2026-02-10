@@ -10,6 +10,7 @@ import {
   Tooltip,
   Box,
   Button,
+  Chip,
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -201,6 +202,13 @@ export function useQuotations() {
   const csvLink = useRef<any>();
   const navigate = useNavigate();
   const theme = useTheme();
+
+  // Quotation status menu state
+  const [statusMenuAnchor, setStatusMenuAnchor] =
+    useState<null | HTMLElement>(null);
+  const [selectedQuotationForStatus, setSelectedQuotationForStatus] = useState<
+    number | null
+  >(null);
 
   function goToCreate() {
     navigate("/quotations/create");
@@ -451,23 +459,31 @@ export function useQuotations() {
           ${row.total?.toFixed(2)}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
-          <Typography
-            sx={{
-              color:
-                row.status === "approved"
-                  ? theme.palette.success.main
-                  : row.status === "sent"
-                    ? theme.palette.info.main
-                    : row.status === "draft"
-                      ? theme.palette.warning.main
-                      : row.status === "converted"
-                        ? theme.palette.primary.main
-                        : theme.palette.error.main,
-              fontWeight: 600,
+          <Chip
+            label={row.status?.charAt(0).toUpperCase() + row.status?.slice(1)}
+            color={
+              row.status === "approved"
+                ? "success"
+                : row.status === "sent"
+                  ? "info"
+                  : row.status === "draft"
+                    ? "warning"
+                    : row.status === "converted"
+                      ? "primary"
+                      : "error"
+            }
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedQuotationForStatus(row.id);
+              setStatusMenuAnchor(e.currentTarget);
             }}
-          >
-            {row.status?.charAt(0).toUpperCase() + row.status?.slice(1)}
-          </Typography>
+            sx={{
+              fontWeight: 600,
+              cursor: "pointer",
+              "&:hover": { opacity: 0.8 },
+            }}
+          />
         </TableCell>
 
         <TableCell align="center" sx={{ minWidth: 100 }}>
@@ -1232,6 +1248,48 @@ export function useQuotations() {
     }
   }
 
+  // Handle quotation status update
+  const handleStatusUpdate = async (status: string) => {
+    if (!selectedQuotationForStatus) return;
+
+    try {
+      const quotationsRepo = new QuotationsRepository();
+
+      // Use updateStatus for all status changes
+      const result = await quotationsRepo.updateStatus(
+        selectedQuotationForStatus,
+        status as any
+      );
+
+      if (result.success) {
+        openSnackbar({
+          open: true,
+          message: `Quotation status updated to ${status}`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        await getData();
+      } else {
+        throw new Error(result.error || "Failed to update status");
+      }
+    } catch (error: any) {
+      console.error("Error updating quotation status:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to update status: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setStatusMenuAnchor(null);
+      setSelectedQuotationForStatus(null);
+    }
+  };
+
+  const updateQuotationStatus = async (quotationId: number, status: string) => {
+    return handleStatusUpdate(status);
+  };
+
   // Return ALL functions and state
   return {
     // State
@@ -1249,6 +1307,8 @@ export function useQuotations() {
     searchValue,
     csvData,
     csvLink,
+    statusMenuAnchor,
+    selectedQuotationForStatus,
 
     // State setters
     setOrder,
@@ -1257,6 +1317,7 @@ export function useQuotations() {
     setPage,
     setRowsPerPage,
     setSearchValue,
+    setStatusMenuAnchor,
 
     // Functions
     goToCreate,
@@ -1274,6 +1335,7 @@ export function useQuotations() {
     convertToInvoice,
     viewItems,
     cancelQuotation,
+    updateQuotationStatus,
     downloadQuotationPDF,
     previewQuotationPDF,
     ItemsModal,

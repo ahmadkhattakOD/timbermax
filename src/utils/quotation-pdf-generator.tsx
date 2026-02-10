@@ -79,15 +79,16 @@ export const generateAndDownloadQuotationPDF = async (
     // );
 
     // Customer Info - moved down
+    // Use address snapshot from quotation, not from customer table
     const customer = quotation.customers;
     doc.setFont("helvetica", "bold");
     doc.text("BILL TO:", 14, 95); // Increased y from 65 to 95
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 100); // Increased y
-    doc.text(customer?.address || "", 14, 105); // Increased y
-    if (customer?.suburb) {
+    doc.text(quotation.address || "", 14, 105); // Use quotation address snapshot
+    if (quotation.suburb) {
       doc.text(
-        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        `${quotation.suburb} ${quotation.state} ${quotation.post_code}`,
         14,
         110 // Increased y
       );
@@ -259,15 +260,16 @@ export const generateAndDownloadDeliveryDocument = async (
     });
 
     // Customer Info - moved down
+    // Use address snapshot from quotation, not from customer table
     const customer = quotation.customers as any;
     doc.setFont("helvetica", "bold");
     doc.text("DELIVER TO:", 14, 100); // Increased y
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 105);
-    doc.text(customer?.address || "", 14, 110);
-    if (customer?.suburb) {
+    doc.text(quotation.address || "", 14, 110); // Use quotation address snapshot
+    if (quotation.suburb) {
       doc.text(
-        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        `${quotation.suburb} ${quotation.state} ${quotation.post_code}`,
         14,
         115
       );
@@ -414,15 +416,16 @@ export const openQuotationPDFInNewTab = async (
     // );
 
     // Customer Info - moved down
+    // Use address snapshot from quotation, not from customer table
     const customer = quotation.customers;
     doc.setFont("helvetica", "bold");
     doc.text("BILL TO:", 14, 95);
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 100);
-    doc.text(customer?.address || "", 14, 105);
-    if (customer?.suburb) {
+    doc.text(quotation.address || "", 14, 105); // Use quotation address snapshot
+    if (quotation.suburb) {
       doc.text(
-        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        `${quotation.suburb} ${quotation.state} ${quotation.post_code}`,
         14,
         110
       );

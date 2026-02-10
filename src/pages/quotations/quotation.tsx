@@ -12,6 +12,7 @@ import FormDropdown from "components/FormDropdown";
 import { getDateTimeFormatted, hasNonEmptyValue } from "utils/helpers";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
+import { Menu, MenuItem, Chip } from "@mui/material";
 
 export default function Quotations() {
   const {
@@ -50,7 +51,16 @@ export default function Quotations() {
     setSearchValue,
     convertToInvoice,
     ItemsModal,
+    statusMenuAnchor,
+    selectedQuotationForStatus,
+    setStatusMenuAnchor,
+    updateQuotationStatus,
   } = useQuotations();
+
+  // Quotation status menu
+  const handleStatusMenuClose = () => {
+    setStatusMenuAnchor(null);
+  };
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -257,6 +267,132 @@ export default function Quotations() {
         }
       />
       <ItemsModal />
+
+      {/* Quotation Status Menu */}
+      <Menu
+        anchorEl={statusMenuAnchor}
+        open={Boolean(statusMenuAnchor)}
+        onClose={handleStatusMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 200,
+            borderRadius: 1,
+            boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.15)",
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedQuotationForStatus) {
+              updateQuotationStatus(selectedQuotationForStatus, "draft");
+              handleStatusMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Draft"
+              size="small"
+              color="warning"
+              sx={{ minWidth: 80 }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedQuotationForStatus) {
+              updateQuotationStatus(selectedQuotationForStatus, "sent");
+              handleStatusMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Sent"
+              size="small"
+              color="info"
+              sx={{ minWidth: 80 }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedQuotationForStatus) {
+              updateQuotationStatus(selectedQuotationForStatus, "approved");
+              handleStatusMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Approved"
+              size="small"
+              color="success"
+              sx={{ minWidth: 80 }}
+            />
+          </Box>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedQuotationForStatus) {
+              if (
+                window.confirm(
+                  "Are you sure you want to cancel this quotation? This will release any reserved stock."
+                )
+              ) {
+                updateQuotationStatus(selectedQuotationForStatus, "cancelled");
+                handleStatusMenuClose();
+              }
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Cancelled"
+              size="small"
+              color="error"
+              sx={{ minWidth: 80 }}
+            />
+          </Box>
+        </MenuItem>
+      </Menu>
+
       <CSVLink
         data={csvData}
         headers={headCells.map((cell) => ({ label: cell.label, key: cell.id }))}

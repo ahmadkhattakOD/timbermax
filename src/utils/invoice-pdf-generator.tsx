@@ -2,39 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { BRAND_COLORS } from "themes/theme/default";
 import { getDateFormatted } from "utils/helpers";
-
-export interface InvoiceForPDF {
-  id: number;
-  invoice_number: string;
-  customer?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    mobile?: string;
-    address?: string;
-    suburb?: string;
-    state?: string;
-    post_code?: string;
-  };
-  quotation_id?: number | null;
-  total: number;
-  status: "draft" | "sent" | "paid" | "cancelled";
-  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
-  invoice_date: string;
-  note?: string;
-  created_at: string;
-  invoice_items?: Array<{
-    id: number;
-    quantity: number;
-    unit_price: number;
-    total_price?: number;
-    items?: {
-      name?: string;
-      itemCode?: string;
-      gst?: boolean;
-    };
-  }>;
-}
+import { Invoice } from "types";
 
 // Helper function to load and add logo (same as quotation example)
 const addCompanyLogo = async (
@@ -79,7 +47,7 @@ const COMPANY_INFO = {
 };
 
 export const generateAndDownloadInvoicePDF = async (
-  invoice: InvoiceForPDF,
+  invoice: Invoice,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
@@ -124,21 +92,22 @@ export const generateAndDownloadInvoicePDF = async (
     }
 
     // Customer Info - moved down
+    // Use address snapshot from invoice, not from customer table
     const customer = invoice.customer;
     doc.setFont("helvetica", "bold");
     doc.text("BILL TO:", 14, 95); // Increased y from 65 to 95
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 100); // Increased y
-    doc.text(customer?.address || "", 14, 105); // Increased y
-    if (customer?.suburb) {
+    doc.text(invoice.address || "", 14, 105); // Use invoice address snapshot
+    if (invoice.suburb) {
       doc.text(
-        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
         14,
         110, // Increased y
       );
     }
     doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115); // Increased y
-    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120); // Increased y
+    // doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120); // Increased y
     doc.text(`Email: ${customer?.email || "N/A"}`, 14, 125); // Increased y
 
     // Items Table - moved startY down
@@ -286,7 +255,7 @@ export const generateAndDownloadInvoicePDF = async (
 };
 
 export const generateDeliveryNotePDF = async (
-  invoice: InvoiceForPDF,
+  invoice: Invoice,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
@@ -329,21 +298,22 @@ export const generateDeliveryNotePDF = async (
     );
 
     // Customer Info - moved down
+    // Use address snapshot from invoice, not from customer table
     const customer = invoice.customer;
     doc.setFont("helvetica", "bold");
     doc.text("DELIVER TO:", 14, 95); // Increased y
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 100);
-    doc.text(customer?.address || "", 14, 105);
-    if (customer?.suburb) {
+    doc.text(invoice.address || "", 14, 105); // Use invoice address snapshot
+    if (invoice.suburb) {
       doc.text(
-        `${customer.suburb} ${customer.state} ${customer.post_code}`,
+        `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
         14,
         110,
       );
     }
     doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
-    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
+    // doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
 
     // Items Table (simplified for delivery)
     const items = invoice.invoice_items || [];

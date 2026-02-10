@@ -1,5 +1,5 @@
 import { openSnackbar } from "api/snackbar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
@@ -11,6 +11,7 @@ import {
 } from "utils/helpers";
 import CustomersRepository, {
   CustomerSupabase,
+  CustomerAddress,
 } from "utils/repositories/customersRepository";
 import ItemsRepository from "utils/repositories/itemsRepository";
 import InvoicesRepository, {
@@ -53,7 +54,12 @@ export interface InvoiceItem {
     reserved: number;
     available: number;
   }>;
-  original_quantity?: number; // Store original quantity for comparison
+}
+
+// Interface for customer address with selection
+export interface CustomerAddressWithSelection extends CustomerAddress {
+  id?: number;
+  displayText?: string;
 }
 
 export function useEditInvoice(invoiceId: number) {
@@ -69,9 +75,8 @@ export function useEditInvoice(invoiceId: number) {
   const [selectedPhone, setSelectedPhone] = useState<string>("");
   const [selectedMobile, setSelectedMobile] = useState<string>("");
   const [selectedPostCode, setSelectedPostCode] = useState<string>("");
-  const [selectedCustomer, setSelectedCustomer] = useState<number | undefined>(
-    undefined,
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<number | undefined>(undefined);
+  const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [customerSearch, setCustomerSearch] = useState<string>("");
   const [itemSearch, setItemSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -83,6 +88,10 @@ export function useEditInvoice(invoiceId: number) {
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
   const [inlineCustomerName, setInlineCustomerName] = useState("");
   const [customerName, setCustomerName] = useState<string>("");
+
+  // New states for customer addresses
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
 
   const [initialValues, setInitialValues] = useState<ValuesEditInvoice>({
     invoice_number: "",
@@ -106,10 +115,9 @@ export function useEditInvoice(invoiceId: number) {
     0,
   );
 
-  // Function to get ALL warehouses for an item (including those with 0 or negative stock)
+  // Function to get ALL warehouses for an item
   const getWarehousesForItem = async (itemId: number) => {
     try {
-      // First get all warehouses
       const warehousesRepo = new WarehousesRepository();
       const allWarehouses = await warehousesRepo.getWithoutFilters();
 
@@ -117,7 +125,6 @@ export function useEditInvoice(invoiceId: number) {
         return [];
       }
 
-      // Get stock data for this item in all warehouses
       const { data: stockData, error } = await supabase
         .from("stocks")
         .select(
@@ -132,7 +139,6 @@ export function useEditInvoice(invoiceId: number) {
 
       if (error) {
         console.error("Error fetching stock for item:", error);
-        // Return all warehouses with 0 stock if no stock records exist
         return allWarehouses.warehousesData.map((warehouse) => ({
           id: warehouse.id,
           name: warehouse.name,
@@ -142,7 +148,6 @@ export function useEditInvoice(invoiceId: number) {
         }));
       }
 
-      // Create a map of warehouse stock
       const stockByWarehouse = new Map();
       if (stockData) {
         stockData.forEach((stock) => {
@@ -156,7 +161,6 @@ export function useEditInvoice(invoiceId: number) {
         });
       }
 
-      // Return all warehouses with their stock data (0 if no stock record)
       return allWarehouses.warehousesData.map((warehouse) => {
         const stockInfo = stockByWarehouse.get(warehouse.id);
         if (stockInfo) {
@@ -183,11 +187,110 @@ export function useEditInvoice(invoiceId: number) {
     }
   };
 
+  // Function to fetch customer addresses - MATCHING THE INVOICE'S SAVED ADDRESS
+  const fetchCustomerAddresses = useCallback(async (customerId: number, invoiceAddress?: { address: string; suburb: string; state: string; post_code: string }) => {
+    try {
+      const customersRepo = new CustomersRepository();
+      const customerResponse = await customersRepo.getSingle(customerId);
+
+      if (customerResponse?.customerData) {
+        const customer = customerResponse.customerData;
+        let addresses: CustomerAddressWithSelection[] = [];
+
+        // Check if addresses array exists
+        if (customer.addresses && customer.addresses.length > 0) {
+          addresses = customer.addresses.map((addr: CustomerAddress, index: number) => ({
+            ...addr,
+            id: index,
+            displayText: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`
+          }));
+        } else {
+          // Fallback to individual fields for backward compatibility
+          if (customer.address) {
+            addresses.push({
+              address: customer.address || '',
+              suburb: customer.suburb || '',
+              state: customer.state || '',
+              post_code: customer.post_code || '',
+              is_primary: true,
+              id: 0,
+              displayText: `${customer.address || ''}, ${customer.suburb || ''} ${customer.state || ''} ${customer.post_code || ''} (Primary)`
+            });
+          }
+        }
+
+        setCustomerAddresses(addresses);
+
+        // IMPORTANT: Match against the invoice's saved address, not the customer's current address
+        const addrToMatch = invoiceAddress || {
+          address: customer.address || '',
+          suburb: customer.suburb || '',
+          state: customer.state || '',
+          post_code: customer.post_code || '',
+        };
+
+        const matchingIndex = addresses.findIndex(addr =>
+          addr.address === addrToMatch.address &&
+          addr.suburb === addrToMatch.suburb &&
+          addr.state === addrToMatch.state &&
+          addr.post_code === addrToMatch.post_code
+        );
+
+        if (matchingIndex !== -1) {
+          setSelectedAddressIndex(matchingIndex);
+        } else if (addresses.length > 0) {
+          // If no exact match, select the primary or first address
+          const primaryIndex = addresses.findIndex(addr => addr.is_primary);
+          const indexToSelect = primaryIndex !== -1 ? primaryIndex : 0;
+          setSelectedAddressIndex(indexToSelect);
+        } else {
+          setSelectedAddressIndex(-1);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching customer addresses:', error);
+      setCustomerAddresses([]);
+      setSelectedAddressIndex(-1);
+    }
+  }, []);
+
+  // Handle address selection
+  const handleAddressSelect = (index: number) => {
+    if (index >= 0 && index < customerAddresses.length) {
+      setSelectedAddressIndex(index);
+      const selectedAddr = customerAddresses[index];
+      
+      setSelectedAddress(selectedAddr.address);
+      setSelectedSuburb(selectedAddr.suburb);
+      setSelectedState(selectedAddr.state);
+      setSelectedPostCode(selectedAddr.post_code);
+      
+      // Update initial values
+      setInitialValues(prev => ({
+        ...prev,
+        address: selectedAddr.address,
+        suburb: selectedAddr.suburb,
+        state: selectedAddr.state,
+        postCode: selectedAddr.post_code,
+      }));
+    }
+  };
+
   function changeAddress(newValue: any, actionMeta: any) {
-    let addressComponents = parseAddress(newValue?.value?.description ?? "");
+    const addressComponents = parseAddress(newValue?.value?.description ?? "");
+    setSelectedAddress(newValue?.value?.description ?? "");
     setSelectedSuburb(addressComponents.suburb);
     setSelectedState(addressComponents.state);
-    setSelectedAddress(newValue?.value?.description ?? "");
+    setSelectedPostCode("");
+
+    // Update initial values
+    setInitialValues(prev => ({
+      ...prev,
+      address: newValue?.value?.description ?? "",
+      suburb: addressComponents.suburb,
+      state: addressComponents.state,
+      postCode: "",
+    }));
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -440,11 +543,12 @@ export function useEditInvoice(invoiceId: number) {
               name: customerNameToUse,
               phone: values.phone,
               mobile: values.mobile,
+              email: values.emailAddress,
+              notes: values.note,
               address: values.address,
               suburb: values.suburb,
               state: values.state,
               post_code: values.postCode,
-              email: values.emailAddress,
             });
           } else {
             const newCustomer: CustomerSupabase = {
@@ -503,7 +607,7 @@ export function useEditInvoice(invoiceId: number) {
       if (statusChangedToCancelled) {
         // If changing to cancelled, restore stock for each item in its respective warehouse
         for (const item of currentItems) {
-          const warehouseId = item.warehouse_id || 1; // Default to warehouse 1 if not specified
+          const warehouseId = item.warehouse_id || 1;
           await stocksRepo.restoreStockFromInvoice(
             item.item_id,
             warehouseId,
@@ -529,7 +633,7 @@ export function useEditInvoice(invoiceId: number) {
         0,
       );
 
-      // Update invoice details
+      // Update invoice details with address snapshot
       const updatedInvoice = {
         customer_id: customerToUpdate,
         total: totalWithGST,
@@ -539,6 +643,11 @@ export function useEditInvoice(invoiceId: number) {
         note: values.note,
         status: values.status,
         delivery_status: values.delivery_status,
+        // Save address snapshot to invoice - THIS IS KEY
+        address: values.address,
+        suburb: values.suburb,
+        state: values.state,
+        post_code: values.postCode,
       };
 
       const updated = await invoicesRepo.edit(invoiceId, updatedInvoice as any);
@@ -589,19 +698,9 @@ export function useEditInvoice(invoiceId: number) {
             (item: any) => item.item_id === itemId,
           );
 
-          console.log("=======================================");
-          console.log("Processing item ID:", itemId);
-          console.log("Current item from DB:", currentItem);
-          console.log("Current quantity from DB:", currentItem?.quantity);
-          console.log("New quantity from form:", newQuantity);
-
           if (currentItem) {
             const currentQuantity = parseFloat(currentItem.quantity);
             const currentWarehouseId = currentItem.warehouse_id || 1;
-
-            console.log("Parsed current quantity:", currentQuantity);
-            console.log("Current warehouse:", currentWarehouseId);
-            console.log("New warehouse:", warehouseId);
 
             // Update invoice item with warehouse
             await invoicesRepo.updateItem(invoiceId, itemId, {
@@ -634,8 +733,6 @@ export function useEditInvoice(invoiceId: number) {
                   `Invoice #${invoiceId} edited: Moved to Warehouse ${warehouseId}`,
                 );
               } else {
-                console.log("QUANITY DIFF", quantityDiff);
-
                 // Same warehouse, quantity change - single movement
                 if (quantityDiff > 0) {
                   // Increased
@@ -745,26 +842,40 @@ export function useEditInvoice(invoiceId: number) {
         // Set customer data
         const customerId = invoice.customer_id;
         setSelectedCustomer(customerId);
+        setCustomerId(customerId);
         setCustomerName(invoice.customers?.name || "");
         setSelectedPhone(invoice.customers?.phone || "");
         setSelectedMobile(invoice.customers?.mobile || "");
         setSelectedEmail(invoice.customers?.email || "");
-        setSelectedAddress(invoice.customers?.address || "");
-        setSelectedSuburb(invoice.customers?.suburb || "");
-        setSelectedState(invoice.customers?.state || "");
-        setSelectedPostCode(invoice.customers?.post_code || "");
 
-        // Set initial form values
+        // Use address from invoice (snapshot) instead of customer's current address
+        // This ensures we show the address that was saved with the invoice
+        setSelectedAddress(invoice.address || "");
+        setSelectedSuburb(invoice.suburb || "");
+        setSelectedState(invoice.state || "");
+        setSelectedPostCode(invoice.post_code || "");
+
+        // Fetch customer addresses, matching against the invoice's saved address
+        if (customerId) {
+          fetchCustomerAddresses(customerId, {
+            address: invoice.address || '',
+            suburb: invoice.suburb || '',
+            state: invoice.state || '',
+            post_code: invoice.post_code || '',
+          });
+        }
+
+        // Set initial form values - USE INVOICE ADDRESS, NOT CUSTOMER ADDRESS
         setInitialValues({
           invoice_number: invoice.invoice_number || "",
           contactName: invoice.customers?.name || "",
           inlineCustomerName: "",
           phone: invoice.customers?.phone || "",
           mobile: invoice.customers?.mobile || "",
-          address: invoice.customers?.address || "",
-          suburb: invoice.customers?.suburb || "",
-          state: invoice.customers?.state || "",
-          postCode: invoice.customers?.post_code || "",
+          address: invoice.address || "", // Use invoice address
+          suburb: invoice.suburb || "", // Use invoice suburb
+          state: invoice.state || "", // Use invoice state
+          postCode: invoice.post_code || "", // Use invoice post code
           emailAddress: invoice.customers?.email || "",
           invoice_date: invoice.invoice_date
             ? getDateFormattedForField(new Date(invoice.invoice_date))
@@ -835,10 +946,9 @@ export function useEditInvoice(invoiceId: number) {
         setCustomerName(customer.name || "");
         setSelectedPhone(customer.phone || "");
         setSelectedMobile(customer.mobile || "");
-        setSelectedAddress(customer.address || "");
-        setSelectedSuburb(customer.suburb || "");
-        setSelectedState(customer.state || "");
-        setSelectedPostCode(customer.post_code || "");
+
+        // Don't fetch addresses here - they are already loaded during loadInvoiceData()
+        // with the correct invoice address match
       }
     } else if (!createInlineCustomer) {
       // Reset customer data
@@ -850,6 +960,8 @@ export function useEditInvoice(invoiceId: number) {
       setSelectedSuburb("");
       setSelectedState("");
       setSelectedPostCode("");
+      setCustomerAddresses([]);
+      setSelectedAddressIndex(-1);
     }
   }, [selectedCustomer, customers, createInlineCustomer]);
 
@@ -889,5 +1001,10 @@ export function useEditInvoice(invoiceId: number) {
     setInlineCustomerName,
     customerName,
     setCustomerName,
+    // New properties for address selection
+    customerAddresses,
+    selectedAddressIndex,
+    handleAddressSelect,
+    customerId,
   };
 }
