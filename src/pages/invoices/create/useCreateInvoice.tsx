@@ -81,9 +81,11 @@ export function useCreateInvoice() {
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState<string>("");
   const [itemSearch, setItemSearch] = useState<string>("");
+  const [quotationSearch, setQuotationSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [loadingQuotations, setLoadingQuotations] = useState(false);
   const [createInlineCustomer, setCreateInlineCustomer] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isQuotationLoaded, setIsQuotationLoaded] = useState(false);
@@ -383,6 +385,12 @@ export function useCreateInvoice() {
   }
 
   const handleItemSearchDebounced = useDebouncedSearch(handleItemSearchChange);
+
+  function handleQuotationSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setQuotationSearch(e.target.value);
+  }
+
+  const handleQuotationSearchDebounced = useDebouncedSearch(handleQuotationSearchChange);
 
   function resetCustomerData() {
     setSelectedEmail("");
@@ -996,15 +1004,67 @@ export function useCreateInvoice() {
   }
 
   async function getQuotations() {
+    setLoadingQuotations(true);
     const quotationsRepo = new QuotationsRepository();
-    const allQuotations = await quotationsRepo.getWithoutFilters();
-    if (allQuotations?.quotationsData) {
+
+    // If there's a search term, use filtered search
+    if (quotationSearch.trim()) {
+      // Search by both quotation number and customer name, then merge results
+      const searchTerm = quotationSearch.trim();
+
+      // Search by quotation number
+      const resultByNumber = await quotationsRepo.get(
+        "created_at",
+        false,
+        0,
+        99,
+        100,
+        {
+          quotation_number: searchTerm,
+        }
+      );
+
+      // Search by customer name
+      const resultByCustomer = await quotationsRepo.get(
+        "created_at",
+        false,
+        0,
+        99,
+        100,
+        {
+          customer_name: searchTerm,
+        }
+      );
+
+      // Merge results and remove duplicates
+      const allResults = [
+        ...(resultByNumber?.quotationsData || []),
+        ...(resultByCustomer?.quotationsData || []),
+      ];
+
+      // Remove duplicates by id
+      const uniqueQuotations = allResults.filter(
+        (q, index, self) => index === self.findIndex((t) => t.id === q.id)
+      );
+
       // Filter only non-converted quotations
-      const activeQuotations = allQuotations.quotationsData.filter(
+      const activeQuotations = uniqueQuotations.filter(
         (q: any) => q.status !== "converted" && q.status !== "cancelled",
       );
+
       setQuotations(activeQuotations);
+    } else {
+      // Load all without search
+      const allQuotations = await quotationsRepo.getWithoutFilters();
+      if (allQuotations?.quotationsData) {
+        // Filter only non-converted quotations
+        const activeQuotations = allQuotations.quotationsData.filter(
+          (q: any) => q.status !== "converted" && q.status !== "cancelled",
+        );
+        setQuotations(activeQuotations);
+      }
     }
+    setLoadingQuotations(false);
   }
 
   async function getAllWarehouses() {
@@ -1043,6 +1103,10 @@ export function useCreateInvoice() {
   useEffect(() => {
     getItems();
   }, [itemSearch]);
+
+  useEffect(() => {
+    getQuotations();
+  }, [quotationSearch]);
 
   useEffect(() => {
     if (selectedCustomer) {
@@ -1125,5 +1189,8 @@ export function useCreateInvoice() {
     setShowDiscountInput,
     discountAmount,
     finalAmount,
+    // Quotation search properties
+    handleQuotationSearchDebounced,
+    loadingQuotations,
   };
 }

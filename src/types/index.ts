@@ -1,31 +1,31 @@
 export interface ValuesFilterQuotations {
-  quotation_number: string;
-  customer_name: string;
-  minimumTotal: string;
-  maximumTotal: string;
-  status: string;
+  quotation_number?: string;
+  customer_name?: string;
+  minimumTotal?: string;
+  maximumTotal?: string;
+  status?: string;
   valid_until_from?: string;
   valid_until_to?: string;
-  created_at_from: string;
-  created_at_to: string;
-  item_name: string;
-  item_code: string;
+  created_at_from?: string;
+  created_at_to?: string;
+  item_name?: string;
+  item_code?: string;
 }
 
 export interface ValuesFilterInvoices {
-  invoice_number: string;
-  customer_name: string;
-  quotation_number: string;
-  delivery_status: string;
-  minimumTotal: string;
-  maximumTotal: string;
-  status: string;
-  invoice_date_from: string;
-  invoice_date_to: string;
-  created_at_from: string;
-  created_at_to: string;
-  item_name: string;
-  item_code: string;
+  invoice_number?: string;
+  customer_name?: string;
+  quotation_number?: string;
+  delivery_status?: string;
+  minimumTotal?: string;
+  maximumTotal?: string;
+  status?: string;
+  invoice_date_from?: string;
+  invoice_date_to?: string;
+  created_at_from?: string;
+  created_at_to?: string;
+  item_name?: string;
+  item_code?: string;
 }
 
 // types/quotation.ts

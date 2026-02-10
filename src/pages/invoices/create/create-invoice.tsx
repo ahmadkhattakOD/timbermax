@@ -93,6 +93,9 @@ export default function CreateInvoice() {
     setShowDiscountInput,
     discountAmount,
     finalAmount,
+    // Quotation search properties
+    handleQuotationSearchDebounced,
+    loadingQuotations,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -269,31 +272,53 @@ export default function CreateInvoice() {
                 // OPTION TO LOAD FROM QUOTATION (only show if not already loaded from URL)
                 !quotationIdFromUrl ? (
                   <Box key="load-quotation" sx={{ mb: 2 }}>
-                    <FormDropdown
+                    <InputDropdown
                       key="quotation_id"
-                      id={"quotation_id"}
-                      name={"quotation_id"}
-                      label={"Load from Quotation (Optional)"}
-                      options={[
-                        { label: "Create New Invoice", value: "" },
-                        ...quotations.map((q) => ({
-                          label: `Quotation #${q.quotation_number} - ${q.customer?.name || "Unknown"} - $${q.total?.toFixed(2)}`,
-                          value: q.id.toString(),
-                        })),
-                      ]}
-                      onChange={(e) => {
+                      id="quotation_id"
+                      name="quotation_id"
+                      label="Load from Quotation (Optional)"
+                      options={quotations.map((q) => ({
+                        id: q.id,
+                        name: `#${q.quotation_number} - ${q.customer?.name || "Unknown"} - $${q.total?.toFixed(2)}`,
+                      }))}
+                      value={
+                        selectedQuotation
+                          ? {
+                              id: selectedQuotation.id,
+                              name: `#${selectedQuotation.quotation_number} - ${selectedQuotation.customers?.name || "Unknown"} - $${selectedQuotation.total?.toFixed(2)}`,
+                            }
+                          : null
+                      }
+                      loading={loadingQuotations}
+                      optional={true}
+                      onChange={handleQuotationSearchDebounced}
+                      onSelect={(e) => {
                         const quotationId = parseInt(e.target.value);
                         if (quotationId) {
                           loadFromQuotation(quotationId);
-                        } else {
-                          // Clear if "Create New Invoice" is selected
-                          setSelectedItems([]);
-                          setIsQuotationLoaded(false);
-                          setSelectedCustomer(undefined);
-                          setCustomerName("");
-                          setFieldValue("contactName", "");
                         }
                       }}
+                      secondaryLabel={
+                        selectedQuotation ? (
+                          <Box
+                            sx={{
+                              color: theme.palette.primary.main,
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              fontWeight: 600,
+                            }}
+                            onClick={() => {
+                              setSelectedItems([]);
+                              setIsQuotationLoaded(false);
+                              setSelectedCustomer(undefined);
+                              setCustomerName("");
+                              setFieldValue("contactName", "");
+                            }}
+                          >
+                            Clear Quotation
+                          </Box>
+                        ) : null
+                      }
                     />
                   </Box>
                 ) : null,

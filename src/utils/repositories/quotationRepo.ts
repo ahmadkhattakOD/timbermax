@@ -151,7 +151,11 @@ class QuotationsRepository {
     try {
       const { data: quotationsData, error: quotationsError } = await supabase
         .from(this.className)
-        .select("*")
+        .select(
+          `*,
+          customer:customer_id(*)
+          `
+        )
         .order("created_at", { ascending: false });
 
       return { quotationsData, quotationsError };
