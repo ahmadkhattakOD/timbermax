@@ -135,7 +135,7 @@ export const generateAndDownloadInvoicePDF = async (
     // Calculate totals
     let totalSubtotal = 0;
     let totalGST = 0;
-    let grandTotal = 0;
+    let subtotalWithGST = 0;
 
     items.forEach((item: any) => {
       const quantity = parseFloat(item.quantity) || 0;
@@ -146,8 +146,13 @@ export const generateAndDownloadInvoicePDF = async (
 
       totalSubtotal += subtotal;
       totalGST += gstAmount;
-      grandTotal += subtotal + gstAmount;
+      subtotalWithGST += subtotal + gstAmount;
     });
+
+    // Apply discount if present
+    const discountPercent = invoice.discount || 0;
+    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
       startY: 135, // Increased from 120
@@ -191,39 +196,54 @@ export const generateAndDownloadInvoicePDF = async (
     doc.text("Payment Summary:", 120, summaryY);
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal:`, 120, summaryY + 10);
-    doc.text(`GST:`, 120, summaryY + 20);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Total Due:`, 120, summaryY + 30);
+    let currentY = summaryY + 10;
 
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, summaryY + 10, {
-      align: "right",
-    });
-    doc.text(`$${totalGST.toFixed(2)}`, 180, summaryY + 20, {
-      align: "right",
-    });
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, summaryY + 30, {
+    doc.text(`Subtotal:`, 120, currentY);
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
       align: "right",
     });
 
-    // Payment Terms
+    currentY += 10;
+    doc.text(`GST:`, 120, currentY);
+    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
+
+    // Show discount if present
+    if (discountPercent > 0) {
+      currentY += 10;
+      doc.text(`Discount (${discountPercent}%):`, 120, currentY);
+      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
+        align: "right",
+      });
+    }
+
+    currentY += 10;
     doc.setFont("helvetica", "bold");
-    doc.text("Payment Terms:", 14, summaryY + 50);
+    doc.text(`Total Due:`, 120, currentY);
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
+
+    // Payment Terms (adjust position based on discount presence)
+    const paymentTermsY = currentY + 20;
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Terms:", 14, paymentTermsY);
     doc.setFont("helvetica", "normal");
-    doc.text("Please pay within 30 days of invoice date.", 14, summaryY + 55);
-    doc.text("Bank Details:", 14, summaryY + 60);
-    doc.text("Bank: Commonwealth Bank", 14, summaryY + 65);
-    doc.text("BSB: 123-456", 14, summaryY + 70);
-    doc.text("Account: 12345678", 14, summaryY + 75);
-    doc.text("Reference: " + invoice.invoice_number, 14, summaryY + 80);
+    doc.text("Please pay within 30 days of invoice date.", 14, paymentTermsY + 5);
+    doc.text("Bank Details:", 14, paymentTermsY + 10);
+    doc.text("Bank: Commonwealth Bank", 14, paymentTermsY + 15);
+    doc.text("BSB: 123-456", 14, paymentTermsY + 20);
+    doc.text("Account: 12345678", 14, paymentTermsY + 25);
+    doc.text("Reference: " + invoice.invoice_number, 14, paymentTermsY + 30);
 
     // Notes Section
     if (invoice.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, summaryY + 95);
+      doc.text("Notes:", 14, paymentTermsY + 45);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
-      doc.text(splitNotes, 14, summaryY + 100);
+      doc.text(splitNotes, 14, paymentTermsY + 50);
     }
 
     // Footer (same as quotation)

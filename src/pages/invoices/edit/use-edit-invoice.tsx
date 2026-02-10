@@ -98,6 +98,10 @@ export function useEditInvoice(invoiceId: number) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [customPaymentMethod, setCustomPaymentMethod] = useState<string>("");
 
+  // Discount state
+  const [discount, setDiscount] = useState<number>(0);
+  const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
+
   const [initialValues, setInitialValues] = useState<ValuesEditInvoice>({
     invoice_number: "",
     contactName: "",
@@ -120,6 +124,10 @@ export function useEditInvoice(invoiceId: number) {
     (sum, item) => sum + calculateSubTotal(item),
     0,
   );
+
+  // Calculate final amount after discount
+  const discountAmount = (totalAmount * discount) / 100;
+  const finalAmount = totalAmount - discountAmount;
 
   // Function to get ALL warehouses for an item
   const getWarehousesForItem = async (itemId: number) => {
@@ -644,16 +652,11 @@ export function useEditInvoice(invoiceId: number) {
         }
       }
 
-      // Calculate total with GST
-      const totalWithGST = selectedItems.reduce(
-        (sum, item) => sum + calculateItemTotal(item),
-        0,
-      );
-
       // Update invoice details with address snapshot
       const updatedInvoice = {
         customer_id: customerToUpdate,
-        total: totalWithGST,
+        total: finalAmount,
+        discount: discount,
         invoice_date: values.invoice_date
           ? new Date(values.invoice_date)
           : null,
@@ -898,6 +901,12 @@ export function useEditInvoice(invoiceId: number) {
           }
         }
 
+        // Set discount if present
+        if (invoice.discount && invoice.discount > 0) {
+          setDiscount(invoice.discount);
+          setShowDiscountInput(true);
+        }
+
         // Set initial form values - USE INVOICE ADDRESS, NOT CUSTOMER ADDRESS
         setInitialValues({
           invoice_number: invoice.invoice_number || "",
@@ -1045,5 +1054,12 @@ export function useEditInvoice(invoiceId: number) {
     setSelectedPaymentMethod,
     customPaymentMethod,
     setCustomPaymentMethod,
+    // Discount properties
+    discount,
+    setDiscount,
+    showDiscountInput,
+    setShowDiscountInput,
+    discountAmount,
+    finalAmount,
   };
 }

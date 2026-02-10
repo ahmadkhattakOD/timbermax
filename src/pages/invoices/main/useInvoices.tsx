@@ -397,31 +397,9 @@ export function useInvoices() {
           <Typography>{row.customers?.name || "N/A"}</Typography>
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 120 }}>
-          {/* show total including GST (invoice stored total is GST-excluded) */}
+          {/* Show total from invoice record (includes GST and discount) */}
           <Typography fontWeight={600}>
-            $
-            {(() => {
-              try {
-                const items = row.invoice_items || [];
-                if (items.length == 0) {
-                  return row.total.toFixed(2);
-                }
-                const totalWithGst = items.reduce((acc: number, it: any) => {
-                  const qty = Number(it.quantity) || 0;
-                  const priceVal =
-                    it.unit_price !== undefined && it.unit_price !== null
-                      ? it.unit_price
-                      : it.items?.sellPrice;
-                  const price = Number(priceVal) || 0;
-                  const base = qty * price;
-                  const gstAmt = it.items?.gst || it.gst ? base * 0.1 : 0;
-                  return acc + base + gstAmt;
-                }, 0);
-                return totalWithGst.toFixed(2);
-              } catch (e) {
-                return (Number(row.total) || 0).toFixed(2);
-              }
-            })()}
+            ${(Number(row.total) || 0).toFixed(2)}
           </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>

@@ -100,10 +100,18 @@ export function useCreateInvoice() {
     post_code: '',
   });
 
+  // Discount state
+  const [discount, setDiscount] = useState<number>(0);
+  const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
+
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateSubTotal(item),
     0,
   );
+
+  // Calculate final amount after discount
+  const discountAmount = (totalAmount * discount) / 100;
+  const finalAmount = totalAmount - discountAmount;
 
   const customerIdFromUrl = searchParams.get("customer");
 
@@ -761,10 +769,11 @@ export function useCreateInvoice() {
         invoice_number: values.invoice_number,
         customer_id: customerToAdd,
         quotation_id: selectedQuotation?.id || null,
-        total: totalAmount,
+        total: finalAmount,
         invoice_date: new Date(values.invoice_date),
         note: values.note,
         status: "draft",
+        discount: discount,
         // Save address snapshot to invoice
         address: invoiceAddress.address,
         suburb: invoiceAddress.suburb,
@@ -1109,5 +1118,12 @@ export function useCreateInvoice() {
     selectedAddressDetails,
     handleAddressSelect,
     setSelectedAddressDetails,
+    // Discount properties
+    discount,
+    setDiscount,
+    showDiscountInput,
+    setShowDiscountInput,
+    discountAmount,
+    finalAmount,
   };
 }

@@ -86,6 +86,13 @@ export default function CreateInvoice() {
     customerAddresses,
     selectedAddressIndex,
     handleAddressSelect,
+    // Discount properties
+    discount,
+    setDiscount,
+    showDiscountInput,
+    setShowDiscountInput,
+    discountAmount,
+    finalAmount,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -814,6 +821,82 @@ export default function CreateInvoice() {
                             </TableCell>
                             <TableCell>
                               <strong>${totalAmount.toFixed(2)}</strong>
+                            </TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+
+                          {/* Discount Row */}
+                          <TableRow>
+                            <TableCell colSpan={7} align="right">
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                                <strong>Discount:</strong>
+                                {!showDiscountInput && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => setShowDiscountInput(true)}
+                                    sx={{ ml: 1 }}
+                                  >
+                                    Add Discount
+                                  </Button>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              {showDiscountInput ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <input
+                                    type="number"
+                                    value={discount}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      if (value >= 0 && value <= 100) {
+                                        setDiscount(value);
+                                      } else if (e.target.value === '') {
+                                        setDiscount(0);
+                                      }
+                                    }}
+                                    style={{
+                                      width: "60px",
+                                      padding: "8px",
+                                      border: "1px solid #ccc",
+                                      borderRadius: "4px",
+                                    }}
+                                    min={0}
+                                    max={100}
+                                    step="0.01"
+                                    placeholder="%"
+                                  />
+                                  <Typography variant="body2">%</Typography>
+                                  <strong>-${discountAmount.toFixed(2)}</strong>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      setDiscount(0);
+                                      setShowDiscountInput(false);
+                                    }}
+                                  >
+                                    <Trash size={16} />
+                                  </IconButton>
+                                </Box>
+                              ) : (
+                                <strong>$0.00</strong>
+                              )}
+                            </TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+
+                          {/* Final Total Row */}
+                          <TableRow>
+                            <TableCell colSpan={7} align="right">
+                              <Typography variant="h6">
+                                <strong>Total:</strong>
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="h6">
+                                <strong>${finalAmount.toFixed(2)}</strong>
+                              </Typography>
                             </TableCell>
                             <TableCell></TableCell>
                           </TableRow>

@@ -117,6 +117,7 @@ export interface Invoice {
   status: "draft" | "sent" | "paid" | "cancelled";
   delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
   total: number;
+  discount?: number;
   invoice_date: string | Date;
   note?: string;
   created_at: string;
