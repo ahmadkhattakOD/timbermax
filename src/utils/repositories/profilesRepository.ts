@@ -1,6 +1,6 @@
 import { ValuesFilterUsers } from "pages/users/main/useUsers";
 import { UserRoles } from "utils/helpers";
-import supabase from "utils/supabase";
+import supabase, { supabaseAdmin } from "utils/supabase";
 import { createClient } from "@supabase/supabase-js";
 
 export interface ProfileSupabase {
@@ -57,7 +57,12 @@ class ProfilesRepository {
 
   public async setPassword(userId: string, newPassword: string) {
     try {
-      const { data, error } = await supabase.auth.admin.updateUserById(userId, {
+      if (!supabaseAdmin) {
+        console.error("Supabase admin client not initialized");
+        return null;
+      }
+
+      const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: newPassword,
       });
 
@@ -119,8 +124,13 @@ class ProfilesRepository {
       }
 
       // Then update the password using admin API
+      if (!supabaseAdmin) {
+        console.error("Supabase admin client not initialized");
+        return null;
+      }
+
       const { data: updateData, error: updateError } =
-        await supabase.auth.admin.updateUserById(loginData.user.id, {
+        await supabaseAdmin.auth.admin.updateUserById(loginData.user.id, {
           password: newPassword,
         });
 
