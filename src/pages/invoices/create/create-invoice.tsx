@@ -135,7 +135,7 @@ export default function CreateInvoice() {
       validateOnChange={false}
       validateOnBlur={true}
       initialValues={{
-        invoice_number: `INV-${Date.now()}`,
+        invoice_number: `INV-${String(Date.now()).slice(-6)}`,
         contactName: customerName || "",
         inlineCustomerName: inlineCustomerName || "",
         phone: selectedPhone || "",

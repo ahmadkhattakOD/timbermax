@@ -91,8 +91,8 @@ export function useCreateQuotation() {
     state: '',
     post_code: '',
   });
-  
-  const quotationNumberRef = useRef(`QT-${Date.now()}`);
+
+  const quotationNumberRef = useRef(`QT-${String(Date.now()).slice(-6)}`);
 
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateSubTotal(item),

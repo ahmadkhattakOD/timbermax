@@ -32,7 +32,7 @@ import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
 import { useParams, useNavigate } from "react-router-dom";
 import ActionButton from "components/ActionButton";
-import { useEffect } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 
 // ==============================|| EDIT INVOICE PAGE ||============================== //
 
@@ -82,6 +82,11 @@ export default function EditInvoice() {
     selectedAddressIndex,
     handleAddressSelect,
     customerId,
+    // Payment method properties
+    selectedPaymentMethod,
+    setSelectedPaymentMethod,
+    customPaymentMethod,
+    setCustomPaymentMethod,
   } = useEditInvoice(id ? parseInt(id) : 0);
 
   if (loading) {
@@ -232,6 +237,87 @@ export default function EditInvoice() {
           }
         }, [selectedAddressIndex, customerAddresses, setFieldValue]);
 
+        // Memoized callback for payment method dropdown change
+        const handlePaymentMethodChange = useCallback(
+          (e: any) => {
+            const value = e.target.value;
+            setSelectedPaymentMethod(value);
+
+            if (value === "other") {
+              // Don't set payment_method yet, wait for custom input
+              setFieldValue("payment_method", "");
+              setCustomPaymentMethod("");
+            } else {
+              setFieldValue("payment_method", value);
+              setCustomPaymentMethod("");
+            }
+          },
+          [setFieldValue, setSelectedPaymentMethod, setCustomPaymentMethod]
+        );
+
+        // Memoized callback for custom payment method input change
+        const handleCustomPaymentMethodChange = useCallback(
+          (e: any) => {
+            setCustomPaymentMethod(e.target.value);
+            setFieldValue("payment_method", e.target.value);
+          },
+          [setFieldValue, setCustomPaymentMethod]
+        );
+
+        // Memoized payment method section
+        const paymentMethodSection = useMemo(() => {
+          if (values.status !== "paid") return null;
+
+          return (
+            <Box key="payment-method-section">
+              <FormDropdown
+                key="payment_method"
+                id={"payment_method"}
+                name={"payment_method"}
+                label="Payment Method"
+                useFormattedStrings={false}
+                options={[
+                  { label: "Cash", value: "cash" },
+                  { label: "Credit Card", value: "credit_card" },
+                  { label: "Bank Transfer", value: "bank_transfer" },
+                  { label: "Other", value: "other" },
+                ]}
+                optional={false}
+                error={touched.payment_method ? errors.payment_method : ""}
+                onChange={handlePaymentMethodChange}
+                value={selectedPaymentMethod}
+              />
+
+              {selectedPaymentMethod === "other" && (
+                <FormInput
+                  key="custom_payment_method"
+                  id={"custom_payment_method"}
+                  name={"custom_payment_method"}
+                  placeholder={"Enter payment method"}
+                  label="Custom Payment Method"
+                  type={"text"}
+                  optional={false}
+                  value={customPaymentMethod}
+                  onChange={handleCustomPaymentMethodChange}
+                  error={
+                    selectedPaymentMethod === "other" && !customPaymentMethod
+                      ? "required"
+                      : ""
+                  }
+                />
+              )}
+            </Box>
+          );
+        }, [
+          values.status,
+          selectedPaymentMethod,
+          customPaymentMethod,
+          touched.payment_method,
+          errors.payment_method,
+          handlePaymentMethodChange,
+          handleCustomPaymentMethodChange,
+        ]);
+
         return (
           <Form onSubmit={handleSubmit}>
             <FormLayout
@@ -265,7 +351,19 @@ export default function EditInvoice() {
                   ]}
                   optional={false}
                   error={touched.status ? errors.status : ""}
+                  onChange={(e) => {
+                    setFieldValue("status", e.target.value);
+                    // Clear payment method when status changes from paid
+                    if (e.target.value !== "paid") {
+                      setFieldValue("payment_method", "");
+                      setSelectedPaymentMethod("");
+                      setCustomPaymentMethod("");
+                    }
+                  }}
                 />,
+
+                // Payment method field - only shown when status is "paid"
+                paymentMethodSection,
 
                 // CUSTOMER MODULE
                 !createInlineCustomer ? (

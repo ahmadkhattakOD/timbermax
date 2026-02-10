@@ -126,6 +126,8 @@ export interface Invoice {
   suburb?: string;
   state?: string;
   post_code?: string;
+  payment_method?: string;
+  payment_date?: string | Date;
   invoice_items?: InvoiceItem[];
 }
 

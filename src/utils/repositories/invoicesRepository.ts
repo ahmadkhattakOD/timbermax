@@ -20,6 +20,8 @@ export interface InvoiceSupabase {
   suburb?: string;
   state?: string;
   post_code?: string;
+  payment_method?: string;
+  payment_date?: Date | string;
 }
 
 export interface InvoiceItemSupabase {
@@ -340,12 +342,13 @@ ${this.itemsClassName} (
     }
   }
 
-  public async markAsPaid(id: number, paymentDate?: Date) {
+  public async markAsPaid(id: number, paymentMethod?: string, paymentDate?: Date) {
     try {
       const { data, error } = await supabase
         .from(this.className)
         .update({
           status: "paid",
+          payment_method: paymentMethod || null,
           updated_at: new Date(),
           payment_date: paymentDate || new Date(),
         })

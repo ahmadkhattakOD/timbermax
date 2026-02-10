@@ -1,5 +1,5 @@
 // hooks/useInvoices.ts (complete version)
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Checkbox,
@@ -14,6 +14,9 @@ import {
   MenuItem,
   Chip,
   CircularProgress,
+  TextField,
+  FormControl,
+  Select,
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -134,6 +137,14 @@ export function useInvoices() {
   const [selectedInvoiceForStatus, setSelectedInvoiceForStatus] = useState<
     number | null
   >(null);
+
+  // Payment method dialog state
+  const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<
+    number | null
+  >(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
+  const [customPaymentMethod, setCustomPaymentMethod] = useState<string>("");
 
   // track actions in-progress per-invoice to avoid double clicks
   const [actionLoadingIds, setActionLoadingIds] = useState<Set<number>>(
@@ -608,6 +619,211 @@ export function useInvoices() {
     );
   };
 
+  // Static payment methods array (doesn't need to be recreated on each render)
+  const paymentMethods = useMemo(
+    () => [
+      { label: "Cash", value: "cash" },
+      { label: "Credit Card", value: "credit_card" },
+      { label: "Debit Card", value: "debit_card" },
+      { label: "Bank Transfer", value: "bank_transfer" },
+      { label: "Check", value: "check" },
+      { label: "PayPal", value: "paypal" },
+      { label: "Other", value: "other" },
+    ],
+    []
+  );
+
+  // Memoized callback for closing payment dialog
+  const handleClosePaymentDialog = useCallback(() => {
+    setPaymentMethodDialogOpen(false);
+    setSelectedInvoiceForPayment(null);
+    setSelectedPaymentMethod("");
+    setCustomPaymentMethod("");
+  }, []);
+
+  // Memoized callback for payment method selection
+  const handlePaymentMethodSelect = useCallback(
+    (e: any) => {
+      setSelectedPaymentMethod(e.target.value);
+    },
+    []
+  );
+
+  // Memoized callback for custom payment method input
+  const handleCustomPaymentMethodChange = useCallback(
+    (e: any) => {
+      setCustomPaymentMethod(e.target.value);
+    },
+    []
+  );
+
+  // Memoized getData function
+  const getData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const invoicesRepo = new InvoicesRepository();
+      const rangeStart = rowsPerPage * page;
+      const rangeEnd = rangeStart + rowsPerPage;
+      const invoices = await invoicesRepo.get(
+        orderBy,
+        order === "asc",
+        rangeStart,
+        rangeEnd,
+        rowsPerPage,
+        filters,
+      );
+      if (invoices) {
+        const { invoicesData, invoicesCount, invoicesError } = invoices;
+        if (invoicesData && !invoicesError) {
+          setData(invoicesData as any);
+          setDataCount(invoicesCount ?? 0);
+        }
+      }
+      setLoading(false);
+    } catch (e) {
+      console.error("Error fetching invoices:", e);
+      setLoading(false);
+    }
+  }, [rowsPerPage, page, orderBy, order, filters]);
+
+  // Memoized callback for confirming mark as paid
+  const confirmMarkAsPaid = useCallback(async () => {
+    if (!selectedInvoiceForPayment) return;
+
+    // Validate payment method
+    const paymentMethod =
+      selectedPaymentMethod === "other"
+        ? customPaymentMethod.trim()
+        : selectedPaymentMethod;
+
+    if (!paymentMethod) {
+      openSnackbar({
+        open: true,
+        message: "Please select or enter a payment method",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+      return;
+    }
+
+    try {
+      addActionLoadingId(selectedInvoiceForPayment);
+      const invoicesRepo = new InvoicesRepository();
+      const result = await invoicesRepo.markAsPaid(
+        selectedInvoiceForPayment,
+        paymentMethod
+      );
+
+      if (result) {
+        openSnackbar({
+          open: true,
+          message: `Invoice marked as paid (${paymentMethod})`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        setPaymentMethodDialogOpen(false);
+        setSelectedInvoiceForPayment(null);
+        setSelectedPaymentMethod("");
+        setCustomPaymentMethod("");
+        await getData();
+      } else {
+        throw new Error("Failed to mark as paid");
+      }
+    } catch (error: any) {
+      console.error("Error marking invoice as paid:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to mark as paid: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      if (selectedInvoiceForPayment) {
+        removeActionLoadingId(selectedInvoiceForPayment);
+      }
+    }
+  }, [
+    selectedInvoiceForPayment,
+    selectedPaymentMethod,
+    customPaymentMethod,
+    addActionLoadingId,
+    removeActionLoadingId,
+    getData,
+  ]);
+
+  // Memoized Payment Method Dialog component
+  const PaymentMethodDialog = useMemo(
+    () => (
+      <Dialog
+        open={paymentMethodDialogOpen}
+        onClose={handleClosePaymentDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Select Payment Method</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <FormControl fullWidth>
+              <Select
+                value={selectedPaymentMethod}
+                onChange={handlePaymentMethodSelect}
+                displayEmpty
+              >
+                <MenuItem value="" disabled>
+                  Select payment method
+                </MenuItem>
+                {paymentMethods.map((method) => (
+                  <MenuItem key={method.value} value={method.value}>
+                    {method.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {selectedPaymentMethod === "other" && (
+              <Box sx={{ mt: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Enter Payment Method"
+                  value={customPaymentMethod}
+                  onChange={handleCustomPaymentMethodChange}
+                  placeholder="e.g., Stripe, Square, etc."
+                  autoFocus
+                />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleClosePaymentDialog} color="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmMarkAsPaid}
+            variant="contained"
+            color="success"
+            disabled={
+              !selectedPaymentMethod ||
+              (selectedPaymentMethod === "other" && !customPaymentMethod.trim())
+            }
+          >
+            Mark as Paid
+          </Button>
+        </DialogActions>
+      </Dialog>
+    ),
+    [
+      paymentMethodDialogOpen,
+      selectedPaymentMethod,
+      customPaymentMethod,
+      paymentMethods,
+      handleClosePaymentDialog,
+      handlePaymentMethodSelect,
+      handleCustomPaymentMethodChange,
+      confirmMarkAsPaid,
+    ]
+  );
+
   // Items modal component
   const ItemsModal = () => (
     <Dialog
@@ -767,33 +983,11 @@ export function useInvoices() {
   };
 
   const markAsPaid = async (invoiceId: number) => {
-    try {
-      addActionLoadingId(invoiceId);
-      const invoicesRepo = new InvoicesRepository();
-      const result = await invoicesRepo.markAsPaid(invoiceId);
-
-      if (result) {
-        openSnackbar({
-          open: true,
-          message: "Invoice marked as paid",
-          variant: "alert",
-          alert: { color: "success" },
-        } as SnackbarProps);
-        await getData();
-      } else {
-        throw new Error("Failed to mark as paid");
-      }
-    } catch (error: any) {
-      console.error("Error marking invoice as paid:", error);
-      openSnackbar({
-        open: true,
-        message: `Failed to mark as paid: ${error.message}`,
-        variant: "alert",
-        alert: { color: "error" },
-      } as SnackbarProps);
-    } finally {
-      removeActionLoadingId(invoiceId);
-    }
+    // Open payment method dialog instead of directly marking as paid
+    setSelectedInvoiceForPayment(invoiceId);
+    setSelectedPaymentMethod("");
+    setCustomPaymentMethod("");
+    setPaymentMethodDialogOpen(true);
   };
 
   const cancelInvoice = async (invoiceId: number) => {
@@ -922,38 +1116,9 @@ export function useInvoices() {
     }
   };
 
-  // Data fetching
-  const getData = async () => {
-    try {
-      setLoading(true);
-      const invoicesRepo = new InvoicesRepository();
-      const rangeStart = rowsPerPage * page;
-      const rangeEnd = rangeStart + rowsPerPage;
-      const invoices = await invoicesRepo.get(
-        orderBy,
-        order === "asc",
-        rangeStart,
-        rangeEnd,
-        rowsPerPage,
-        filters,
-      );
-      if (invoices) {
-        const { invoicesData, invoicesCount, invoicesError } = invoices;
-        if (invoicesData && !invoicesError) {
-          setData(invoicesData as any);
-          setDataCount(invoicesCount ?? 0);
-        }
-      }
-      setLoading(false);
-    } catch (e) {
-      console.error("Error fetching invoices:", e);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage, filters]);
+  }, [getData, order, orderBy, page, rowsPerPage, filters]);
 
   const getDataCsv = () => {
     try {
@@ -1017,18 +1182,14 @@ export function useInvoices() {
 
       // Use the appropriate method based on status
       if (status === "paid") {
-        const result = await invoicesRepo.markAsPaid(selectedInvoiceForStatus);
-        if (result) {
-          openSnackbar({
-            open: true,
-            message: "Invoice marked as paid",
-            variant: "alert",
-            alert: { color: "success" },
-          } as SnackbarProps);
-          await getData();
-        } else {
-          throw new Error("Failed to mark as paid");
-        }
+        // Close status menu and open payment method dialog
+        setStatusMenuAnchor(null);
+        setSelectedInvoiceForPayment(selectedInvoiceForStatus);
+        setSelectedInvoiceForStatus(null);
+        setSelectedPaymentMethod("");
+        setCustomPaymentMethod("");
+        setPaymentMethodDialogOpen(true);
+        return; // Exit early, payment will be confirmed in dialog
       } else if (status === "cancelled") {
         const result = await invoicesRepo.cancelInvoice(selectedInvoiceForStatus);
         if (result?.success) {
@@ -1130,6 +1291,7 @@ export function useInvoices() {
 
     // Components
     ItemsModal,
+    PaymentMethodDialog,
 
     // Constants
     headCells,

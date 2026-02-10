@@ -36,6 +36,7 @@ export interface ValuesEditInvoice {
   note: string;
   status: "draft" | "sent" | "paid" | "cancelled" | "converted";
   delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned";
+  payment_method: string;
 }
 
 export interface InvoiceItem {
@@ -93,6 +94,10 @@ export function useEditInvoice(invoiceId: number) {
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
 
+  // Payment method states
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
+  const [customPaymentMethod, setCustomPaymentMethod] = useState<string>("");
+
   const [initialValues, setInitialValues] = useState<ValuesEditInvoice>({
     invoice_number: "",
     contactName: "",
@@ -108,6 +113,7 @@ export function useEditInvoice(invoiceId: number) {
     note: "",
     status: "draft",
     delivery_status: "pending",
+    payment_method: "",
   });
 
   const totalAmount = selectedItems.reduce(
@@ -437,6 +443,17 @@ export function useEditInvoice(invoiceId: number) {
       errors.delivery_status = "required" as any;
     }
 
+    // Validate payment method is provided when status is "paid"
+    if (values.status === "paid" && !values.payment_method) {
+      errors.payment_method = "required" as any;
+      openSnackbar({
+        open: true,
+        message: "Payment method is required when marking invoice as paid",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+
     if (selectedItems.length === 0) {
       openSnackbar({
         open: true,
@@ -648,6 +665,9 @@ export function useEditInvoice(invoiceId: number) {
         suburb: values.suburb,
         state: values.state,
         post_code: values.postCode,
+        // Save payment method and date when status is "paid"
+        payment_method: values.status === "paid" ? values.payment_method : null,
+        payment_date: values.status === "paid" ? new Date() : null,
       };
 
       const updated = await invoicesRepo.edit(invoiceId, updatedInvoice as any);
@@ -865,6 +885,19 @@ export function useEditInvoice(invoiceId: number) {
           });
         }
 
+        // Set payment method states if invoice is paid
+        if (invoice.payment_method) {
+          // Check if it's a custom payment method
+          const predefinedMethods = ["cash", "credit_card", "bank_transfer"];
+          if (predefinedMethods.includes(invoice.payment_method)) {
+            setSelectedPaymentMethod(invoice.payment_method);
+          } else {
+            // Custom payment method - set dropdown to "other" and save the custom value
+            setSelectedPaymentMethod("other");
+            setCustomPaymentMethod(invoice.payment_method);
+          }
+        }
+
         // Set initial form values - USE INVOICE ADDRESS, NOT CUSTOMER ADDRESS
         setInitialValues({
           invoice_number: invoice.invoice_number || "",
@@ -883,6 +916,7 @@ export function useEditInvoice(invoiceId: number) {
           note: invoice.note || "",
           status: invoice.status || "draft",
           delivery_status: invoice.delivery_status || "pending",
+          payment_method: invoice.payment_method || "",
         });
 
         // Load items with warehouse information
@@ -1006,5 +1040,10 @@ export function useEditInvoice(invoiceId: number) {
     selectedAddressIndex,
     handleAddressSelect,
     customerId,
+    // Payment method properties
+    selectedPaymentMethod,
+    setSelectedPaymentMethod,
+    customPaymentMethod,
+    setCustomPaymentMethod,
   };
 }

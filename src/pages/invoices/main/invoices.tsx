@@ -111,6 +111,7 @@ export default function MainInvoices() {
     updateInvoiceStatus,
 
     ItemsModal,
+    PaymentMethodDialog,
     deliveryMenuAnchor,
     selectedInvoiceForDelivery,
     setDeliveryMenuAnchor,
@@ -487,6 +488,8 @@ export default function MainInvoices() {
           </Box>
         </MenuItem>
       </Menu>
+
+      {PaymentMethodDialog}
 
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
