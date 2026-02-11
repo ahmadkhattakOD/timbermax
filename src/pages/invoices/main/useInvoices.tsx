@@ -44,6 +44,11 @@ import {
   Paper,
 } from "@mui/material";
 import { Download, Send, Wallet, Eye, Truck, X } from "lucide-react";
+import {
+  calculateItemTotal,
+  calculateTotalBreakdown,
+  formatCurrency,
+} from "utils/calculateTotals";
 
 // Head cells for the table
 const headCells: HeadCell[] = [
@@ -210,24 +215,19 @@ export function useInvoices() {
         name: item.items?.name || "Unknown",
         code: item.items?.itemCode || "N/A",
         quantity: parseFloat(item.quantity) || 0,
-        unitPrice: parseFloat(item.unit_price) || 0,
+        unit_price: parseFloat(item.unit_price) || 0,
         gst: item?.items?.gst || false,
-        total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
       }));
 
-      // compute grand total including GST (GST assumed 10% when item.gst is true)
-      const includedTotal = formattedItems.reduce((acc: number, it: any) => {
-        const base = Number(it.total) || 0;
-        const gstAmt = it.gst ? base * 0.1 : 0;
-        return acc + base + gstAmt;
-      }, 0);
+      // Calculate totals using utility function
+      const discount = parseFloat(invoice.invoiceData.discount) || 0;
+      const breakdown = calculateTotalBreakdown(formattedItems, discount);
 
       setCurrentInvoiceItems(formattedItems);
       setCurrentInvoiceInfo({
         invoiceNumber: invoice.invoiceData.invoice_number,
         customerName: invoice.invoiceData.customer?.name,
-        // overwrite total with GST-included total for display in the modal
-        total: includedTotal,
+        breakdown,
       });
       setItemsModalOpen(true);
     } catch (error: any) {
@@ -865,7 +865,7 @@ export function useInvoices() {
                     {item.quantity.toFixed(2)}
                   </TableCell>
                   <TableCell align="right">
-                    ${item.unitPrice.toFixed(2)}
+                    ${item.unit_price.toFixed(2)}
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
@@ -874,20 +874,64 @@ export function useInvoices() {
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
-                      ${item.total.toFixed(2)}
+                      {formatCurrency(calculateItemTotal(item))}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ))}
+
+              {/* Subtotal Row */}
+              <TableRow>
+                <TableCell colSpan={6} align="right">
+                  <Typography fontWeight={600}>Subtotal:</Typography>
+                </TableCell>
+                <TableCell align="right">
+                  <Typography fontWeight={600}>
+                    {formatCurrency(currentInvoiceInfo?.breakdown?.subtotal || 0)}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+
+              {/* GST Row */}
+              {currentInvoiceInfo?.breakdown?.gstAmount > 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="right">
+                    <Typography>GST (10%):</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography>
+                      {formatCurrency(currentInvoiceInfo.breakdown.gstAmount)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {/* Discount Row */}
+              {currentInvoiceInfo?.breakdown?.discountAmount > 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="right">
+                    <Typography>
+                      Discount ({currentInvoiceInfo.breakdown.discountPercentage}%):
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography color="error">
+                      -{formatCurrency(currentInvoiceInfo.breakdown.discountAmount)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {/* Final Total Row */}
               <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                 <TableCell colSpan={6} align="right">
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    Grand Total:
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Total:
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    ${currentInvoiceInfo?.total?.toFixed(2) || "0.00"}
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    {formatCurrency(currentInvoiceInfo?.breakdown?.finalTotal || 0)}
                   </Typography>
                 </TableCell>
               </TableRow>

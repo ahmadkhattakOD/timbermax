@@ -7,7 +7,8 @@ export interface ItemSupabase {
   itemCode: string;
   sellPrice: number;
   purchasePrice: number;
-  gst:boolean
+  gst:boolean;
+  vendor_id?: number;
 }
 
 class ItemsRepository {

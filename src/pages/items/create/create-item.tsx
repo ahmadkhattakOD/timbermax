@@ -5,11 +5,29 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateItem } from "./useCreateItem";
 import { australianStates, getDateFormatted } from "utils/helpers";
+import InputDropdown from "components/InputDropdown";
+import { Box, useTheme } from "@mui/material";
 
 // ==============================|| CREATE ITEM PAGE ||============================== //
 
 export default function CreateItem() {
-  const { validate, onSubmit } = useCreateItem();
+  const {
+    validate,
+    onSubmit,
+    vendors,
+    loadingVendors,
+    handleVendorSearchDebounced,
+    createInlineVendor,
+    setCreateInlineVendor,
+    selectedVendor,
+    setSelectedVendor,
+    inlineVendorName,
+    setInlineVendorName,
+    vendorName,
+    setVendorName,
+  } = useCreateItem();
+
+  const theme = useTheme();
 
   return (
     <Formik
@@ -21,16 +39,88 @@ export default function CreateItem() {
         sellPrice: "",
         purchasePrice: "",
         gst: false,
+        vendorName: vendorName || "",
+        inlineVendorName: inlineVendorName || "",
       }}
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting }) => (
+      {({ handleSubmit, errors, touched, isSubmitting, values, setFieldValue }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
             submitButtonText={"add"}
             inputs={[
+              !createInlineVendor ? (
+                <InputDropdown
+                  key="vendorName"
+                  id="vendorName"
+                  name="vendorName"
+                  label="Vendor Name"
+                  options={vendors}
+                  value={
+                    vendors.find((v) => v.id === selectedVendor) || null
+                  }
+                  secondaryLabel={
+                    <Box
+                      sx={{
+                        color: theme.palette.primary.main,
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => {
+                        setCreateInlineVendor(true);
+                      }}
+                    >
+                      Create New Vendor
+                    </Box>
+                  }
+                  loading={loadingVendors}
+                  optional={true}
+                  onChange={handleVendorSearchDebounced}
+                  onSelect={(e) => {
+                    setSelectedVendor(e.target.value);
+                  }}
+                  error={errors.vendorName}
+                />
+              ) : (
+                <FormInput
+                  key="inlineVendorName"
+                  id={"inlineVendorName"}
+                  name={"inlineVendorName"}
+                  placeholder={"Vendor Name"}
+                  label="Vendor Name"
+                  type={"text"}
+                  secondaryLabel={
+                    <Box
+                      sx={{
+                        color: theme.palette.primary.main,
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => {
+                        setCreateInlineVendor(false);
+                        setInlineVendorName("");
+                        setFieldValue("inlineVendorName", "");
+                      }}
+                    >
+                      Use Existing Vendor
+                    </Box>
+                  }
+                  error={
+                    touched.inlineVendorName
+                      ? errors.inlineVendorName
+                      : ""
+                  }
+                  onChange={(e) => {
+                    setFieldValue("inlineVendorName", e.target.value);
+                    setInlineVendorName(e.target.value);
+                  }}
+                  value={values.inlineVendorName}
+                />
+              ),
               <FormInput
                 id={"name"}
                 name={"name"}

@@ -1,38 +1,33 @@
-import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateQuotation } from "./use-create-quotation";
-import { australianStates, calculateItemTotal, getDateFormattedForField } from "utils/helpers";
+import { australianStates, getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
-  IconButton,
   useTheme,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
   Typography,
   Button,
-  Select,
-  MenuItem,
-  FormControl,
-  Chip,
   Alert,
   Grid,
+  Stepper,
+  Step,
+  StepLabel,
+  Container,
 } from "@mui/material";
-import { Add, Trash } from "iconsax-react";
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
-import { useEffect } from "react";
+import ItemsSelectionTable from "components/ItemsSelectionTable";
+import { useState, useEffect } from "react";
 
 // ==============================|| CREATE QUOTATION PAGE ||============================== //
 
 export default function CreateQuotation() {
+  const [activeStep, setActiveStep] = useState(0);
+  const [step1Errors, setStep1Errors] = useState<any>({});
+
   const {
     validate,
     onSubmit,
@@ -91,17 +86,48 @@ export default function CreateQuotation() {
     );
   }
 
-  // Calculate low stock items for warning
-  const lowStockItems = selectedItems.filter(item => {
-    if (item.warehouse_id) {
-      const selectedWarehouse = item.available_warehouses.find(
-        w => w.id === item.warehouse_id
-      );
-      const requestedQuantity = parseFloat(item.quantity);
-      return selectedWarehouse && requestedQuantity > selectedWarehouse.available;
+  const steps = ['Order Information', 'Select Items'];
+
+  const handleNext = (validateForm: any) => {
+    validateForm().then((errors: any) => {
+      // Check only Step 1 fields for validation
+      const step1Fields = [
+        'quotation_number',
+        'contactName',
+        'inlineCustomerName',
+      ];
+
+      const step1HasErrors = step1Fields.some(field => errors[field]);
+
+      if (!step1HasErrors) {
+        setStep1Errors({});
+        setActiveStep(1);
+      } else {
+        setStep1Errors(errors);
+      }
+    });
+  };
+
+  const handleBack = () => {
+    setActiveStep(0);
+  };
+
+  const handleSubmitStep2 = (handleSubmit: any) => {
+    // Validate that at least one item is selected
+    if (selectedItems.length === 0) {
+      alert('Please add at least one item before submitting.');
+      return;
     }
-    return false;
-  });
+
+    // Check that all items have warehouses selected
+    const hasInvalidItems = selectedItems.some(item => !item.warehouse_id);
+    if (hasInvalidItems) {
+      alert('Please select a warehouse for all items.');
+      return;
+    }
+
+    handleSubmit();
+  };
 
   return (
     <Formik
@@ -133,6 +159,7 @@ export default function CreateQuotation() {
         isSubmitting,
         values,
         setFieldValue,
+        validateForm,
       }) => {
         useEffect(() => {
           if (selectedCustomer) {
@@ -178,560 +205,389 @@ export default function CreateQuotation() {
 
         return (
           <Form onSubmit={handleSubmit}>
-            <FormLayout
-              isSubmitting={isSubmitting}
-              submitButtonText="Create a Quote"
-              inputs={[
-                <FormInput
-                  key="quotation_number"
-                  id={"quotation_number"}
-                  name={"quotation_number"}
-                  placeholder={"Quotation Number"}
-                  label="Quote Number"
-                  type={"text"}
-                  optional={false}
-                  error={
-                    touched.quotation_number ? errors.quotation_number : ""
-                  }
-                />,
+            <Container maxWidth="lg">
+              <Paper elevation={3} sx={{ p: 4, mt: 3 }}>
+                {/* Stepper */}
+                <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+                  {steps.map((label) => (
+                    <Step key={label}>
+                      <StepLabel>{label}</StepLabel>
+                    </Step>
+                  ))}
+                </Stepper>
 
-                // CUSTOMER MODULE
-                !createInlineCustomer ? (
-                  <InputDropdown
-                    key="contactName"
-                    id="contactName"
-                    name="contactName"
-                    label="Contact Name"
-                    options={customers}
-                    value={
-                      customers.find((c) => c.id === selectedCustomer) || null
-                    }
-                    secondaryLabel={
-                      <Box
-                        sx={{
-                          color: theme.palette.primary.main,
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                        }}
-                        onClick={() => {
-                          setCreateInlineCustomer(true);
-                        }}
-                      >
-                        Create Manually
-                      </Box>
-                    }
-                    loading={loadingCustomers}
-                    optional={false}
-                    onChange={handleSearchDebounced}
-                    onSelect={(e) => {
-                      setSelectedCustomer(e.target.value);
-                    }}
-                    error={errors.contactName}
-                  />
-                ) : null,
+                {/* Step 1: Order Information */}
+                {activeStep === 0 && (
+                  <Box>
+                    <Typography variant="h5" sx={{ mb: 3 }}>
+                      Order Information
+                    </Typography>
 
-                createInlineCustomer ? (
-                  <FormInput
-                    key="inlineCustomerName"
-                    id={"inlineCustomerName"}
-                    name={"inlineCustomerName"}
-                    placeholder={"Contact Name"}
-                    label="Contact Name"
-                    type={"text"}
-                    secondaryLabel={
-                      <Box
-                        sx={{
-                          color: theme.palette.primary.main,
-                          cursor: "pointer",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                        }}
-                        onClick={() => {
-                          setCreateInlineCustomer(false);
-                          setInlineCustomerName("");
-                          setFieldValue("inlineCustomerName", "");
-                        }}
-                      >
-                        Cancel Manual
-                      </Box>
-                    }
-                    error={
-                      touched.inlineCustomerName
-                        ? errors.inlineCustomerName
-                        : ""
-                    }
-                    onChange={(e) => {
-                      setFieldValue("inlineCustomerName", e.target.value);
-                      setInlineCustomerName(e.target.value);
-                    }}
-                    value={values.inlineCustomerName}
-                  />
-                ) : null,
-
-                // CONTACT DETAILS
-                <FormInput
-                  key="phone"
-                  id={"phone"}
-                  name={"phone"}
-                  placeholder={"Phone"}
-                  label="Phone"
-                  type={"text"}
-                />,
-
-                <FormInput
-                  key="mobile"
-                  id={"mobile"}
-                  name={"mobile"}
-                  placeholder={"Mobile"}
-                  label="Mobile"
-                  type={"text"}
-                />,
-
-                <FormInput
-                  key="emailAddress"
-                  id={"emailAddress"}
-                  name={"emailAddress"}
-                  placeholder={"Email Address"}
-                  label="Email Address"
-                  type={"email"}
-                />,
-
-                // VALID UNTIL DATE
-                <FormInput
-                  key="valid_until"
-                  id={"valid_until"}
-                  name={"valid_until"}
-                  placeholder={"Valid Until"}
-                  label="Valid Until"
-                  type={"date"}
-                />,
-
-                // ADDRESS SECTION - full width
-                <Box key="address-section" {...{fullWidth: true}}>
-                  {/* For existing customers with addresses */}
-                  {!createInlineCustomer && selectedCustomer && customerAddresses.length > 0 ? (
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <FormDropdown
-                          key="address-select"
-                          id={"address-select"}
-                          name={"address-select"}
-                          label="Select Delivery Address"
-                          useFormattedStrings={false}
-                          options={customerAddresses.map((addr, index) => ({
-                            label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`,
-                            value: index.toString(),
-                          }))}
-                          value={selectedAddressIndex.toString()}
-                          onChange={(e) => {
-                            const index = parseInt(e.target.value);
-                            handleAddressSelect(index);
-                          }}
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <FormInput
+                          key="quotation_number"
+                          id={"quotation_number"}
+                          name={"quotation_number"}
+                          placeholder={"Quotation Number"}
+                          label="Quote Number"
+                          type={"text"}
                           optional={false}
+                          error={
+                            touched.quotation_number || step1Errors.quotation_number ? errors.quotation_number || step1Errors.quotation_number : ""
+                          }
                         />
                       </Grid>
 
                       <Grid item xs={12} md={6}>
-                        <PlacesInput
-                          key="address"
-                          id="address"
-                          name="address"
-                          placeholder="Address"
-                          onChange={(newValue, actionMeta) => {
-                            changeAddress(newValue, actionMeta);
-                            setFieldValue(
-                              "address",
-                              newValue?.value?.description ?? ""
-                            );
-                          }}
-                          value={values.address}
-                          label="Address"
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
                         <FormInput
-                          key="suburb"
-                          id={"suburb"}
-                          name={"suburb"}
-                          placeholder={"Suburb"}
-                          label="Suburb"
-                          type={"text"}
-                          value={values.suburb}
-                          onChange={(e) => setFieldValue("suburb", e.target.value)}
+                          key="valid_until"
+                          id={"valid_until"}
+                          name={"valid_until"}
+                          placeholder={"Valid Until"}
+                          label="Valid Until"
+                          type={"date"}
                         />
                       </Grid>
 
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormDropdown
-                          key="state"
-                          id={"state"}
-                          name={"state"}
-                          label="State"
-                          useFormattedStrings={false}
-                          options={australianStates.map((state) => ({
-                            label: state,
-                            value: state,
-                          }))}
-                          value={values.state}
-                          onChange={(e) => setFieldValue("state", e.target.value)}
-                        />
-                      </Grid>
+                      {/* Customer Selection */}
+                      {!createInlineCustomer ? (
+                        <Grid item xs={12}>
+                          <InputDropdown
+                            key="contactName"
+                            id="contactName"
+                            name="contactName"
+                            label="Contact Name"
+                            options={customers}
+                            value={
+                              customers.find((c) => c.id === selectedCustomer) || null
+                            }
+                            secondaryLabel={
+                              <Box
+                                sx={{
+                                  color: theme.palette.primary.main,
+                                  cursor: "pointer",
+                                  fontSize: "14px",
+                                  fontWeight: 600,
+                                }}
+                                onClick={() => {
+                                  setCreateInlineCustomer(true);
+                                }}
+                              >
+                                Create New Customer
+                              </Box>
+                            }
+                            loading={loadingCustomers}
+                            optional={false}
+                            onChange={handleSearchDebounced}
+                            onSelect={(e) => {
+                              setSelectedCustomer(e.target.value);
+                            }}
+                            error={errors.contactName || step1Errors.contactName}
+                          />
+                        </Grid>
+                      ) : (
+                        <Grid item xs={12}>
+                          <FormInput
+                            key="inlineCustomerName"
+                            id={"inlineCustomerName"}
+                            name={"inlineCustomerName"}
+                            placeholder={"Contact Name"}
+                            label="Contact Name"
+                            type={"text"}
+                            secondaryLabel={
+                              <Box
+                                sx={{
+                                  color: theme.palette.primary.main,
+                                  cursor: "pointer",
+                                  fontSize: "14px",
+                                  fontWeight: 600,
+                                }}
+                                onClick={() => {
+                                  setCreateInlineCustomer(false);
+                                  setInlineCustomerName("");
+                                  setFieldValue("inlineCustomerName", "");
+                                }}
+                              >
+                                Use Existing Customer
+                              </Box>
+                            }
+                            error={
+                              (touched.inlineCustomerName || step1Errors.inlineCustomerName)
+                                ? (errors.inlineCustomerName || step1Errors.inlineCustomerName)
+                                : ""
+                            }
+                            onChange={(e) => {
+                              setFieldValue("inlineCustomerName", e.target.value);
+                              setInlineCustomerName(e.target.value);
+                            }}
+                            value={values.inlineCustomerName}
+                          />
+                        </Grid>
+                      )}
 
-                      <Grid item xs={12} sm={6} md={3}>
+                      {/* Contact Details */}
+                      <Grid item xs={12} md={6}>
                         <FormInput
-                          key="postCode"
-                          id={"postCode"}
-                          name={"postCode"}
-                          placeholder={"Post Code"}
-                          label="Post Code"
+                          key="emailAddress"
+                          id={"emailAddress"}
+                          name={"emailAddress"}
+                          placeholder={"Email Address"}
+                          label="Email Address"
+                          type={"email"}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <FormInput
+                          key="phone"
+                          id={"phone"}
+                          name={"phone"}
+                          placeholder={"Phone"}
+                          label="Phone"
                           type={"text"}
-                          value={values.postCode}
-                          onChange={(e) => setFieldValue("postCode", e.target.value)}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <FormInput
+                          key="mobile"
+                          id={"mobile"}
+                          name={"mobile"}
+                          placeholder={"Mobile"}
+                          label="Mobile"
+                          type={"text"}
+                        />
+                      </Grid>
+
+                      {/* ADDRESS SECTION */}
+                      <Grid item xs={12}>
+                        {!createInlineCustomer && selectedCustomer && customerAddresses.length > 0 ? (
+                          <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                              <FormDropdown
+                                key="address-select"
+                                id={"address-select"}
+                                name={"address-select"}
+                                label="Select Delivery Address"
+                                useFormattedStrings={false}
+                                options={customerAddresses.map((addr, index) => ({
+                                  label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`,
+                                  value: index.toString(),
+                                }))}
+                                value={selectedAddressIndex.toString()}
+                                onChange={(e) => {
+                                  const index = parseInt(e.target.value);
+                                  handleAddressSelect(index);
+                                }}
+                                optional={false}
+                              />
+                            </Grid>
+
+                            <Grid item xs={12} md={6}>
+                              <PlacesInput
+                                key="address"
+                                id="address"
+                                name="address"
+                                placeholder="Address"
+                                onChange={(newValue, actionMeta) => {
+                                  changeAddress(newValue, actionMeta);
+                                  setFieldValue(
+                                    "address",
+                                    newValue?.value?.description ?? ""
+                                  );
+                                }}
+                                value={values.address}
+                                label="Address"
+                              />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={3}>
+                              <FormInput
+                                key="suburb"
+                                id={"suburb"}
+                                name={"suburb"}
+                                placeholder={"Suburb"}
+                                label="Suburb"
+                                type={"text"}
+                                value={values.suburb}
+                                onChange={(e) => setFieldValue("suburb", e.target.value)}
+                              />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={3}>
+                              <FormDropdown
+                                key="state"
+                                id={"state"}
+                                name={"state"}
+                                label="State"
+                                useFormattedStrings={false}
+                                options={australianStates.map((state) => ({
+                                  label: state,
+                                  value: state,
+                                }))}
+                                value={values.state}
+                                onChange={(e) => setFieldValue("state", e.target.value)}
+                              />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={3}>
+                              <FormInput
+                                key="postCode"
+                                id={"postCode"}
+                                name={"postCode"}
+                                placeholder={"Post Code"}
+                                label="Post Code"
+                                type={"text"}
+                                value={values.postCode}
+                                onChange={(e) => setFieldValue("postCode", e.target.value)}
+                              />
+                            </Grid>
+                          </Grid>
+                        ) : (
+                          // For inline customers or customers without addresses
+                          <Box>
+                            {!createInlineCustomer && selectedCustomer && customerAddresses.length === 0 ? (
+                              <Alert severity="info" sx={{ mb: 2 }}>
+                                No addresses found for this customer. Please enter address manually below.
+                              </Alert>
+                            ) : null}
+
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <PlacesInput
+                                  key="address"
+                                  id="address"
+                                  name="address"
+                                  placeholder="Address"
+                                  onChange={(newValue, actionMeta) => {
+                                    changeAddress(newValue, actionMeta);
+                                    setFieldValue(
+                                      "address",
+                                      newValue?.value?.description ?? ""
+                                    );
+                                  }}
+                                  value={values.address}
+                                  label="Address"
+                                />
+                              </Grid>
+
+                              <Grid item xs={12} sm={6} md={3}>
+                                <FormInput
+                                  key="suburb"
+                                  id={"suburb"}
+                                  name={"suburb"}
+                                  placeholder={"Suburb"}
+                                  label="Suburb"
+                                  type={"text"}
+                                  value={values.suburb}
+                                  onChange={(e) => setFieldValue("suburb", e.target.value)}
+                                />
+                              </Grid>
+
+                              <Grid item xs={12} sm={6} md={3}>
+                                <FormDropdown
+                                  key="state"
+                                  id={"state"}
+                                  name={"state"}
+                                  label="State"
+                                  useFormattedStrings={false}
+                                  options={australianStates.map((state) => ({
+                                    label: state,
+                                    value: state,
+                                  }))}
+                                  value={values.state}
+                                  onChange={(e) => setFieldValue("state", e.target.value)}
+                                />
+                              </Grid>
+
+                              <Grid item xs={12} sm={6} md={3}>
+                                <FormInput
+                                  key="postCode"
+                                  id={"postCode"}
+                                  name={"postCode"}
+                                  placeholder={"Post Code"}
+                                  label="Post Code"
+                                  type={"text"}
+                                  value={values.postCode}
+                                  onChange={(e) => setFieldValue("postCode", e.target.value)}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        )}
+                      </Grid>
+
+                      {/* NOTES */}
+                      <Grid item xs={12}>
+                        <FormInput
+                          key="note"
+                          id={"note"}
+                          name={"note"}
+                          placeholder={"Notes"}
+                          label={"Notes"}
+                          type={"text"}
+                          isTextArea
                         />
                       </Grid>
                     </Grid>
-                  ) : (
-                    // For inline customers or customers without addresses
-                    <Box>
-                      {!createInlineCustomer && selectedCustomer && customerAddresses.length === 0 ? (
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                          No addresses found for this customer. Please enter address manually below.
-                        </Alert>
-                      ) : null}
 
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                          <PlacesInput
-                            key="address"
-                            id="address"
-                            name="address"
-                            placeholder="Address"
-                            onChange={(newValue, actionMeta) => {
-                              changeAddress(newValue, actionMeta);
-                              setFieldValue(
-                                "address",
-                                newValue?.value?.description ?? ""
-                              );
-                            }}
-                            value={values.address}
-                            label="Address"
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormInput
-                            key="suburb"
-                            id={"suburb"}
-                            name={"suburb"}
-                            placeholder={"Suburb"}
-                            label="Suburb"
-                            type={"text"}
-                            value={values.suburb}
-                            onChange={(e) => setFieldValue("suburb", e.target.value)}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormDropdown
-                            key="state"
-                            id={"state"}
-                            name={"state"}
-                            label="State"
-                            useFormattedStrings={false}
-                            options={australianStates.map((state) => ({
-                              label: state,
-                              value: state,
-                            }))}
-                            value={values.state}
-                            onChange={(e) => setFieldValue("state", e.target.value)}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormInput
-                            key="postCode"
-                            id={"postCode"}
-                            name={"postCode"}
-                            placeholder={"Post Code"}
-                            label="Post Code"
-                            type={"text"}
-                            value={values.postCode}
-                            onChange={(e) => setFieldValue("postCode", e.target.value)}
-                          />
-                        </Grid>
-                      </Grid>
+                    {/* Next Button */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleNext(validateForm)}
+                        size="large"
+                      >
+                        Next: Select Items
+                      </Button>
                     </Box>
-                  )}
-                </Box>,
-
-                // NOTES
-                <FormInput
-                  key="note"
-                  id={"note"}
-                  name={"note"}
-                  placeholder={"Notes"}
-                  label="Notes"
-                  type={"text"}
-                  isTextArea
-                />,
-
-                // Low stock warning banner - full width
-                lowStockItems.length > 0 ? (
-                  <Alert
-                    key="low-stock-warning"
-                    severity="warning"
-                    {...{fullWidth: true}}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body1" fontWeight="bold">
-                        Stock Reservation Alert
-                      </Typography>
-                      <Typography variant="body2">
-                        {lowStockItems.length} item(s) have insufficient stock. Quotation will still be created.
-                      </Typography>
-                    </Box>
-                  </Alert>
-                ) : null,
-
-                // ITEMS TABLE WITH WAREHOUSE SELECTION - full width, at the end
-                <Box key="items-section" {...{fullWidth: true}}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      mb: 2,
-                    }}
-                  >
-                    <InputDropdown
-                      key="item_search"
-                      id="item_search"
-                      name="item_search"
-                      label="Select Item"
-                      options={items}
-                      loading={loadingItems}
-                      optional={false}
-                      onChange={handleItemSearchDebounced}
-                      onSelect={(e) => {
-                        const itemId = parseInt(e.target.value);
-                        if (itemId) {
-                          setSelectedItemId(itemId);
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      startIcon={<Add size={20} />}
-                      onClick={() => {
-                        if (selectedItemId) {
-                          addItem(selectedItemId);
-                          setSelectedItemId(null);
-                        }
-                      }}
-                      sx={{ mt: 4 }}
-                      disabled={!selectedItemId}
-                    >
-                      Add
-                    </Button>
                   </Box>
+                )}
 
-                  {selectedItems.length === 0 ? (
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                      No items added yet. Select an item and click "Add" to add items to the quotation.
-                    </Alert>
-                  ) : (
-                    <TableContainer component={Paper} sx={{ mt: 2 }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Item</TableCell>
-                            <TableCell>Code</TableCell>
-                            <TableCell>Warehouse</TableCell>
-                            <TableCell>Available</TableCell>
-                            <TableCell>Quantity</TableCell>
-                            <TableCell>Unit Price</TableCell>
-                            <TableCell>GST</TableCell>
-                            <TableCell>Total</TableCell>
-                            <TableCell>Actions</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {selectedItems.map((item, index) => {
-                            const selectedWarehouse = item.warehouse_id
-                              ? item.available_warehouses.find(w => w.id === item.warehouse_id)
-                              : null;
+                {/* Step 2: Select Items */}
+                {activeStep === 1 && (
+                  <Box>
+                    <Typography variant="h5" sx={{ mb: 3 }}>
+                      Select Items
+                    </Typography>
+                    {/* Use shared ItemsSelectionTable component */}
+                    <ItemsSelectionTable
+                      items={items}
+                      selectedItems={selectedItems}
+                      addItem={addItem}
+                      removeItem={removeItem}
+                      updateItem={updateItem}
+                      totalAmount={totalAmount}
+                      loadingItems={loadingItems}
+                      handleItemSearchDebounced={handleItemSearchDebounced}
+                      selectedItemId={selectedItemId}
+                      setSelectedItemId={setSelectedItemId}
+                      showDiscount={false}
+                    />
 
-                            const availableStock = selectedWarehouse?.available || 0;
-                            const currentQuantity = parseFloat(item.quantity);
-                            const isLowStock = availableStock < currentQuantity;
-
-                            return (
-                              <TableRow
-                                key={index}
-                                sx={{
-                                  backgroundColor: isLowStock ? 'rgba(255, 165, 0, 0.05)' : 'inherit'
-                                }}
-                              >
-                                <TableCell>{item.name}</TableCell>
-                                <TableCell>{item.itemCode}</TableCell>
-
-                                <TableCell>
-                                  <FormControl
-                                    size="small"
-                                    sx={{ minWidth: 120 }}
-                                    error={!item.warehouse_id}
-                                  >
-                                    <Select
-                                      value={item.warehouse_id || ''}
-                                      onChange={(e) => updateItem(index, "warehouse_id", Number(e.target.value))}
-                                      displayEmpty
-                                      disabled={item.available_warehouses.length === 1}
-                                    >
-                                      <MenuItem value="" disabled>
-                                        Select Warehouse
-                                      </MenuItem>
-                                      {item.available_warehouses.map((warehouse) => (
-                                        <MenuItem
-                                          key={warehouse.id}
-                                          value={warehouse.id}
-                                        >
-                                          {warehouse.name} ({warehouse.available} available)
-                                        </MenuItem>
-                                      ))}
-                                    </Select>
-                                    {!item.warehouse_id && (
-                                      <Typography variant="caption" color="error">
-                                        Required
-                                      </Typography>
-                                    )}
-                                  </FormControl>
-                                </TableCell>
-
-                                <TableCell>
-                                  {selectedWarehouse ? (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Typography
-                                        variant="body2"
-                                        color={availableStock < 0 ? "error" : availableStock < currentQuantity ? "warning" : "success"}
-                                        fontWeight={availableStock < currentQuantity ? "bold" : "normal"}
-                                      >
-                                        {availableStock}
-                                      </Typography>
-                                      {isLowStock && (
-                                        <Chip
-                                          label="Low"
-                                          size="small"
-                                          color="warning"
-                                          variant="outlined"
-                                          sx={{ height: 20, fontSize: '0.7rem' }}
-                                        />
-                                      )}
-                                    </Box>
-                                  ) : (
-                                    <Typography variant="body2" color="text.secondary">
-                                      Select warehouse
-                                    </Typography>
-                                  )}
-                                </TableCell>
-
-                                <TableCell>
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 1,
-                                    }}
-                                  >
-                                    <input
-                                      id={`items[${index}].quantity`}
-                                      name={`items[${index}].quantity`}
-                                      type="number"
-                                      value={item.quantity}
-                                      onChange={(e) => {
-                                        updateItem(
-                                          index,
-                                          "quantity",
-                                          parseFloat(e.target.value),
-                                        );
-                                      }}
-                                      style={{
-                                        width: "80px",
-                                        padding: "8px",
-                                        border: `1px solid ${isLowStock ? '#ff9800' : '#ccc'}`,
-                                        borderRadius: "4px",
-                                        backgroundColor: isLowStock ? '#fffaf0' : 'white'
-                                      }}
-                                      min={1}
-                                    />
-                                    {isLowStock && (
-                                      <Typography
-                                        variant="caption"
-                                        color="warning"
-                                        sx={{ display: 'block', mt: 0.5 }}
-                                      >
-                                        Insufficient stock
-                                      </Typography>
-                                    )}
-                                  </Box>
-                                </TableCell>
-
-                                <TableCell>
-                                  <input
-                                    id={`items[${index}].unit_price`}
-                                    name={`items[${index}].unit_price`}
-                                    type="number"
-                                    value={item.unit_price}
-                                    onChange={(e) =>
-                                      updateItem(
-                                        index,
-                                        "unit_price",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    style={{
-                                      width: "100px",
-                                      padding: "8px",
-                                      border: "1px solid #ccc",
-                                      borderRadius: "4px",
-                                    }}
-                                    min={0}
-                                    step="0.01"
-                                  />
-                                </TableCell>
-
-                                <TableCell>{item.gst ? "Yes" : "No"}</TableCell>
-
-                                <TableCell>
-                                  ${calculateItemTotal(item).toFixed(2)}
-                                </TableCell>
-
-                                <TableCell>
-                                  <IconButton onClick={() => removeItem(index)}>
-                                    <Trash size={20} />
-                                  </IconButton>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-
-                          <TableRow>
-                            <TableCell colSpan={7} align="right">
-                              <strong>Total:</strong>
-                            </TableCell>
-                            <TableCell>
-                              <strong>${totalAmount.toFixed(2)}</strong>
-                            </TableCell>
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </Box>,
-              ]}
-            />
+                    {/* Navigation Buttons */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+                      <Button
+                        variant="outlined"
+                        onClick={handleBack}
+                        size="large"
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleSubmitStep2(handleSubmit)}
+                        disabled={isSubmitting}
+                        size="large"
+                      >
+                        {isSubmitting ? 'Creating Quotation...' : 'Create Quotation'}
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+              </Paper>
+            </Container>
           </Form>
         );
       }}
