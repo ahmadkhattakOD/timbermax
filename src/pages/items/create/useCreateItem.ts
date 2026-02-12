@@ -169,7 +169,7 @@ export function useCreateItem() {
         } as SnackbarProps);
       }
 
-      // navigate("/items");
+      navigate("/items");
     } catch (e) {
       console.error("Error creating item:", e);
       openSnackbar({
@@ -180,7 +180,7 @@ export function useCreateItem() {
           color: "error",
         },
       } as SnackbarProps);
-      // navigate("/items");
+      navigate("/items");
     }
   }
   return {
