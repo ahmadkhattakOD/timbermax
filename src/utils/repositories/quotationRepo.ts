@@ -8,6 +8,7 @@ export interface QuotationSupabase {
   quotation_number: string;
   customer_id: number;
   total: number;
+  discount?: number;
   status?:
     | "draft"
     | "sent"
@@ -551,12 +552,21 @@ class QuotationsRepository {
 
   public async updateQuotationTotal(quotationId: number) {
     try {
+      // First, get the current discount value from the quotation
+      const { data: quotationData } = await supabase
+        .from(this.className)
+        .select("discount")
+        .eq("id", quotationId)
+        .single();
+
+      const discount = quotationData?.discount || 0;
+
       // Calculate new total from items with GST
       const { data: itemsWithGST } = await supabase
         .from(this.itemsClassName)
         .select(
           `
-          quantity, 
+          quantity,
           unit_price,
           items!inner(gst)
         `,
@@ -574,11 +584,15 @@ class QuotationsRepository {
         });
       }
 
-      // Update quotation total
+      // Apply discount to get final total
+      const discountAmount = (totalWithGST * discount) / 100;
+      const finalTotal = totalWithGST - discountAmount;
+
+      // Update quotation total with discount applied
       const { error: updateError } = await supabase
         .from(this.className)
         .update({
-          total: totalWithGST,
+          total: finalTotal,
           updated_at: new Date().toISOString(),
         })
         .eq("id", quotationId);
@@ -586,7 +600,7 @@ class QuotationsRepository {
       return {
         success: !updateError,
         error: updateError?.message,
-        total: totalWithGST,
+        total: finalTotal,
       };
     } catch (error: any) {
       console.error("Error updating quotation total:", error);

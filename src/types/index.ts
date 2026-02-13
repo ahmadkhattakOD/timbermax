@@ -77,6 +77,7 @@ export interface Quotation {
     | "cancelled"
     | "approved";
   total: number;
+  discount?: number;
   subtotal?: number;
   tax?: number;
   tax_rate?: number;

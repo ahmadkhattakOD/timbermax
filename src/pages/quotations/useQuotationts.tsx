@@ -26,6 +26,7 @@ import {
   Truck,
   Xd,
 } from "iconsax-react";
+import { X } from "lucide-react";
 import {
   generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
@@ -55,6 +56,11 @@ import {
 // Add these missing icon imports
 // import { Download, Visibility, Close, Receipt } from "@mui/icons-material";
 import { SnackbarProps } from "types/snackbar";
+import {
+  calculateItemTotal,
+  calculateTotalBreakdown,
+  formatCurrency,
+} from "utils/calculateTotals";
 
 const headCells: HeadCell[] = [
   {
@@ -280,15 +286,19 @@ export function useQuotations() {
         name: item.items?.name || "Unknown",
         code: item.items?.itemCode || "N/A",
         quantity: parseFloat(item.quantity) || 0,
-        unitPrice: parseFloat(item.unit_price) || 0,
-        total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
+        unit_price: parseFloat(item.unit_price) || 0,
+        gst: item?.items?.gst || false,
       }));
+
+      // Calculate totals using utility function
+      const discount = parseFloat(quotation.quotationData.discount) || 0;
+      const breakdown = calculateTotalBreakdown(formattedItems, discount);
 
       setCurrentQuotationItems(formattedItems);
       setCurrentQuotationInfo({
         quotationNumber: quotation.quotationData.quotation_number,
         customerName: quotation.quotationData.customers?.name,
-        total: quotation.quotationData.total,
+        breakdown,
       });
       setItemsModalOpen(true);
     } catch (error: any) {
@@ -351,6 +361,9 @@ export function useQuotations() {
             </Typography>
           )}
         </Box>
+        <IconButton onClick={closeItemsModal} size="small">
+          <X size={20} />
+        </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 3, pb: 2 }}>
@@ -363,6 +376,7 @@ export function useQuotations() {
                 <TableCell>Code</TableCell>
                 <TableCell align="right">Quantity</TableCell>
                 <TableCell align="right">Unit Price</TableCell>
+                <TableCell align="right">GST</TableCell>
                 <TableCell align="right">Total</TableCell>
               </TableRow>
             </TableHead>
@@ -376,24 +390,73 @@ export function useQuotations() {
                     {item.quantity.toFixed(2)}
                   </TableCell>
                   <TableCell align="right">
-                    ${item.unitPrice.toFixed(2)}
+                    ${item.unit_price.toFixed(2)}
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
-                      ${item.total.toFixed(2)}
+                      {item.gst ? "Yes" : "No"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography fontWeight={600}>
+                      {formatCurrency(calculateItemTotal(item))}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ))}
+
+              {/* Subtotal Row */}
+              <TableRow>
+                <TableCell colSpan={6} align="right">
+                  <Typography fontWeight={600}>Subtotal:</Typography>
+                </TableCell>
+                <TableCell align="right">
+                  <Typography fontWeight={600}>
+                    {formatCurrency(currentQuotationInfo?.breakdown?.subtotal || 0)}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+
+              {/* GST Row */}
+              {currentQuotationInfo?.breakdown?.gstAmount > 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="right">
+                    <Typography>GST (10%):</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography>
+                      {formatCurrency(currentQuotationInfo.breakdown.gstAmount)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {/* Discount Row */}
+              {currentQuotationInfo?.breakdown?.discountAmount > 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="right">
+                    <Typography>
+                      Discount ({currentQuotationInfo.breakdown.discountPercentage}%):
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography color="error">
+                      -{formatCurrency(currentQuotationInfo.breakdown.discountAmount)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {/* Final Total Row */}
               <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                <TableCell colSpan={5} align="right">
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    Grand Total:
+                <TableCell colSpan={6} align="right">
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Total:
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    ${currentQuotationInfo?.total?.toFixed(2) || "0.00"}
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    {formatCurrency(currentQuotationInfo?.breakdown?.finalTotal || 0)}
                   </Typography>
                 </TableCell>
               </TableRow>

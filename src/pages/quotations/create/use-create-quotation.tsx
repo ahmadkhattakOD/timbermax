@@ -92,12 +92,20 @@ export function useCreateQuotation() {
     post_code: '',
   });
 
+  // Discount state
+  const [discount, setDiscount] = useState<number>(0);
+  const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
+
   const quotationNumberRef = useRef(`QT-${String(Date.now()).slice(-6)}`);
 
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateSubTotal(item),
     0,
   );
+
+  // Calculate final amount after discount
+  const discountAmount = (totalAmount * discount) / 100;
+  const finalAmount = totalAmount - discountAmount;
 
   // Function to get ALL warehouses for an item
   const getWarehousesForItem = async (itemId: number) => {
@@ -598,10 +606,11 @@ export function useCreateQuotation() {
       const newQuotation: QuotationSupabase = {
         quotation_number: values.quotation_number,
         customer_id: customerToAdd,
-        total: totalAmount,
+        total: finalAmount,
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
         status: "draft",
+        discount: discount,
         // Save address snapshot to quotation
         address: quotationAddress.address,
         suburb: quotationAddress.suburb,
@@ -829,5 +838,12 @@ export function useCreateQuotation() {
     selectedAddressDetails,
     handleAddressSelect,
     setSelectedAddressDetails,
+    // Discount properties
+    discount,
+    setDiscount,
+    showDiscountInput,
+    setShowDiscountInput,
+    discountAmount,
+    finalAmount,
   };
 }

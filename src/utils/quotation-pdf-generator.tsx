@@ -121,7 +121,7 @@ export const generateAndDownloadQuotationPDF = async (
     // Calculate totals
     let totalSubtotal = 0;
     let totalGST = 0;
-    let grandTotal = 0;
+    let subtotalWithGST = 0;
 
     items.forEach((item: any) => {
       const quantity = parseFloat(item.quantity);
@@ -132,8 +132,13 @@ export const generateAndDownloadQuotationPDF = async (
 
       totalSubtotal += subtotal;
       totalGST += gstAmount;
-      grandTotal += subtotal + gstAmount;
+      subtotalWithGST += subtotal + gstAmount;
     });
+
+    // Apply discount if present
+    const discountPercent = quotation.discount || 0;
+    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
       startY: 130, // Increased from 100 to 130
@@ -173,28 +178,43 @@ export const generateAndDownloadQuotationPDF = async (
     doc.text("Summary:", 120, summaryY);
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal:`, 120, summaryY + 10);
-    doc.text(`GST:`, 120, summaryY + 20);
+    let currentY = summaryY + 10;
+
+    doc.text(`Subtotal:`, 120, currentY);
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
+
+    currentY += 10;
+    doc.text(`GST:`, 120, currentY);
+    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
+
+    // Show discount if present
+    if (discountPercent > 0) {
+      currentY += 10;
+      doc.text(`Discount (${discountPercent}%):`, 120, currentY);
+      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
+        align: "right",
+      });
+    }
+
+    currentY += 10;
     doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total:`, 120, summaryY + 30);
-
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, summaryY + 10, {
-      align: "right",
-    });
-    doc.text(`$${totalGST.toFixed(2)}`, 180, summaryY + 20, {
-      align: "right",
-    });
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, summaryY + 30, {
+    doc.text(`Grand Total:`, 120, currentY);
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
       align: "right",
     });
 
-    // Notes Section
+    // Notes Section (adjust position based on discount presence)
+    const notesY = currentY + 20;
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, summaryY + 50);
+      doc.text("Notes:", 14, notesY);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, summaryY + 60);
+      doc.text(splitNotes, 14, notesY + 10);
     }
 
     // Footer
@@ -458,7 +478,7 @@ export const openQuotationPDFInNewTab = async (
     // Calculate totals
     let totalSubtotal = 0;
     let totalGST = 0;
-    let grandTotal = 0;
+    let subtotalWithGST = 0;
 
     items.forEach((item: any) => {
       const quantity = parseFloat(item.quantity);
@@ -469,8 +489,13 @@ export const openQuotationPDFInNewTab = async (
 
       totalSubtotal += subtotal;
       totalGST += gstAmount;
-      grandTotal += subtotal + gstAmount;
+      subtotalWithGST += subtotal + gstAmount;
     });
+
+    // Apply discount if present
+    const discountPercent = quotation.discount || 0;
+    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
       startY: 130,
@@ -510,28 +535,43 @@ export const openQuotationPDFInNewTab = async (
     doc.text("Summary:", 120, summaryY);
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal:`, 120, summaryY + 10);
-    doc.text(`GST:`, 120, summaryY + 20);
+    let currentY = summaryY + 10;
+
+    doc.text(`Subtotal:`, 120, currentY);
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
+
+    currentY += 10;
+    doc.text(`GST:`, 120, currentY);
+    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
+
+    // Show discount if present
+    if (discountPercent > 0) {
+      currentY += 10;
+      doc.text(`Discount (${discountPercent}%):`, 120, currentY);
+      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
+        align: "right",
+      });
+    }
+
+    currentY += 10;
     doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total:`, 120, summaryY + 30);
-
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, summaryY + 10, {
-      align: "right",
-    });
-    doc.text(`$${totalGST.toFixed(2)}`, 180, summaryY + 20, {
-      align: "right",
-    });
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, summaryY + 30, {
+    doc.text(`Grand Total:`, 120, currentY);
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
       align: "right",
     });
 
-    // Notes Section
+    // Notes Section (adjust position based on discount presence)
+    const notesY = currentY + 20;
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, summaryY + 50);
+      doc.text("Notes:", 14, notesY);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, summaryY + 60);
+      doc.text(splitNotes, 14, notesY + 10);
     }
 
     // Footer

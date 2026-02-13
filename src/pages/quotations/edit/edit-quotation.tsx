@@ -64,6 +64,13 @@ export default function EditQuotation() {
     selectedAddressIndex,
     handleAddressSelect,
     customerId,
+    // Discount properties
+    discount,
+    setDiscount,
+    discountAmount,
+    finalAmount,
+    showDiscountInput,
+    setShowDiscountInput,
   } = useEditQuotation(id ? parseInt(id) : 0);
 
   if (loading) {
@@ -562,7 +569,13 @@ export default function EditQuotation() {
                       handleItemSearchDebounced={handleItemSearchDebounced}
                       selectedItemId={selectedItemId}
                       setSelectedItemId={setSelectedItemId}
-                      showDiscount={false}
+                      showDiscount={true}
+                      discount={discount}
+                      setDiscount={setDiscount}
+                      discountAmount={discountAmount}
+                      finalAmount={finalAmount}
+                      showDiscountInput={showDiscountInput}
+                      setShowDiscountInput={setShowDiscountInput}
                     />
 
                     {/* Navigation Buttons */}

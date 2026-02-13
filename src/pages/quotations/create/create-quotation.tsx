@@ -66,6 +66,13 @@ export default function CreateQuotation() {
     customerAddresses,
     selectedAddressIndex,
     handleAddressSelect,
+    // Discount properties
+    discount,
+    setDiscount,
+    showDiscountInput,
+    setShowDiscountInput,
+    discountAmount,
+    finalAmount,
   } = useCreateQuotation();
 
   const theme = useTheme();
@@ -563,7 +570,13 @@ export default function CreateQuotation() {
                       handleItemSearchDebounced={handleItemSearchDebounced}
                       selectedItemId={selectedItemId}
                       setSelectedItemId={setSelectedItemId}
-                      showDiscount={false}
+                      showDiscount={true}
+                      discount={discount}
+                      setDiscount={setDiscount}
+                      showDiscountInput={showDiscountInput}
+                      setShowDiscountInput={setShowDiscountInput}
+                      discountAmount={discountAmount}
+                      finalAmount={finalAmount}
                     />
 
                     {/* Navigation Buttons */}

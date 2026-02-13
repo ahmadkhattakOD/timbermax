@@ -79,7 +79,11 @@ export function useEditQuotation(quotationId: number) {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [quotationData, setQuotationData] = useState<any>(null);
   const [currentStatus, setCurrentStatus] = useState<any>("draft");
-  
+
+  // Discount state
+  const [discount, setDiscount] = useState<number>(0);
+  const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
+
   // New states for customer addresses
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
@@ -103,6 +107,10 @@ export function useEditQuotation(quotationId: number) {
     (sum, item) => sum + calculateSubTotal(item),
     0,
   );
+
+  // Calculate final amount after discount
+  const discountAmount = (totalAmount * discount) / 100;
+  const finalAmount = totalAmount - discountAmount;
 
   // Function to get ALL warehouses for an item
   const getWarehousesForItem = async (itemId: number) => {
@@ -448,6 +456,10 @@ export function useEditQuotation(quotationId: number) {
         0,
       );
 
+      // Apply discount to get final amount
+      const discountAmount = (totalWithGST * discount) / 100;
+      const finalTotal = totalWithGST - discountAmount;
+
       // Update customer details
       if (customerId) {
         const customersRepo = new CustomersRepository();
@@ -525,11 +537,12 @@ export function useEditQuotation(quotationId: number) {
         }
       }
 
-      // Update quotation status and details with GST-calculated total
+      // Update quotation status and details with GST-calculated total and discount
       // Also update the address snapshot in the quotation
       const updatedQuotation: Partial<QuotationSupabase> = {
         customer_id: customerId,
-        total: totalWithGST,
+        total: finalTotal,
+        discount: discount,
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
         status: values.status,
@@ -733,6 +746,12 @@ export function useEditQuotation(quotationId: number) {
           status: quotation.status || "draft",
         });
 
+        // Set discount if present
+        if (quotation.discount && quotation.discount > 0) {
+          setDiscount(quotation.discount);
+          setShowDiscountInput(true);
+        }
+
         // Load items with warehouse information
         if (quotation.quotation_items) {
           const itemsWithWarehouses = await Promise.all(
@@ -811,5 +830,12 @@ export function useEditQuotation(quotationId: number) {
     selectedAddressIndex,
     handleAddressSelect,
     customerId,
+    // Discount properties
+    discount,
+    setDiscount,
+    discountAmount,
+    finalAmount,
+    showDiscountInput,
+    setShowDiscountInput,
   };
 }
