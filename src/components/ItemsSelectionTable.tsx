@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Box,
   IconButton,
@@ -16,7 +17,7 @@ import {
   Alert,
   Chip,
 } from "@mui/material";
-import { Add, Trash } from "iconsax-react";
+import { Trash } from "iconsax-react";
 import InputDropdown from "components/InputDropdown";
 import { calculateItemTotal, formatCurrency, calculateItemSubtotal, calculateItemGst } from "utils/calculateTotals";
 
@@ -77,6 +78,9 @@ export default function ItemsSelectionTable({
   discountAmount = 0,
   finalAmount,
 }: ItemsSelectionTableProps) {
+  // State to force input reset
+  const [inputKey, setInputKey] = React.useState(0);
+
   // Calculate low stock items for warning
   const lowStockItems = selectedItems.filter(item => {
     if (item.warehouse_id) {
@@ -99,42 +103,28 @@ export default function ItemsSelectionTable({
       {/* Item Selection Section */}
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
           mb: 2,
         }}
       >
         <InputDropdown
-          key="item_search"
+          key={`item_search_${inputKey}`}
           id="item_search"
           name="item_search"
           label="Select Item"
           options={items}
+          value={items.find((item) => item.id === selectedItemId) || null}
           loading={loadingItems}
           optional={false}
           onChange={handleItemSearchDebounced}
           onSelect={(e) => {
             const itemId = parseInt(e.target.value);
             if (itemId) {
-              setSelectedItemId(itemId);
+              addItem(itemId);
+              setSelectedItemId(null);
+              setInputKey(prev => prev + 1); // Force remount to clear input
             }
           }}
         />
-        <Button
-          variant="contained"
-          startIcon={<Add size={20} />}
-          onClick={() => {
-            if (selectedItemId) {
-              addItem(selectedItemId);
-              setSelectedItemId(null);
-            }
-          }}
-          sx={{ mt: 4 }}
-          disabled={!selectedItemId}
-        >
-          Add
-        </Button>
       </Box>
 
       {/* Low Stock Warning Banner */}
