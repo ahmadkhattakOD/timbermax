@@ -235,7 +235,7 @@ export default function NavCollapse({ menu, level, parentId, setSelectedItems, s
   const borderIcon = level === 1 ? <Copy variant="Bulk" size={drawerOpen ? 22 : 24} /> : false;
   const Icon = menu.icon!;
   const menuIcon = menu.icon ? <Icon variant="Bulk" size={drawerOpen ? 22 : 24} /> : borderIcon;
-  const textColor = mode === ThemeMode.DARK ? theme.palette.secondary[400] : theme.palette.secondary.main;
+  const textColor = mode === ThemeMode.DARK ? theme.palette.text.primary : theme.palette.secondary.main;
   const iconSelectedColor = mode === ThemeMode.DARK && drawerOpen ? theme.palette.text.primary : theme.palette.primary.main;
   const popperId = miniMenuOpened ? `collapse-pop-${menu.id}` : undefined;
   const FlexBox = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' };

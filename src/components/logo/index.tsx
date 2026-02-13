@@ -28,7 +28,7 @@ export default function LogoSection({ isIcon, sx, to }: Props) {
         sx,
       })}
     >
-      <img src={"/timber.jpg"} alt="icon logo" width={120} />
+      <img src={"/timber.jpg"} alt="icon logo" width={180} />
     </ButtonBase>
   );
 }

@@ -57,7 +57,7 @@ export default function NavItem({ item, level, isParents = false }: Props) {
   const { pathname } = useLocation();
   const isSelected = !!matchPath({ path: item?.link ? item.link : item.url!, end: false }, pathname);
 
-  const textColor = mode === ThemeMode.DARK ? 'secondary.400' : 'secondary.main';
+  const textColor = mode === ThemeMode.DARK ? 'text.primary' : 'secondary.main';
   const iconSelectedColor = 'primary.main';
 
   return (
