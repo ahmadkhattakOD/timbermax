@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
 import InputDropdown from "components/InputDropdown";
-import { calculateItemTotal, formatCurrency } from "utils/calculateTotals";
+import { calculateItemTotal, formatCurrency, calculateItemSubtotal, calculateItemGst } from "utils/calculateTotals";
 
 interface Warehouse {
   id: number;
@@ -88,6 +88,11 @@ export default function ItemsSelectionTable({
     }
     return false;
   });
+
+  // Calculate GST breakdown
+  const subtotalExGst = selectedItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
+  const gstAmount = selectedItems.reduce((sum, item) => sum + calculateItemGst(item), 0);
+  const subtotalIncGst = subtotalExGst + gstAmount; // This should equal totalAmount
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -319,13 +324,35 @@ export default function ItemsSelectionTable({
                 );
               })}
 
-              {/* Subtotal Row */}
+              {/* Subtotal (ex GST) Row */}
               <TableRow>
                 <TableCell colSpan={7} align="right">
-                  <strong>Subtotal:</strong>
+                  <strong>Subtotal (ex GST):</strong>
                 </TableCell>
                 <TableCell>
-                  <strong>{formatCurrency(totalAmount)}</strong>
+                  <strong>{formatCurrency(subtotalExGst)}</strong>
+                </TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+
+              {/* GST Row */}
+              <TableRow>
+                <TableCell colSpan={7} align="right">
+                  <strong>GST (10%):</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>{formatCurrency(gstAmount)}</strong>
+                </TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+
+              {/* Subtotal (inc GST) Row */}
+              <TableRow>
+                <TableCell colSpan={7} align="right">
+                  <strong>Subtotal (inc GST):</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>{formatCurrency(subtotalIncGst)}</strong>
                 </TableCell>
                 <TableCell></TableCell>
               </TableRow>
