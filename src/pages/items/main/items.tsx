@@ -149,6 +149,13 @@ export default function Items() {
                       label={"itemCode"}
                       type={"text"}
                     />,
+                    <FormInput
+                      id={"vendor_name"}
+                      name={"vendor_name"}
+                      placeholder={"Vendor Name"}
+                      label={"Vendor Name"}
+                      type={"text"}
+                    />,
                   ]}
                   showSubmitButton={false}
                 />

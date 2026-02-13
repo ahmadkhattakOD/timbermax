@@ -21,6 +21,12 @@ const headCells: HeadCell[] = [
     label: "Gst",
   },
   {
+    id: "vendor",
+    numeric: false,
+    disablePadding: false,
+    label: "Vendor",
+  },
+  {
     id: "description",
     numeric: false,
     disablePadding: true,
@@ -50,12 +56,14 @@ export interface ValuesFilterItems {
   name: string;
   description: string;
   itemCode: string;
+  vendor_name: string;
 }
 
 const initialFilters: ValuesFilterItems = {
   name: "",
   description: "",
   itemCode: "",
+  vendor_name: "",
 };
 
 export function useItems() {
@@ -115,6 +123,9 @@ export function useItems() {
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "left" }}>
           {row.gst ? 'Yes' : 'No'}
+        </TableCell>
+        <TableCell sx={{ minWidth: 150 }}>
+          {row.vendors?.name || '-'}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.description}</TableCell>
         <TableCell sx={{ minWidth: 120 }}>{row.itemCode}</TableCell>
@@ -204,12 +215,14 @@ export function useItems() {
 
   function getDataCsv() {
     try {
-      let csvString = "Name,Description,Item Code,Sell Price,Purchase Price\n";
+      let csvString = "Name,GST,Vendor,Description,Item Code,Sell Price,Purchase Price\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let item = data[i] as any;
-          csvString += `${item?.name ?? ""},${item?.description ?? ""},${
+          csvString += `${item?.name ?? ""},${item?.gst ? 'Yes' : 'No'},${
+            item?.vendors?.name ?? "-"
+          },${item?.description ?? ""},${
             item?.itemCode ?? ""
           },${item?.sellPrice ?? ""},${item?.purchasePrice ?? ""}\n`;
         }

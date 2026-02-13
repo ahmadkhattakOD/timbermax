@@ -40,9 +40,17 @@ class ItemsRepository {
     filters?: ValuesFilterItems
   ) {
     try {
+      // Use !inner for vendors join when filtering by vendor name
+      const vendorJoin = filters?.vendor_name
+        ? "vendors:vendor_id!inner(id, name)"
+        : "vendors:vendor_id(id, name)";
+
       const query = supabase
         .from(this.className)
-        .select("*", { count: "exact" })
+        .select(`
+          *,
+          ${vendorJoin}
+        `, { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit);
@@ -56,6 +64,9 @@ class ItemsRepository {
         }
         if (filters.itemCode) {
           query.ilike("itemCode", `%${filters.itemCode}%`);
+        }
+        if (filters.vendor_name) {
+          query.ilike("vendors.name", `%${filters.vendor_name}%`);
         }
       }
 
