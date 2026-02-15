@@ -180,6 +180,7 @@ export default function CreateInvoice() {
         postCode: selectedPostCode || "",
         emailAddress: selectedEmail || "",
         invoice_date: getDateFormattedForField(),
+        due_date: "",
         note: "",
         quotation_id: quotationIdFromUrl || "",
       }}
@@ -286,6 +287,18 @@ export default function CreateInvoice() {
                           type={"date"}
                           optional={false}
                           error={touched.invoice_date || step1Errors.invoice_date ? errors.invoice_date || step1Errors.invoice_date : ""}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <FormInput
+                          key="due_date"
+                          id={"due_date"}
+                          name={"due_date"}
+                          placeholder={"Due Date"}
+                          label={"Due Date"}
+                          type={"date"}
+                          optional={true}
                         />
                       </Grid>
 

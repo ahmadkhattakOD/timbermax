@@ -33,8 +33,9 @@ export interface ValuesEditInvoice {
   postCode: string;
   emailAddress: string;
   invoice_date: string;
+  due_date: string;
   note: string;
-  status: "draft" | "sent" | "paid" | "cancelled" | "converted";
+  status: "draft" | "sent" | "paid" | "cancelled" | "converted" | "overdue";
   delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned";
   payment_method: string;
 }
@@ -114,6 +115,7 @@ export function useEditInvoice(invoiceId: number) {
     postCode: "",
     emailAddress: "",
     invoice_date: "",
+    due_date: "",
     note: "",
     status: "draft",
     delivery_status: "pending",
@@ -660,6 +662,9 @@ export function useEditInvoice(invoiceId: number) {
         invoice_date: values.invoice_date
           ? new Date(values.invoice_date)
           : null,
+        due_date: values.due_date
+          ? new Date(values.due_date)
+          : null,
         note: values.note,
         status: values.status,
         delivery_status: values.delivery_status,
@@ -922,6 +927,9 @@ export function useEditInvoice(invoiceId: number) {
           invoice_date: invoice.invoice_date
             ? getDateFormattedForField(new Date(invoice.invoice_date))
             : getDateFormattedForField(),
+          due_date: invoice.due_date
+            ? getDateFormattedForField(new Date(invoice.due_date))
+            : "",
           note: invoice.note || "",
           status: invoice.status || "draft",
           delivery_status: invoice.delivery_status || "pending",

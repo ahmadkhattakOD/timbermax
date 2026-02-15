@@ -129,7 +129,7 @@ export default function EditInvoice() {
   }
 
   // Check if invoice can be edited
-  const isEditable = currentStatus === "draft" || currentStatus === "sent";
+  const isEditable = currentStatus === "draft" || currentStatus === "sent" || currentStatus === "overdue";
 
   if (!isEditable) {
     return (
@@ -149,7 +149,7 @@ export default function EditInvoice() {
           This invoice cannot be edited
         </Typography>
         <Typography variant="body1" textAlign="center">
-          Only draft and sent invoices can be edited.
+          Only draft, sent, and overdue invoices can be edited.
           <br />
           Current status:{" "}
           <strong>
@@ -415,6 +415,7 @@ export default function EditInvoice() {
                           options={[
                             { label: "Draft", value: "draft" },
                             { label: "Sent", value: "sent" },
+                            { label: "Overdue", value: "overdue" },
                             { label: "Paid", value: "paid" },
                             { label: "Cancelled", value: "cancelled" },
                           ]}
@@ -630,6 +631,23 @@ export default function EditInvoice() {
                           value={values.invoice_date}
                           onChange={(e) => {
                             setFieldValue("invoice_date", e.target.value);
+                          }}
+                        />
+                      </Grid>
+
+                      {/* DUE DATE */}
+                      <Grid item xs={12} md={6}>
+                        <FormInput
+                          key="due_date"
+                          id={"due_date"}
+                          name={"due_date"}
+                          placeholder={"Due Date"}
+                          label="Due Date"
+                          type={"date"}
+                          optional={true}
+                          value={values.due_date}
+                          onChange={(e) => {
+                            setFieldValue("due_date", e.target.value);
                           }}
                         />
                       </Grid>

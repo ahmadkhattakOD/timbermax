@@ -22,6 +22,8 @@ export interface ValuesFilterInvoices {
   status?: string;
   invoice_date_from?: string;
   invoice_date_to?: string;
+  due_date_from?: string;
+  due_date_to?: string;
   created_at_from?: string;
   created_at_to?: string;
   item_name?: string;
@@ -115,11 +117,12 @@ export interface Invoice {
   customers?: Customer;
   quotation_id?: number | null;
   quotations?: Quotation;
-  status: "draft" | "sent" | "paid" | "cancelled";
+  status: "draft" | "sent" | "paid" | "cancelled" | "overdue";
   delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
   total: number;
   discount?: number;
   invoice_date: string | Date;
+  due_date?: string | Date;
   note?: string;
   created_at: string;
   updated_at?: string;

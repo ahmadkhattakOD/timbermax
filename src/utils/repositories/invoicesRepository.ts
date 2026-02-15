@@ -10,9 +10,10 @@ export interface InvoiceSupabase {
   quotation_id?: number | null;
   total: number;
   discount?: number;
-  status?: "draft" | "sent" | "paid" | "cancelled" | "converted";
+  status?: "draft" | "sent" | "paid" | "cancelled" | "converted" | "overdue";
   delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
   invoice_date?: Date | string;
+  due_date?: Date | string;
   note?: string;
   user?: string;
   created_at?: string;
@@ -116,6 +117,7 @@ quotations (
 total,
 status,
 invoice_date,
+due_date,
 note,
 created_at,
 updated_at,
@@ -173,6 +175,14 @@ ${this.itemsClassName} (
 
         if (filters.invoice_date_to) {
           query.lte("invoice_date", filters.invoice_date_to);
+        }
+
+        if (filters.due_date_from) {
+          query.gte("due_date", filters.due_date_from);
+        }
+
+        if (filters.due_date_to) {
+          query.lte("due_date", filters.due_date_to);
         }
 
         if (filters.created_at_from) {
@@ -266,7 +276,7 @@ ${this.itemsClassName} (
          address, suburb, state, post_code,
          customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ),
          quotation_id, quotations ( id, quotation_number ),
-         total, discount, status, invoice_date, note, payment_method, payment_date, created_at, updated_at,
+         total, discount, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
          ${this.itemsClassName} (
            id, item_id, quantity, unit_price, total_price, warehouse_id,
            items ( id, name, itemCode, sellPrice, gst )
@@ -468,6 +478,7 @@ ${this.itemsClassName} (
         total,
         status,
         invoice_date,
+        due_date,
         note,
         created_at,
         updated_at,
@@ -507,6 +518,12 @@ ${this.itemsClassName} (
         }
         if (filters.invoice_date_to) {
           query.lte("invoice_date", filters.invoice_date_to);
+        }
+        if (filters.due_date_from) {
+          query.gte("due_date", filters.due_date_from);
+        }
+        if (filters.due_date_to) {
+          query.lte("due_date", filters.due_date_to);
         }
         if (filters.created_at_from) {
           query.gte("created_at", filters.created_at_from);
@@ -561,6 +578,52 @@ ${this.itemsClassName} (
       console.error("Error fetching unpaid invoices:", error);
       return null;
     }
+  }
+
+  // Update overdue invoices
+  public async updateOverdueInvoices() {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Find all invoices that are past due date and not paid/cancelled
+      const { data, error } = await supabase
+        .from(this.className)
+        .update({
+          status: "overdue",
+          updated_at: new Date().toISOString()
+        })
+        .lt("due_date", today)
+        .in("status", ["draft", "sent"])
+        .not("due_date", "is", null)
+        .select();
+
+      if (error) {
+        console.error("Error updating overdue invoices:", error);
+        return { success: false, error: error.message, count: 0 };
+      }
+
+      return {
+        success: true,
+        count: data?.length || 0,
+        updatedInvoices: data
+      };
+    } catch (error: any) {
+      console.error("Error in updateOverdueInvoices:", error);
+      return { success: false, error: error.message, count: 0 };
+    }
+  }
+
+  // Check if a specific invoice is overdue (computed check)
+  public isInvoiceOverdue(invoice: InvoiceSupabase): boolean {
+    if (!invoice.due_date) return false;
+    if (invoice.status === "paid" || invoice.status === "cancelled") return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(invoice.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+
+    return dueDate < today;
   }
 
   // Create invoice from quotation

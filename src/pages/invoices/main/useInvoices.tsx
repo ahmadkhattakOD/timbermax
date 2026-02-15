@@ -95,10 +95,10 @@ const headCells: HeadCell[] = [
     label: "Note",
   },
   {
-    id: "invoice_date",
+    id: "due_date",
     numeric: false,
     disablePadding: true,
-    label: "Invoice Date",
+    label: "Due Date",
   },
   {
     id: "actions",
@@ -347,9 +347,9 @@ export function useInvoices() {
     isItemSelected: boolean,
   ) => {
     const itemsCount = row.invoice_items?.length || 0;
-    const canMarkPaid = row.status === "sent" || row.status === "draft";
+    const canMarkPaid = row.status === "sent" || row.status === "draft" || row.status === "overdue";
     const canCancel = row.status !== "cancelled" && row.status !== "paid";
-    const canMarkSent = row.status === "draft";
+    const canMarkSent = row.status === "draft" || row.status === "overdue";
     const canUpdateDelivery = row.status !== "cancelled";
     const canDownloadDeliveryNote =
       row.status !== "cancelled" && itemsCount > 0;
@@ -362,6 +362,7 @@ export function useInvoices() {
       sent: "info",
       paid: "success",
       cancelled: "error",
+      overdue: "error",
     };
 
     // Delivery status chip colors
@@ -447,10 +448,27 @@ export function useInvoices() {
         <TableCell sx={{ minWidth: 150 }}>
           <Typography variant="body2">{row.note || "-"}</Typography>
         </TableCell>
-        <TableCell sx={{ minWidth: 120 }}>
-          <Typography variant="body2">
-            {getDateFormatted(row.invoice_date)}
-          </Typography>
+        <TableCell sx={{ minWidth: 150 }}>
+          {row.due_date ? (
+            <Box>
+              <Typography variant="body2">
+                {getDateFormatted(row.due_date)}
+              </Typography>
+              {/* Show days overdue if applicable */}
+              {row.status === 'overdue' && (
+                <Typography variant="caption" color="error" fontWeight={600}>
+                  {Math.floor(
+                    (new Date().getTime() - new Date(row.due_date).getTime())
+                    / (1000 * 60 * 60 * 24)
+                  )} days overdue
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              No due date
+            </Typography>
+          )}
         </TableCell>
         <TableCell sx={{ minWidth: 300 }}>
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
@@ -1138,19 +1156,36 @@ export function useInvoices() {
     }
   };
 
+  // Check and update overdue invoices when component loads
   useEffect(() => {
-    getData();
+    const checkOverdueInvoices = async () => {
+      try {
+        const invoicesRepo = new InvoicesRepository();
+        const result = await invoicesRepo.updateOverdueInvoices();
+
+        if (result.success && result.count > 0) {
+          console.log(`✓ Updated ${result.count} overdue invoice(s)`);
+        }
+      } catch (error) {
+        console.error('Error checking overdue invoices:', error);
+      }
+    };
+
+    // Run overdue check before loading data
+    checkOverdueInvoices().then(() => {
+      getData();
+    });
   }, [getData, order, orderBy, page, rowsPerPage, filters]);
 
   const getDataCsv = () => {
     try {
       let csvString =
-        "Invoice Number,Customer,Total,Status,Delivery Status,Items Count,Invoice Date,Created Date,Note\n";
+        "Invoice Number,Customer,Total,Status,Delivery Status,Items Count,Due Date,Created Date,Note\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let invoice = data[i] as any;
-          csvString += `"${invoice.invoice_number ?? ""}","${invoice.customer?.name ?? ""}",${invoice.total ?? ""},"${invoice.status ?? ""}","${invoice.delivery_status ?? "pending"}","${invoice.invoice_items?.length || 0}","${getDateFormatted(invoice.invoice_date)}","${getDateFormatted(invoice.created_at)}","${invoice.note ?? ""}"\n`;
+          csvString += `"${invoice.invoice_number ?? ""}","${invoice.customer?.name ?? ""}",${invoice.total ?? ""},"${invoice.status ?? ""}","${invoice.delivery_status ?? "pending"}","${invoice.invoice_items?.length || 0}","${invoice.due_date ? getDateFormatted(invoice.due_date) : 'No due date'}","${getDateFormatted(invoice.created_at)}","${invoice.note ?? ""}"\n`;
         }
 
         setCsvData(csvString);

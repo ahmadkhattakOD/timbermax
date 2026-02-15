@@ -71,9 +71,10 @@ const FormInput = ({
           <Typography
             sx={{
               color: disabled
-                ? theme.palette.text.disabled
-                : theme.palette.text.primary,
+                ? theme.palette.text.secondary
+                : theme.palette.text.secondary,
               fontSize: "16px",
+              fontWeight: 500,
             }}
           >
             <FormattedMessage id={label} />
