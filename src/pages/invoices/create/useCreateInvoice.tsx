@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
   parseAddress,
+  stateAbbreviations,
   useDebouncedSearch,
   calculateItemTotal,
   calculateSubTotal,
 } from "utils/helpers";
+import { geocodeByPlaceId } from "react-google-places-autocomplete";
 import { openSnackbar } from "api/snackbar";
 import CustomersRepository, {
   CustomerSupabase,
@@ -333,20 +335,59 @@ export function useCreateInvoice() {
     }
   };
 
-  function changeAddress(newValue: any, actionMeta: any) {
+  async function changeAddress(
+    newValue: any,
+    actionMeta: any,
+    setFieldValue?: (field: string, value: any) => void,
+  ) {
+    const description = newValue?.value?.description ?? "";
+    let suburb = "";
+    let state = "";
+    let postCode = "";
+
+    // Use Google Places Details API for accurate address components
+    if (newValue?.value?.place_id) {
+      try {
+        const results = await geocodeByPlaceId(newValue.value.place_id);
+        const components = results[0]?.address_components ?? [];
+
+        suburb =
+          components.find((c: any) => c.types.includes("locality"))?.long_name ||
+          components.find((c: any) => c.types.includes("sublocality_level_1"))?.long_name ||
+          "";
+
+        const stateShort =
+          components.find((c: any) =>
+            c.types.includes("administrative_area_level_1"),
+          )?.short_name ?? "";
+        // Map abbreviation (e.g. "VIC") to full name (e.g. "Victoria")
+        state =
+          stateAbbreviations[stateShort as keyof typeof stateAbbreviations] ||
+          stateShort;
+
+        postCode =
+          components.find((c: any) => c.types.includes("postal_code"))
+            ?.long_name ?? "";
+      } catch (e) {
+        // Fallback to text parsing if geocoding fails
+        const parsed = parseAddress(description);
+        suburb = parsed.suburb;
+        state = parsed.state;
+      }
+    } else {
+      const parsed = parseAddress(description);
+      suburb = parsed.suburb;
+      state = parsed.state;
+    }
+
     if (selectedCustomer && selectedAddressIndex !== -1 && customerAddresses.length > 0) {
-      // Update selected address details
-      const addressComponents = parseAddress(newValue?.value?.description ?? "");
       const newAddressDetails = {
-        address: newValue?.value?.description ?? "",
-        suburb: addressComponents.suburb,
-        state: addressComponents.state,
-        post_code: "",
+        address: description,
+        suburb,
+        state,
+        post_code: postCode,
       };
-
       setSelectedAddressDetails(newAddressDetails);
-
-      // Update the specific address in the addresses array
       const updatedAddresses = [...customerAddresses];
       updatedAddresses[selectedAddressIndex] = {
         ...updatedAddresses[selectedAddressIndex],
@@ -354,17 +395,23 @@ export function useCreateInvoice() {
       };
       setCustomerAddresses(updatedAddresses);
     } else {
-      // For inline customers, use the existing behavior
-      const addressComponents = parseAddress(newValue?.value?.description ?? "");
-      setSelectedSuburb(addressComponents.suburb);
-      setSelectedState(addressComponents.state);
-      setSelectedAddress(newValue?.value?.description ?? "");
+      setSelectedSuburb(suburb);
+      setSelectedState(state);
+      setSelectedPostCode(postCode);
+      setSelectedAddress(description);
       setSelectedAddressDetails({
-        address: newValue?.value?.description ?? "",
-        suburb: addressComponents.suburb,
-        state: addressComponents.state,
-        post_code: "",
+        address: description,
+        suburb,
+        state,
+        post_code: postCode,
       });
+    }
+
+    // Always update Formik fields directly so the form reflects the new values
+    if (setFieldValue) {
+      setFieldValue("suburb", suburb);
+      setFieldValue("state", state);
+      setFieldValue("postCode", postCode);
     }
   }
 

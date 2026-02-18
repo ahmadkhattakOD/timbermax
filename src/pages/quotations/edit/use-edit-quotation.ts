@@ -4,11 +4,13 @@ import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
   parseAddress,
+  stateAbbreviations,
   useDebouncedSearch,
   getDateFormattedForField,
   calculateItemTotal,
   calculateSubTotal,
 } from "utils/helpers";
+import { geocodeByPlaceId } from "react-google-places-autocomplete";
 import CustomersRepository, {
   CustomerSupabase,
   CustomerAddress,
@@ -270,21 +272,66 @@ export function useEditQuotation(quotationId: number) {
     }
   };
 
-  function changeAddress(newValue: any, actionMeta: any) {
-    const addressComponents = parseAddress(newValue?.value?.description ?? "");
-    setSelectedAddress(newValue?.value?.description ?? "");
-    setSelectedSuburb(addressComponents.suburb);
-    setSelectedState(addressComponents.state);
-    setSelectedPostCode("");
+  async function changeAddress(
+    newValue: any,
+    actionMeta: any,
+    setFieldValue?: (field: string, value: any) => void,
+  ) {
+    const description = newValue?.value?.description ?? "";
+    let suburb = "";
+    let state = "";
+    let postCode = "";
 
-    // Update initial values
+    if (newValue?.value?.place_id) {
+      try {
+        const results = await geocodeByPlaceId(newValue.value.place_id);
+        const components = results[0]?.address_components ?? [];
+
+        suburb =
+          components.find((c: any) => c.types.includes("locality"))?.long_name ||
+          components.find((c: any) => c.types.includes("sublocality_level_1"))?.long_name ||
+          "";
+
+        const stateShort =
+          components.find((c: any) =>
+            c.types.includes("administrative_area_level_1"),
+          )?.short_name ?? "";
+        state =
+          stateAbbreviations[stateShort as keyof typeof stateAbbreviations] ||
+          stateShort;
+
+        postCode =
+          components.find((c: any) => c.types.includes("postal_code"))
+            ?.long_name ?? "";
+      } catch (e) {
+        const parsed = parseAddress(description);
+        suburb = parsed.suburb;
+        state = parsed.state;
+      }
+    } else {
+      const parsed = parseAddress(description);
+      suburb = parsed.suburb;
+      state = parsed.state;
+    }
+
+    setSelectedAddress(description);
+    setSelectedSuburb(suburb);
+    setSelectedState(state);
+    setSelectedPostCode(postCode);
+
     setInitialValues(prev => ({
       ...prev,
-      address: newValue?.value?.description ?? "",
-      suburb: addressComponents.suburb,
-      state: addressComponents.state,
-      postCode: "",
+      address: description,
+      suburb,
+      state,
+      postCode,
     }));
+
+    if (setFieldValue) {
+      setFieldValue("suburb", suburb);
+      setFieldValue("state", state);
+      setFieldValue("postCode", postCode);
+    }
   }
 
   function handleItemSearchChange(e: React.ChangeEvent<HTMLInputElement>) {

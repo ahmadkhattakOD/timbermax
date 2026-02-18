@@ -6,8 +6,10 @@ import {
   calculateItemTotal,
   calculateSubTotal,
   parseAddress,
+  stateAbbreviations,
   useDebouncedSearch,
 } from "utils/helpers";
+import { geocodeByPlaceId } from "react-google-places-autocomplete";
 import CustomersRepository, {
   CustomerSupabase,
   CustomerAddress,
@@ -243,20 +245,56 @@ export function useCreateQuotation() {
     }
   }, []);
 
-  function changeAddress(newValue: any, actionMeta: any) {
+  async function changeAddress(
+    newValue: any,
+    actionMeta: any,
+    setFieldValue?: (field: string, value: any) => void,
+  ) {
+    const description = newValue?.value?.description ?? "";
+    let suburb = "";
+    let state = "";
+    let postCode = "";
+
+    if (newValue?.value?.place_id) {
+      try {
+        const results = await geocodeByPlaceId(newValue.value.place_id);
+        const components = results[0]?.address_components ?? [];
+
+        suburb =
+          components.find((c: any) => c.types.includes("locality"))?.long_name ||
+          components.find((c: any) => c.types.includes("sublocality_level_1"))?.long_name ||
+          "";
+
+        const stateShort =
+          components.find((c: any) =>
+            c.types.includes("administrative_area_level_1"),
+          )?.short_name ?? "";
+        state =
+          stateAbbreviations[stateShort as keyof typeof stateAbbreviations] ||
+          stateShort;
+
+        postCode =
+          components.find((c: any) => c.types.includes("postal_code"))
+            ?.long_name ?? "";
+      } catch (e) {
+        const parsed = parseAddress(description);
+        suburb = parsed.suburb;
+        state = parsed.state;
+      }
+    } else {
+      const parsed = parseAddress(description);
+      suburb = parsed.suburb;
+      state = parsed.state;
+    }
+
     if (selectedCustomer && selectedAddressIndex !== -1 && customerAddresses.length > 0) {
-      // Update selected address details
-      const addressComponents = parseAddress(newValue?.value?.description ?? "");
       const newAddressDetails = {
-        address: newValue?.value?.description ?? "",
-        suburb: addressComponents.suburb,
-        state: addressComponents.state,
-        post_code: "",
+        address: description,
+        suburb,
+        state,
+        post_code: postCode,
       };
-      
       setSelectedAddressDetails(newAddressDetails);
-      
-      // Update the specific address in the addresses array
       const updatedAddresses = [...customerAddresses];
       updatedAddresses[selectedAddressIndex] = {
         ...updatedAddresses[selectedAddressIndex],
@@ -264,17 +302,22 @@ export function useCreateQuotation() {
       };
       setCustomerAddresses(updatedAddresses);
     } else {
-      // For inline customers, use the existing behavior
-      const addressComponents = parseAddress(newValue?.value?.description ?? "");
-      setSelectedSuburb(addressComponents.suburb);
-      setSelectedState(addressComponents.state);
-      setSelectedAddress(newValue?.value?.description ?? "");
+      setSelectedSuburb(suburb);
+      setSelectedState(state);
+      setSelectedPostCode(postCode);
+      setSelectedAddress(description);
       setSelectedAddressDetails({
-        address: newValue?.value?.description ?? "",
-        suburb: addressComponents.suburb,
-        state: addressComponents.state,
-        post_code: "",
+        address: description,
+        suburb,
+        state,
+        post_code: postCode,
       });
+    }
+
+    if (setFieldValue) {
+      setFieldValue("suburb", suburb);
+      setFieldValue("state", state);
+      setFieldValue("postCode", postCode);
     }
   }
 

@@ -398,11 +398,11 @@ export default function CreateQuotation() {
                                 name="address"
                                 placeholder="Address"
                                 onChange={(newValue, actionMeta) => {
-                                  changeAddress(newValue, actionMeta);
                                   setFieldValue(
                                     "address",
                                     newValue?.value?.description ?? ""
                                   );
+                                  changeAddress(newValue, actionMeta, setFieldValue);
                                 }}
                                 value={values.address}
                                 label="Address"
@@ -468,11 +468,11 @@ export default function CreateQuotation() {
                                   name="address"
                                   placeholder="Address"
                                   onChange={(newValue, actionMeta) => {
-                                    changeAddress(newValue, actionMeta);
                                     setFieldValue(
                                       "address",
                                       newValue?.value?.description ?? ""
                                     );
+                                    changeAddress(newValue, actionMeta, setFieldValue);
                                   }}
                                   value={values.address}
                                   label="Address"
