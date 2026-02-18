@@ -29,6 +29,7 @@ import InvoicesRepository from "utils/repositories/invoicesRepository";
 import {
   generateAndDownloadInvoicePDF,
   generateDeliveryNotePDF,
+  generateInvoicePDFBase64,
 } from "utils/invoice-pdf-generator";
 import { SnackbarProps } from "types/snackbar";
 import {
@@ -42,8 +43,11 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Collapse,
 } from "@mui/material";
-import { Download, Send, Wallet, Eye, Truck, X } from "lucide-react";
+import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, ChevronDown, ChevronUp } from "lucide-react";
+import emailjs from "@emailjs/browser";
+import supabase from "utils/supabase";
 import {
   calculateItemTotal,
   calculateTotalBreakdown,
@@ -167,6 +171,20 @@ export function useInvoices() {
     });
 
   const isActionLoading = (id: number) => actionLoadingIds.has(id);
+
+  // Email dialog state
+  type EmailTriggerType = "sent" | "paid" | "reminder";
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailTriggerType, setEmailTriggerType] = useState<EmailTriggerType | null>(null);
+  const [emailInvoiceData, setEmailInvoiceData] = useState<any>(null);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailShowHtml, setEmailShowHtml] = useState(false);
+  const [emailPdfBase64, setEmailPdfBase64] = useState<string>("");
+  const [emailPdfFileName, setEmailPdfFileName] = useState<string>("");
+  const [emailPdfDownloadUrl, setEmailPdfDownloadUrl] = useState<string>("");
 
   // Action functions
   const goToCreate = () => navigate("/invoices/create");
@@ -535,6 +553,29 @@ export function useInvoices() {
                       <CircularProgress size={18} thickness={5} />
                     ) : (
                       <Send size={18} />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+
+            {/* Send Reminder */}
+            {(row.status === "sent" || row.status === "overdue") && (
+              <Tooltip title="Send Reminder">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendReminder(row.id);
+                    }}
+                    color="warning"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <Bell size={18} />
                     )}
                   </IconButton>
                 </span>
@@ -991,43 +1032,534 @@ export function useInvoices() {
     </Dialog>
   );
 
-  // Action functions
-  const markAsSent = async (invoiceId: number) => {
-    try {
-      addActionLoadingId(invoiceId);
-      const invoicesRepo = new InvoicesRepository();
-      const result = await invoicesRepo.updateStatus(invoiceId, "sent");
+  // ========== EMAIL DIALOG FUNCTIONS ==========
 
-      if (result) {
+  const generateEmailBody = (
+    triggerType: EmailTriggerType,
+    invoice: any,
+    downloadUrl?: string,
+  ): { subject: string; body: string } => {
+    const name = invoice.customers?.name || "Customer";
+    const invNum = invoice.invoice_number || "";
+    const total = `$${(Number(invoice.total) || 0).toFixed(2)}`;
+    const dueDate = invoice.due_date
+      ? getDateFormatted(invoice.due_date)
+      : "";
+    const daysOverdue =
+      invoice.due_date
+        ? Math.max(
+            0,
+            Math.floor(
+              (new Date().getTime() - new Date(invoice.due_date).getTime()) /
+                (1000 * 60 * 60 * 24),
+            ),
+          )
+        : 0;
+
+    const header = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
+      <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
+      <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
+    </div>`;
+
+    const footer = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
+      <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
+      <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
+    </div>`;
+
+    const wrap = (content: string) =>
+      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">${header}<div style="padding:32px;">${content}</div>${footer}</div>`;
+
+    const downloadSection = downloadUrl
+      ? `<div style="text-align:center;margin:28px 0 8px 0;">
+          <a href="${downloadUrl}" target="_blank"
+             style="background-color:#9C6A3A;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:4px;font-size:15px;font-weight:600;display:inline-block;">
+            Download Invoice PDF
+          </a>
+          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">Link expires in 30 days</p>
+        </div>`
+      : "";
+
+    if (triggerType === "sent") {
+      return {
+        subject: `Invoice ${invNum} from Timber Max Supply`,
+        body: wrap(`
+          <p style="font-size:16px;color:#333;">Dear ${name},</p>
+          <p style="font-size:15px;color:#555;line-height:1.6;">
+            Your invoice <strong>${invNum}</strong> for <strong>${total}</strong> has been issued and is now available for payment.
+          </p>
+          ${dueDate ? `<p style="font-size:15px;color:#555;"><strong>Due Date:</strong> ${dueDate}</p>` : ""}
+          <div style="background-color:#fdf6ef;border-left:4px solid #9C6A3A;padding:16px;margin:24px 0;border-radius:4px;">
+            <p style="margin:0;font-size:14px;color:#333;">
+              <strong>Invoice:</strong> ${invNum}<br/>
+              <strong>Amount:</strong> ${total}<br/>
+              ${dueDate ? `<strong>Due:</strong> ${dueDate}` : ""}
+            </p>
+          </div>
+          ${downloadSection}
+          <p style="font-size:15px;color:#555;">If you have any questions regarding this invoice, please do not hesitate to contact us.</p>
+          <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
+        `),
+      };
+    }
+
+    if (triggerType === "paid") {
+      return {
+        subject: `Payment Confirmation - ${invNum}`,
+        body: wrap(`
+          <p style="font-size:16px;color:#333;">Dear ${name},</p>
+          <p style="font-size:15px;color:#555;line-height:1.6;">
+            Thank you for your payment of invoice <strong>${invNum}</strong> for <strong>${total}</strong>. Your payment has been received and recorded.
+          </p>
+          <div style="background-color:#edf7ed;border-left:4px solid #4caf50;padding:16px;margin:24px 0;border-radius:4px;">
+            <p style="margin:0;font-size:14px;color:#333;">
+              <strong>Status:</strong> PAID<br/>
+              <strong>Invoice:</strong> ${invNum}<br/>
+              <strong>Amount:</strong> ${total}
+            </p>
+          </div>
+          ${downloadSection}
+          <p style="font-size:15px;color:#555;">We appreciate your prompt payment and look forward to continued business with you.</p>
+          <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
+        `),
+      };
+    }
+
+    // reminder
+    return {
+      subject: `Payment Reminder - ${invNum}${daysOverdue > 0 ? " (Overdue)" : ""}`,
+      body: wrap(`
+        <p style="font-size:16px;color:#333;">Dear ${name},</p>
+        <p style="font-size:15px;color:#555;line-height:1.6;">
+          This is a friendly reminder that invoice <strong>${invNum}</strong> for <strong>${total}</strong> is overdue${daysOverdue > 0 ? ` by <strong>${daysOverdue} days</strong>` : ""}.
+        </p>
+        <div style="background-color:#fdecea;border-left:4px solid #f44336;padding:16px;margin:24px 0;border-radius:4px;">
+          <p style="margin:0;font-size:14px;color:#333;">
+            <strong>Invoice:</strong> ${invNum}<br/>
+            <strong>Amount Due:</strong> ${total}<br/>
+            ${dueDate ? `<strong>Due Date:</strong> ${dueDate}` : ""}
+          </p>
+        </div>
+        ${downloadSection}
+        <p style="font-size:15px;color:#555;">Please arrange payment at your earliest convenience. If payment has already been made, please disregard this notice.</p>
+        <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
+      `),
+    };
+  };
+
+  // Upload base64 PDF to Supabase Storage and return a 30-day signed URL
+  const uploadPdfToStorage = async (
+    base64DataUri: string,
+    invoiceNumber: string,
+  ): Promise<string | null> => {
+    try {
+      const base64Data = base64DataUri.split(",")[1] || base64DataUri;
+      const binaryStr = atob(base64Data);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const filePath = `invoices/${invoiceNumber}_${Date.now()}.pdf`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("gallery")
+        .upload(filePath, blob, { upsert: true, contentType: "application/pdf" });
+
+      if (uploadError || !uploadData) {
+        console.error("Failed to upload PDF to storage:", uploadError);
+        return null;
+      }
+
+      const { data: urlData } = await supabase.storage
+        .from("gallery")
+        .createSignedUrl(uploadData.path, 60 * 60 * 24 * 30); // 30 days
+
+      return urlData?.signedUrl || null;
+    } catch (e) {
+      console.error("Error uploading PDF to storage:", e);
+      return null;
+    }
+  };
+
+  const openEmailDialog = async (triggerType: EmailTriggerType, row: any) => {
+    // Open dialog immediately with body (no PDF link yet)
+    const { subject, body } = generateEmailBody(triggerType, row);
+    setEmailTriggerType(triggerType);
+    setEmailInvoiceData(row);
+    setEmailTo(row.customers?.email || "");
+    setEmailSubject(subject);
+    setEmailBody(body);
+    setEmailPdfBase64("");
+    setEmailPdfFileName("");
+    setEmailPdfDownloadUrl("");
+    setEmailDialogOpen(true);
+
+    // Generate compressed PDF, upload to storage, then inject download link into body
+    try {
+      const invoicesRepo = new InvoicesRepository();
+      const invoiceResponse: any = await invoicesRepo.getSingle(row.id);
+      if (invoiceResponse?.invoiceData) {
+        const pdfResult = await generateInvoicePDFBase64(invoiceResponse.invoiceData);
+        if (pdfResult.success && pdfResult.base64) {
+          const fileName = pdfResult.fileName || `invoice_${row.invoice_number}.pdf`;
+          setEmailPdfBase64(pdfResult.base64);
+          setEmailPdfFileName(fileName);
+
+          // Upload and get a real signed URL
+          const downloadUrl = await uploadPdfToStorage(pdfResult.base64, row.invoice_number);
+          if (downloadUrl) {
+            setEmailPdfDownloadUrl(downloadUrl);
+            // Re-generate body with the download button injected
+            const { body: updatedBody } = generateEmailBody(triggerType, row, downloadUrl);
+            setEmailBody(updatedBody);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to generate/upload PDF for email:", e);
+    }
+  };
+
+  const closeEmailDialog = () => {
+    setEmailDialogOpen(false);
+    setEmailTriggerType(null);
+    setEmailInvoiceData(null);
+    setEmailTo("");
+    setEmailSubject("");
+    setEmailBody("");
+    setEmailSending(false);
+    setEmailShowHtml(false);
+    setEmailPdfBase64("");
+    setEmailPdfFileName("");
+    setEmailPdfDownloadUrl("");
+  };
+
+  const proceedAfterEmail = async () => {
+    if (!emailInvoiceData) return;
+    const invoiceId = emailInvoiceData.id;
+
+    if (emailTriggerType === "sent") {
+      try {
+        addActionLoadingId(invoiceId);
+        const invoicesRepo = new InvoicesRepository();
+        const result = await invoicesRepo.updateStatus(invoiceId, "sent");
+        if (result) {
+          openSnackbar({
+            open: true,
+            message: "Invoice marked as sent",
+            variant: "alert",
+            alert: { color: "success" },
+          } as SnackbarProps);
+          await getData();
+        } else {
+          throw new Error("Failed to update status");
+        }
+      } catch (error: any) {
         openSnackbar({
           open: true,
-          message: "Invoice marked as sent",
+          message: `Failed to mark as sent: ${error.message}`,
           variant: "alert",
-          alert: { color: "success" },
+          alert: { color: "error" },
         } as SnackbarProps);
-        await getData();
-      } else {
-        throw new Error("Failed to update status");
+      } finally {
+        removeActionLoadingId(invoiceId);
       }
-    } catch (error: any) {
-      console.error("Error marking invoice as sent:", error);
+    } else if (emailTriggerType === "paid") {
+      // Chain into the existing payment method dialog
+      setSelectedInvoiceForPayment(invoiceId);
+      setSelectedPaymentMethod("");
+      setCustomPaymentMethod("");
+      setPaymentMethodDialogOpen(true);
+    }
+    // For "reminder" — no status change needed
+  };
+
+  const sendEmail = async () => {
+    if (!emailTo) {
       openSnackbar({
         open: true,
-        message: `Failed to mark as sent: ${error.message}`,
+        message: "Customer email address is missing.",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+      return;
+    }
+
+    try {
+      setEmailSending(true);
+
+      const templateParams: Record<string, string> = {
+        to_email: emailTo,
+        subject: emailSubject,
+        body: emailBody,
+      };
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      );
+
+      openSnackbar({
+        open: true,
+        message: `Email sent to ${emailTo}`,
+        variant: "alert",
+        alert: { color: "success" },
+      } as SnackbarProps);
+
+      await proceedAfterEmail();
+    } catch (error: any) {
+      console.error("EmailJS error:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to send email: ${error?.text || error?.message || "Unknown error"}`,
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
     } finally {
-      removeActionLoadingId(invoiceId);
+      setEmailSending(false);
+      closeEmailDialog();
     }
   };
 
-  const markAsPaid = async (invoiceId: number) => {
-    // Open payment method dialog instead of directly marking as paid
-    setSelectedInvoiceForPayment(invoiceId);
-    setSelectedPaymentMethod("");
-    setCustomPaymentMethod("");
-    setPaymentMethodDialogOpen(true);
+  const skipEmail = async () => {
+    await proceedAfterEmail();
+    closeEmailDialog();
+  };
+
+  const sendReminder = (invoiceId: number) => {
+    const row = data.find((inv: any) => inv.id === invoiceId);
+    if (!row) return;
+    openEmailDialog("reminder", row);
+  };
+
+  // Memoized Email Dialog component
+  const EmailDialog = useMemo(
+    () => {
+      const triggerTitles: Record<string, string> = {
+        sent: "Send Invoice Email",
+        paid: "Send Payment Confirmation",
+        reminder: "Send Payment Reminder",
+      };
+
+      const triggerColors: Record<string, string> = {
+        sent: "#9C6A3A",
+        paid: "#4caf50",
+        reminder: "#f44336",
+      };
+
+      const accentColor = triggerColors[emailTriggerType || "sent"];
+
+      return (
+        <Dialog
+          open={emailDialogOpen}
+          onClose={closeEmailDialog}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: { borderRadius: 2, overflow: "hidden" },
+          }}
+        >
+          {/* Colored header bar */}
+          <Box sx={{ backgroundColor: accentColor, px: 3, py: 2 }}>
+            <Typography variant="h6" sx={{ color: "#fff", fontWeight: 600 }}>
+              {triggerTitles[emailTriggerType || "sent"]}
+            </Typography>
+            {emailInvoiceData && (
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
+                {emailInvoiceData.invoice_number} — {emailInvoiceData.customers?.name || "Customer"}
+              </Typography>
+            )}
+          </Box>
+
+          <DialogContent sx={{ px: 3, py: 2.5 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+              {/* To & Subject fields */}
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <TextField
+                  label="To"
+                  value={emailTo}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                  size="small"
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  fullWidth
+                  size="small"
+                  sx={{ flex: 2 }}
+                />
+              </Box>
+
+              {/* PDF Attachment indicator */}
+              <Box sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                backgroundColor: "#9C6A3A",
+                borderRadius: 1.5,
+                px: 2,
+                py: 1.5,
+              }}>
+                <Download size={18} style={{ color: "#fff", flexShrink: 0 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" fontWeight={600} sx={{ color: "#fff" }}>
+                    {emailPdfFileName || "Invoice PDF"}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)" }}>
+                    {emailPdfDownloadUrl
+                      ? "Download link ready — included in email body"
+                      : emailPdfBase64
+                      ? "Uploading to get download link…"
+                      : "Generating PDF…"}
+                  </Typography>
+                </Box>
+                {emailPdfDownloadUrl ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.href = emailPdfBase64;
+                      link.download = emailPdfFileName;
+                      link.click();
+                    }}
+                    sx={{
+                      textTransform: "none",
+                      flexShrink: 0,
+                      borderColor: "#fff",
+                      color: "#fff",
+                      "&:hover": { borderColor: "#fff", backgroundColor: "rgba(255,255,255,0.15)" },
+                    }}
+                  >
+                    Preview PDF
+                  </Button>
+                ) : (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <CircularProgress size={16} sx={{ color: "#fff" }} />
+                    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>
+                      {emailPdfBase64 ? "Uploading…" : "Generating…"}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Email Preview — main view */}
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Email Preview
+                </Typography>
+                <Box
+                  sx={{
+                    border: "1px solid #e0e0e0",
+                    borderRadius: 2,
+                    overflow: "hidden",
+                    maxHeight: 400,
+                    overflowY: "auto",
+                    backgroundColor: "#fff",
+                    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
+                  }}
+                  dangerouslySetInnerHTML={{ __html: emailBody }}
+                />
+              </Box>
+
+              {/* Advanced: Edit HTML toggle */}
+              <Box>
+                <Button
+                  size="small"
+                  onClick={() => setEmailShowHtml(!emailShowHtml)}
+                  startIcon={<Code size={14} />}
+                  endIcon={emailShowHtml ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  sx={{ textTransform: "none", color: "text.secondary", fontSize: "13px" }}
+                >
+                  {emailShowHtml ? "Hide HTML Editor" : "Edit HTML (Advanced)"}
+                </Button>
+                <Collapse in={emailShowHtml}>
+                  <TextField
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    fullWidth
+                    multiline
+                    rows={12}
+                    size="small"
+                    sx={{ mt: 1 }}
+                    InputProps={{
+                      sx: { fontFamily: "monospace", fontSize: "12px" },
+                    }}
+                  />
+                </Collapse>
+              </Box>
+            </Box>
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1 }}>
+            {emailTriggerType !== "reminder" && (
+              <Button
+                onClick={skipEmail}
+                variant="outlined"
+                color="inherit"
+                disabled={emailSending}
+                sx={{ textTransform: "none", mr: "auto" }}
+              >
+                Skip Email
+              </Button>
+            )}
+            <Button
+              onClick={closeEmailDialog}
+              color="inherit"
+              disabled={emailSending}
+              sx={{ textTransform: "none" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={sendEmail}
+              variant="contained"
+              disabled={emailSending || !emailTo || !emailPdfDownloadUrl}
+              startIcon={emailSending ? <CircularProgress size={16} /> : <Send size={16} />}
+              sx={{
+                textTransform: "none",
+                backgroundColor: accentColor,
+                "&:hover": { backgroundColor: accentColor, opacity: 0.9 },
+              }}
+            >
+              {emailSending ? "Sending..." : "Send Email"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      );
+    },
+    [
+      emailDialogOpen,
+      emailTriggerType,
+      emailInvoiceData,
+      emailTo,
+      emailSubject,
+      emailBody,
+      emailSending,
+      emailShowHtml,
+      emailPdfBase64,
+      emailPdfFileName,
+      emailPdfDownloadUrl,
+    ]
+  );
+
+  // ========== ACTION FUNCTIONS ==========
+
+  const markAsSent = (invoiceId: number) => {
+    const row = data.find((inv: any) => inv.id === invoiceId);
+    if (!row) return;
+    openEmailDialog("sent", row);
+  };
+
+  const markAsPaid = (invoiceId: number) => {
+    const row = data.find((inv: any) => inv.id === invoiceId);
+    if (!row) return;
+    openEmailDialog("paid", row);
   };
 
   const cancelInvoice = async (invoiceId: number) => {
@@ -1239,14 +1771,19 @@ export function useInvoices() {
 
       // Use the appropriate method based on status
       if (status === "paid") {
-        // Close status menu and open payment method dialog
+        // Route through email dialog first
+        const row = data.find((inv: any) => inv.id === selectedInvoiceForStatus);
         setStatusMenuAnchor(null);
-        setSelectedInvoiceForPayment(selectedInvoiceForStatus);
         setSelectedInvoiceForStatus(null);
-        setSelectedPaymentMethod("");
-        setCustomPaymentMethod("");
-        setPaymentMethodDialogOpen(true);
-        return; // Exit early, payment will be confirmed in dialog
+        if (row) openEmailDialog("paid", row);
+        return;
+      } else if (status === "sent") {
+        // Route through email dialog first
+        const row = data.find((inv: any) => inv.id === selectedInvoiceForStatus);
+        setStatusMenuAnchor(null);
+        setSelectedInvoiceForStatus(null);
+        if (row) openEmailDialog("sent", row);
+        return;
       } else if (status === "cancelled") {
         const result = await invoicesRepo.cancelInvoice(selectedInvoiceForStatus);
         if (result?.success) {
@@ -1261,7 +1798,7 @@ export function useInvoices() {
           throw new Error(result?.error || "Failed to cancel invoice");
         }
       } else {
-        // For draft and sent status, use updateStatus
+        // For draft status, use updateStatus
         const result = await invoicesRepo.updateStatus(selectedInvoiceForStatus, status as any);
         if (result) {
           openSnackbar({
@@ -1349,6 +1886,7 @@ export function useInvoices() {
     // Components
     ItemsModal,
     PaymentMethodDialog,
+    EmailDialog,
 
     // Constants
     headCells,

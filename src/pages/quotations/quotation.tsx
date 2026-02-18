@@ -51,6 +51,7 @@ export default function Quotations() {
     setSearchValue,
     convertToInvoice,
     ItemsModal,
+    EmailDialog,
     statusMenuAnchor,
     selectedQuotationForStatus,
     setStatusMenuAnchor,
@@ -267,6 +268,7 @@ export default function Quotations() {
         }
       />
       <ItemsModal />
+      {EmailDialog}
 
       {/* Quotation Status Menu */}
       <Menu

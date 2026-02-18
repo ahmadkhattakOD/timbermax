@@ -1,5 +1,5 @@
 // hooks/useQuotations.ts (UPDATED - Corrected snackbar typings)
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Checkbox,
@@ -11,6 +11,9 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
+  TextField,
+  Collapse,
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -26,12 +29,15 @@ import {
   Truck,
   Xd,
 } from "iconsax-react";
-import { X } from "lucide-react";
+import { X, Download, Send as SendIcon, Code, ChevronDown, ChevronUp } from "lucide-react";
 import {
   generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
+  generateQuotationPDFBase64,
   openQuotationPDFInNewTab,
 } from "utils/quotation-pdf-generator";
+import emailjs from "@emailjs/browser";
+import supabase from "utils/supabase";
 import { Quotation } from "types";
 import {
   getDateFormatted,
@@ -215,6 +221,18 @@ export function useQuotations() {
   const [selectedQuotationForStatus, setSelectedQuotationForStatus] = useState<
     number | null
   >(null);
+
+  // Email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailQuotationData, setEmailQuotationData] = useState<any>(null);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailShowHtml, setEmailShowHtml] = useState(false);
+  const [emailPdfBase64, setEmailPdfBase64] = useState<string>("");
+  const [emailPdfFileName, setEmailPdfFileName] = useState<string>("");
+  const [emailPdfDownloadUrl, setEmailPdfDownloadUrl] = useState<string>("");
 
   function goToCreate() {
     navigate("/quotations/create");
@@ -671,61 +689,408 @@ export function useQuotations() {
       </>
     );
   }
-  // Add new functions to useQuotations hook
-  async function markAsSent(quotationId: number) {
+  // ========== EMAIL DIALOG FUNCTIONS ==========
+
+  const generateQuotationEmailBody = (
+    quotation: any,
+    downloadUrl?: string,
+  ): { subject: string; body: string } => {
+    const name = quotation.customer?.name || quotation.customers?.name || "Customer";
+    const quotNum = quotation.quotation_number || "";
+    const total = `$${(Number(quotation.total) || 0).toFixed(2)}`;
+    const validUntil = quotation.valid_until ? getDateFormatted(quotation.valid_until) : "";
+
+    const header = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
+      <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
+      <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
+    </div>`;
+
+    const footer = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
+      <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
+      <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
+    </div>`;
+
+    const wrap = (content: string) =>
+      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">${header}<div style="padding:32px;">${content}</div>${footer}</div>`;
+
+    const downloadSection = downloadUrl
+      ? `<div style="text-align:center;margin:28px 0 8px 0;">
+          <a href="${downloadUrl}" target="_blank"
+             style="background-color:#9C6A3A;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:4px;font-size:15px;font-weight:600;display:inline-block;">
+            Download Quotation PDF
+          </a>
+          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">Link expires in 30 days</p>
+        </div>`
+      : "";
+
+    return {
+      subject: `Quotation ${quotNum} from Timber Max Supply`,
+      body: wrap(`
+        <p style="font-size:16px;color:#333;">Dear ${name},</p>
+        <p style="font-size:15px;color:#555;line-height:1.6;">
+          Please find your quotation <strong>${quotNum}</strong> for <strong>${total}</strong> from Timber Max Supply.
+        </p>
+        <div style="background-color:#fdf6ef;border-left:4px solid #9C6A3A;padding:16px;margin:24px 0;border-radius:4px;">
+          <p style="margin:0;font-size:14px;color:#333;">
+            <strong>Quotation:</strong> ${quotNum}<br/>
+            <strong>Amount:</strong> ${total}<br/>
+            ${validUntil ? `<strong>Valid Until:</strong> ${validUntil}` : ""}
+          </p>
+        </div>
+        ${downloadSection}
+        <p style="font-size:15px;color:#555;">If you have any questions regarding this quotation, please do not hesitate to contact us.</p>
+        <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
+      `),
+    };
+  };
+
+  const uploadQuotationPdfToStorage = async (
+    base64DataUri: string,
+    quotationNumber: string,
+  ): Promise<string | null> => {
+    try {
+      const base64Data = base64DataUri.split(",")[1] || base64DataUri;
+      const binaryStr = atob(base64Data);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const filePath = `quotations/${quotationNumber}_${Date.now()}.pdf`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("gallery")
+        .upload(filePath, blob, { upsert: true, contentType: "application/pdf" });
+
+      if (uploadError || !uploadData) {
+        console.error("Failed to upload quotation PDF to storage:", uploadError);
+        return null;
+      }
+
+      const { data: urlData } = await supabase.storage
+        .from("gallery")
+        .createSignedUrl(uploadData.path, 60 * 60 * 24 * 30); // 30 days
+
+      return urlData?.signedUrl || null;
+    } catch (e) {
+      console.error("Error uploading quotation PDF to storage:", e);
+      return null;
+    }
+  };
+
+  const openQuotationEmailDialog = async (row: any) => {
+    const { subject, body } = generateQuotationEmailBody(row);
+    setEmailQuotationData(row);
+    setEmailTo(row.customer?.email || row.customers?.email || "");
+    setEmailSubject(subject);
+    setEmailBody(body);
+    setEmailPdfBase64("");
+    setEmailPdfFileName("");
+    setEmailPdfDownloadUrl("");
+    setEmailDialogOpen(true);
+
     try {
       const quotationsRepo = new QuotationsRepository();
-      const result = await quotationsRepo.updateStatus(quotationId, "sent");
+      const quotationResponse = await quotationsRepo.getSingle(row.id);
+      if (quotationResponse?.quotationData) {
+        const pdfResult = await generateQuotationPDFBase64(quotationResponse.quotationData);
+        if (pdfResult.success && pdfResult.base64) {
+          const fileName = pdfResult.fileName || `quotation_${row.quotation_number}.pdf`;
+          setEmailPdfBase64(pdfResult.base64);
+          setEmailPdfFileName(fileName);
 
+          const downloadUrl = await uploadQuotationPdfToStorage(pdfResult.base64, row.quotation_number);
+          if (downloadUrl) {
+            setEmailPdfDownloadUrl(downloadUrl);
+            const { body: updatedBody } = generateQuotationEmailBody(row, downloadUrl);
+            setEmailBody(updatedBody);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to generate/upload quotation PDF for email:", e);
+    }
+  };
+
+  const closeQuotationEmailDialog = () => {
+    setEmailDialogOpen(false);
+    setEmailQuotationData(null);
+    setEmailTo("");
+    setEmailSubject("");
+    setEmailBody("");
+    setEmailSending(false);
+    setEmailShowHtml(false);
+    setEmailPdfBase64("");
+    setEmailPdfFileName("");
+    setEmailPdfDownloadUrl("");
+  };
+
+  const proceedAfterQuotationEmail = async () => {
+    if (!emailQuotationData) return;
+    try {
+      const quotationsRepo = new QuotationsRepository();
+      const result = await quotationsRepo.updateStatus(emailQuotationData.id, "sent");
       if (result.success) {
         openSnackbar({
-          action: false,
           open: true,
           message: "Quotation marked as sent",
-          anchorOrigin: { vertical: "bottom", horizontal: "right" },
           variant: "alert",
-          alert: {
-            color: "success",
-            variant: "filled",
-          },
-          transition: "Fade",
-          close: true,
-          actionButton: false,
+          alert: { color: "success" },
         } as SnackbarProps);
         await getData();
       } else {
-        openSnackbar({
-          action: false,
-          open: true,
-          message: `Failed to mark as sent: ${result.error}`,
-          anchorOrigin: { vertical: "bottom", horizontal: "right" },
-          variant: "alert",
-          alert: {
-            color: "error",
-            variant: "filled",
-          },
-          transition: "Fade",
-          close: true,
-          actionButton: false,
-        } as SnackbarProps);
+        throw new Error(result.error || "Failed to update status");
       }
     } catch (error: any) {
-      console.error("Error marking quotation as sent:", error);
       openSnackbar({
-        action: false,
         open: true,
         message: `Failed to mark as sent: ${error.message}`,
-        anchorOrigin: { vertical: "bottom", horizontal: "right" },
         variant: "alert",
-        alert: {
-          color: "error",
-          variant: "filled",
-        },
-        transition: "Fade",
-        close: true,
-        actionButton: false,
+        alert: { color: "error" },
       } as SnackbarProps);
     }
+  };
+
+  const sendQuotationEmail = async () => {
+    if (!emailTo) {
+      openSnackbar({
+        open: true,
+        message: "Customer email address is missing.",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+      return;
+    }
+    try {
+      setEmailSending(true);
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        { to_email: emailTo, subject: emailSubject, body: emailBody },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      );
+      openSnackbar({
+        open: true,
+        message: `Email sent to ${emailTo}`,
+        variant: "alert",
+        alert: { color: "success" },
+      } as SnackbarProps);
+      await proceedAfterQuotationEmail();
+    } catch (error: any) {
+      console.error("EmailJS error:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to send email: ${error?.text || error?.message || "Unknown error"}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setEmailSending(false);
+      closeQuotationEmailDialog();
+    }
+  };
+
+  const skipQuotationEmail = async () => {
+    await proceedAfterQuotationEmail();
+    closeQuotationEmailDialog();
+  };
+
+  // Memoized Email Dialog for quotations
+  const EmailDialog = useMemo(
+    () => (
+      <Dialog
+        open={emailDialogOpen}
+        onClose={closeQuotationEmailDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2, overflow: "hidden" } }}
+      >
+        {/* Header bar */}
+        <Box sx={{ backgroundColor: "#9C6A3A", px: 3, py: 2 }}>
+          <Typography variant="h6" sx={{ color: "#fff", fontWeight: 600 }}>
+            Send Quotation Email
+          </Typography>
+          {emailQuotationData && (
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
+              {emailQuotationData.quotation_number} — {emailQuotationData.customer?.name || emailQuotationData.customers?.name || "Customer"}
+            </Typography>
+          )}
+        </Box>
+
+        <DialogContent sx={{ px: 3, py: 2.5 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            {/* To & Subject */}
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                label="To"
+                value={emailTo}
+                InputProps={{ readOnly: true }}
+                fullWidth
+                size="small"
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                fullWidth
+                size="small"
+                sx={{ flex: 2 }}
+              />
+            </Box>
+
+            {/* PDF attachment indicator */}
+            <Box sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              backgroundColor: "#9C6A3A",
+              borderRadius: 1.5,
+              px: 2,
+              py: 1.5,
+            }}>
+              <Download size={18} style={{ color: "#fff", flexShrink: 0 }} />
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight={600} sx={{ color: "#fff" }}>
+                  {emailPdfFileName || "Quotation PDF"}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)" }}>
+                  {emailPdfDownloadUrl
+                    ? "Download link ready — included in email body"
+                    : emailPdfBase64
+                    ? "Uploading to get download link…"
+                    : "Generating PDF…"}
+                </Typography>
+              </Box>
+              {emailPdfDownloadUrl ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = emailPdfBase64;
+                    link.download = emailPdfFileName;
+                    link.click();
+                  }}
+                  sx={{
+                    textTransform: "none",
+                    flexShrink: 0,
+                    borderColor: "#fff",
+                    color: "#fff",
+                    "&:hover": { borderColor: "#fff", backgroundColor: "rgba(255,255,255,0.15)" },
+                  }}
+                >
+                  Preview PDF
+                </Button>
+              ) : (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CircularProgress size={16} sx={{ color: "#fff" }} />
+                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>
+                    {emailPdfBase64 ? "Uploading…" : "Generating…"}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Email Preview */}
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                Email Preview
+              </Typography>
+              <Box
+                sx={{
+                  border: "1px solid #e0e0e0",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                  maxHeight: 400,
+                  overflowY: "auto",
+                  backgroundColor: "#fff",
+                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
+                }}
+                dangerouslySetInnerHTML={{ __html: emailBody }}
+              />
+            </Box>
+
+            {/* Advanced HTML editor */}
+            <Box>
+              <Button
+                size="small"
+                onClick={() => setEmailShowHtml(!emailShowHtml)}
+                startIcon={<Code size={14} />}
+                endIcon={emailShowHtml ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                sx={{ textTransform: "none", color: "text.secondary", fontSize: "13px" }}
+              >
+                {emailShowHtml ? "Hide HTML Editor" : "Edit HTML (Advanced)"}
+              </Button>
+              <Collapse in={emailShowHtml}>
+                <TextField
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  fullWidth
+                  multiline
+                  rows={12}
+                  size="small"
+                  sx={{ mt: 1 }}
+                  InputProps={{ sx: { fontFamily: "monospace", fontSize: "12px" } }}
+                />
+              </Collapse>
+            </Box>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1 }}>
+          <Button
+            onClick={skipQuotationEmail}
+            variant="outlined"
+            color="inherit"
+            disabled={emailSending}
+            sx={{ textTransform: "none", mr: "auto" }}
+          >
+            Skip Email
+          </Button>
+          <Button
+            onClick={closeQuotationEmailDialog}
+            color="inherit"
+            disabled={emailSending}
+            sx={{ textTransform: "none" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={sendQuotationEmail}
+            variant="contained"
+            disabled={emailSending || !emailTo || !emailPdfDownloadUrl}
+            startIcon={emailSending ? <CircularProgress size={16} /> : <SendIcon size={16} />}
+            sx={{
+              textTransform: "none",
+              backgroundColor: "#9C6A3A",
+              "&:hover": { backgroundColor: "#9C6A3A", opacity: 0.9 },
+            }}
+          >
+            {emailSending ? "Sending…" : "Send Email"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    ),
+    [
+      emailDialogOpen,
+      emailQuotationData,
+      emailTo,
+      emailSubject,
+      emailBody,
+      emailSending,
+      emailShowHtml,
+      emailPdfBase64,
+      emailPdfFileName,
+      emailPdfDownloadUrl,
+    ]
+  );
+
+  // Add new functions to useQuotations hook
+  async function markAsSent(quotationId: number) {
+    const row = data.find((q: any) => q.id === quotationId);
+    if (!row) return;
+    openQuotationEmailDialog(row);
   }
 
   async function markAsApproved(quotationId: number) {
@@ -1315,10 +1680,17 @@ export function useQuotations() {
   const handleStatusUpdate = async (status: string) => {
     if (!selectedQuotationForStatus) return;
 
+    // "sent" routes through the email dialog
+    if (status === "sent") {
+      const row = data.find((q: any) => q.id === selectedQuotationForStatus);
+      setStatusMenuAnchor(null);
+      setSelectedQuotationForStatus(null);
+      if (row) openQuotationEmailDialog(row);
+      return;
+    }
+
     try {
       const quotationsRepo = new QuotationsRepository();
-
-      // Use updateStatus for all status changes
       const result = await quotationsRepo.updateStatus(
         selectedQuotationForStatus,
         status as any
@@ -1402,6 +1774,7 @@ export function useQuotations() {
     downloadQuotationPDF,
     previewQuotationPDF,
     ItemsModal,
+    EmailDialog,
     // Constants
     headCells,
   };

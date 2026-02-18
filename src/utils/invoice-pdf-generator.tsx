@@ -46,220 +46,217 @@ const COMPANY_INFO = {
   website: "timbermax.com.au",
 };
 
+// Shared helper that builds invoice PDF content onto a jsPDF doc
+const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
+  await addCompanyLogo(doc, 14, 20);
+
+  // Header
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("TAX INVOICE", 105, 45, { align: "center" });
+
+  // Company Info
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(COMPANY_INFO.name, 14, 60);
+  doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+  doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+  doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+  doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
+
+  // Invoice Info (right aligned)
+  doc.setFont("helvetica", "normal");
+  doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 60, {
+    align: "right",
+  });
+  doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 180, 65, {
+    align: "right",
+  });
+  doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 70, {
+    align: "right",
+  });
+  if (invoice.delivery_status) {
+    doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 75, {
+      align: "right",
+    });
+  }
+  if (invoice.quotation_id) {
+    doc.text(`Ref Quote: ${invoice.quotation_id}`, 180, 80, {
+      align: "right",
+    });
+  }
+
+  // Customer Info
+  const customer = invoice.customer;
+  doc.setFont("helvetica", "bold");
+  doc.text("BILL TO:", 14, 95);
+  doc.setFont("helvetica", "normal");
+  doc.text(customer?.name || "N/A", 14, 100);
+  doc.text(invoice.address || "", 14, 105);
+  if (invoice.suburb) {
+    doc.text(
+      `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
+      14,
+      110,
+    );
+  }
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
+  doc.text(`Email: ${customer?.email || "N/A"}`, 14, 125);
+
+  // Items Table
+  const items = invoice.invoice_items || [];
+  const tableData = items.map((item: any, index: number) => {
+    const quantity = parseFloat(item.quantity) || 0;
+    const unitPrice = parseFloat(item.unit_price) || 0;
+    const subtotal = quantity * unitPrice;
+    const gst = item.items?.gst || false;
+
+    const itemName = item.items?.name || "N/A";
+    const itemNameWithGst = gst ? `${itemName} *` : itemName;
+
+    return [
+      index + 1,
+      itemNameWithGst,
+      item.items?.itemCode || "N/A",
+      quantity.toFixed(2),
+      `$${unitPrice.toFixed(2)}`,
+      `$${subtotal.toFixed(2)}`,
+    ];
+  });
+
+  // Calculate totals
+  let totalSubtotal = 0;
+  let totalGST = 0;
+  let subtotalWithGST = 0;
+
+  items.forEach((item: any) => {
+    const quantity = parseFloat(item.quantity) || 0;
+    const unitPrice = parseFloat(item.unit_price) || 0;
+    const subtotal = quantity * unitPrice;
+    const gst = item.items?.gst || false;
+    const gstAmount = gst ? subtotal * 0.1 : 0;
+
+    totalSubtotal += subtotal;
+    totalGST += gstAmount;
+    subtotalWithGST += subtotal + gstAmount;
+  });
+
+  const discountPercent = invoice.discount || 0;
+  const discountAmount = (subtotalWithGST * discountPercent) / 100;
+  const grandTotal = subtotalWithGST - discountAmount;
+
+  autoTable(doc, {
+    startY: 135,
+    head: [["#", "Description", "Code", "Qty", "Unit Price", "Total"]],
+    body: tableData,
+    theme: "grid",
+    headStyles: {
+      fillColor: BRAND_COLORS.primary as any,
+      textColor: 255,
+    },
+    styles: {
+      fontSize: 8,
+      lineColor: BRAND_COLORS.tableBorder as any,
+      textColor: BRAND_COLORS.textDark as any,
+    },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 20 },
+      4: { cellWidth: 30 },
+      5: { cellWidth: 30 },
+    },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.text(
+    "* Items marked with an asterisk (*) are GST applicable",
+    14,
+    finalY,
+  );
+
+  // Summary Section
+  const summaryY = finalY + 10;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Payment Summary:", 120, summaryY);
+
+  doc.setFont("helvetica", "normal");
+  let currentY = summaryY + 10;
+
+  doc.text(`Subtotal:`, 120, currentY);
+  doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
+    align: "right",
+  });
+
+  currentY += 10;
+  doc.text(`GST:`, 120, currentY);
+  doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
+    align: "right",
+  });
+
+  if (discountPercent > 0) {
+    currentY += 10;
+    doc.text(`Discount (${discountPercent}%):`, 120, currentY);
+    doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
+  }
+
+  currentY += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total Due:`, 120, currentY);
+  doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
+    align: "right",
+  });
+
+  // Payment Terms
+  const paymentTermsY = currentY + 20;
+  doc.setFont("helvetica", "bold");
+  doc.text("Payment Terms:", 14, paymentTermsY);
+  doc.setFont("helvetica", "normal");
+  doc.text("Please pay within 30 days of invoice date.", 14, paymentTermsY + 5);
+  doc.text("Bank Details:", 14, paymentTermsY + 10);
+  doc.text("Bank: Commonwealth Bank", 14, paymentTermsY + 15);
+  doc.text("BSB: 123-456", 14, paymentTermsY + 20);
+  doc.text("Account: 12345678", 14, paymentTermsY + 25);
+  doc.text("Reference: " + invoice.invoice_number, 14, paymentTermsY + 30);
+
+  // Notes Section
+  if (invoice.note) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 14, paymentTermsY + 45);
+    doc.setFont("helvetica", "normal");
+    const splitNotes = doc.splitTextToSize(invoice.note, 180);
+    doc.text(splitNotes, 14, paymentTermsY + 50);
+  }
+
+  // Footer
+  doc.setFontSize(8);
+  doc.text(
+    "Thank you for your business!",
+    105,
+    doc.internal.pageSize.height - 20,
+    { align: "center" },
+  );
+  doc.text(
+    "This is a computer-generated invoice. No signature required.",
+    105,
+    doc.internal.pageSize.height - 15,
+    { align: "center" },
+  );
+};
+
 export const generateAndDownloadInvoicePDF = async (
   invoice: Invoice,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
-
-    // Add company logo in top left corner
-    await addCompanyLogo(doc, 14, 20);
-
-    // Header - moved down to make room for logo
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("TAX INVOICE", 105, 45, { align: "center" }); // Increased y from 20 to 45
-
-    // Company Info - moved down (same as quotation)
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(COMPANY_INFO.name, 14, 60); // Use company constant
-    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65); // Added ABN
-    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
-    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
-    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
-
-    // Invoice Info (right aligned) - moved down
-    doc.setFont("helvetica", "normal");
-    doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 60, {
-      align: "right",
-    });
-    doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 180, 65, {
-      align: "right",
-    });
-    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 70, {
-      align: "right",
-    });
-    if (invoice.delivery_status) {
-      doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 75, {
-        align: "right",
-      });
-    }
-    if (invoice.quotation_id) {
-      doc.text(`Ref Quote: ${invoice.quotation_id}`, 180, 80, {
-        align: "right",
-      });
-    }
-
-    // Customer Info - moved down
-    // Use address snapshot from invoice, not from customer table
-    const customer = invoice.customer;
-    doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 14, 95); // Increased y from 65 to 95
-    doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 100); // Increased y
-    doc.text(invoice.address || "", 14, 105); // Use invoice address snapshot
-    if (invoice.suburb) {
-      doc.text(
-        `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
-        14,
-        110, // Increased y
-      );
-    }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115); // Increased y
-    // doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120); // Increased y
-    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 125); // Increased y
-
-    // Items Table - moved startY down
-    const items = invoice.invoice_items || [];
-    const tableData = items.map((item: any, index: number) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const unitPrice = parseFloat(item.unit_price) || 0;
-      const subtotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-
-      // Add star (*) to item name if GST applies
-      const itemName = item.items?.name || "N/A";
-      const itemNameWithGst = gst ? `${itemName} *` : itemName;
-
-      return [
-        index + 1,
-        itemNameWithGst,
-        item.items?.itemCode || "N/A",
-        quantity.toFixed(2),
-        `$${unitPrice.toFixed(2)}`,
-        `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
-      ];
-    });
-
-    // Calculate totals
-    let totalSubtotal = 0;
-    let totalGST = 0;
-    let subtotalWithGST = 0;
-
-    items.forEach((item: any) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const unitPrice = parseFloat(item.unit_price) || 0;
-      const subtotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-      const gstAmount = gst ? subtotal * 0.1 : 0;
-
-      totalSubtotal += subtotal;
-      totalGST += gstAmount;
-      subtotalWithGST += subtotal + gstAmount;
-    });
-
-    // Apply discount if present
-    const discountPercent = invoice.discount || 0;
-    const discountAmount = (subtotalWithGST * discountPercent) / 100;
-    const grandTotal = subtotalWithGST - discountAmount;
-
-    autoTable(doc, {
-      startY: 135, // Increased from 120
-      head: [["#", "Description", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
-      body: tableData,
-      theme: "grid",
-      headStyles: {
-        fillColor: BRAND_COLORS.primary as any,
-        textColor: 255,
-      },
-      styles: {
-        fontSize: 8,
-        lineColor: BRAND_COLORS.tableBorder as any,
-        textColor: BRAND_COLORS.textDark as any,
-      },
-      columnStyles: {
-        0: { cellWidth: 10 }, // #
-        1: { cellWidth: 70 }, // Description (increased width for star symbol)
-        2: { cellWidth: 25 }, // Code
-        3: { cellWidth: 20 }, // Qty
-        4: { cellWidth: 30 }, // Unit Price
-        5: { cellWidth: 30 }, // Total (now shows subtotal)
-      },
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-    // Add GST note below the table
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text(
-      "* Items marked with an asterisk (*) are GST applicable",
-      14,
-      finalY,
-    );
-
-    // Summary Section
-    const summaryY = finalY + 10;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Payment Summary:", 120, summaryY);
-
-    doc.setFont("helvetica", "normal");
-    let currentY = summaryY + 10;
-
-    doc.text(`Subtotal:`, 120, currentY);
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
-
-    currentY += 10;
-    doc.text(`GST:`, 120, currentY);
-    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
-
-    // Show discount if present
-    if (discountPercent > 0) {
-      currentY += 10;
-      doc.text(`Discount (${discountPercent}%):`, 120, currentY);
-      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
-        align: "right",
-      });
-    }
-
-    currentY += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Total Due:`, 120, currentY);
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
-
-    // Payment Terms (adjust position based on discount presence)
-    const paymentTermsY = currentY + 20;
-    doc.setFont("helvetica", "bold");
-    doc.text("Payment Terms:", 14, paymentTermsY);
-    doc.setFont("helvetica", "normal");
-    doc.text("Please pay within 30 days of invoice date.", 14, paymentTermsY + 5);
-    doc.text("Bank Details:", 14, paymentTermsY + 10);
-    doc.text("Bank: Commonwealth Bank", 14, paymentTermsY + 15);
-    doc.text("BSB: 123-456", 14, paymentTermsY + 20);
-    doc.text("Account: 12345678", 14, paymentTermsY + 25);
-    doc.text("Reference: " + invoice.invoice_number, 14, paymentTermsY + 30);
-
-    // Notes Section
-    if (invoice.note) {
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, paymentTermsY + 45);
-      doc.setFont("helvetica", "normal");
-      const splitNotes = doc.splitTextToSize(invoice.note, 180);
-      doc.text(splitNotes, 14, paymentTermsY + 50);
-    }
-
-    // Footer (same as quotation)
-    doc.setFontSize(8);
-    doc.text(
-      "Thank you for your business!",
-      105,
-      doc.internal.pageSize.height - 20,
-      { align: "center" },
-    );
-    doc.text(
-      "This is a computer-generated invoice. No signature required.",
-      105,
-      doc.internal.pageSize.height - 15,
-      { align: "center" },
-    );
+    await buildInvoicePDF(doc, invoice);
 
     const fileName = `invoice_${invoice.invoice_number}_${getDateFormatted(
       new Date().toISOString(),
@@ -270,6 +267,150 @@ export const generateAndDownloadInvoicePDF = async (
     return { success: true, fileName };
   } catch (error: any) {
     console.error("Error generating invoice PDF:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Generate a compressed invoice PDF for email attachment (no logo, minimal size)
+export const generateInvoicePDFBase64 = async (
+  invoice: Invoice,
+): Promise<{ success: boolean; base64?: string; fileName?: string; error?: string }> => {
+  try {
+    const doc = new jsPDF();
+
+    // Header — text only, no logo to keep size small
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("TAX INVOICE", 105, 20, { align: "center" });
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(COMPANY_INFO.name, 14, 32);
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 37);
+    doc.text(`Phone: ${COMPANY_INFO.phone} | Email: ${COMPANY_INFO.email}`, 14, 42);
+
+    // Invoice info (right)
+    doc.text(`Invoice #: ${invoice.invoice_number}`, 196, 32, { align: "right" });
+    doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 196, 37, { align: "right" });
+    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 196, 42, { align: "right" });
+
+    // Divider
+    doc.setDrawColor(156, 106, 58);
+    doc.setLineWidth(0.5);
+    doc.line(14, 46, 196, 46);
+
+    // Bill To
+    const customer = invoice.customer;
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL TO:", 14, 54);
+    doc.setFont("helvetica", "normal");
+    doc.text(customer?.name || "N/A", 14, 59);
+    const addressParts = [
+      invoice.address,
+      [invoice.suburb, invoice.state, invoice.post_code].filter(Boolean).join(" "),
+      customer?.email ? `Email: ${customer.email}` : null,
+      customer?.phone ? `Phone: ${customer.phone}` : null,
+    ].filter(Boolean);
+    let addrY = 64;
+    addressParts.forEach((line) => {
+      doc.text(line as string, 14, addrY);
+      addrY += 4.5;
+    });
+
+    // Items Table
+    const items = invoice.invoice_items || [];
+    const tableData = items.map((item: any, index: number) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unit_price) || 0;
+      const gst = item.items?.gst || false;
+      const name = item.items?.name || "N/A";
+      return [
+        index + 1,
+        gst ? `${name} *` : name,
+        qty.toFixed(2),
+        `$${price.toFixed(2)}`,
+        `$${(qty * price).toFixed(2)}`,
+      ];
+    });
+
+    let totalSubtotal = 0;
+    let totalGST = 0;
+    let subtotalWithGST = 0;
+    items.forEach((item: any) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unit_price) || 0;
+      const sub = qty * price;
+      const gstAmt = (item.items?.gst) ? sub * 0.1 : 0;
+      totalSubtotal += sub;
+      totalGST += gstAmt;
+      subtotalWithGST += sub + gstAmt;
+    });
+
+    const discountPercent = invoice.discount || 0;
+    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const grandTotal = subtotalWithGST - discountAmount;
+
+    autoTable(doc, {
+      startY: addrY + 4,
+      head: [["#", "Description", "Qty", "Unit Price", "Total"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [156, 106, 58], textColor: 255, fontSize: 8 },
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30 },
+      },
+    });
+
+    let finalY = (doc as any).lastAutoTable.finalY + 6;
+
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.text("* GST applicable items", 14, finalY);
+
+    // Totals
+    finalY += 8;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("Subtotal:", 140, finalY);
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 196, finalY, { align: "right" });
+    finalY += 5;
+    doc.text("GST:", 140, finalY);
+    doc.text(`$${totalGST.toFixed(2)}`, 196, finalY, { align: "right" });
+    if (discountPercent > 0) {
+      finalY += 5;
+      doc.text(`Discount (${discountPercent}%):`, 140, finalY);
+      doc.text(`-$${discountAmount.toFixed(2)}`, 196, finalY, { align: "right" });
+    }
+    finalY += 6;
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Due:", 140, finalY);
+    doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
+
+    if (invoice.note) {
+      finalY += 8;
+      doc.setFont("helvetica", "bold");
+      doc.text("Notes:", 14, finalY);
+      doc.setFont("helvetica", "normal");
+      finalY += 4;
+      const splitNotes = doc.splitTextToSize(invoice.note, 180);
+      doc.text(splitNotes, 14, finalY);
+    }
+
+    // Footer
+    doc.setFontSize(7);
+    doc.text("Thank you for your business! | This is a computer-generated invoice.", 105, doc.internal.pageSize.height - 10, { align: "center" });
+
+    const fileName = `invoice_${invoice.invoice_number}.pdf`;
+    const base64 = doc.output("datauristring");
+
+    return { success: true, base64, fileName };
+  } catch (error: any) {
+    console.error("Error generating compressed invoice PDF:", error);
     return { success: false, error: error.message };
   }
 };

@@ -15,22 +15,22 @@ interface DeleteValues {
   confirmation: string;
 }
 
-const style = {
-  position: "absolute" as "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: "80%",
-  maxWidth: "525px",
-  boxShadow: 5,
-  p: 4,
-  padding: "1.5rem",
-  borderRadius: "20px",
-  backgroundColor: "white",
-};
-
 const ModalDeleteConfirm = ({ open, onClose, onDelete }: ModalDeleteProps) => {
   const theme = useTheme();
+
+  const style = {
+    position: "absolute" as "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: "80%",
+    maxWidth: "525px",
+    boxShadow: 5,
+    padding: "1.5rem",
+    borderRadius: "20px",
+    backgroundColor: theme.palette.background.paper,
+    borderTop: `4px solid ${theme.palette.primary.main}`,
+  };
 
   return (
     <Modal open={open} onClose={onClose} className="content">

@@ -112,6 +112,7 @@ export default function MainInvoices() {
 
     ItemsModal,
     PaymentMethodDialog,
+    EmailDialog,
     deliveryMenuAnchor,
     selectedInvoiceForDelivery,
     setDeliveryMenuAnchor,
@@ -490,6 +491,7 @@ export default function MainInvoices() {
       </Menu>
 
       {PaymentMethodDialog}
+      {EmailDialog}
 
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}
