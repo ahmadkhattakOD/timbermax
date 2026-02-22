@@ -1,6 +1,7 @@
-import { Checkbox, TableCell } from "@mui/material";
+import { Checkbox, CircularProgress, IconButton, TableCell, Tooltip } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
+import { Copy } from "iconsax-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
@@ -50,6 +51,12 @@ const headCells: HeadCell[] = [
     disablePadding: false,
     label: "Purchase Price",
   },
+  {
+    id: "actions",
+    numeric: false,
+    disablePadding: false,
+    label: "Actions",
+  },
 ];
 
 export interface ValuesFilterItems {
@@ -77,6 +84,7 @@ export function useItems() {
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
   const [filters, setFilters] = useState<ValuesFilterItems>(initialFilters);
   const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
@@ -94,6 +102,61 @@ export function useItems() {
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
+
+  async function duplicateItem(event: React.MouseEvent, row: any) {
+    event.stopPropagation();
+    setDuplicatingId(row.id);
+    try {
+      const itemsRepository = new ItemsRepository();
+      const baseName = row.name ?? "";
+      // Build a name like "Widget (copy)" or "Widget (copy 2)", etc.
+      const copyLabel = baseName.match(/\(copy(?: (\d+))?\)$/)
+        ? (() => {
+            const match = baseName.match(/^(.*?)\s*\(copy(?: (\d+))?\)$/);
+            const prefix = match ? match[1] : baseName;
+            const num = match && match[2] ? parseInt(match[2], 10) + 1 : 2;
+            return `${prefix} (copy ${num})`;
+          })()
+        : `${baseName} (copy)`;
+
+      const duplicated = await itemsRepository.create({
+        name: copyLabel,
+        description: row.description ?? "",
+        itemCode: row.itemCode ?? "",
+        sellPrice: row.sellPrice ?? 0,
+        purchasePrice: row.purchasePrice ?? 0,
+        gst: row.gst ?? false,
+        vendor_id: row.vendor_id ?? undefined,
+      });
+
+      if (duplicated) {
+        openSnackbar({
+          open: true,
+          message: `Item duplicated successfully.`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        await getData();
+      } else {
+        openSnackbar({
+          open: true,
+          message: "Item could not be duplicated. Please try again.",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+      }
+    } catch (e) {
+      console.error("Error duplicating item:", e);
+      openSnackbar({
+        open: true,
+        message: "Item could not be duplicated. Please try again.",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      setDuplicatingId(null);
+    }
+  }
 
   function generateTableCells(
     row: any,
@@ -134,6 +197,23 @@ export function useItems() {
         </TableCell>
         <TableCell sx={{ minWidth: 140 }} align="right">
           ${row.purchasePrice ? row.purchasePrice.toFixed(2) : "0.00"}
+        </TableCell>
+        <TableCell sx={{ minWidth: 80 }} align="center">
+          <Tooltip title="Duplicate item">
+            <span>
+              <IconButton
+                size="small"
+                onClick={(e) => duplicateItem(e, row)}
+                disabled={duplicatingId === row.id}
+              >
+                {duplicatingId === row.id ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <Copy size={18} />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
         </TableCell>
       </React.Fragment>
     );
