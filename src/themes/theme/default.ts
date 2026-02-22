@@ -23,18 +23,18 @@ export default function Default(mode: ThemeMode): PaletteThemeProps {
     "#422815",
   ];
 
-  // Warmer, lighter secondary colors that complement brown theme
+  // Clean, professional neutral gray — visible without being washed out
   let secondaryColors = [
     "#FFFFFF", // pure white for backgrounds
-    "#FBF9F7", // warm off-white
-    "#F5F2EE", // very light warm gray
-    "#EDE9E4", // light warm gray
-    "#E0DBD5", // warm medium-light gray
-    "#C9C2BA", // warm medium gray
-    "#A89E94", // warm gray for text/icons
-    "#7A7168", // dark warm gray
-    "#4D463F", // very dark warm gray
-    "#2A2622", // near black with warm tone
+    "#F9FAFB", // near-white surface
+    "#F3F4F6", // very light gray
+    "#E5E7EB", // light gray (borders/dividers)
+    "#D1D5DB", // medium-light gray
+    "#9CA3AF", // medium gray
+    "#6B7280", // main — clearly visible, professional gray
+    "#4B5563", // dark gray
+    "#374151", // very dark gray
+    "#1F2937", // near black
   ];
 
   let errorColors = ["#FDECEC", "#F8CFC9", "#F29B8F", "#E15C4C", "#B9382C"];
@@ -96,7 +96,7 @@ export default function Default(mode: ThemeMode): PaletteThemeProps {
       dark: secondaryColors[7],
       800: secondaryColors[8],
       darker: secondaryColors[9],
-      contrastText: mode === ThemeMode.DARK ? "#FFFFFF" : "#2A2622", // Adjust text contrast
+      contrastText: mode === ThemeMode.DARK ? "#FFFFFF" : "#1F2937",
     },
     error: {
       lighter: errorColors[0],
@@ -139,7 +139,6 @@ export const BRAND_COLORS = {
   primaryDark: [135, 89, 47], // #87592F
   primaryLight: [199, 170, 137], // #CBAA89
   
-  // Warmer border colors that complement the theme
-  tableBorder: [224, 219, 213], // #E0DBD5 - warm light gray
-  textDark: [42, 38, 34], // #2A2622 - warm dark gray for better readability
+  tableBorder: [229, 231, 235], // #E5E7EB - clean neutral border
+  textDark: [31, 41, 55], // #1F2937 - crisp dark text
 };  
