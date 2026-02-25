@@ -13,7 +13,6 @@ import {
   Chip,
   CircularProgress,
   TextField,
-  Collapse,
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
@@ -29,7 +28,7 @@ import {
   Truck,
   Xd,
 } from "iconsax-react";
-import { X, Download, Send as SendIcon, Code, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Download, Send as SendIcon, Code } from "lucide-react";
 import {
   generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
@@ -229,7 +228,11 @@ export function useQuotations() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [emailSending, setEmailSending] = useState(false);
-  const [emailShowHtml, setEmailShowHtml] = useState(false);
+  const [emailEditMode, setEmailEditMode] = useState<"preview" | "friendly" | "html">("preview");
+  const [emailFriendlyGreeting, setEmailFriendlyGreeting] = useState("");
+  const [emailFriendlyMain, setEmailFriendlyMain] = useState("");
+  const [emailFriendlyClosing, setEmailFriendlyClosing] = useState("");
+  const [emailExtraRecipients, setEmailExtraRecipients] = useState<string[]>([]);
   const [emailPdfBase64, setEmailPdfBase64] = useState<string>("");
   const [emailPdfFileName, setEmailPdfFileName] = useState<string>("");
   const [emailPdfDownloadUrl, setEmailPdfDownloadUrl] = useState<string>("");
@@ -691,27 +694,45 @@ export function useQuotations() {
   }
   // ========== EMAIL DIALOG FUNCTIONS ==========
 
-  const generateQuotationEmailBody = (
-    quotation: any,
-    downloadUrl?: string,
-  ): { subject: string; body: string } => {
+  const quotEmailHeader = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
+    <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
+    <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
+  </div>`;
+
+  const quotEmailFooter = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
+    <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
+    <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
+  </div>`;
+
+  const wrapQuotEmailTemplate = (content: string) =>
+    `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">${quotEmailHeader}<div style="padding:32px;">${content}</div>${quotEmailFooter}</div>`;
+
+  const getQuotationFriendlyParts = (quotation: any) => {
     const name = quotation.customer?.name || quotation.customers?.name || "Customer";
+    const quotNum = quotation.quotation_number || "";
+    const total = `$${(Number(quotation.total) || 0).toFixed(2)}`;
+    return {
+      greeting: `Dear ${name},`,
+      main: `Please find your quotation ${quotNum} for ${total} from Timber Max Supply.`,
+      closing: `If you have any questions regarding this quotation, please do not hesitate to contact us.\n\nKind regards,\nTimber Max Supply`,
+    };
+  };
+
+  const buildQuotationBodyFromParts = (
+    quotation: any,
+    greeting: string,
+    main: string,
+    closing: string,
+    downloadUrl?: string,
+  ): string => {
     const quotNum = quotation.quotation_number || "";
     const total = `$${(Number(quotation.total) || 0).toFixed(2)}`;
     const validUntil = quotation.valid_until ? getDateFormatted(quotation.valid_until) : "";
 
-    const header = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
-      <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
-      <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
-    </div>`;
-
-    const footer = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
-      <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
-      <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
-    </div>`;
-
-    const wrap = (content: string) =>
-      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">${header}<div style="padding:32px;">${content}</div>${footer}</div>`;
+    const textToHtml = (text: string) =>
+      text.split(/\n\n/).map((para) =>
+        `<p style="font-size:15px;color:#555;line-height:1.6;">${para.replace(/\n/g, "<br/>")}</p>`
+      ).join("");
 
     const downloadSection = downloadUrl
       ? `<div style="text-align:center;margin:28px 0 8px 0;">
@@ -723,24 +744,33 @@ export function useQuotations() {
         </div>`
       : "";
 
+    const infoBox = `<div style="background-color:#fdf6ef;border-left:4px solid #9C6A3A;padding:16px;margin:24px 0;border-radius:4px;">
+      <p style="margin:0;font-size:14px;color:#333;">
+        <strong>Quotation:</strong> ${quotNum}<br/>
+        <strong>Amount:</strong> ${total}${validUntil ? `<br/><strong>Valid Until:</strong> ${validUntil}` : ""}
+      </p>
+    </div>`;
+
+    const content = `
+      <p style="font-size:16px;color:#333;">${greeting}</p>
+      <p style="font-size:15px;color:#555;line-height:1.6;">${main}</p>
+      ${infoBox}
+      ${downloadSection}
+      ${textToHtml(closing)}
+    `;
+
+    return wrapQuotEmailTemplate(content);
+  };
+
+  const generateQuotationEmailBody = (
+    quotation: any,
+    downloadUrl?: string,
+  ): { subject: string; body: string } => {
+    const quotNum = quotation.quotation_number || "";
+    const parts = getQuotationFriendlyParts(quotation);
     return {
       subject: `Quotation ${quotNum} from Timber Max Supply`,
-      body: wrap(`
-        <p style="font-size:16px;color:#333;">Dear ${name},</p>
-        <p style="font-size:15px;color:#555;line-height:1.6;">
-          Please find your quotation <strong>${quotNum}</strong> for <strong>${total}</strong> from Timber Max Supply.
-        </p>
-        <div style="background-color:#fdf6ef;border-left:4px solid #9C6A3A;padding:16px;margin:24px 0;border-radius:4px;">
-          <p style="margin:0;font-size:14px;color:#333;">
-            <strong>Quotation:</strong> ${quotNum}<br/>
-            <strong>Amount:</strong> ${total}<br/>
-            ${validUntil ? `<strong>Valid Until:</strong> ${validUntil}` : ""}
-          </p>
-        </div>
-        ${downloadSection}
-        <p style="font-size:15px;color:#555;">If you have any questions regarding this quotation, please do not hesitate to contact us.</p>
-        <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
-      `),
+      body: buildQuotationBodyFromParts(quotation, parts.greeting, parts.main, parts.closing, downloadUrl),
     };
   };
 
@@ -780,10 +810,16 @@ export function useQuotations() {
 
   const openQuotationEmailDialog = async (row: any) => {
     const { subject, body } = generateQuotationEmailBody(row);
+    const parts = getQuotationFriendlyParts(row);
     setEmailQuotationData(row);
     setEmailTo(row.customer?.email || row.customers?.email || "");
     setEmailSubject(subject);
     setEmailBody(body);
+    setEmailFriendlyGreeting(parts.greeting);
+    setEmailFriendlyMain(parts.main);
+    setEmailFriendlyClosing(parts.closing);
+    setEmailEditMode("preview");
+    setEmailExtraRecipients([]);
     setEmailPdfBase64("");
     setEmailPdfFileName("");
     setEmailPdfDownloadUrl("");
@@ -819,7 +855,11 @@ export function useQuotations() {
     setEmailSubject("");
     setEmailBody("");
     setEmailSending(false);
-    setEmailShowHtml(false);
+    setEmailEditMode("preview");
+    setEmailFriendlyGreeting("");
+    setEmailFriendlyMain("");
+    setEmailFriendlyClosing("");
+    setEmailExtraRecipients([]);
     setEmailPdfBase64("");
     setEmailPdfFileName("");
     setEmailPdfDownloadUrl("");
@@ -863,15 +903,20 @@ export function useQuotations() {
     }
     try {
       setEmailSending(true);
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        { to_email: emailTo, subject: emailSubject, body: emailBody },
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      const allRecipients = [emailTo, ...emailExtraRecipients.map((e) => e.trim())].filter(Boolean);
+      await Promise.all(
+        allRecipients.map((recipient) =>
+          emailjs.send(
+            import.meta.env.VITE_EMAILJS_SERVICE_ID,
+            import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+            { to_email: recipient, subject: emailSubject, body: emailBody },
+            import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+          )
+        )
       );
       openSnackbar({
         open: true,
-        message: `Email sent to ${emailTo}`,
+        message: `Email sent to ${allRecipients.join(", ")}`,
         variant: "alert",
         alert: { color: "success" },
       } as SnackbarProps);
@@ -918,16 +963,17 @@ export function useQuotations() {
         </Box>
 
         <DialogContent sx={{ px: 3, py: 2.5 }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {/* To & Subject */}
             <Box sx={{ display: "flex", gap: 2 }}>
               <TextField
                 label="To"
                 value={emailTo}
-                InputProps={{ readOnly: true }}
+                onChange={(e) => setEmailTo(e.target.value)}
                 fullWidth
                 size="small"
                 sx={{ flex: 1 }}
+                type="email"
               />
               <TextField
                 label="Subject"
@@ -937,6 +983,43 @@ export function useQuotations() {
                 size="small"
                 sx={{ flex: 2 }}
               />
+            </Box>
+
+            {/* Extra recipients */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {emailExtraRecipients.map((addr, idx) => (
+                <Box key={idx} sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <TextField
+                    label={`CC ${idx + 1}`}
+                    value={addr}
+                    onChange={(e) => {
+                      const updated = [...emailExtraRecipients];
+                      updated[idx] = e.target.value;
+                      setEmailExtraRecipients(updated);
+                    }}
+                    fullWidth
+                    size="small"
+                    type="email"
+                    placeholder="additional@email.com"
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => setEmailExtraRecipients(emailExtraRecipients.filter((_, i) => i !== idx))}
+                    sx={{ flexShrink: 0, color: "text.secondary" }}
+                  >
+                    <X size={16} />
+                  </IconButton>
+                </Box>
+              ))}
+              <Box>
+                <Button
+                  size="small"
+                  onClick={() => setEmailExtraRecipients([...emailExtraRecipients, ""])}
+                  sx={{ textTransform: "none", fontSize: "13px", color: "text.secondary", px: 0 }}
+                >
+                  + Add recipient
+                </Button>
+              </Box>
             </Box>
 
             {/* PDF attachment indicator */}
@@ -992,49 +1075,159 @@ export function useQuotations() {
               )}
             </Box>
 
-            {/* Email Preview */}
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                Email Preview
-              </Typography>
+            {/* Mode selector tabs */}
+            <Box sx={{ display: "flex", gap: 0.5, borderBottom: "1px solid #e0e0e0" }}>
+              {(["preview", "friendly", "html"] as const).map((mode) => {
+                const labels: Record<string, string> = {
+                  preview: "Preview",
+                  friendly: "Edit Content",
+                  html: "Edit HTML",
+                };
+                const isActive = emailEditMode === mode;
+                return (
+                  <Button
+                    key={mode}
+                    size="small"
+                    onClick={() => setEmailEditMode(mode)}
+                    startIcon={mode === "html" ? <Code size={13} /> : undefined}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "13px",
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? "#9C6A3A" : "text.secondary",
+                      borderBottom: isActive ? "2px solid #9C6A3A" : "2px solid transparent",
+                      borderRadius: 0,
+                      px: 1.5,
+                      pb: 0.75,
+                      minHeight: 0,
+                      "&:hover": { backgroundColor: "transparent", color: "#9C6A3A" },
+                    }}
+                  >
+                    {labels[mode]}
+                  </Button>
+                );
+              })}
+            </Box>
+
+            {/* Preview mode */}
+            {emailEditMode === "preview" && (
               <Box
                 sx={{
                   border: "1px solid #e0e0e0",
                   borderRadius: 2,
                   overflow: "hidden",
-                  maxHeight: 400,
+                  maxHeight: 380,
                   overflowY: "auto",
                   backgroundColor: "#fff",
                   boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
                 }}
                 dangerouslySetInnerHTML={{ __html: emailBody }}
               />
-            </Box>
+            )}
 
-            {/* Advanced HTML editor */}
-            <Box>
-              <Button
-                size="small"
-                onClick={() => setEmailShowHtml(!emailShowHtml)}
-                startIcon={<Code size={14} />}
-                endIcon={emailShowHtml ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                sx={{ textTransform: "none", color: "text.secondary", fontSize: "13px" }}
-              >
-                {emailShowHtml ? "Hide HTML Editor" : "Edit HTML (Advanced)"}
-              </Button>
-              <Collapse in={emailShowHtml}>
+            {/* Edit Content (friendly) mode */}
+            {emailEditMode === "friendly" && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Edit the message content below. Quotation details (amounts, dates) in the highlighted box are auto-populated from the quotation.
+                </Typography>
+                <TextField
+                  label="Greeting"
+                  value={emailFriendlyGreeting}
+                  onChange={(e) => {
+                    setEmailFriendlyGreeting(e.target.value);
+                    if (emailQuotationData) {
+                      setEmailBody(buildQuotationBodyFromParts(
+                        emailQuotationData,
+                        e.target.value, emailFriendlyMain, emailFriendlyClosing,
+                        emailPdfDownloadUrl || undefined,
+                      ));
+                    }
+                  }}
+                  fullWidth
+                  size="small"
+                  placeholder="e.g. Dear John,"
+                />
+                <TextField
+                  label="Main Message"
+                  value={emailFriendlyMain}
+                  onChange={(e) => {
+                    setEmailFriendlyMain(e.target.value);
+                    if (emailQuotationData) {
+                      setEmailBody(buildQuotationBodyFromParts(
+                        emailQuotationData,
+                        emailFriendlyGreeting, e.target.value, emailFriendlyClosing,
+                        emailPdfDownloadUrl || undefined,
+                      ));
+                    }
+                  }}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  size="small"
+                  placeholder="Main message paragraph…"
+                />
+                <TextField
+                  label="Closing & Sign-off"
+                  value={emailFriendlyClosing}
+                  onChange={(e) => {
+                    setEmailFriendlyClosing(e.target.value);
+                    if (emailQuotationData) {
+                      setEmailBody(buildQuotationBodyFromParts(
+                        emailQuotationData,
+                        emailFriendlyGreeting, emailFriendlyMain, e.target.value,
+                        emailPdfDownloadUrl || undefined,
+                      ));
+                    }
+                  }}
+                  fullWidth
+                  multiline
+                  rows={4}
+                  size="small"
+                  placeholder={"Closing sentence…\n\nKind regards,\nCompany Name"}
+                  helperText="Use a blank line to separate paragraphs (e.g. between closing sentence and sign-off)"
+                />
+                {/* Mini live preview */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                    Live Preview
+                  </Typography>
+                  <Box
+                    sx={{
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 1.5,
+                      overflow: "hidden",
+                      maxHeight: 220,
+                      overflowY: "auto",
+                      backgroundColor: "#fff",
+                      boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
+                      transform: "scale(0.85)",
+                      transformOrigin: "top left",
+                      width: "118%",
+                    }}
+                    dangerouslySetInnerHTML={{ __html: emailBody }}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {/* Edit HTML mode */}
+            {emailEditMode === "html" && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Advanced: edit the raw HTML directly. Changes here override the "Edit Content" fields.
+                </Typography>
                 <TextField
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                   fullWidth
                   multiline
-                  rows={12}
+                  rows={14}
                   size="small"
-                  sx={{ mt: 1 }}
                   InputProps={{ sx: { fontFamily: "monospace", fontSize: "12px" } }}
                 />
-              </Collapse>
-            </Box>
+              </Box>
+            )}
           </Box>
         </DialogContent>
 
@@ -1079,7 +1272,11 @@ export function useQuotations() {
       emailSubject,
       emailBody,
       emailSending,
-      emailShowHtml,
+      emailEditMode,
+      emailFriendlyGreeting,
+      emailFriendlyMain,
+      emailFriendlyClosing,
+      emailExtraRecipients,
       emailPdfBase64,
       emailPdfFileName,
       emailPdfDownloadUrl,

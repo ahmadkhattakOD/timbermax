@@ -3,7 +3,8 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateCustomer } from "./useCreateCustomer";
-import { australianStates } from "utils/helpers";
+import { australianStates, stateAbbreviations } from "utils/helpers";
+import { geocodeByPlaceId } from "react-google-places-autocomplete";
 import PlacesInput from "components/PlacesInput";
 import { IconButton, Button, Box, Typography } from "@mui/material";
 import { Add, Delete, LocationOn } from "@mui/icons-material";
@@ -69,44 +70,41 @@ export default function CreateCustomer() {
     setAddresses(newAddresses);
   };
 
-  const handlePlacesInputChange = (index: number, newValue: any) => {
-    // Simple parsing function for PlacesInput
-    const parseSimpleAddress = (fullAddress: string) => {
-      if (!fullAddress) {
-        return { suburb: '', state: '', postCode: '' };
+  const handlePlacesInputChange = async (index: number, newValue: any) => {
+    const description = newValue?.value?.description ?? "";
+    let suburb = "";
+    let state = "";
+    let postCode = "";
+
+    if (newValue?.value?.place_id) {
+      try {
+        const results = await geocodeByPlaceId(newValue.value.place_id);
+        const components = results[0]?.address_components ?? [];
+
+        suburb =
+          components.find((c: any) => c.types.includes("locality"))?.long_name ||
+          components.find((c: any) => c.types.includes("sublocality_level_1"))?.long_name ||
+          "";
+
+        const stateShort =
+          components.find((c: any) => c.types.includes("administrative_area_level_1"))?.short_name ?? "";
+        state = stateAbbreviations[stateShort as keyof typeof stateAbbreviations] || stateShort;
+
+        postCode =
+          components.find((c: any) => c.types.includes("postal_code"))?.long_name ?? "";
+      } catch {
+        // geocoding failed — leave fields empty so user can fill manually
       }
-      
-      const parts = fullAddress.split(',').map(part => part.trim());
-      const result = { suburb: '', state: '', postCode: '' };
-      
-      if (parts.length >= 2) {
-        result.suburb = parts[1];
-      }
-      
-      // Try to extract state and postcode from the last part
-      if (parts.length >= 3) {
-        const lastPart = parts[parts.length - 1];
-        const lastParts = lastPart.split(' ');
-        if (lastParts.length >= 2) {
-          result.state = lastParts[0];
-          result.postCode = lastParts[1];
-        }
-      }
-      
-      return result;
-    };
+    }
 
     const newAddresses = [...addresses];
-    const addressComponents = parseSimpleAddress(newValue?.value?.description ?? "");
-    
     newAddresses[index] = {
       ...newAddresses[index],
-      address: newValue?.value?.description ?? "",
-      suburb: addressComponents.suburb,
-      state: addressComponents.state,
-      post_code: addressComponents.postCode,
+      address: description,
+      suburb,
+      state,
+      post_code: postCode,
     };
-    
     setAddresses(newAddresses);
   };
 

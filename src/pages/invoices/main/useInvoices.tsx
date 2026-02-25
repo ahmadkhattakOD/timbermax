@@ -43,9 +43,8 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Collapse,
 } from "@mui/material";
-import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, Send, Wallet, Eye, Truck, X, Bell, Code } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import supabase from "utils/supabase";
 import {
@@ -181,7 +180,11 @@ export function useInvoices() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [emailSending, setEmailSending] = useState(false);
-  const [emailShowHtml, setEmailShowHtml] = useState(false);
+  const [emailEditMode, setEmailEditMode] = useState<"preview" | "friendly" | "html">("preview");
+  const [emailFriendlyGreeting, setEmailFriendlyGreeting] = useState("");
+  const [emailFriendlyMain, setEmailFriendlyMain] = useState("");
+  const [emailFriendlyClosing, setEmailFriendlyClosing] = useState("");
+  const [emailExtraRecipients, setEmailExtraRecipients] = useState<string[]>([]);
   const [emailPdfBase64, setEmailPdfBase64] = useState<string>("");
   const [emailPdfFileName, setEmailPdfFileName] = useState<string>("");
   const [emailPdfDownloadUrl, setEmailPdfDownloadUrl] = useState<string>("");
@@ -1034,40 +1037,71 @@ export function useInvoices() {
 
   // ========== EMAIL DIALOG FUNCTIONS ==========
 
-  const generateEmailBody = (
-    triggerType: EmailTriggerType,
-    invoice: any,
-    downloadUrl?: string,
-  ): { subject: string; body: string } => {
+  const emailHeader = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
+    <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
+    <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
+  </div>`;
+
+  const emailFooter = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
+    <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
+    <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
+  </div>`;
+
+  const wrapEmailTemplate = (content: string) =>
+    `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">${emailHeader}<div style="padding:32px;">${content}</div>${emailFooter}</div>`;
+
+  // Extract plain-text parts that are user-editable
+  const getEmailFriendlyParts = (triggerType: EmailTriggerType, invoice: any) => {
     const name = invoice.customers?.name || "Customer";
     const invNum = invoice.invoice_number || "";
     const total = `$${(Number(invoice.total) || 0).toFixed(2)}`;
-    const dueDate = invoice.due_date
-      ? getDateFormatted(invoice.due_date)
-      : "";
-    const daysOverdue =
-      invoice.due_date
-        ? Math.max(
-            0,
-            Math.floor(
-              (new Date().getTime() - new Date(invoice.due_date).getTime()) /
-                (1000 * 60 * 60 * 24),
-            ),
-          )
-        : 0;
+    const daysOverdue = invoice.due_date
+      ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
 
-    const header = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
-      <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
-      <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
-    </div>`;
+    if (triggerType === "sent") {
+      return {
+        greeting: `Dear ${name},`,
+        main: `Your invoice ${invNum} for ${total} has been issued and is now available for payment.`,
+        closing: `If you have any questions regarding this invoice, please do not hesitate to contact us.\n\nKind regards,\nTimber Max Supply`,
+      };
+    }
+    if (triggerType === "paid") {
+      return {
+        greeting: `Dear ${name},`,
+        main: `Thank you for your payment of invoice ${invNum} for ${total}. Your payment has been received and recorded.`,
+        closing: `We appreciate your prompt payment and look forward to continued business with you.\n\nKind regards,\nTimber Max Supply`,
+      };
+    }
+    // reminder
+    return {
+      greeting: `Dear ${name},`,
+      main: `This is a friendly reminder that invoice ${invNum} for ${total} is overdue${daysOverdue > 0 ? ` by ${daysOverdue} days` : ""}.`,
+      closing: `Please arrange payment at your earliest convenience. If payment has already been made, please disregard this notice.\n\nKind regards,\nTimber Max Supply`,
+    };
+  };
 
-    const footer = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
-      <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
-      <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
-    </div>`;
+  // Rebuild the full HTML body from friendly parts + auto-generated info block
+  const buildBodyFromParts = (
+    triggerType: EmailTriggerType,
+    invoice: any,
+    greeting: string,
+    main: string,
+    closing: string,
+    downloadUrl?: string,
+  ): string => {
+    const invNum = invoice.invoice_number || "";
+    const total = `$${(Number(invoice.total) || 0).toFixed(2)}`;
+    const dueDate = invoice.due_date ? getDateFormatted(invoice.due_date) : "";
+    const daysOverdue = invoice.due_date
+      ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
 
-    const wrap = (content: string) =>
-      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">${header}<div style="padding:32px;">${content}</div>${footer}</div>`;
+    // Convert plain-text blocks (split on blank lines) to HTML paragraphs
+    const textToHtml = (text: string, defaultStyle = "font-size:15px;color:#555;line-height:1.6;") =>
+      text.split(/\n\n/).map((para) =>
+        `<p style="${defaultStyle}">${para.replace(/\n/g, "<br/>")}</p>`
+      ).join("");
 
     const downloadSection = downloadUrl
       ? `<div style="text-align:center;margin:28px 0 8px 0;">
@@ -1079,70 +1113,69 @@ export function useInvoices() {
         </div>`
       : "";
 
+    let infoBox = "";
     if (triggerType === "sent") {
-      return {
-        subject: `Invoice ${invNum} from Timber Max Supply`,
-        body: wrap(`
-          <p style="font-size:16px;color:#333;">Dear ${name},</p>
-          <p style="font-size:15px;color:#555;line-height:1.6;">
-            Your invoice <strong>${invNum}</strong> for <strong>${total}</strong> has been issued and is now available for payment.
-          </p>
-          ${dueDate ? `<p style="font-size:15px;color:#555;"><strong>Due Date:</strong> ${dueDate}</p>` : ""}
-          <div style="background-color:#fdf6ef;border-left:4px solid #9C6A3A;padding:16px;margin:24px 0;border-radius:4px;">
-            <p style="margin:0;font-size:14px;color:#333;">
-              <strong>Invoice:</strong> ${invNum}<br/>
-              <strong>Amount:</strong> ${total}<br/>
-              ${dueDate ? `<strong>Due:</strong> ${dueDate}` : ""}
-            </p>
-          </div>
-          ${downloadSection}
-          <p style="font-size:15px;color:#555;">If you have any questions regarding this invoice, please do not hesitate to contact us.</p>
-          <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
-        `),
-      };
-    }
-
-    if (triggerType === "paid") {
-      return {
-        subject: `Payment Confirmation - ${invNum}`,
-        body: wrap(`
-          <p style="font-size:16px;color:#333;">Dear ${name},</p>
-          <p style="font-size:15px;color:#555;line-height:1.6;">
-            Thank you for your payment of invoice <strong>${invNum}</strong> for <strong>${total}</strong>. Your payment has been received and recorded.
-          </p>
-          <div style="background-color:#edf7ed;border-left:4px solid #4caf50;padding:16px;margin:24px 0;border-radius:4px;">
-            <p style="margin:0;font-size:14px;color:#333;">
-              <strong>Status:</strong> PAID<br/>
-              <strong>Invoice:</strong> ${invNum}<br/>
-              <strong>Amount:</strong> ${total}
-            </p>
-          </div>
-          ${downloadSection}
-          <p style="font-size:15px;color:#555;">We appreciate your prompt payment and look forward to continued business with you.</p>
-          <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
-        `),
-      };
-    }
-
-    // reminder
-    return {
-      subject: `Payment Reminder - ${invNum}${daysOverdue > 0 ? " (Overdue)" : ""}`,
-      body: wrap(`
-        <p style="font-size:16px;color:#333;">Dear ${name},</p>
-        <p style="font-size:15px;color:#555;line-height:1.6;">
-          This is a friendly reminder that invoice <strong>${invNum}</strong> for <strong>${total}</strong> is overdue${daysOverdue > 0 ? ` by <strong>${daysOverdue} days</strong>` : ""}.
+      infoBox = `<div style="background-color:#fdf6ef;border-left:4px solid #9C6A3A;padding:16px;margin:24px 0;border-radius:4px;">
+        <p style="margin:0;font-size:14px;color:#333;">
+          <strong>Invoice:</strong> ${invNum}<br/>
+          <strong>Amount:</strong> ${total}${dueDate ? `<br/><strong>Due:</strong> ${dueDate}` : ""}
         </p>
-        <div style="background-color:#fdecea;border-left:4px solid #f44336;padding:16px;margin:24px 0;border-radius:4px;">
-          <p style="margin:0;font-size:14px;color:#333;">
-            <strong>Invoice:</strong> ${invNum}<br/>
-            <strong>Amount Due:</strong> ${total}<br/>
-            ${dueDate ? `<strong>Due Date:</strong> ${dueDate}` : ""}
-          </p>
-        </div>
-        ${downloadSection}
-        <p style="font-size:15px;color:#555;">Please arrange payment at your earliest convenience. If payment has already been made, please disregard this notice.</p>
-        <p style="font-size:15px;color:#555;">Kind regards,<br/><strong>Timber Max Supply</strong></p>
-      `),
+      </div>`;
+    } else if (triggerType === "paid") {
+      infoBox = `<div style="background-color:#edf7ed;border-left:4px solid #4caf50;padding:16px;margin:24px 0;border-radius:4px;">
+        <p style="margin:0;font-size:14px;color:#333;">
+          <strong>Status:</strong> PAID<br/>
+          <strong>Invoice:</strong> ${invNum}<br/>
+          <strong>Amount:</strong> ${total}
+        </p>
+      </div>`;
+    } else {
+      infoBox = `<div style="background-color:#fdecea;border-left:4px solid #f44336;padding:16px;margin:24px 0;border-radius:4px;">
+        <p style="margin:0;font-size:14px;color:#333;">
+          <strong>Invoice:</strong> ${invNum}<br/>
+          <strong>Amount Due:</strong> ${total}${dueDate ? `<br/><strong>Due Date:</strong> ${dueDate}` : ""}
+          ${daysOverdue > 0 ? `<br/><strong>Days Overdue:</strong> ${daysOverdue}` : ""}
+        </p>
+      </div>`;
+    }
+
+    const dueDatePara = triggerType === "sent" && dueDate
+      ? `<p style="font-size:15px;color:#555;"><strong>Due Date:</strong> ${dueDate}</p>`
+      : "";
+
+    const content = `
+      <p style="font-size:16px;color:#333;">${greeting}</p>
+      <p style="font-size:15px;color:#555;line-height:1.6;">${main}</p>
+      ${dueDatePara}
+      ${infoBox}
+      ${downloadSection}
+      ${textToHtml(closing)}
+    `;
+
+    return wrapEmailTemplate(content);
+  };
+
+  const generateEmailBody = (
+    triggerType: EmailTriggerType,
+    invoice: any,
+    downloadUrl?: string,
+  ): { subject: string; body: string } => {
+    const invNum = invoice.invoice_number || "";
+    const daysOverdue = invoice.due_date
+      ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    const parts = getEmailFriendlyParts(triggerType, invoice);
+
+    const subjects: Record<EmailTriggerType, string> = {
+      sent: `Invoice ${invNum} from Timber Max Supply`,
+      paid: `Payment Confirmation - ${invNum}`,
+      reminder: `Payment Reminder - ${invNum}${daysOverdue > 0 ? " (Overdue)" : ""}`,
+    };
+
+    return {
+      subject: subjects[triggerType],
+      body: buildBodyFromParts(triggerType, invoice, parts.greeting, parts.main, parts.closing, downloadUrl),
     };
   };
 
@@ -1184,11 +1217,16 @@ export function useInvoices() {
   const openEmailDialog = async (triggerType: EmailTriggerType, row: any) => {
     // Open dialog immediately with body (no PDF link yet)
     const { subject, body } = generateEmailBody(triggerType, row);
+    const parts = getEmailFriendlyParts(triggerType, row);
     setEmailTriggerType(triggerType);
     setEmailInvoiceData(row);
     setEmailTo(row.customers?.email || "");
     setEmailSubject(subject);
     setEmailBody(body);
+    setEmailFriendlyGreeting(parts.greeting);
+    setEmailFriendlyMain(parts.main);
+    setEmailFriendlyClosing(parts.closing);
+    setEmailEditMode("preview");
     setEmailPdfBase64("");
     setEmailPdfFileName("");
     setEmailPdfDownloadUrl("");
@@ -1228,7 +1266,11 @@ export function useInvoices() {
     setEmailSubject("");
     setEmailBody("");
     setEmailSending(false);
-    setEmailShowHtml(false);
+    setEmailEditMode("preview");
+    setEmailFriendlyGreeting("");
+    setEmailFriendlyMain("");
+    setEmailFriendlyClosing("");
+    setEmailExtraRecipients([]);
     setEmailPdfBase64("");
     setEmailPdfFileName("");
     setEmailPdfDownloadUrl("");
@@ -1288,22 +1330,22 @@ export function useInvoices() {
     try {
       setEmailSending(true);
 
-      const templateParams: Record<string, string> = {
-        to_email: emailTo,
-        subject: emailSubject,
-        body: emailBody,
-      };
+      const allRecipients = [emailTo, ...emailExtraRecipients.map((e) => e.trim())].filter(Boolean);
 
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        templateParams,
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      await Promise.all(
+        allRecipients.map((recipient) =>
+          emailjs.send(
+            import.meta.env.VITE_EMAILJS_SERVICE_ID,
+            import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+            { to_email: recipient, subject: emailSubject, body: emailBody },
+            import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+          )
+        )
       );
 
       openSnackbar({
         open: true,
-        message: `Email sent to ${emailTo}`,
+        message: `Email sent to ${allRecipients.join(", ")}`,
         variant: "alert",
         alert: { color: "success" },
       } as SnackbarProps);
@@ -1374,16 +1416,17 @@ export function useInvoices() {
           </Box>
 
           <DialogContent sx={{ px: 3, py: 2.5 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {/* To & Subject fields */}
               <Box sx={{ display: "flex", gap: 2 }}>
                 <TextField
                   label="To"
                   value={emailTo}
-                  InputProps={{ readOnly: true }}
+                  onChange={(e) => setEmailTo(e.target.value)}
                   fullWidth
                   size="small"
                   sx={{ flex: 1 }}
+                  type="email"
                 />
                 <TextField
                   label="Subject"
@@ -1393,6 +1436,43 @@ export function useInvoices() {
                   size="small"
                   sx={{ flex: 2 }}
                 />
+              </Box>
+
+              {/* Extra recipients */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {emailExtraRecipients.map((addr, idx) => (
+                  <Box key={idx} sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                    <TextField
+                      label={`CC ${idx + 1}`}
+                      value={addr}
+                      onChange={(e) => {
+                        const updated = [...emailExtraRecipients];
+                        updated[idx] = e.target.value;
+                        setEmailExtraRecipients(updated);
+                      }}
+                      fullWidth
+                      size="small"
+                      type="email"
+                      placeholder="additional@email.com"
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => setEmailExtraRecipients(emailExtraRecipients.filter((_, i) => i !== idx))}
+                      sx={{ flexShrink: 0, color: "text.secondary" }}
+                    >
+                      <X size={16} />
+                    </IconButton>
+                  </Box>
+                ))}
+                <Box>
+                  <Button
+                    size="small"
+                    onClick={() => setEmailExtraRecipients([...emailExtraRecipients, ""])}
+                    sx={{ textTransform: "none", fontSize: "13px", color: "text.secondary", px: 0 }}
+                  >
+                    + Add recipient
+                  </Button>
+                </Box>
               </Box>
 
               {/* PDF Attachment indicator */}
@@ -1448,51 +1528,161 @@ export function useInvoices() {
                 )}
               </Box>
 
-              {/* Email Preview — main view */}
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                  Email Preview
-                </Typography>
+              {/* Mode selector tabs */}
+              <Box sx={{ display: "flex", gap: 0.5, borderBottom: "1px solid #e0e0e0", pb: 0 }}>
+                {(["preview", "friendly", "html"] as const).map((mode) => {
+                  const labels: Record<string, string> = {
+                    preview: "Preview",
+                    friendly: "Edit Content",
+                    html: "Edit HTML",
+                  };
+                  const isActive = emailEditMode === mode;
+                  return (
+                    <Button
+                      key={mode}
+                      size="small"
+                      onClick={() => setEmailEditMode(mode)}
+                      startIcon={mode === "html" ? <Code size={13} /> : undefined}
+                      sx={{
+                        textTransform: "none",
+                        fontSize: "13px",
+                        fontWeight: isActive ? 600 : 400,
+                        color: isActive ? accentColor : "text.secondary",
+                        borderBottom: isActive ? `2px solid ${accentColor}` : "2px solid transparent",
+                        borderRadius: 0,
+                        px: 1.5,
+                        pb: 0.75,
+                        minHeight: 0,
+                        "&:hover": { backgroundColor: "transparent", color: accentColor },
+                      }}
+                    >
+                      {labels[mode]}
+                    </Button>
+                  );
+                })}
+              </Box>
+
+              {/* Preview mode */}
+              {emailEditMode === "preview" && (
                 <Box
                   sx={{
                     border: "1px solid #e0e0e0",
                     borderRadius: 2,
                     overflow: "hidden",
-                    maxHeight: 400,
+                    maxHeight: 380,
                     overflowY: "auto",
                     backgroundColor: "#fff",
                     boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
                   }}
                   dangerouslySetInnerHTML={{ __html: emailBody }}
                 />
-              </Box>
+              )}
 
-              {/* Advanced: Edit HTML toggle */}
-              <Box>
-                <Button
-                  size="small"
-                  onClick={() => setEmailShowHtml(!emailShowHtml)}
-                  startIcon={<Code size={14} />}
-                  endIcon={emailShowHtml ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  sx={{ textTransform: "none", color: "text.secondary", fontSize: "13px" }}
-                >
-                  {emailShowHtml ? "Hide HTML Editor" : "Edit HTML (Advanced)"}
-                </Button>
-                <Collapse in={emailShowHtml}>
+              {/* Edit Content (friendly) mode */}
+              {emailEditMode === "friendly" && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Edit the message content below. Invoice details (amounts, dates) in the highlighted box are auto-populated from the invoice.
+                  </Typography>
+                  <TextField
+                    label="Greeting"
+                    value={emailFriendlyGreeting}
+                    onChange={(e) => {
+                      setEmailFriendlyGreeting(e.target.value);
+                      if (emailInvoiceData && emailTriggerType) {
+                        setEmailBody(buildBodyFromParts(
+                          emailTriggerType, emailInvoiceData,
+                          e.target.value, emailFriendlyMain, emailFriendlyClosing,
+                          emailPdfDownloadUrl || undefined,
+                        ));
+                      }
+                    }}
+                    fullWidth
+                    size="small"
+                    placeholder="e.g. Dear John,"
+                  />
+                  <TextField
+                    label="Main Message"
+                    value={emailFriendlyMain}
+                    onChange={(e) => {
+                      setEmailFriendlyMain(e.target.value);
+                      if (emailInvoiceData && emailTriggerType) {
+                        setEmailBody(buildBodyFromParts(
+                          emailTriggerType, emailInvoiceData,
+                          emailFriendlyGreeting, e.target.value, emailFriendlyClosing,
+                          emailPdfDownloadUrl || undefined,
+                        ));
+                      }
+                    }}
+                    fullWidth
+                    multiline
+                    rows={3}
+                    size="small"
+                    placeholder="Main message paragraph…"
+                  />
+                  <TextField
+                    label="Closing & Sign-off"
+                    value={emailFriendlyClosing}
+                    onChange={(e) => {
+                      setEmailFriendlyClosing(e.target.value);
+                      if (emailInvoiceData && emailTriggerType) {
+                        setEmailBody(buildBodyFromParts(
+                          emailTriggerType, emailInvoiceData,
+                          emailFriendlyGreeting, emailFriendlyMain, e.target.value,
+                          emailPdfDownloadUrl || undefined,
+                        ));
+                      }
+                    }}
+                    fullWidth
+                    multiline
+                    rows={4}
+                    size="small"
+                    placeholder={"Closing sentence…\n\nKind regards,\nCompany Name"}
+                    helperText="Use a blank line to separate paragraphs (e.g. between closing sentence and sign-off)"
+                  />
+                  {/* Mini live preview */}
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                      Live Preview
+                    </Typography>
+                    <Box
+                      sx={{
+                        border: "1px solid #e0e0e0",
+                        borderRadius: 1.5,
+                        overflow: "hidden",
+                        maxHeight: 220,
+                        overflowY: "auto",
+                        backgroundColor: "#fff",
+                        boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
+                        transform: "scale(0.85)",
+                        transformOrigin: "top left",
+                        width: "118%",
+                      }}
+                      dangerouslySetInnerHTML={{ __html: emailBody }}
+                    />
+                  </Box>
+                </Box>
+              )}
+
+              {/* Edit HTML mode */}
+              {emailEditMode === "html" && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Advanced: edit the raw HTML directly. Changes here override the "Edit Content" fields.
+                  </Typography>
                   <TextField
                     value={emailBody}
                     onChange={(e) => setEmailBody(e.target.value)}
                     fullWidth
                     multiline
-                    rows={12}
+                    rows={14}
                     size="small"
-                    sx={{ mt: 1 }}
                     InputProps={{
                       sx: { fontFamily: "monospace", fontSize: "12px" },
                     }}
                   />
-                </Collapse>
-              </Box>
+                </Box>
+              )}
             </Box>
           </DialogContent>
 
@@ -1541,7 +1731,11 @@ export function useInvoices() {
       emailSubject,
       emailBody,
       emailSending,
-      emailShowHtml,
+      emailEditMode,
+      emailFriendlyGreeting,
+      emailFriendlyMain,
+      emailFriendlyClosing,
+      emailExtraRecipients,
       emailPdfBase64,
       emailPdfFileName,
       emailPdfDownloadUrl,
