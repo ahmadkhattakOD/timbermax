@@ -38,7 +38,7 @@ export default function CreateItem() {
         itemCode: "",
         sellPrice: "",
         purchasePrice: "",
-        gst: false,
+        gst: true,
         vendorName: vendorName || "",
         inlineVendorName: inlineVendorName || "",
       }}

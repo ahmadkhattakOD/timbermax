@@ -46,6 +46,36 @@ const COMPANY_INFO = {
   website: "timbermax.com.au",
 };
 
+// Adds a "PAID" stamp image to the bottom-right of the page
+const addPaidStampImage = async (doc: jsPDF) => {
+  try {
+    const stampUrl = "/paid.png";
+    if (typeof window !== "undefined") {
+      const response = await fetch(stampUrl);
+      const blob = await response.blob();
+      const reader = new FileReader();
+
+      return new Promise<void>((resolve, reject) => {
+        reader.onload = function () {
+          const base64 = reader.result as string;
+          const pageWidth = doc.internal.pageSize.width;
+          const pageHeight = doc.internal.pageSize.height;
+          const stampWidth = 60;
+          const stampHeight = 60;
+          const x = pageWidth - stampWidth - 10;
+          const y = pageHeight - stampHeight - 10;
+          doc.addImage(base64, "PNG", x, y, stampWidth, stampHeight);
+          resolve();
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (error) {
+    console.error("Error loading paid stamp:", error);
+  }
+};
+
 // Shared helper that builds invoice PDF content onto a jsPDF doc
 const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   await addCompanyLogo(doc, 14, 20);
@@ -235,6 +265,11 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     doc.text(splitNotes, 14, paymentTermsY + 50);
   }
 
+  // Paid stamp overlay
+  if (invoice.status === "paid") {
+    await addPaidStampImage(doc);
+  }
+
   // Footer
   doc.setFontSize(8);
   doc.text(
@@ -399,6 +434,11 @@ export const generateInvoicePDFBase64 = async (
       finalY += 4;
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
       doc.text(splitNotes, 14, finalY);
+    }
+
+    // Paid stamp overlay
+    if (invoice.status === "paid") {
+      await addPaidStampImage(doc);
     }
 
     // Footer

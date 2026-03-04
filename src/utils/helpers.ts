@@ -140,7 +140,7 @@ export function isRouteAllowed(
     }
     return true;
   } else if (role === UserRoles.WarehouseOperator) {
-    let whiteListedURLs = ["/items", "/stock", "/warehouses", "/profile"];
+    let whiteListedURLs = ["/items", "/stock", "/profile"];
     for (let i = 0; i < whiteListedURLs.length; i++) {
       if (window.location.href.includes(whiteListedURLs[i])) {
         return true;

@@ -112,7 +112,7 @@ export default function Quotations() {
         data={data}
         dataCount={dataCount}
         loading={loading}
-        tableTitle="quotations"
+        tableTitle="Quotations"
         selected={selected}
         setSelected={setSelected}
         rowsPerPage={rowsPerPage}

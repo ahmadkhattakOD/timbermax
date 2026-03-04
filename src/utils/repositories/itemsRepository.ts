@@ -49,7 +49,8 @@ class ItemsRepository {
         .from(this.className)
         .select(`
           *,
-          ${vendorJoin}
+          ${vendorJoin},
+          stocks(quantity)
         `, { count: "exact" })
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)

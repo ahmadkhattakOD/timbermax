@@ -16,10 +16,10 @@ const headCells: HeadCell[] = [
     label: "Name",
   },
   {
-    id: "GST",
-    numeric: false,
+    id: "totalQuantity",
+    numeric: true,
     disablePadding: false,
-    label: "Gst",
+    label: "Total Quantity",
   },
   {
     id: "vendor",
@@ -184,8 +184,8 @@ export function useItems() {
         >
           {row.name}
         </TableCell>
-        <TableCell sx={{ minWidth: 200, textAlign: "left" }}>
-          {row.gst ? 'Yes' : 'No'}
+        <TableCell sx={{ minWidth: 150 }} align="right">
+          {row.stocks?.reduce((sum: number, s: any) => sum + (s.quantity ?? 0), 0) ?? 0}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           {row.vendors?.name || '-'}
@@ -295,12 +295,13 @@ export function useItems() {
 
   function getDataCsv() {
     try {
-      let csvString = "Name,GST,Vendor,Description,Item Code,Sell Price,Purchase Price\n";
+      let csvString = "Name,Total Quantity,Vendor,Description,Item Code,Sell Price,Purchase Price\n";
 
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let item = data[i] as any;
-          csvString += `${item?.name ?? ""},${item?.gst ? 'Yes' : 'No'},${
+          const totalQty = item?.stocks?.reduce((sum: number, s: any) => sum + (s.quantity ?? 0), 0) ?? 0;
+          csvString += `${item?.name ?? ""},${totalQty},${
             item?.vendors?.name ?? "-"
           },${item?.description ?? ""},${
             item?.itemCode ?? ""
