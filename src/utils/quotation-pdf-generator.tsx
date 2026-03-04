@@ -142,7 +142,7 @@ export const generateAndDownloadQuotationPDF = async (
 
     autoTable(doc, {
       startY: 130, // Increased from 100 to 130
-      head: [["#", "Description", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
+      head: [["#", "Items", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -476,7 +476,7 @@ export const generateQuotationPDFBase64 = async (
 
     autoTable(doc, {
       startY: addrY + 4,
-      head: [["#", "Description", "Qty", "Unit Price", "Total"]],
+      head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
       headStyles: { fillColor: [156, 106, 58], textColor: 255, fontSize: 8 },
@@ -644,7 +644,7 @@ export const openQuotationPDFInNewTab = async (
 
     autoTable(doc, {
       startY: 130,
-      head: [["#", "Description", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
+      head: [["#", "Items", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
       body: tableData,
       theme: "grid",
       headStyles: {

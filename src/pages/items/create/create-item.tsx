@@ -124,8 +124,8 @@ export default function CreateItem() {
               <FormInput
                 id={"name"}
                 name={"name"}
-                placeholder={"Name"}
-                label={"name"}
+                placeholder={"Item Specifications"}
+                label={"Item Specifications"}
                 optional={false}
                 type={"text"}
                 error={touched.name ? errors.name : ""}
