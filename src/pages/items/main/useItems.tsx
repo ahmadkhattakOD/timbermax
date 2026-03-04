@@ -31,7 +31,7 @@ const headCells: HeadCell[] = [
     id: "description",
     numeric: false,
     disablePadding: true,
-    label: "Description",
+    label: "Item",
   },
   {
     id: "itemCode",

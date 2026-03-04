@@ -829,7 +829,9 @@ export function useQuotations() {
       const quotationsRepo = new QuotationsRepository();
       const quotationResponse = await quotationsRepo.getSingle(row.id);
       if (quotationResponse?.quotationData) {
-        const pdfResult = await generateQuotationPDFBase64(quotationResponse.quotationData);
+        // Override status to "sent" so the PDF reflects the new status, not the old one
+        const quotationDataForPdf = { ...quotationResponse.quotationData, status: "sent" };
+        const pdfResult = await generateQuotationPDFBase64(quotationDataForPdf);
         if (pdfResult.success && pdfResult.base64) {
           const fileName = pdfResult.fileName || `quotation_${row.quotation_number}.pdf`;
           setEmailPdfBase64(pdfResult.base64);

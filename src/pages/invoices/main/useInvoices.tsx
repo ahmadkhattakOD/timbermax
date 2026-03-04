@@ -1237,7 +1237,10 @@ export function useInvoices() {
       const invoicesRepo = new InvoicesRepository();
       const invoiceResponse: any = await invoicesRepo.getSingle(row.id);
       if (invoiceResponse?.invoiceData) {
-        const pdfResult = await generateInvoicePDFBase64(invoiceResponse.invoiceData);
+        // Override status with the new target status so the PDF reflects what it's being changed to
+        const targetStatus = triggerType === "sent" ? "sent" : triggerType === "paid" ? "paid" : invoiceResponse.invoiceData.status;
+        const invoiceDataForPdf = { ...invoiceResponse.invoiceData, status: targetStatus };
+        const pdfResult = await generateInvoicePDFBase64(invoiceDataForPdf);
         if (pdfResult.success && pdfResult.base64) {
           const fileName = pdfResult.fileName || `invoice_${row.invoice_number}.pdf`;
           setEmailPdfBase64(pdfResult.base64);
