@@ -107,6 +107,7 @@ export function useCreateInvoice() {
 
   // Discount state
   const [discount, setDiscount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
   const totalAmount = selectedItems.reduce(
@@ -115,7 +116,10 @@ export function useCreateInvoice() {
   );
 
   // Calculate final amount after discount
-  const discountAmount = (totalAmount * discount) / 100;
+  const discountAmount =
+    discountType === "percentage"
+      ? (totalAmount * discount) / 100
+      : Math.min(discount, totalAmount);
   const finalAmount = totalAmount - discountAmount;
 
   const customerIdFromUrl = searchParams.get("customer");
@@ -831,6 +835,7 @@ export function useCreateInvoice() {
         note: values.note,
         status: "draft",
         discount: discount,
+        discount_type: discountType,
         // Save address snapshot to invoice
         address: invoiceAddress.address,
         suburb: invoiceAddress.suburb,
@@ -1234,6 +1239,8 @@ export function useCreateInvoice() {
     // Discount properties
     discount,
     setDiscount,
+    discountType,
+    setDiscountType,
     showDiscountInput,
     setShowDiscountInput,
     discountAmount,

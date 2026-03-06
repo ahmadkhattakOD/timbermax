@@ -313,7 +313,8 @@ export function useQuotations() {
 
       // Calculate totals using utility function
       const discount = parseFloat(quotation.quotationData.discount) || 0;
-      const breakdown = calculateTotalBreakdown(formattedItems, discount);
+      const discountType = quotation.quotationData.discount_type || "percentage";
+      const breakdown = calculateTotalBreakdown(formattedItems, discount, discountType);
 
       setCurrentQuotationItems(formattedItems);
       setCurrentQuotationInfo({
@@ -457,7 +458,9 @@ export function useQuotations() {
                 <TableRow>
                   <TableCell colSpan={6} align="right">
                     <Typography>
-                      Discount ({currentQuotationInfo.breakdown.discountPercentage}%):
+                      {currentQuotationInfo.breakdown.discountType === "fixed"
+                        ? `Discount ($${currentQuotationInfo.breakdown.discountValue.toFixed(2)}):`
+                        : `Discount (${currentQuotationInfo.breakdown.discountPercentage}%):`}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">

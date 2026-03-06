@@ -67,6 +67,8 @@ export default function EditQuotation() {
     // Discount properties
     discount,
     setDiscount,
+    discountType,
+    setDiscountType,
     discountAmount,
     finalAmount,
     showDiscountInput,
@@ -572,6 +574,8 @@ export default function EditQuotation() {
                       showDiscount={true}
                       discount={discount}
                       setDiscount={setDiscount}
+                      discountType={discountType}
+                      setDiscountType={setDiscountType}
                       discountAmount={discountAmount}
                       finalAmount={finalAmount}
                       showDiscountInput={showDiscountInput}

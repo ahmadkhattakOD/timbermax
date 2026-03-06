@@ -84,6 +84,8 @@ export default function EditInvoice() {
     // Discount properties
     discount,
     setDiscount,
+    discountType,
+    setDiscountType,
     showDiscountInput,
     setShowDiscountInput,
     discountAmount,
@@ -871,6 +873,8 @@ export default function EditInvoice() {
                       showDiscount={true}
                       discount={discount}
                       setDiscount={setDiscount}
+                      discountType={discountType}
+                      setDiscountType={setDiscountType}
                       showDiscountInput={showDiscountInput}
                       setShowDiscountInput={setShowDiscountInput}
                       discountAmount={discountAmount}

@@ -16,6 +16,8 @@ import {
   FormControl,
   Alert,
   Chip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { Trash } from "iconsax-react";
 import InputDropdown from "components/InputDropdown";
@@ -53,10 +55,13 @@ interface ItemsSelectionTableProps {
   showDiscount?: boolean;
   discount?: number;
   setDiscount?: (value: number) => void;
+  discountType?: "percentage" | "fixed";
+  setDiscountType?: (value: "percentage" | "fixed") => void;
   showDiscountInput?: boolean;
   setShowDiscountInput?: (value: boolean) => void;
   discountAmount?: number;
   finalAmount?: number;
+  totalAmount?: number;
 }
 
 export default function ItemsSelectionTable({
@@ -73,6 +78,8 @@ export default function ItemsSelectionTable({
   showDiscount = false,
   discount = 0,
   setDiscount,
+  discountType = "percentage",
+  setDiscountType,
   showDiscountInput = false,
   setShowDiscountInput,
   discountAmount = 0,
@@ -367,30 +374,61 @@ export default function ItemsSelectionTable({
                   </TableCell>
                   <TableCell>
                     {showDiscountInput && setDiscount && setShowDiscountInput ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <input
-                          type="number"
-                          value={discount}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value);
-                            if (value >= 0 && value <= 100) {
-                              setDiscount(value);
-                            } else if (e.target.value === '') {
-                              setDiscount(0);
-                            }
-                          }}
-                          style={{
-                            width: "60px",
-                            padding: "8px",
-                            border: "1px solid #ccc",
-                            borderRadius: "4px",
-                          }}
-                          min={0}
-                          max={100}
-                          step="0.01"
-                          placeholder="%"
-                        />
-                        <Typography variant="body2">%</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        {/* Type toggle */}
+                        {setDiscountType && (
+                          <ToggleButtonGroup
+                            value={discountType}
+                            exclusive
+                            size="small"
+                            onChange={(_, newType) => {
+                              if (newType) {
+                                setDiscountType(newType);
+                                setDiscount(0);
+                              }
+                            }}
+                          >
+                            <ToggleButton value="percentage" sx={{ px: 1.5, py: 0.5, fontSize: '0.8rem' }}>
+                              %
+                            </ToggleButton>
+                            <ToggleButton value="fixed" sx={{ px: 1.5, py: 0.5, fontSize: '0.8rem' }}>
+                              $
+                            </ToggleButton>
+                          </ToggleButtonGroup>
+                        )}
+                        {/* Discount value input */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {discountType === "fixed" && (
+                            <Typography variant="body2">$</Typography>
+                          )}
+                          <input
+                            type="number"
+                            value={discount}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value);
+                              if (e.target.value === '') {
+                                setDiscount(0);
+                              } else if (discountType === "percentage") {
+                                if (value >= 0 && value <= 100) setDiscount(value);
+                              } else {
+                                if (value >= 0) setDiscount(value);
+                              }
+                            }}
+                            style={{
+                              width: "70px",
+                              padding: "8px",
+                              border: "1px solid #ccc",
+                              borderRadius: "4px",
+                            }}
+                            min={0}
+                            max={discountType === "percentage" ? 100 : undefined}
+                            step="0.01"
+                            placeholder={discountType === "percentage" ? "%" : "$"}
+                          />
+                          {discountType === "percentage" && (
+                            <Typography variant="body2">%</Typography>
+                          )}
+                        </Box>
                         <strong>-{formatCurrency(discountAmount)}</strong>
                         <IconButton
                           size="small"

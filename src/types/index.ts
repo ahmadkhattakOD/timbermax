@@ -80,6 +80,7 @@ export interface Quotation {
     | "approved";
   total: number;
   discount?: number;
+  discount_type?: "percentage" | "fixed";
   subtotal?: number;
   tax?: number;
   tax_rate?: number;
@@ -121,6 +122,7 @@ export interface Invoice {
   delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
   total: number;
   discount?: number;
+  discount_type?: "percentage" | "fixed";
   invoice_date: string | Date;
   due_date?: string | Date;
   note?: string;

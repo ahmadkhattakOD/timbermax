@@ -242,7 +242,8 @@ export function useInvoices() {
 
       // Calculate totals using utility function
       const discount = parseFloat(invoice.invoiceData.discount) || 0;
-      const breakdown = calculateTotalBreakdown(formattedItems, discount);
+      const discountType = invoice.invoiceData.discount_type || "percentage";
+      const breakdown = calculateTotalBreakdown(formattedItems, discount, discountType);
 
       setCurrentInvoiceItems(formattedItems);
       setCurrentInvoiceInfo({
@@ -973,7 +974,9 @@ export function useInvoices() {
                 <TableRow>
                   <TableCell colSpan={6} align="right">
                     <Typography>
-                      Discount ({currentInvoiceInfo.breakdown.discountPercentage}%):
+                      {currentInvoiceInfo.breakdown.discountType === "fixed"
+                        ? `Discount ($${currentInvoiceInfo.breakdown.discountValue.toFixed(2)}):`
+                        : `Discount (${currentInvoiceInfo.breakdown.discountPercentage}%):`}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">

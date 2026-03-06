@@ -136,8 +136,11 @@ export const generateAndDownloadQuotationPDF = async (
     });
 
     // Apply discount if present
-    const discountPercent = quotation.discount || 0;
-    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const discountRaw = quotation.discount || 0;
+    const discountType = (quotation as any).discount_type || "percentage";
+    const discountAmount = discountType === "fixed"
+      ? Math.min(discountRaw, subtotalWithGST)
+      : (subtotalWithGST * discountRaw) / 100;
     const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
@@ -192,9 +195,12 @@ export const generateAndDownloadQuotationPDF = async (
     });
 
     // Show discount if present
-    if (discountPercent > 0) {
+    if (discountRaw > 0) {
       currentY += 10;
-      doc.text(`Discount (${discountPercent}%):`, 120, currentY);
+      const discountLabel = discountType === "fixed"
+        ? `Discount ($${discountRaw.toFixed(2)}):`
+        : `Discount (${discountRaw}%):`;
+      doc.text(discountLabel, 120, currentY);
       doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
         align: "right",
       });
@@ -470,8 +476,11 @@ export const generateQuotationPDFBase64 = async (
       subtotalWithGST += sub + gstAmt;
     });
 
-    const discountPercent = (quotation as any).discount || 0;
-    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const discountRaw2 = (quotation as any).discount || 0;
+    const discountType2: "percentage" | "fixed" = (quotation as any).discount_type || "percentage";
+    const discountAmount = discountType2 === "fixed"
+      ? Math.min(discountRaw2, subtotalWithGST)
+      : (subtotalWithGST * discountRaw2) / 100;
     const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
@@ -505,9 +514,12 @@ export const generateQuotationPDFBase64 = async (
     finalY += 5;
     doc.text("GST:", 140, finalY);
     doc.text(`$${totalGST.toFixed(2)}`, 196, finalY, { align: "right" });
-    if (discountPercent > 0) {
+    if (discountRaw2 > 0) {
       finalY += 5;
-      doc.text(`Discount (${discountPercent}%):`, 140, finalY);
+      const discountLabel2 = discountType2 === "fixed"
+        ? `Discount ($${discountRaw2.toFixed(2)}):`
+        : `Discount (${discountRaw2}%):`;
+      doc.text(discountLabel2, 140, finalY);
       doc.text(`-$${discountAmount.toFixed(2)}`, 196, finalY, { align: "right" });
     }
     finalY += 6;
@@ -638,8 +650,11 @@ export const openQuotationPDFInNewTab = async (
     });
 
     // Apply discount if present
-    const discountPercent = quotation.discount || 0;
-    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const discountRaw3 = quotation.discount || 0;
+    const discountType3 = (quotation as any).discount_type || "percentage";
+    const discountAmount = discountType3 === "fixed"
+      ? Math.min(discountRaw3, subtotalWithGST)
+      : (subtotalWithGST * discountRaw3) / 100;
     const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
@@ -694,9 +709,12 @@ export const openQuotationPDFInNewTab = async (
     });
 
     // Show discount if present
-    if (discountPercent > 0) {
+    if (discountRaw3 > 0) {
       currentY += 10;
-      doc.text(`Discount (${discountPercent}%):`, 120, currentY);
+      const discountLabel3 = discountType3 === "fixed"
+        ? `Discount ($${discountRaw3.toFixed(2)}):`
+        : `Discount (${discountRaw3}%):`;
+      doc.text(discountLabel3, 120, currentY);
       doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
         align: "right",
       });

@@ -84,6 +84,7 @@ export function useEditQuotation(quotationId: number) {
 
   // Discount state
   const [discount, setDiscount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
   // New states for customer addresses
@@ -111,7 +112,9 @@ export function useEditQuotation(quotationId: number) {
   );
 
   // Calculate final amount after discount
-  const discountAmount = (totalAmount * discount) / 100;
+  const discountAmount = discountType === "fixed"
+    ? Math.min(discount, totalAmount)
+    : (totalAmount * discount) / 100;
   const finalAmount = totalAmount - discountAmount;
 
   // Function to get ALL warehouses for an item
@@ -504,7 +507,9 @@ export function useEditQuotation(quotationId: number) {
       );
 
       // Apply discount to get final amount
-      const discountAmount = (totalWithGST * discount) / 100;
+      const discountAmount = discountType === "fixed"
+        ? Math.min(discount, totalWithGST)
+        : (totalWithGST * discount) / 100;
       const finalTotal = totalWithGST - discountAmount;
 
       // Update customer details
@@ -590,6 +595,7 @@ export function useEditQuotation(quotationId: number) {
         customer_id: customerId,
         total: finalTotal,
         discount: discount,
+        discount_type: discountType,
         valid_until: values.valid_until ? new Date(values.valid_until) : null,
         note: values.note,
         status: values.status,
@@ -796,6 +802,7 @@ export function useEditQuotation(quotationId: number) {
         // Set discount if present
         if (quotation.discount && quotation.discount > 0) {
           setDiscount(quotation.discount);
+          setDiscountType(quotation.discount_type || "percentage");
           setShowDiscountInput(true);
         }
 
@@ -880,6 +887,8 @@ export function useEditQuotation(quotationId: number) {
     // Discount properties
     discount,
     setDiscount,
+    discountType,
+    setDiscountType,
     discountAmount,
     finalAmount,
     showDiscountInput,

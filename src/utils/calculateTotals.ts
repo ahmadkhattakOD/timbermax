@@ -12,7 +12,9 @@ export interface TotalBreakdown {
   subtotal: number;  // Sum of all items (qty × price)
   gstAmount: number; // Total GST (10% on GST items)
   subtotalWithGst: number; // Subtotal + GST
-  discountPercentage: number; // Discount %
+  discountType: "percentage" | "fixed"; // How discount was applied
+  discountPercentage: number; // Discount % (only meaningful for percentage type)
+  discountValue: number; // The raw discount value as entered (% or $)
   discountAmount: number; // Discount in dollars
   finalTotal: number; // After discount
 }
@@ -53,12 +55,14 @@ export function calculateItemTotal(item: ItemForCalculation): number {
 /**
  * Calculate complete breakdown of totals for multiple items with optional discount
  * @param items - Array of items
- * @param discountPercentage - Discount percentage (0-100), defaults to 0
+ * @param discountValue - Discount value (% or $ amount), defaults to 0
+ * @param discountType - "percentage" or "fixed", defaults to "percentage"
  * @returns Complete breakdown of totals
  */
 export function calculateTotalBreakdown(
   items: ItemForCalculation[],
-  discountPercentage: number = 0
+  discountValue: number = 0,
+  discountType: "percentage" | "fixed" = "percentage"
 ): TotalBreakdown {
   // Calculate subtotal (sum of qty × price for all items, no GST yet)
   const subtotal = items.reduce((sum, item) => {
@@ -73,9 +77,18 @@ export function calculateTotalBreakdown(
   // Subtotal + GST
   const subtotalWithGst = subtotal + gstAmount;
 
-  // Calculate discount on the subtotal+GST
-  const validDiscount = Math.max(0, Math.min(100, discountPercentage || 0));
-  const discountAmount = (subtotalWithGst * validDiscount) / 100;
+  // Calculate discount based on type
+  let discountAmount: number;
+  let discountPercentage: number;
+
+  if (discountType === "fixed") {
+    discountAmount = Math.min(Math.max(0, discountValue || 0), subtotalWithGst);
+    discountPercentage = subtotalWithGst > 0 ? (discountAmount / subtotalWithGst) * 100 : 0;
+  } else {
+    const validPercent = Math.max(0, Math.min(100, discountValue || 0));
+    discountAmount = (subtotalWithGst * validPercent) / 100;
+    discountPercentage = validPercent;
+  }
 
   // Final total after discount
   const finalTotal = subtotalWithGst - discountAmount;
@@ -84,7 +97,9 @@ export function calculateTotalBreakdown(
     subtotal,
     gstAmount,
     subtotalWithGst,
-    discountPercentage: validDiscount,
+    discountType,
+    discountPercentage,
+    discountValue: discountValue || 0,
     discountAmount,
     finalTotal,
   };

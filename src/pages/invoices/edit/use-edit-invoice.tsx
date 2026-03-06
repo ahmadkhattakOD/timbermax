@@ -103,6 +103,7 @@ export function useEditInvoice(invoiceId: number) {
 
   // Discount state
   const [discount, setDiscount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
   const [initialValues, setInitialValues] = useState<ValuesEditInvoice>({
@@ -130,7 +131,9 @@ export function useEditInvoice(invoiceId: number) {
   );
 
   // Calculate final amount after discount
-  const discountAmount = (totalAmount * discount) / 100;
+  const discountAmount = discountType === "fixed"
+    ? Math.min(discount, totalAmount)
+    : (totalAmount * discount) / 100;
   const finalAmount = totalAmount - discountAmount;
 
   // Function to get ALL warehouses for an item
@@ -706,6 +709,7 @@ export function useEditInvoice(invoiceId: number) {
         customer_id: customerToUpdate,
         total: finalAmount,
         discount: discount,
+        discount_type: discountType,
         invoice_date: values.invoice_date
           ? new Date(values.invoice_date)
           : null,
@@ -956,6 +960,7 @@ export function useEditInvoice(invoiceId: number) {
         // Set discount if present
         if (invoice.discount && invoice.discount > 0) {
           setDiscount(invoice.discount);
+          setDiscountType(invoice.discount_type || "percentage");
           setShowDiscountInput(true);
         }
 
@@ -1112,6 +1117,8 @@ export function useEditInvoice(invoiceId: number) {
     // Discount properties
     discount,
     setDiscount,
+    discountType,
+    setDiscountType,
     showDiscountInput,
     setShowDiscountInput,
     discountAmount,

@@ -96,6 +96,7 @@ export function useCreateQuotation() {
 
   // Discount state
   const [discount, setDiscount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
   const quotationNumberRef = useRef(`QT-${String(Date.now()).slice(-6)}`);
@@ -106,7 +107,9 @@ export function useCreateQuotation() {
   );
 
   // Calculate final amount after discount
-  const discountAmount = (totalAmount * discount) / 100;
+  const discountAmount = discountType === "fixed"
+    ? Math.min(discount, totalAmount)
+    : (totalAmount * discount) / 100;
   const finalAmount = totalAmount - discountAmount;
 
   // Function to get ALL warehouses for an item
@@ -654,6 +657,7 @@ export function useCreateQuotation() {
         note: values.note,
         status: "draft",
         discount: discount,
+        discount_type: discountType,
         // Save address snapshot to quotation
         address: quotationAddress.address,
         suburb: quotationAddress.suburb,
@@ -884,6 +888,8 @@ export function useCreateQuotation() {
     // Discount properties
     discount,
     setDiscount,
+    discountType,
+    setDiscountType,
     showDiscountInput,
     setShowDiscountInput,
     discountAmount,

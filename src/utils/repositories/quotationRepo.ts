@@ -9,6 +9,7 @@ export interface QuotationSupabase {
   customer_id: number;
   total: number;
   discount?: number;
+  discount_type?: "percentage" | "fixed";
   status?:
     | "draft"
     | "sent"
@@ -552,14 +553,15 @@ class QuotationsRepository {
 
   public async updateQuotationTotal(quotationId: number) {
     try {
-      // First, get the current discount value from the quotation
+      // First, get the current discount value and type from the quotation
       const { data: quotationData } = await supabase
         .from(this.className)
-        .select("discount")
+        .select("discount, discount_type")
         .eq("id", quotationId)
         .single();
 
       const discount = quotationData?.discount || 0;
+      const discountType: "percentage" | "fixed" = quotationData?.discount_type || "percentage";
 
       // Calculate new total from items with GST
       const { data: itemsWithGST } = await supabase
@@ -585,7 +587,9 @@ class QuotationsRepository {
       }
 
       // Apply discount to get final total
-      const discountAmount = (totalWithGST * discount) / 100;
+      const discountAmount = discountType === "fixed"
+        ? Math.min(discount, totalWithGST)
+        : (totalWithGST * discount) / 100;
       const finalTotal = totalWithGST - discountAmount;
 
       // Update quotation total with discount applied

@@ -10,6 +10,7 @@ export interface InvoiceSupabase {
   quotation_id?: number | null;
   total: number;
   discount?: number;
+  discount_type?: "percentage" | "fixed";
   status?: "draft" | "sent" | "paid" | "cancelled" | "converted" | "overdue";
   delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
   invoice_date?: Date | string;
@@ -276,7 +277,7 @@ ${this.itemsClassName} (
          address, suburb, state, post_code,
          customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ),
          quotation_id, quotations ( id, quotation_number ),
-         total, discount, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
+         total, discount, discount_type, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
          ${this.itemsClassName} (
            id, item_id, quantity, unit_price, total_price, warehouse_id,
            items ( id, name, itemCode, sellPrice, gst )

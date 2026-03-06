@@ -171,8 +171,11 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     subtotalWithGST += subtotal + gstAmount;
   });
 
-  const discountPercent = invoice.discount || 0;
-  const discountAmount = (subtotalWithGST * discountPercent) / 100;
+  const discountType = (invoice as any).discount_type || "percentage";
+  const discountRaw = invoice.discount || 0;
+  const discountAmount = discountType === "fixed"
+    ? Math.min(discountRaw, subtotalWithGST)
+    : (subtotalWithGST * discountRaw) / 100;
   const grandTotal = subtotalWithGST - discountAmount;
 
   autoTable(doc, {
@@ -229,9 +232,12 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     align: "right",
   });
 
-  if (discountPercent > 0) {
+  if (discountRaw > 0) {
     currentY += 10;
-    doc.text(`Discount (${discountPercent}%):`, 120, currentY);
+    const discountLabel = discountType === "fixed"
+      ? `Discount ($${discountRaw.toFixed(2)}):`
+      : `Discount (${discountRaw}%):`;
+    doc.text(discountLabel, 120, currentY);
     doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
       align: "right",
     });
@@ -381,8 +387,11 @@ export const generateInvoicePDFBase64 = async (
       subtotalWithGST += sub + gstAmt;
     });
 
-    const discountPercent = invoice.discount || 0;
-    const discountAmount = (subtotalWithGST * discountPercent) / 100;
+    const discountType = (invoice as any).discount_type || "percentage";
+    const discountRaw = invoice.discount || 0;
+    const discountAmount = discountType === "fixed"
+      ? Math.min(discountRaw, subtotalWithGST)
+      : (subtotalWithGST * discountRaw) / 100;
     const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
@@ -416,9 +425,12 @@ export const generateInvoicePDFBase64 = async (
     finalY += 5;
     doc.text("GST:", 140, finalY);
     doc.text(`$${totalGST.toFixed(2)}`, 196, finalY, { align: "right" });
-    if (discountPercent > 0) {
+    if (discountRaw > 0) {
       finalY += 5;
-      doc.text(`Discount (${discountPercent}%):`, 140, finalY);
+      const discountLabel = discountType === "fixed"
+        ? `Discount ($${discountRaw.toFixed(2)}):`
+        : `Discount (${discountRaw}%):`;
+      doc.text(discountLabel, 140, finalY);
       doc.text(`-$${discountAmount.toFixed(2)}`, 196, finalY, { align: "right" });
     }
     finalY += 6;
