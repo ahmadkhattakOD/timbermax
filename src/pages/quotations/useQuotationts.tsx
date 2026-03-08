@@ -28,7 +28,7 @@ import {
   Truck,
   Xd,
 } from "iconsax-react";
-import { X, Download, Send as SendIcon, Code } from "lucide-react";
+import { X, Download, Send as SendIcon, Code, RotateCcw } from "lucide-react";
 import {
   generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
@@ -236,6 +236,7 @@ export function useQuotations() {
   const [emailPdfBase64, setEmailPdfBase64] = useState<string>("");
   const [emailPdfFileName, setEmailPdfFileName] = useState<string>("");
   const [emailPdfDownloadUrl, setEmailPdfDownloadUrl] = useState<string>("");
+  const [emailIsResend, setEmailIsResend] = useState(false);
 
   function goToCreate() {
     navigate("/quotations/create");
@@ -690,6 +691,22 @@ export function useQuotations() {
                 </IconButton>
               </Tooltip>
             )}
+
+            {/* Resend Email (for sent and approved quotations) */}
+            {(row.status === "sent" || row.status === "approved") && (
+              <Tooltip title="Resend Email">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resendQuotationEmail(row.id);
+                  }}
+                  color="primary"
+                >
+                  <RotateCcw size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </TableCell>
       </>
@@ -699,12 +716,12 @@ export function useQuotations() {
 
   const quotEmailHeader = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
     <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
-    <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
+    <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 688 199 773</p>
   </div>`;
 
   const quotEmailFooter = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
-    <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
-    <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
+    <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 688 199 773</p>
+    <p style="margin:4px 0 0 0;">Phone: 08 8212 4703 | Email: info@timbermax.com.au | timbermax.com.au</p>
   </div>`;
 
   const wrapQuotEmailTemplate = (content: string) =>
@@ -811,9 +828,13 @@ export function useQuotations() {
     }
   };
 
-  const openQuotationEmailDialog = async (row: any) => {
-    const { subject, body } = generateQuotationEmailBody(row);
+  const openQuotationEmailDialog = async (row: any, resend = false) => {
+    const quotNum = row.quotation_number || "";
+    const baseSubject = `Quotation ${quotNum} from Timber Max Supply`;
+    const subject = resend ? `[Resend] ${baseSubject}` : baseSubject;
+    const { body } = generateQuotationEmailBody(row);
     const parts = getQuotationFriendlyParts(row);
+    setEmailIsResend(resend);
     setEmailQuotationData(row);
     setEmailTo(row.customer?.email || row.customers?.email || "");
     setEmailSubject(subject);
@@ -832,8 +853,10 @@ export function useQuotations() {
       const quotationsRepo = new QuotationsRepository();
       const quotationResponse = await quotationsRepo.getSingle(row.id);
       if (quotationResponse?.quotationData) {
-        // Override status to "sent" so the PDF reflects the new status, not the old one
-        const quotationDataForPdf = { ...quotationResponse.quotationData, status: "sent" };
+        // For resend keep current status; for initial send override to "sent"
+        const quotationDataForPdf = resend
+          ? quotationResponse.quotationData
+          : { ...quotationResponse.quotationData, status: "sent" };
         const pdfResult = await generateQuotationPDFBase64(quotationDataForPdf);
         if (pdfResult.success && pdfResult.base64) {
           const fileName = pdfResult.fileName || `quotation_${row.quotation_number}.pdf`;
@@ -868,10 +891,13 @@ export function useQuotations() {
     setEmailPdfBase64("");
     setEmailPdfFileName("");
     setEmailPdfDownloadUrl("");
+    setEmailIsResend(false);
   };
 
   const proceedAfterQuotationEmail = async () => {
     if (!emailQuotationData) return;
+    // For resend, no status change needed
+    if (emailIsResend) return;
     try {
       const quotationsRepo = new QuotationsRepository();
       const result = await quotationsRepo.updateStatus(emailQuotationData.id, "sent");
@@ -956,9 +982,9 @@ export function useQuotations() {
         PaperProps={{ sx: { borderRadius: 2, overflow: "hidden" } }}
       >
         {/* Header bar */}
-        <Box sx={{ backgroundColor: "#9C6A3A", px: 3, py: 2 }}>
+        <Box sx={{ backgroundColor: emailIsResend ? "#1976d2" : "#9C6A3A", px: 3, py: 2 }}>
           <Typography variant="h6" sx={{ color: "#fff", fontWeight: 600 }}>
-            Send Quotation Email
+            {emailIsResend ? "Resend Quotation Email" : "Send Quotation Email"}
           </Typography>
           {emailQuotationData && (
             <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
@@ -1237,15 +1263,17 @@ export function useQuotations() {
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1 }}>
-          <Button
-            onClick={skipQuotationEmail}
-            variant="outlined"
-            color="inherit"
-            disabled={emailSending}
-            sx={{ textTransform: "none", mr: "auto" }}
-          >
-            Skip Email
-          </Button>
+          {!emailIsResend && (
+            <Button
+              onClick={skipQuotationEmail}
+              variant="outlined"
+              color="inherit"
+              disabled={emailSending}
+              sx={{ textTransform: "none", mr: "auto" }}
+            >
+              Skip Email
+            </Button>
+          )}
           <Button
             onClick={closeQuotationEmailDialog}
             color="inherit"
@@ -1261,8 +1289,8 @@ export function useQuotations() {
             startIcon={emailSending ? <CircularProgress size={16} /> : <SendIcon size={16} />}
             sx={{
               textTransform: "none",
-              backgroundColor: "#9C6A3A",
-              "&:hover": { backgroundColor: "#9C6A3A", opacity: 0.9 },
+              backgroundColor: emailIsResend ? "#1976d2" : "#9C6A3A",
+              "&:hover": { backgroundColor: emailIsResend ? "#1976d2" : "#9C6A3A", opacity: 0.9 },
             }}
           >
             {emailSending ? "Sending…" : "Send Email"}
@@ -1285,6 +1313,7 @@ export function useQuotations() {
       emailPdfBase64,
       emailPdfFileName,
       emailPdfDownloadUrl,
+      emailIsResend,
     ]
   );
 
@@ -1293,6 +1322,12 @@ export function useQuotations() {
     const row = data.find((q: any) => q.id === quotationId);
     if (!row) return;
     openQuotationEmailDialog(row);
+  }
+
+  async function resendQuotationEmail(quotationId: number) {
+    const row = data.find((q: any) => q.id === quotationId);
+    if (!row) return;
+    openQuotationEmailDialog(row, true);
   }
 
   async function markAsApproved(quotationId: number) {
@@ -1972,6 +2007,7 @@ export function useQuotations() {
     convertToInvoice,
     viewItems,
     cancelQuotation,
+    resendQuotationEmail,
     updateQuotationStatus,
     downloadQuotationPDF,
     previewQuotationPDF,

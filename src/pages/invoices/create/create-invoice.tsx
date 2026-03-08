@@ -130,6 +130,7 @@ export default function CreateInvoice() {
         'contactName',
         'inlineCustomerName',
         'invoice_date',
+        'due_date',
       ];
 
       const step1HasErrors = step1Fields.some(field => errors[field]);
@@ -300,7 +301,8 @@ export default function CreateInvoice() {
                           placeholder={"Due Date"}
                           label={"Due Date"}
                           type={"date"}
-                          optional={true}
+                          optional={false}
+                          error={touched.due_date || step1Errors.due_date ? errors.due_date || step1Errors.due_date : ""}
                         />
                       </Grid>
 

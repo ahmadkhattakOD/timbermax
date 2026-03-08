@@ -695,6 +695,10 @@ export function useCreateInvoice() {
       errors.invoice_date = "required";
     }
 
+    if (!values.due_date) {
+      errors.due_date = "required";
+    }
+
     return errors;
   }
 

@@ -25,7 +25,7 @@ const addCompanyLogo = async (
         reader.onload = function () {
           const base64 = reader.result as string;
           // Add image to PDF
-          doc.addImage(base64, "JPEG", xPosition, yPosition, 30, 15); // Adjust size as needed
+          doc.addImage(base64, "JPEG", xPosition, yPosition, 45, 22); // Adjust size as needed
           resolve();
         };
         reader.onerror = reject;
@@ -55,11 +55,11 @@ export const generateAndDownloadQuotationPDF = async (
     // Company Info - moved down
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60); // Changed company name
-    doc.text("ABN: 95 689 199 773", 14, 65); // Added ABN
-    doc.text("Phone: (123) 456-7890", 14, 70);
-    doc.text("Email: info@timbermax.com.au", 14, 75); // Updated email
-    doc.text("Website: timbermax.com.au", 14, 80); // Added website
+    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
+    doc.text("ABN: 95 688 199 773", 14, 65);
+    doc.text("Phone: 08 8212 4703", 14, 70);
+    doc.text("Email: info@timbermax.com.au", 14, 75);
+    doc.text("Website: timbermax.com.au", 14, 80);
 
     // Quotation Info (right aligned) - moved down
     doc.setFont("helvetica", "normal");
@@ -169,13 +169,17 @@ export const generateAndDownloadQuotationPDF = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
 
-    // Add GST note below the table
+    // GST note + disclaimer as one continuous block
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text("* Items marked with an asterisk (*) are GST applicable", 14, finalY);
+    const gstDisclaimerLines = doc.splitTextToSize(
+      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      180,
+    );
+    doc.text(gstDisclaimerLines, 14, finalY);
 
     // Summary Section
-    const summaryY = finalY + 10;
+    const summaryY = finalY + 22;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Summary:", 120, summaryY);
@@ -184,37 +188,39 @@ export const generateAndDownloadQuotationPDF = async (
     let currentY = summaryY + 10;
 
     doc.text(`Subtotal:`, 120, currentY);
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
     currentY += 10;
     doc.text(`GST:`, 120, currentY);
-    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
+    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, { align: "right" });
 
-    // Show discount if present
     if (discountRaw > 0) {
       currentY += 10;
       const discountLabel = discountType === "fixed"
         ? `Discount ($${discountRaw.toFixed(2)}):`
         : `Discount (${discountRaw}%):`;
       doc.text(discountLabel, 120, currentY);
-      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
-        align: "right",
-      });
+      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
     }
 
     currentY += 10;
     doc.setFont("helvetica", "bold");
     doc.text(`Grand Total:`, 120, currentY);
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
-    // Notes Section (adjust position based on discount presence)
-    const notesY = currentY + 20;
+    // Bank Details
+    const bankY = currentY + 20;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bank Details:", 14, bankY);
+    doc.setFont("helvetica", "normal");
+    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+    doc.text("BSB No: 065 167", 14, bankY + 21);
+    doc.text("Account Number: 1056 5353", 14, bankY + 28);
+
+    // Notes Section
+    const notesY = bankY + 40;
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, notesY);
@@ -222,15 +228,6 @@ export const generateAndDownloadQuotationPDF = async (
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
       doc.text(splitNotes, 14, notesY + 10);
     }
-
-    // Footer
-    doc.setFontSize(8);
-    doc.text(
-      "Thank you for your business!",
-      105,
-      doc.internal.pageSize.height - 20,
-      { align: "center" }
-    );
 
     const fileName = `quotation_${quotation.quotation_number}_${getDateFormatted(
       new Date().toISOString()
@@ -264,8 +261,8 @@ export const generateAndDownloadDeliveryDocument = async (
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
-    doc.text("ABN: 95 689 199 773", 14, 65);
-    doc.text("Phone: (123) 456-7890", 14, 70);
+    doc.text("ABN: 95 688 199 773", 14, 65);
+    doc.text("Phone: 08 8212 4703", 14, 70);
     doc.text("Email: info@timbermax.com.au", 14, 75);
     doc.text("Website: timbermax.com.au", 14, 80);
 
@@ -301,7 +298,6 @@ export const generateAndDownloadDeliveryDocument = async (
       );
     }
     doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 120);
-    doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 125);
 
     // Items Table for Delivery
     const items = quotation.quotation_items || [];
@@ -343,30 +339,42 @@ export const generateAndDownloadDeliveryDocument = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 20;
 
-    // Add GST note for delivery document too
+    // GST note + disclaimer as one continuous block
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text("* Items marked with an asterisk (*) are GST applicable", 14, finalY);
+    const gstDisclaimerLines = doc.splitTextToSize(
+      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      180,
+    );
+    doc.text(gstDisclaimerLines, 14, finalY);
+
+    // Bank Details
+    const bankY = finalY + 10;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bank Details:", 14, bankY);
+    doc.setFont("helvetica", "normal");
+    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+    doc.text("BSB No: 065 167", 14, bankY + 21);
+    doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
     // Notes Section
+    const noteStartY = bankY + 38;
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, finalY + 10);
+      doc.text("Notes:", 14, noteStartY);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, finalY + 20);
+      doc.text(splitNotes, 14, noteStartY + 10);
     }
 
     // Delivery Instructions
     doc.setFont("helvetica", "bold");
-    const instructionsY = finalY + (quotation.note ? 40 : 20);
+    const instructionsY = noteStartY + (quotation.note ? 30 : 10);
     doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
-    doc.text(
-      "Please ensure all items are checked upon delivery.",
-      14,
-      instructionsY + 10
-    );
+    doc.text("Please ensure all items are checked upon delivery.", 14, instructionsY + 10);
 
     // Signature Section
     doc.setFont("helvetica", "bold");
@@ -375,17 +383,6 @@ export const generateAndDownloadDeliveryDocument = async (
 
     doc.text("Delivery Person:", 120, instructionsY + 40);
     doc.line(120, instructionsY + 45, 180, instructionsY + 45);
-
-    // Footer
-    doc.setFontSize(8);
-    doc.text(
-      "This document serves as proof of delivery.",
-      105,
-      doc.internal.pageSize.height - 20,
-      {
-        align: "center",
-      }
-    );
 
     const fileName = `delivery_${quotation.quotation_number}_${getDateFormatted(
       new Date().toISOString()
@@ -416,8 +413,8 @@ export const generateQuotationPDFBase64 = async (
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 32);
-    doc.text("ABN: 95 689 199 773", 14, 37);
-    doc.text("Phone: (123) 456-7890 | Email: info@timbermax.com.au", 14, 42);
+    doc.text("ABN: 95 688 199 773", 14, 37);
+    doc.text("Phone: 08 8212 4703 | Email: info@timbermax.com.au", 14, 42);
 
     doc.text(`Quotation #: ${quotation.quotation_number}`, 196, 32, { align: "right" });
     doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 196, 37, { align: "right" });
@@ -501,9 +498,14 @@ export const generateQuotationPDFBase64 = async (
 
     let finalY = (doc as any).lastAutoTable.finalY + 6;
 
-    doc.setFontSize(7);
+    // GST note + disclaimer as one continuous block
+    doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
-    doc.text("* GST applicable items", 14, finalY);
+    const gstDisclaimerLines = doc.splitTextToSize(
+      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      180,
+    );
+    doc.text(gstDisclaimerLines, 14, finalY);
 
     // Totals
     finalY += 8;
@@ -527,6 +529,22 @@ export const generateQuotationPDFBase64 = async (
     doc.text("Grand Total:", 140, finalY);
     doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
 
+    // Bank Details
+    finalY += 12;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bank Details:", 14, finalY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    finalY += 5;
+    doc.text("Bank Detail: Commonwealth Bank", 14, finalY);
+    finalY += 4.5;
+    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, finalY);
+    finalY += 4.5;
+    doc.text("BSB No: 065 167", 14, finalY);
+    finalY += 4.5;
+    doc.text("Account Number: 1056 5353", 14, finalY);
+
     if (quotation.note) {
       finalY += 10;
       doc.setFontSize(8);
@@ -537,9 +555,6 @@ export const generateQuotationPDFBase64 = async (
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
       doc.text(splitNotes, 14, finalY);
     }
-
-    doc.setFontSize(7);
-    doc.text("Thank you for your business! | This is a computer-generated quotation.", 105, doc.internal.pageSize.height - 10, { align: "center" });
 
     const fileName = `quotation_${quotation.quotation_number}.pdf`;
     const base64 = doc.output("datauristring");
@@ -570,8 +585,8 @@ export const openQuotationPDFInNewTab = async (
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
-    doc.text("ABN: 95 689 199 773", 14, 65);
-    doc.text("Phone: (123) 456-7890", 14, 70);
+    doc.text("ABN: 95 688 199 773", 14, 65);
+    doc.text("Phone: 08 8212 4703", 14, 70);
     doc.text("Email: info@timbermax.com.au", 14, 75);
     doc.text("Website: timbermax.com.au", 14, 80);
 
@@ -683,13 +698,17 @@ export const openQuotationPDFInNewTab = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
 
-    // Add GST note below the table
+    // GST note + disclaimer as one continuous block
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text("* Items marked with an asterisk (*) are GST applicable", 14, finalY);
+    const gstDisclaimerLines = doc.splitTextToSize(
+      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      180,
+    );
+    doc.text(gstDisclaimerLines, 14, finalY);
 
     // Summary Section
-    const summaryY = finalY + 10;
+    const summaryY = finalY + 22;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Summary:", 120, summaryY);
@@ -698,37 +717,39 @@ export const openQuotationPDFInNewTab = async (
     let currentY = summaryY + 10;
 
     doc.text(`Subtotal:`, 120, currentY);
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
+    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
     currentY += 10;
     doc.text(`GST:`, 120, currentY);
-    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
+    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, { align: "right" });
 
-    // Show discount if present
     if (discountRaw3 > 0) {
       currentY += 10;
       const discountLabel3 = discountType3 === "fixed"
         ? `Discount ($${discountRaw3.toFixed(2)}):`
         : `Discount (${discountRaw3}%):`;
       doc.text(discountLabel3, 120, currentY);
-      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
-        align: "right",
-      });
+      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
     }
 
     currentY += 10;
     doc.setFont("helvetica", "bold");
     doc.text(`Grand Total:`, 120, currentY);
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
-    // Notes Section (adjust position based on discount presence)
-    const notesY = currentY + 20;
+    // Bank Details
+    const bankY = currentY + 20;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bank Details:", 14, bankY);
+    doc.setFont("helvetica", "normal");
+    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+    doc.text("BSB No: 065 167", 14, bankY + 21);
+    doc.text("Account Number: 1056 5353", 14, bankY + 28);
+
+    // Notes Section
+    const notesY = bankY + 40;
     if (quotation.note) {
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, notesY);
@@ -736,15 +757,6 @@ export const openQuotationPDFInNewTab = async (
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
       doc.text(splitNotes, 14, notesY + 10);
     }
-
-    // Footer
-    doc.setFontSize(8);
-    doc.text(
-      "Thank you for your business!",
-      105,
-      doc.internal.pageSize.height - 20,
-      { align: "center" }
-    );
 
     const pdfBlob = doc.output("blob");
     const pdfUrl = URL.createObjectURL(pdfBlob);

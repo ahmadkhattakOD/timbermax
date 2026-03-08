@@ -24,7 +24,7 @@ const addCompanyLogo = async (
         reader.onload = function () {
           const base64 = reader.result as string;
           // Add image to PDF
-          doc.addImage(base64, "JPEG", xPosition, yPosition, 30, 15); // Adjust size as needed
+          doc.addImage(base64, "JPEG", xPosition, yPosition, 45, 22); // Adjust size as needed
           resolve();
         };
         reader.onerror = reject;
@@ -40,8 +40,8 @@ const addCompanyLogo = async (
 // Constants for consistent company branding
 const COMPANY_INFO = {
   name: "TIMBER MAX SUPPLY PTY LTD",
-  abn: "95 689 199 773",
-  phone: "(123) 456-7890",
+  abn: "95 688 199 773",
+  phone: "08 8212 4703",
   email: "info@timbermax.com.au",
   website: "timbermax.com.au",
 };
@@ -102,16 +102,26 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 180, 65, {
     align: "right",
   });
-  doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 70, {
-    align: "right",
-  });
-  if (invoice.delivery_status) {
-    doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 75, {
+  if ((invoice as any).due_date) {
+    doc.text(`Due Date: ${getDateFormatted((invoice as any).due_date)}`, 180, 70, {
       align: "right",
     });
   }
-  if (invoice.quotation_id) {
-    doc.text(`Ref Quote: ${invoice.quotation_id}`, 180, 80, {
+  if ((invoice as any).created_at) {
+    doc.text(`Created: ${getDateFormatted((invoice as any).created_at)}`, 180, 75, {
+      align: "right",
+    });
+  }
+  doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 80, {
+    align: "right",
+  });
+  if (invoice.delivery_status) {
+    doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 85, {
+      align: "right",
+    });
+  }
+  if ((invoice as any).quotations?.quotation_number) {
+    doc.text(`Ref Quote: ${(invoice as any).quotations.quotation_number}`, 180, 90, {
       align: "right",
     });
   }
@@ -119,19 +129,24 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   // Customer Info
   const customer = invoice.customer;
   doc.setFont("helvetica", "bold");
-  doc.text("BILL TO:", 14, 95);
+  doc.text("BILL TO:", 14, 100);
   doc.setFont("helvetica", "normal");
-  doc.text(customer?.name || "N/A", 14, 100);
-  doc.text(invoice.address || "", 14, 105);
-  if (invoice.suburb) {
+  doc.text(customer?.name || "N/A", 14, 106);
+  doc.text(invoice.address || "", 14, 111);
+  const addressContainsSuburb =
+    invoice.address && invoice.suburb &&
+    invoice.address.toLowerCase().includes(invoice.suburb.toLowerCase());
+  let addrEndY = 116;
+  if (invoice.suburb && !addressContainsSuburb) {
     doc.text(
       `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
       14,
-      110,
+      116,
     );
+    addrEndY = 121;
   }
-  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
-  doc.text(`Email: ${customer?.email || "N/A"}`, 14, 125);
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, addrEndY + 4);
+  doc.text(`Email: ${customer?.email || "N/A"}`, 14, addrEndY + 9);
 
   // Items Table
   const items = invoice.invoice_items || [];
@@ -179,7 +194,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   const grandTotal = subtotalWithGST - discountAmount;
 
   autoTable(doc, {
-    startY: 135,
+    startY: addrEndY + 18,
     head: [["#", "Items", "Code", "Qty", "Unit Price", "Total"]],
     body: tableData,
     theme: "grid",
@@ -204,16 +219,17 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
 
+  // GST note + disclaimer as one continuous block
   doc.setFontSize(8);
   doc.setFont("helvetica", "italic");
-  doc.text(
-    "* Items marked with an asterisk (*) are GST applicable",
-    14,
-    finalY,
+  const gstDisclaimerLines = doc.splitTextToSize(
+    "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+    180,
   );
+  doc.text(gstDisclaimerLines, 14, finalY);
 
   // Summary Section
-  const summaryY = finalY + 10;
+  const summaryY = finalY + 22;
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("Payment Summary:", 120, summaryY);
@@ -222,15 +238,11 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   let currentY = summaryY + 10;
 
   doc.text(`Subtotal:`, 120, currentY);
-  doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, {
-    align: "right",
-  });
+  doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
   currentY += 10;
   doc.text(`GST:`, 120, currentY);
-  doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, {
-    align: "right",
-  });
+  doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, { align: "right" });
 
   if (discountRaw > 0) {
     currentY += 10;
@@ -238,58 +250,39 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
       ? `Discount ($${discountRaw.toFixed(2)}):`
       : `Discount (${discountRaw}%):`;
     doc.text(discountLabel, 120, currentY);
-    doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
-      align: "right",
-    });
+    doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
   }
 
   currentY += 10;
   doc.setFont("helvetica", "bold");
   doc.text(`Total Due:`, 120, currentY);
-  doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, {
-    align: "right",
-  });
+  doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
-  // Payment Terms
-  const paymentTermsY = currentY + 20;
+  // Bank Details
+  const bankY = currentY + 20;
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("Payment Terms:", 14, paymentTermsY);
+  doc.text("Bank Details:", 14, bankY);
   doc.setFont("helvetica", "normal");
-  doc.text("Please pay within 30 days of invoice date.", 14, paymentTermsY + 5);
-  doc.text("Bank Details:", 14, paymentTermsY + 10);
-  doc.text("Bank: Commonwealth Bank", 14, paymentTermsY + 15);
-  doc.text("BSB: 123-456", 14, paymentTermsY + 20);
-  doc.text("Account: 12345678", 14, paymentTermsY + 25);
-  doc.text("Reference: " + invoice.invoice_number, 14, paymentTermsY + 30);
+  doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+  doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+  doc.text("BSB No: 065 167", 14, bankY + 21);
+  doc.text("Account Number: 1056 5353", 14, bankY + 28);
+  doc.text("Reference: " + invoice.invoice_number, 14, bankY + 35);
 
   // Notes Section
   if (invoice.note) {
     doc.setFont("helvetica", "bold");
-    doc.text("Notes:", 14, paymentTermsY + 45);
+    doc.text("Notes:", 14, bankY + 48);
     doc.setFont("helvetica", "normal");
     const splitNotes = doc.splitTextToSize(invoice.note, 180);
-    doc.text(splitNotes, 14, paymentTermsY + 50);
+    doc.text(splitNotes, 14, bankY + 54);
   }
 
   // Paid stamp overlay
   if (invoice.status === "paid") {
     await addPaidStampImage(doc);
   }
-
-  // Footer
-  doc.setFontSize(8);
-  doc.text(
-    "Thank you for your business!",
-    105,
-    doc.internal.pageSize.height - 20,
-    { align: "center" },
-  );
-  doc.text(
-    "This is a computer-generated invoice. No signature required.",
-    105,
-    doc.internal.pageSize.height - 15,
-    { align: "center" },
-  );
 };
 
 export const generateAndDownloadInvoicePDF = async (
@@ -333,26 +326,37 @@ export const generateInvoicePDFBase64 = async (
     // Invoice info (right)
     doc.text(`Invoice #: ${invoice.invoice_number}`, 196, 32, { align: "right" });
     doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 196, 37, { align: "right" });
-    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 196, 42, { align: "right" });
+    if ((invoice as any).due_date) {
+      doc.text(`Due Date: ${getDateFormatted((invoice as any).due_date)}`, 196, 42, { align: "right" });
+    }
+    if ((invoice as any).created_at) {
+      doc.text(`Created: ${getDateFormatted((invoice as any).created_at)}`, 196, 47, { align: "right" });
+    }
+    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 196, 52, { align: "right" });
 
     // Divider
     doc.setDrawColor(156, 106, 58);
     doc.setLineWidth(0.5);
-    doc.line(14, 46, 196, 46);
+    doc.line(14, 57, 196, 57);
 
     // Bill To
     const customer = invoice.customer;
     doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 14, 54);
+    doc.text("BILL TO:", 14, 65);
     doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 59);
+    doc.text(customer?.name || "N/A", 14, 70);
+    const emailBase64AddrContainsSuburb =
+      invoice.address && invoice.suburb &&
+      invoice.address.toLowerCase().includes(invoice.suburb.toLowerCase());
     const addressParts = [
       invoice.address,
-      [invoice.suburb, invoice.state, invoice.post_code].filter(Boolean).join(" "),
+      (!emailBase64AddrContainsSuburb && invoice.suburb)
+        ? [invoice.suburb, invoice.state, invoice.post_code].filter(Boolean).join(" ")
+        : null,
       customer?.email ? `Email: ${customer.email}` : null,
       customer?.phone ? `Phone: ${customer.phone}` : null,
     ].filter(Boolean);
-    let addrY = 64;
+    let addrY = 75;
     addressParts.forEach((line) => {
       doc.text(line as string, 14, addrY);
       addrY += 4.5;
@@ -412,9 +416,14 @@ export const generateInvoicePDFBase64 = async (
 
     let finalY = (doc as any).lastAutoTable.finalY + 6;
 
-    doc.setFontSize(7);
+    // GST note + disclaimer as one continuous block
+    doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
-    doc.text("* GST applicable items", 14, finalY);
+    const gstDisclaimerLines = doc.splitTextToSize(
+      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      180,
+    );
+    doc.text(gstDisclaimerLines, 14, finalY);
 
     // Totals
     finalY += 8;
@@ -438,9 +447,28 @@ export const generateInvoicePDFBase64 = async (
     doc.text("Total Due:", 140, finalY);
     doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
 
+    // Bank Details
+    finalY += 12;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bank Details:", 14, finalY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    finalY += 5;
+    doc.text("Bank Detail: Commonwealth Bank", 14, finalY);
+    finalY += 4.5;
+    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, finalY);
+    finalY += 4.5;
+    doc.text("BSB No: 065 167", 14, finalY);
+    finalY += 4.5;
+    doc.text("Account Number: 1056 5353", 14, finalY);
+    finalY += 4.5;
+    doc.text("Reference: " + invoice.invoice_number, 14, finalY);
+
     if (invoice.note) {
       finalY += 8;
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
       doc.text("Notes:", 14, finalY);
       doc.setFont("helvetica", "normal");
       finalY += 4;
@@ -452,10 +480,6 @@ export const generateInvoicePDFBase64 = async (
     if (invoice.status === "paid") {
       await addPaidStampImage(doc);
     }
-
-    // Footer
-    doc.setFontSize(7);
-    doc.text("Thank you for your business! | This is a computer-generated invoice.", 105, doc.internal.pageSize.height - 10, { align: "center" });
 
     const fileName = `invoice_${invoice.invoice_number}.pdf`;
     const base64 = doc.output("datauristring");
@@ -570,17 +594,28 @@ export const generateDeliveryNotePDF = async (
 
     const finalY = (doc as any).lastAutoTable.finalY + 20;
 
-    // Add GST note for delivery note too
+    // GST note + disclaimer as one continuous block
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text(
-      "* Items marked with an asterisk (*) are GST applicable",
-      14,
-      finalY,
+    const gstDisclaimerLines = doc.splitTextToSize(
+      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      180,
     );
+    doc.text(gstDisclaimerLines, 14, finalY);
+
+    // Bank Details
+    const bankY = finalY + 10;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bank Details:", 14, bankY);
+    doc.setFont("helvetica", "normal");
+    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+    doc.text("BSB No: 065 167", 14, bankY + 21);
+    doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
     // Notes Section
-    const noteY = finalY + 10;
+    const noteY = bankY + 38;
     if (invoice.note) {
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, noteY);
@@ -594,16 +629,8 @@ export const generateDeliveryNotePDF = async (
     const instructionsY = noteY + (invoice.note ? 30 : 10);
     doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
-    doc.text(
-      "1. Check all items against this delivery note.",
-      14,
-      instructionsY + 10,
-    );
-    doc.text(
-      "2. Report any discrepancies immediately.",
-      14,
-      instructionsY + 15,
-    );
+    doc.text("1. Check all items against this delivery note.", 14, instructionsY + 10);
+    doc.text("2. Report any discrepancies immediately.", 14, instructionsY + 15);
     doc.text("3. Ensure packaging is intact.", 14, instructionsY + 20);
 
     // Signature Section
@@ -617,15 +644,6 @@ export const generateDeliveryNotePDF = async (
     doc.line(120, instructionsY + 45, 180, instructionsY + 45);
     doc.text("Name: ____________________", 120, instructionsY + 50);
     doc.text("Date: ____________________", 120, instructionsY + 55);
-
-    // Footer (similar to quotation delivery)
-    doc.setFontSize(8);
-    doc.text(
-      "This document serves as proof of delivery.",
-      105,
-      doc.internal.pageSize.height - 20,
-      { align: "center" },
-    );
 
     const fileName = `delivery_note_${invoice.invoice_number}_${getDateFormatted(
       new Date().toISOString(),

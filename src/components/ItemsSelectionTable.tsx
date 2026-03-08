@@ -61,7 +61,6 @@ interface ItemsSelectionTableProps {
   setShowDiscountInput?: (value: boolean) => void;
   discountAmount?: number;
   finalAmount?: number;
-  totalAmount?: number;
 }
 
 export default function ItemsSelectionTable({

@@ -44,7 +44,7 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
-import { Download, Send, Wallet, Eye, Truck, X, Bell, Code } from "lucide-react";
+import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, RotateCcw } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import supabase from "utils/supabase";
 import {
@@ -172,7 +172,7 @@ export function useInvoices() {
   const isActionLoading = (id: number) => actionLoadingIds.has(id);
 
   // Email dialog state
-  type EmailTriggerType = "sent" | "paid" | "reminder";
+  type EmailTriggerType = "sent" | "paid" | "reminder" | "resend";
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailTriggerType, setEmailTriggerType] = useState<EmailTriggerType | null>(null);
   const [emailInvoiceData, setEmailInvoiceData] = useState<any>(null);
@@ -580,6 +580,29 @@ export function useInvoices() {
                       <CircularProgress size={18} thickness={5} />
                     ) : (
                       <Bell size={18} />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+
+            {/* Resend Email */}
+            {(row.status === "sent" || row.status === "paid" || row.status === "overdue") && (
+              <Tooltip title="Resend Email">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      resendEmail(row.id);
+                    }}
+                    color="primary"
+                    disabled={isActionLoading(row.id)}
+                  >
+                    {isActionLoading(row.id) ? (
+                      <CircularProgress size={18} thickness={5} />
+                    ) : (
+                      <RotateCcw size={18} />
                     )}
                   </IconButton>
                 </span>
@@ -1042,19 +1065,32 @@ export function useInvoices() {
 
   const emailHeader = `<div style="background-color:#9C6A3A;padding:24px 32px;text-align:center;">
     <h1 style="color:#ffffff;margin:0;font-size:22px;">TIMBER MAX SUPPLY PTY LTD</h1>
-    <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 689 199 773</p>
+    <p style="color:#f0e0cc;margin:4px 0 0 0;font-size:13px;">ABN: 95 688 199 773</p>
   </div>`;
 
   const emailFooter = `<div style="background-color:#f5f0eb;padding:16px 32px;text-align:center;font-size:12px;color:#888;">
-    <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 689 199 773</p>
-    <p style="margin:4px 0 0 0;">Phone: (123) 456-7890 | Email: info@timbermax.com.au | timbermax.com.au</p>
+    <p style="margin:0;">Timber Max Supply Pty Ltd | ABN: 95 688 199 773</p>
+    <p style="margin:4px 0 0 0;">Phone: 08 8212 4703 | Email: info@timbermax.com.au | timbermax.com.au</p>
   </div>`;
 
   const wrapEmailTemplate = (content: string) =>
     `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#ffffff;">${emailHeader}<div style="padding:32px;">${content}</div>${emailFooter}</div>`;
 
+  // Maps "resend" to the actual content type based on the invoice's current status
+  const getEffectiveTriggerType = (
+    triggerType: EmailTriggerType,
+    invoice: any,
+  ): "sent" | "paid" | "reminder" => {
+    if (triggerType !== "resend") return triggerType;
+    if (invoice?.status === "paid") return "paid";
+    if (invoice?.status === "overdue") return "reminder";
+    return "sent";
+  };
+
   // Extract plain-text parts that are user-editable
   const getEmailFriendlyParts = (triggerType: EmailTriggerType, invoice: any) => {
+    const effectiveType = getEffectiveTriggerType(triggerType, invoice);
+    triggerType = effectiveType;
     const name = invoice.customers?.name || "Customer";
     const invNum = invoice.invoice_number || "";
     const total = `$${(Number(invoice.total) || 0).toFixed(2)}`;
@@ -1093,6 +1129,7 @@ export function useInvoices() {
     closing: string,
     downloadUrl?: string,
   ): string => {
+    triggerType = getEffectiveTriggerType(triggerType, invoice);
     const invNum = invoice.invoice_number || "";
     const total = `$${(Number(invoice.total) || 0).toFixed(2)}`;
     const dueDate = invoice.due_date ? getDateFormatted(invoice.due_date) : "";
@@ -1169,15 +1206,20 @@ export function useInvoices() {
       : 0;
 
     const parts = getEmailFriendlyParts(triggerType, invoice);
+    const effectiveType = getEffectiveTriggerType(triggerType, invoice);
 
-    const subjects: Record<EmailTriggerType, string> = {
+    const baseSubjects: Record<"sent" | "paid" | "reminder", string> = {
       sent: `Invoice ${invNum} from Timber Max Supply`,
       paid: `Payment Confirmation - ${invNum}`,
       reminder: `Payment Reminder - ${invNum}${daysOverdue > 0 ? " (Overdue)" : ""}`,
     };
 
+    const subject = triggerType === "resend"
+      ? `[Resend] ${baseSubjects[effectiveType]}`
+      : baseSubjects[effectiveType];
+
     return {
-      subject: subjects[triggerType],
+      subject,
       body: buildBodyFromParts(triggerType, invoice, parts.greeting, parts.main, parts.closing, downloadUrl),
     };
   };
@@ -1241,7 +1283,7 @@ export function useInvoices() {
       const invoiceResponse: any = await invoicesRepo.getSingle(row.id);
       if (invoiceResponse?.invoiceData) {
         // Override status with the new target status so the PDF reflects what it's being changed to
-        const targetStatus = triggerType === "sent" ? "sent" : triggerType === "paid" ? "paid" : invoiceResponse.invoiceData.status;
+        const targetStatus = triggerType === "sent" ? "sent" : triggerType === "paid" ? "paid" : invoiceResponse.invoiceData.status; // "resend" and "reminder" use current status
         const invoiceDataForPdf = { ...invoiceResponse.invoiceData, status: targetStatus };
         const pdfResult = await generateInvoicePDFBase64(invoiceDataForPdf);
         if (pdfResult.success && pdfResult.base64) {
@@ -1319,7 +1361,7 @@ export function useInvoices() {
       setCustomPaymentMethod("");
       setPaymentMethodDialogOpen(true);
     }
-    // For "reminder" — no status change needed
+    // For "reminder" and "resend" — no status change needed
   };
 
   const sendEmail = async () => {
@@ -1382,6 +1424,12 @@ export function useInvoices() {
     openEmailDialog("reminder", row);
   };
 
+  const resendEmail = (invoiceId: number) => {
+    const row = data.find((inv: any) => inv.id === invoiceId);
+    if (!row) return;
+    openEmailDialog("resend", row);
+  };
+
   // Memoized Email Dialog component
   const EmailDialog = useMemo(
     () => {
@@ -1389,12 +1437,14 @@ export function useInvoices() {
         sent: "Send Invoice Email",
         paid: "Send Payment Confirmation",
         reminder: "Send Payment Reminder",
+        resend: "Resend Email",
       };
 
       const triggerColors: Record<string, string> = {
         sent: "#9C6A3A",
         paid: "#4caf50",
         reminder: "#f44336",
+        resend: "#1976d2",
       };
 
       const accentColor = triggerColors[emailTriggerType || "sent"];
@@ -1693,7 +1743,7 @@ export function useInvoices() {
           </DialogContent>
 
           <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1 }}>
-            {emailTriggerType !== "reminder" && (
+            {emailTriggerType !== "reminder" && emailTriggerType !== "resend" && (
               <Button
                 onClick={skipEmail}
                 variant="outlined"
@@ -2081,6 +2131,7 @@ export function useInvoices() {
     downloadInvoicePDF,
     downloadDeliveryNotePDF,
     markAsSent,
+    resendEmail,
     viewItemsModal,
 
     // Components
