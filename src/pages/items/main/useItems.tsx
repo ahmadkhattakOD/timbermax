@@ -43,13 +43,13 @@ const headCells: HeadCell[] = [
     id: "sellPrice",
     numeric: true,
     disablePadding: false,
-    label: "Sell Price",
+    label: "Sell Price (ex GST)",
   },
   {
     id: "purchasePrice",
     numeric: true,
     disablePadding: false,
-    label: "Purchase Price",
+    label: "Purchase Price (ex GST)",
   },
   {
     id: "actions",

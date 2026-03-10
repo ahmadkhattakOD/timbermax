@@ -144,7 +144,7 @@ export default function CreateItem() {
                 id={"sellPrice"}
                 name={"sellPrice"}
                 placeholder={"Sell Price"}
-                label={"Sell Price"}
+                label={"Sell Price (ex GST)"}
                 optional={false}
                 type={"number"}
                 // inputProps={{ min: 0, step: "0.01" }}
@@ -154,7 +154,7 @@ export default function CreateItem() {
                 id={"purchasePrice"}
                 name={"purchasePrice"}
                 placeholder={"Purchase Price"}
-                label={"Purchase price"}
+                label={"Purchase price (ex GST)"}
                 optional={false}
                 type={"number"}
                 // inputProps={{ min: 0, step: "0.01" }}
