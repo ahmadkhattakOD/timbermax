@@ -334,6 +334,14 @@ export default function CreateInvoice() {
                                 <strong>Total:</strong> $
                                 {selectedQuotation.total?.toFixed(2)}
                               </Typography>
+                              {selectedQuotation.discount > 0 && (
+                                <Typography variant="body2">
+                                  <strong>Discount:</strong>{" "}
+                                  {selectedQuotation.discount_type === "fixed" ?
+                                    `$${selectedQuotation.discount.toFixed(2)}` :
+                                    `${selectedQuotation.discount}%`}
+                                </Typography>
+                              )}
                               <Typography variant="body2">
                                 <strong>Items:</strong> {selectedItems.length}
                               </Typography>
@@ -386,6 +394,10 @@ export default function CreateInvoice() {
                                     setSelectedCustomer(undefined);
                                     setCustomerName("");
                                     setFieldValue("contactName", "");
+                                    // clear any existing discount data since quotation is removed
+                                    setDiscount(0);
+                                    setDiscountType("percentage");
+                                    setShowDiscountInput(false);
                                   }}
                                 >
                                   Clear Quotation

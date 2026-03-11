@@ -567,6 +567,17 @@ export function useCreateInvoice() {
         setSelectedQuotation(quotation.quotationData);
         setIsQuotationLoaded(true);
 
+        // populate discount values from quotation
+        const quoteDiscount = quotation.quotationData.discount || 0;
+        const quoteDiscountType: "percentage" | "fixed" =
+          quotation.quotationData.discount_type || "percentage";
+        setDiscount(quoteDiscount);
+        setDiscountType(quoteDiscountType);
+        // show the discount input if there's a value
+        if (quoteDiscount > 0) {
+          setShowDiscountInput(true);
+        }
+
         // Load customer details
         if (quotation.quotationData.customers) {
           setSelectedCustomer(quotation.quotationData.customers.id);
