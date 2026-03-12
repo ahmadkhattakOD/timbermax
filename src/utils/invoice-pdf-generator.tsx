@@ -40,7 +40,7 @@ const addCompanyLogo = async (
 // Constants for consistent company branding
 const COMPANY_INFO = {
   name: "TIMBER MAX SUPPLY PTY LTD",
-  abn: "95 688 199 773",
+  abn: "95 689 199 773",
   phone: "08 8212 4703",
   email: "info@timbermax.com.au",
   website: "timbermax.com.au",
@@ -103,27 +103,42 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     align: "right",
   });
   if ((invoice as any).due_date) {
-    doc.text(`Due Date: ${getDateFormatted((invoice as any).due_date)}`, 180, 70, {
-      align: "right",
-    });
+    doc.text(
+      `Due Date: ${getDateFormatted((invoice as any).due_date)}`,
+      180,
+      70,
+      {
+        align: "right",
+      },
+    );
   }
-  if ((invoice as any).created_at) {
-    doc.text(`Created: ${getDateFormatted((invoice as any).created_at)}`, 180, 75, {
-      align: "right",
-    });
-  }
-  doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 80, {
-    align: "right",
-  });
-  if (invoice.delivery_status) {
-    doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 85, {
-      align: "right",
-    });
-  }
+  // if ((invoice as any).created_at) {
+  //   doc.text(
+  //     `Created: ${getDateFormatted((invoice as any).created_at)}`,
+  //     180,
+  //     75,
+  //     {
+  //       align: "right",
+  //     },
+  //   );
+  // }
+  // doc.text(`Status: ${invoice.status?.toUpperCase()}`, 180, 80, {
+  //   align: "right",
+  // });
+  // if (invoice.delivery_status) {
+  //   doc.text(`Delivery: ${invoice.delivery_status?.toUpperCase()}`, 180, 85, {
+  //     align: "right",
+  //   });
+  // }
   if ((invoice as any).quotations?.quotation_number) {
-    doc.text(`Ref Quote: ${(invoice as any).quotations.quotation_number}`, 180, 90, {
-      align: "right",
-    });
+    doc.text(
+      `Ref Quote: ${(invoice as any).quotations.quotation_number}`,
+      180,
+      75,
+      {
+        align: "right",
+      },
+    );
   }
 
   // Customer Info
@@ -133,11 +148,19 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.setFont("helvetica", "normal");
   doc.text(customer?.name || "N/A", 14, 106);
   doc.text(invoice.address || "", 14, 111);
-  const addressContainsSuburb =
-    invoice.address && invoice.suburb &&
-    invoice.address.toLowerCase().includes(invoice.suburb.toLowerCase());
+  const address = (invoice.address || "").toLowerCase();
+  const suburb = (invoice.suburb || "").toLowerCase();
+  const state = (invoice.state || "").toLowerCase();
+  const postCode = (invoice.post_code || "").toLowerCase();
+
+  const addressContainsLocation =
+    address.includes(suburb) ||
+    address.includes(state) ||
+    address.includes(postCode);
+
   let addrEndY = 116;
-  if (invoice.suburb && !addressContainsSuburb) {
+
+  if (invoice.suburb && !addressContainsLocation) {
     doc.text(
       `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
       14,
@@ -145,8 +168,12 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     );
     addrEndY = 121;
   }
-  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, addrEndY + 4);
-  doc.text(`Email: ${customer?.email || "N/A"}`, 14, addrEndY + 9);
+  doc.text(
+    `Phone: ${customer?.phone || customer?.mobile || "N/A"}`,
+    14,
+    addrEndY,
+  );
+  doc.text(`Email: ${customer?.email || "N/A"}`, 14, addrEndY + 7);
 
   // Items Table
   const items = invoice.invoice_items || [];
@@ -188,9 +215,10 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
   const discountType = (invoice as any).discount_type || "percentage";
   const discountRaw = invoice.discount || 0;
-  const discountAmount = discountType === "fixed"
-    ? Math.min(discountRaw, subtotalWithGST)
-    : (subtotalWithGST * discountRaw) / 100;
+  const discountAmount =
+    discountType === "fixed"
+      ? Math.min(discountRaw, subtotalWithGST)
+      : (subtotalWithGST * discountRaw) / 100;
   const grandTotal = subtotalWithGST - discountAmount;
 
   autoTable(doc, {
@@ -219,15 +247,6 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
 
-  // GST note + disclaimer as one continuous block
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "italic");
-  const gstDisclaimerLines = doc.splitTextToSize(
-    "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
-    180,
-  );
-  doc.text(gstDisclaimerLines, 14, finalY);
-
   // Summary Section
   const summaryY = finalY + 22;
   doc.setFontSize(10);
@@ -246,11 +265,14 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
   if (discountRaw > 0) {
     currentY += 10;
-    const discountLabel = discountType === "fixed"
-      ? `Discount ($${discountRaw.toFixed(2)}):`
-      : `Discount (${discountRaw}%):`;
+    const discountLabel =
+      discountType === "fixed"
+        ? `Discount ($${discountRaw.toFixed(2)}):`
+        : `Discount (${discountRaw}%):`;
     doc.text(discountLabel, 120, currentY);
-    doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
+    doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
+      align: "right",
+    });
   }
 
   currentY += 10;
@@ -277,6 +299,18 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     doc.setFont("helvetica", "normal");
     const splitNotes = doc.splitTextToSize(invoice.note, 180);
     doc.text(splitNotes, 14, bankY + 54);
+  }
+
+  // Disclaimer at bottom center for invoice
+  {
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const disclaimerText =
+      "All materials supplied are non-returnable and non-refundableaass. Thank you for your business";
+    const lines = doc.splitTextToSize(disclaimerText, 180);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(lines, pageWidth / 2, pageHeight - 15, { align: "center" });
   }
 
   // Paid stamp overlay
@@ -308,7 +342,12 @@ export const generateAndDownloadInvoicePDF = async (
 // Generate a compressed invoice PDF for email attachment (no logo, minimal size)
 export const generateInvoicePDFBase64 = async (
   invoice: Invoice,
-): Promise<{ success: boolean; base64?: string; fileName?: string; error?: string }> => {
+): Promise<{
+  success: boolean;
+  base64?: string;
+  fileName?: string;
+  error?: string;
+}> => {
   try {
     const doc = new jsPDF();
 
@@ -321,18 +360,38 @@ export const generateInvoicePDFBase64 = async (
     doc.setFont("helvetica", "normal");
     doc.text(COMPANY_INFO.name, 14, 32);
     doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 37);
-    doc.text(`Phone: ${COMPANY_INFO.phone} | Email: ${COMPANY_INFO.email}`, 14, 42);
+    doc.text(
+      `Phone: ${COMPANY_INFO.phone} | Email: ${COMPANY_INFO.email}`,
+      14,
+      42,
+    );
 
     // Invoice info (right)
-    doc.text(`Invoice #: ${invoice.invoice_number}`, 196, 32, { align: "right" });
-    doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 196, 37, { align: "right" });
+    doc.text(`Invoice #: ${invoice.invoice_number}`, 196, 32, {
+      align: "right",
+    });
+    doc.text(`Date: ${getDateFormatted(invoice.invoice_date)}`, 196, 37, {
+      align: "right",
+    });
     if ((invoice as any).due_date) {
-      doc.text(`Due Date: ${getDateFormatted((invoice as any).due_date)}`, 196, 42, { align: "right" });
+      doc.text(
+        `Due Date: ${getDateFormatted((invoice as any).due_date)}`,
+        196,
+        42,
+        { align: "right" },
+      );
     }
     if ((invoice as any).created_at) {
-      doc.text(`Created: ${getDateFormatted((invoice as any).created_at)}`, 196, 47, { align: "right" });
+      doc.text(
+        `Created: ${getDateFormatted((invoice as any).created_at)}`,
+        196,
+        47,
+        { align: "right" },
+      );
     }
-    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 196, 52, { align: "right" });
+    doc.text(`Status: ${invoice.status?.toUpperCase()}`, 196, 52, {
+      align: "right",
+    });
 
     // Divider
     doc.setDrawColor(156, 106, 58);
@@ -346,12 +405,15 @@ export const generateInvoicePDFBase64 = async (
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 70);
     const emailBase64AddrContainsSuburb =
-      invoice.address && invoice.suburb &&
+      invoice.address &&
+      invoice.suburb &&
       invoice.address.toLowerCase().includes(invoice.suburb.toLowerCase());
     const addressParts = [
       invoice.address,
-      (!emailBase64AddrContainsSuburb && invoice.suburb)
-        ? [invoice.suburb, invoice.state, invoice.post_code].filter(Boolean).join(" ")
+      !emailBase64AddrContainsSuburb && invoice.suburb
+        ? [invoice.suburb, invoice.state, invoice.post_code]
+            .filter(Boolean)
+            .join(" ")
         : null,
       customer?.email ? `Email: ${customer.email}` : null,
       customer?.phone ? `Phone: ${customer.phone}` : null,
@@ -385,7 +447,7 @@ export const generateInvoicePDFBase64 = async (
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
       const sub = qty * price;
-      const gstAmt = (item.items?.gst) ? sub * 0.1 : 0;
+      const gstAmt = item.items?.gst ? sub * 0.1 : 0;
       totalSubtotal += sub;
       totalGST += gstAmt;
       subtotalWithGST += sub + gstAmt;
@@ -393,9 +455,10 @@ export const generateInvoicePDFBase64 = async (
 
     const discountType = (invoice as any).discount_type || "percentage";
     const discountRaw = invoice.discount || 0;
-    const discountAmount = discountType === "fixed"
-      ? Math.min(discountRaw, subtotalWithGST)
-      : (subtotalWithGST * discountRaw) / 100;
+    const discountAmount =
+      discountType === "fixed"
+        ? Math.min(discountRaw, subtotalWithGST)
+        : (subtotalWithGST * discountRaw) / 100;
     const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
@@ -420,7 +483,7 @@ export const generateInvoicePDFBase64 = async (
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
-      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      " All materials supplied are non-returnable and non-refundable. Thank you for your business",
       180,
     );
     doc.text(gstDisclaimerLines, 14, finalY);
@@ -436,11 +499,14 @@ export const generateInvoicePDFBase64 = async (
     doc.text(`$${totalGST.toFixed(2)}`, 196, finalY, { align: "right" });
     if (discountRaw > 0) {
       finalY += 5;
-      const discountLabel = discountType === "fixed"
-        ? `Discount ($${discountRaw.toFixed(2)}):`
-        : `Discount (${discountRaw}%):`;
+      const discountLabel =
+        discountType === "fixed"
+          ? `Discount ($${discountRaw.toFixed(2)}):`
+          : `Discount (${discountRaw}%):`;
       doc.text(discountLabel, 140, finalY);
-      doc.text(`-$${discountAmount.toFixed(2)}`, 196, finalY, { align: "right" });
+      doc.text(`-$${discountAmount.toFixed(2)}`, 196, finalY, {
+        align: "right",
+      });
     }
     finalY += 6;
     doc.setFont("helvetica", "bold");
@@ -474,6 +540,18 @@ export const generateInvoicePDFBase64 = async (
       finalY += 4;
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
       doc.text(splitNotes, 14, finalY);
+    }
+
+    // Disclaimer for compressed invoice PDF
+    {
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const disclaimerText =
+        "All materials supplied are non-returnable and non-refundable.  Thank you for your business";
+      const lines = doc.splitTextToSize(disclaimerText, 180);
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "italic");
+      doc.text(lines, pageWidth / 2, pageHeight - 15, { align: "center" });
     }
 
     // Paid stamp overlay
@@ -629,8 +707,16 @@ export const generateDeliveryNotePDF = async (
     const instructionsY = noteY + (invoice.note ? 30 : 10);
     doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
-    doc.text("1. Check all items against this delivery note.", 14, instructionsY + 10);
-    doc.text("2. Report any discrepancies immediately.", 14, instructionsY + 15);
+    doc.text(
+      "1. Check all items against this delivery note.",
+      14,
+      instructionsY + 10,
+    );
+    doc.text(
+      "2. Report any discrepancies immediately.",
+      14,
+      instructionsY + 15,
+    );
     doc.text("3. Ensure packaging is intact.", 14, instructionsY + 20);
 
     // Signature Section

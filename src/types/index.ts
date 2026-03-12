@@ -36,6 +36,7 @@ export interface Customer {
   name: string;
   email?: string;
   phone?: string;
+  mobile?:string;
   address?: string;
   company?: string;
   abn?: string;

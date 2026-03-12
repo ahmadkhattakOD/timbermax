@@ -56,7 +56,7 @@ export const generateAndDownloadQuotationPDF = async (
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
-    doc.text("ABN: 95 688 199 773", 14, 65);
+    doc.text("ABN: 95 689 199 773", 14, 65);
     doc.text("Phone: 08 8212 4703", 14, 70);
     doc.text("Email: info@timbermax.com.au", 14, 75);
     doc.text("Website: timbermax.com.au", 14, 80);
