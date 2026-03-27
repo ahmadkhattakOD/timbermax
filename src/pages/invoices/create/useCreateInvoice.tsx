@@ -95,6 +95,8 @@ export function useCreateInvoice() {
   const [inlineCustomerName, setInlineCustomerName] = useState("");
   const [customerName, setCustomerName] = useState<string>("");
 
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
+
   // New states for customer addresses
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
@@ -1147,12 +1149,15 @@ export function useCreateInvoice() {
   async function loadData() {
     setLoading(true);
     try {
-      await Promise.all([
+      const invoicesRepo = new InvoicesRepository();
+      const [nextNum] = await Promise.all([
+        invoicesRepo.getNextInvoiceNumber(),
         getCustomers(),
         getItems(),
         getQuotations(),
         getAllWarehouses(),
       ]);
+      setNextInvoiceNumber(nextNum);
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -1263,5 +1268,6 @@ export function useCreateInvoice() {
     // Quotation search properties
     handleQuotationSearchDebounced,
     loadingQuotations,
+    nextInvoiceNumber,
   };
 }

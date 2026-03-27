@@ -99,7 +99,7 @@ export function useCreateQuotation() {
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
-  const quotationNumberRef = useRef(`QT-${String(Date.now()).slice(-6)}`);
+  const quotationNumberRef = useRef("");
 
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateSubTotal(item),
@@ -796,9 +796,16 @@ export function useCreateQuotation() {
   async function loadData() {
     setLoading(true);
     try {
-      await Promise.all([getCustomers(), getItems()]);
+      const quotationsRepo = new QuotationsRepository();
+      const [nextNum] = await Promise.all([
+        quotationsRepo.getNextQuotationNumber(),
+        getCustomers(),
+        getItems(),
+      ]);
+      quotationNumberRef.current = nextNum;
     } catch (error) {
       console.error("Error loading data:", error);
+      quotationNumberRef.current = "QT-0050";
     }
     setLoading(false);
   }

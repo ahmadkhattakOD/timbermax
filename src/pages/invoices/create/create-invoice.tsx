@@ -90,6 +90,7 @@ export default function CreateInvoice() {
     // Quotation search properties
     handleQuotationSearchDebounced,
     loadingQuotations,
+    nextInvoiceNumber,
   } = useCreateInvoice();
 
   const theme = useTheme();
@@ -172,7 +173,7 @@ export default function CreateInvoice() {
       validateOnChange={false}
       validateOnBlur={true}
       initialValues={{
-        invoice_number: `INV-${String(Date.now()).slice(-6)}`,
+        invoice_number: nextInvoiceNumber || "INV-0400",
         contactName: customerName || "",
         inlineCustomerName: inlineCustomerName || "",
         phone: selectedPhone || "",
@@ -276,6 +277,7 @@ export default function CreateInvoice() {
                           label={"Invoice Number"}
                           type={"text"}
                           optional={false}
+                          disabled={true}
                           error={touched.invoice_number || step1Errors.invoice_number ? errors.invoice_number || step1Errors.invoice_number : ""}
                         />
                       </Grid>

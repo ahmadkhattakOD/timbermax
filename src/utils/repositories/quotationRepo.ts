@@ -45,6 +45,35 @@ class QuotationsRepository {
   private className = "quotations";
   private itemsClassName = "quotation_items";
 
+  public async getNextQuotationNumber(): Promise<string> {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .select("quotation_number")
+        .like("quotation_number", "QT-%")
+        .order("quotation_number", { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        return "QT-0050";
+      }
+
+      let maxNum = 49; // so first generated is 50
+      for (const row of data) {
+        const match = row.quotation_number?.match(/^QT-(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+
+      const next = maxNum + 1;
+      return `QT-${String(next).padStart(4, "0")}`;
+    } catch (error) {
+      console.error("Error getting next quotation number:", error);
+      return "QT-0050";
+    }
+  }
+
   public async create(quotation: QuotationSupabase) {
     try {
       const { data, error } = await supabase

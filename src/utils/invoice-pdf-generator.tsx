@@ -381,14 +381,6 @@ export const generateInvoicePDFBase64 = async (
         { align: "right" },
       );
     }
-    if ((invoice as any).created_at) {
-      doc.text(
-        `Created: ${getDateFormatted((invoice as any).created_at)}`,
-        196,
-        47,
-        { align: "right" },
-      );
-    }
     doc.text(`Status: ${invoice.status?.toUpperCase()}`, 196, 52, {
       align: "right",
     });

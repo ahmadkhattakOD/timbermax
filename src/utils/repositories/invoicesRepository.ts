@@ -39,6 +39,36 @@ class InvoicesRepository {
   private className = "invoices";
   private itemsClassName = "invoice_items";
 
+  public async getNextInvoiceNumber(): Promise<string> {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .select("invoice_number")
+        .like("invoice_number", "INV-%")
+        .order("invoice_number", { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        return "INV-0400";
+      }
+
+      // Find the highest numeric suffix among INV-XXXX entries
+      let maxNum = 399; // so first generated is 400
+      for (const row of data) {
+        const match = row.invoice_number?.match(/^INV-(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+
+      const next = maxNum + 1;
+      return `INV-${String(next).padStart(4, "0")}`;
+    } catch (error) {
+      console.error("Error getting next invoice number:", error);
+      return "INV-0400";
+    }
+  }
+
   public async create(invoice: InvoiceSupabase) {
     try {
       const { data, error } = await supabase

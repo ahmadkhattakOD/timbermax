@@ -242,6 +242,7 @@ export default function CreateQuotation() {
                           label="Quote Number"
                           type={"text"}
                           optional={false}
+                          disabled={true}
                           error={
                             touched.quotation_number || step1Errors.quotation_number ? errors.quotation_number || step1Errors.quotation_number : ""
                           }
