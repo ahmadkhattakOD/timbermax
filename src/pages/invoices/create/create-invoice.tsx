@@ -74,11 +74,9 @@ export default function CreateInvoice() {
     setSelectedCustomer,
     customerName,
     setCustomerName,
-    // New properties for address selection
     customerAddresses,
     selectedAddressIndex,
     handleAddressSelect,
-    // Discount properties
     discount,
     setDiscount,
     discountType,
@@ -87,7 +85,8 @@ export default function CreateInvoice() {
     setShowDiscountInput,
     discountAmount,
     finalAmount,
-    // Quotation search properties
+    deposit,
+    setDeposit,
     handleQuotationSearchDebounced,
     loadingQuotations,
     nextInvoiceNumber,
@@ -95,7 +94,6 @@ export default function CreateInvoice() {
 
   const theme = useTheme();
 
-  // Auto-load quotation if ID is in URL
   useEffect(() => {
     if (quotationIdFromUrl && !isQuotationLoaded) {
       const quotationId = parseInt(quotationIdFromUrl);
@@ -121,21 +119,18 @@ export default function CreateInvoice() {
     );
   }
 
-  const steps = ['Order Information', 'Select Items'];
+  const steps = ["Order Information", "Select Items"];
 
   const handleNext = (validateForm: any) => {
     validateForm().then((errors: any) => {
-      // Check only Step 1 fields for validation
       const step1Fields = [
-        'invoice_number',
-        'contactName',
-        'inlineCustomerName',
-        'invoice_date',
-        'due_date',
+        "invoice_number",
+        "contactName",
+        "inlineCustomerName",
+        "invoice_date",
+        "due_date",
       ];
-
-      const step1HasErrors = step1Fields.some(field => errors[field]);
-
+      const step1HasErrors = step1Fields.some((field) => errors[field]);
       if (!step1HasErrors) {
         setStep1Errors({});
         setActiveStep(1);
@@ -150,19 +145,15 @@ export default function CreateInvoice() {
   };
 
   const handleSubmitStep2 = (handleSubmit: any) => {
-    // Validate that at least one item is selected
     if (selectedItems.length === 0) {
-      alert('Please add at least one item before submitting.');
+      alert("Please add at least one item before submitting.");
       return;
     }
-
-    // Check that all items have warehouses selected
-    const hasInvalidItems = selectedItems.some(item => !item.warehouse_id);
+    const hasInvalidItems = selectedItems.some((item) => !item.warehouse_id);
     if (hasInvalidItems) {
-      alert('Please select a warehouse for all items.');
+      alert("Please select a warehouse for all items.");
       return;
     }
-
     handleSubmit();
   };
 
@@ -205,7 +196,6 @@ export default function CreateInvoice() {
           if (selectedCustomer) {
             const customer = customers.find((c) => c.id === selectedCustomer);
             if (customer) {
-              // Update Formik values
               setFieldValue("contactName", customer.name || "");
               setCustomerName(customer.name || "");
               setFieldValue("phone", customer.phone || "");
@@ -217,7 +207,6 @@ export default function CreateInvoice() {
               setFieldValue("emailAddress", customer.email || "");
             }
           } else if (!createInlineCustomer) {
-            // Reset Formik values when no customer selected
             setFieldValue("contactName", "");
             setCustomerName("");
             setFieldValue("phone", "");
@@ -247,12 +236,84 @@ export default function CreateInvoice() {
           }
         }, [selectedAddressIndex, customerAddresses, setFieldValue]);
 
+        // Shared address fields – used in both address-select and manual modes
+        const AddressFields = () => (
+          <Grid container spacing={{ xs: 1, sm: 2 }}>
+            <Grid item xs={12}>
+              <PlacesInput
+                key="address"
+                id="address"
+                name="address"
+                placeholder="Address"
+                onChange={(newValue, actionMeta) => {
+                  setFieldValue("address", newValue?.value?.description ?? "");
+                  changeAddress(newValue, actionMeta, setFieldValue);
+                }}
+                value={values.address}
+                label="Address"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={5}>
+              <FormInput
+                key="suburb"
+                id="suburb"
+                name="suburb"
+                placeholder="Suburb"
+                label="Suburb"
+                type="text"
+                value={values.suburb}
+                onChange={(e) => setFieldValue("suburb", e.target.value)}
+              />
+            </Grid>
+
+            <Grid item xs={6} sm={4}>
+              <FormDropdown
+                key="state"
+                id="state"
+                name="state"
+                label="State"
+                useFormattedStrings={false}
+                options={australianStates.map((state) => ({
+                  label: state,
+                  value: state,
+                }))}
+                value={values.state}
+                onChange={(e) => setFieldValue("state", e.target.value)}
+              />
+            </Grid>
+
+            <Grid item xs={6} sm={3}>
+              <FormInput
+                key="postCode"
+                id="postCode"
+                name="postCode"
+                placeholder="Post Code"
+                label="Post Code"
+                type="text"
+                value={values.postCode}
+                onChange={(e) => setFieldValue("postCode", e.target.value)}
+              />
+            </Grid>
+          </Grid>
+        );
+
         return (
           <Form onSubmit={handleSubmit}>
-            <Container maxWidth="lg">
-              <Paper elevation={3} sx={{ p: 4, mt: 3 }}>
+            <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+              <Paper
+                elevation={3}
+                sx={{
+                  p: { xs: 2, sm: 3, md: 4 },
+                  mt: { xs: 1, sm: 2, md: 3 },
+                }}
+              >
                 {/* Stepper */}
-                <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+                <Stepper
+                  activeStep={activeStep}
+                  alternativeLabel
+                  sx={{ mb: { xs: 3, md: 4 } }}
+                >
                   {steps.map((label) => (
                     <Step key={label}>
                       <StepLabel>{label}</StepLabel>
@@ -263,85 +324,112 @@ export default function CreateInvoice() {
                 {/* Step 1: Order Information */}
                 {activeStep === 0 && (
                   <Box>
-                    <Typography variant="h5" sx={{ mb: 3 }}>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        mb: { xs: 2, md: 3 },
+                        fontSize: { xs: "1.1rem", sm: "1.5rem" },
+                      }}
+                    >
                       Order Information
                     </Typography>
 
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={6}>
+                    <Grid container spacing={{ xs: 2, md: 3 }}>
+                      <Grid item xs={12} sm={6}>
                         <FormInput
                           key="invoice_number"
-                          id={"invoice_number"}
-                          name={"invoice_number"}
-                          placeholder={"Invoice Number"}
-                          label={"Invoice Number"}
-                          type={"text"}
+                          id="invoice_number"
+                          name="invoice_number"
+                          placeholder="Invoice Number"
+                          label="Invoice Number"
+                          type="text"
                           optional={false}
                           disabled={true}
-                          error={touched.invoice_number || step1Errors.invoice_number ? errors.invoice_number || step1Errors.invoice_number : ""}
+                          error={
+                            touched.invoice_number || step1Errors.invoice_number
+                              ? errors.invoice_number || step1Errors.invoice_number
+                              : ""
+                          }
                         />
                       </Grid>
 
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} sm={6}>
                         <FormInput
                           key="invoice_date"
-                          id={"invoice_date"}
-                          name={"invoice_date"}
-                          placeholder={"Invoice Date"}
-                          label={"Invoice Date"}
-                          type={"date"}
+                          id="invoice_date"
+                          name="invoice_date"
+                          placeholder="Invoice Date"
+                          label="Invoice Date"
+                          type="date"
                           optional={false}
-                          error={touched.invoice_date || step1Errors.invoice_date ? errors.invoice_date || step1Errors.invoice_date : ""}
+                          error={
+                            touched.invoice_date || step1Errors.invoice_date
+                              ? errors.invoice_date || step1Errors.invoice_date
+                              : ""
+                          }
                         />
                       </Grid>
 
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} sm={6}>
                         <FormInput
                           key="due_date"
-                          id={"due_date"}
-                          name={"due_date"}
-                          placeholder={"Due Date"}
-                          label={"Due Date"}
-                          type={"date"}
+                          id="due_date"
+                          name="due_date"
+                          placeholder="Due Date"
+                          label="Due Date"
+                          type="date"
                           optional={false}
-                          error={touched.due_date || step1Errors.due_date ? errors.due_date || step1Errors.due_date : ""}
+                          error={
+                            touched.due_date || step1Errors.due_date
+                              ? errors.due_date || step1Errors.due_date
+                              : ""
+                          }
                         />
                       </Grid>
 
-                      {/* Show quotation info if loaded from quotation */}
+                      {/* Quotation loaded banner */}
                       {selectedQuotation && (
                         <Grid item xs={12}>
                           <Box
                             sx={{
-                              mb: 2,
-                              p: 2,
+                              p: { xs: 1.5, sm: 2 },
                               border: "1px solid",
                               borderColor: "primary.main",
                               borderRadius: 1,
                             }}
                           >
-                            <Typography variant="h6" gutterBottom color="primary">
+                            <Typography
+                              variant="h6"
+                              gutterBottom
+                              color="primary"
+                              sx={{ fontSize: { xs: "0.95rem", sm: "1.25rem" } }}
+                            >
                               Creating Invoice from Quotation
                             </Typography>
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexDirection: { xs: "column", sm: "row" },
+                                flexWrap: "wrap",
+                                gap: { xs: 0.5, sm: 2 },
+                              }}
+                            >
                               <Typography variant="body2">
-                                <strong>Quotation:</strong> #
-                                {selectedQuotation.quotation_number}
+                                <strong>Quotation:</strong> #{selectedQuotation.quotation_number}
                               </Typography>
                               <Typography variant="body2">
                                 <strong>Customer:</strong>{" "}
                                 {selectedQuotation.customers?.name}
                               </Typography>
                               <Typography variant="body2">
-                                <strong>Total:</strong> $
-                                {selectedQuotation.total?.toFixed(2)}
+                                <strong>Total:</strong> ${selectedQuotation.total?.toFixed(2)}
                               </Typography>
                               {selectedQuotation.discount > 0 && (
                                 <Typography variant="body2">
                                   <strong>Discount:</strong>{" "}
-                                  {selectedQuotation.discount_type === "fixed" ?
-                                    `$${selectedQuotation.discount.toFixed(2)}` :
-                                    `${selectedQuotation.discount}%`}
+                                  {selectedQuotation.discount_type === "fixed"
+                                    ? `$${selectedQuotation.discount.toFixed(2)}`
+                                    : `${selectedQuotation.discount}%`}
                                 </Typography>
                               )}
                               <Typography variant="body2">
@@ -352,7 +440,7 @@ export default function CreateInvoice() {
                         </Grid>
                       )}
 
-                      {/* OPTION TO LOAD FROM QUOTATION */}
+                      {/* Load from Quotation */}
                       {!quotationIdFromUrl && (
                         <Grid item xs={12}>
                           <InputDropdown
@@ -396,7 +484,6 @@ export default function CreateInvoice() {
                                     setSelectedCustomer(undefined);
                                     setCustomerName("");
                                     setFieldValue("contactName", "");
-                                    // clear any existing discount data since quotation is removed
                                     setDiscount(0);
                                     setDiscountType("percentage");
                                     setShowDiscountInput(false);
@@ -419,9 +506,7 @@ export default function CreateInvoice() {
                             name="contactName"
                             label="Customer Name"
                             options={customers}
-                            value={
-                              customers.find((c) => c.id === selectedCustomer) || null
-                            }
+                            value={customers.find((c) => c.id === selectedCustomer) || null}
                             secondaryLabel={
                               !selectedQuotation ? (
                                 <Box
@@ -431,9 +516,7 @@ export default function CreateInvoice() {
                                     fontSize: "14px",
                                     fontWeight: 600,
                                   }}
-                                  onClick={() => {
-                                    setCreateInlineCustomer(true);
-                                  }}
+                                  onClick={() => setCreateInlineCustomer(true)}
                                 >
                                   Create New Customer
                                 </Box>
@@ -442,9 +525,7 @@ export default function CreateInvoice() {
                             loading={loadingCustomers}
                             optional={false}
                             onChange={handleSearchDebounced}
-                            onSelect={(e) => {
-                              setSelectedCustomer(e.target.value);
-                            }}
+                            onSelect={(e) => setSelectedCustomer(e.target.value)}
                             error={errors.contactName || step1Errors.contactName}
                           />
                         </Grid>
@@ -452,11 +533,11 @@ export default function CreateInvoice() {
                         <Grid item xs={12}>
                           <FormInput
                             key="inlineCustomerName"
-                            id={"inlineCustomerName"}
-                            name={"inlineCustomerName"}
-                            placeholder={"Customer Name"}
+                            id="inlineCustomerName"
+                            name="inlineCustomerName"
+                            placeholder="Customer Name"
                             label="Customer Name"
-                            type={"text"}
+                            type="text"
                             secondaryLabel={
                               <Box
                                 sx={{
@@ -475,8 +556,8 @@ export default function CreateInvoice() {
                               </Box>
                             }
                             error={
-                              (touched.inlineCustomerName || step1Errors.inlineCustomerName)
-                                ? (errors.inlineCustomerName || step1Errors.inlineCustomerName)
+                              touched.inlineCustomerName || step1Errors.inlineCustomerName
+                                ? errors.inlineCustomerName || step1Errors.inlineCustomerName
                                 : ""
                             }
                             onChange={(e) => {
@@ -489,217 +570,107 @@ export default function CreateInvoice() {
                       )}
 
                       {/* Contact Details */}
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} sm={6}>
                         <FormInput
                           key="emailAddress"
-                          id={"emailAddress"}
-                          name={"emailAddress"}
-                          placeholder={"Email Address"}
+                          id="emailAddress"
+                          name="emailAddress"
+                          placeholder="Email Address"
                           label="Email Address"
-                          type={"email"}
+                          type="email"
                         />
                       </Grid>
 
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} sm={6}>
                         <FormInput
                           key="phone"
-                          id={"phone"}
-                          name={"phone"}
-                          placeholder={"Phone"}
+                          id="phone"
+                          name="phone"
+                          placeholder="Phone"
                           label="Phone"
-                          type={"text"}
+                          type="text"
                         />
                       </Grid>
 
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} sm={6}>
                         <FormInput
                           key="mobile"
-                          id={"mobile"}
-                          name={"mobile"}
-                          placeholder={"Mobile"}
+                          id="mobile"
+                          name="mobile"
+                          placeholder="Mobile"
                           label="Mobile"
-                          type={"text"}
+                          type="text"
                         />
                       </Grid>
 
-                      {/* ADDRESS SECTION */}
+                      {/* Address Section */}
                       <Grid item xs={12}>
                         {!createInlineCustomer && selectedCustomer && customerAddresses.length > 0 ? (
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <FormDropdown
-                          key="address-select"
-                          id={"address-select"}
-                          name={"address-select"}
-                          label="Select Delivery Address"
-                          useFormattedStrings={false}
-                          options={customerAddresses.map((addr, index) => ({
-                            label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code} ${addr.is_primary ? '(Primary)' : ''}`,
-                            value: index.toString(),
-                          }))}
-                          value={selectedAddressIndex.toString()}
-                          onChange={(e) => {
-                            const index = parseInt(e.target.value);
-                            handleAddressSelect(index);
-                          }}
-                          optional={false}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} md={6}>
-                        <PlacesInput
-                          key="address"
-                          id="address"
-                          name="address"
-                          placeholder="Address"
-                          onChange={(newValue, actionMeta) => {
-                            setFieldValue(
-                              "address",
-                              newValue?.value?.description ?? ""
-                            );
-                            changeAddress(newValue, actionMeta, setFieldValue);
-                          }}
-                          value={values.address}
-                          label="Address"
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormInput
-                          key="suburb"
-                          id={"suburb"}
-                          name={"suburb"}
-                          placeholder={"Suburb"}
-                          label="Suburb"
-                          type={"text"}
-                          value={values.suburb}
-                          onChange={(e) => setFieldValue("suburb", e.target.value)}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormDropdown
-                          key="state"
-                          id={"state"}
-                          name={"state"}
-                          label="State"
-                          useFormattedStrings={false}
-                          options={australianStates.map((state) => ({
-                            label: state,
-                            value: state,
-                          }))}
-                          value={values.state}
-                          onChange={(e) => setFieldValue("state", e.target.value)}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormInput
-                          key="postCode"
-                          id={"postCode"}
-                          name={"postCode"}
-                          placeholder={"Post Code"}
-                          label="Post Code"
-                          type={"text"}
-                          value={values.postCode}
-                          onChange={(e) => setFieldValue("postCode", e.target.value)}
-                        />
-                      </Grid>
-                    </Grid>
-                  ) : (
-                    // For inline customers or customers without addresses
-                    <Box>
-                      {!createInlineCustomer && selectedCustomer && customerAddresses.length === 0 ? (
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                          No addresses found for this customer. Please enter address manually below.
-                        </Alert>
-                      ) : null}
-
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                          <PlacesInput
-                            key="address"
-                            id="address"
-                            name="address"
-                            placeholder="Address"
-                            onChange={(newValue, actionMeta) => {
-                              setFieldValue(
-                                "address",
-                                newValue?.value?.description ?? ""
-                              );
-                              changeAddress(newValue, actionMeta, setFieldValue);
-                            }}
-                            value={values.address}
-                            label="Address"
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormInput
-                            key="suburb"
-                            id={"suburb"}
-                            name={"suburb"}
-                            placeholder={"Suburb"}
-                            label="Suburb"
-                            type={"text"}
-                            value={values.suburb}
-                            onChange={(e) => setFieldValue("suburb", e.target.value)}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormDropdown
-                            key="state"
-                            id={"state"}
-                            name={"state"}
-                            label="State"
-                            useFormattedStrings={false}
-                            options={australianStates.map((state) => ({
-                              label: state,
-                              value: state,
-                            }))}
-                            value={values.state}
-                            onChange={(e) => setFieldValue("state", e.target.value)}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormInput
-                            key="postCode"
-                            id={"postCode"}
-                            name={"postCode"}
-                            placeholder={"Post Code"}
-                            label="Post Code"
-                            type={"text"}
-                            value={values.postCode}
-                            onChange={(e) => setFieldValue("postCode", e.target.value)}
-                          />
-                        </Grid>
-                      </Grid>
+                          <Grid container spacing={{ xs: 1, sm: 2 }}>
+                            <Grid item xs={12}>
+                              <FormDropdown
+                                key="address-select"
+                                id="address-select"
+                                name="address-select"
+                                label="Select Delivery Address"
+                                useFormattedStrings={false}
+                                options={customerAddresses.map((addr, index) => ({
+                                  label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code}${addr.is_primary ? " (Primary)" : ""}`,
+                                  value: index.toString(),
+                                }))}
+                                value={selectedAddressIndex.toString()}
+                                onChange={(e) => {
+                                  handleAddressSelect(parseInt(e.target.value));
+                                }}
+                                optional={false}
+                              />
+                            </Grid>
+                            <Grid item xs={12}>
+                              <AddressFields />
+                            </Grid>
+                          </Grid>
+                        ) : (
+                          <Box>
+                            {!createInlineCustomer &&
+                              selectedCustomer &&
+                              customerAddresses.length === 0 && (
+                                <Alert severity="info" sx={{ mb: 2 }}>
+                                  No addresses found for this customer. Please enter address manually below.
+                                </Alert>
+                              )}
+                            <AddressFields />
                           </Box>
                         )}
                       </Grid>
 
-                      {/* NOTES */}
+                      {/* Notes */}
                       <Grid item xs={12}>
                         <FormInput
                           key="note"
-                          id={"note"}
-                          name={"note"}
-                          placeholder={"Notes"}
-                          label={"Notes"}
-                          type={"text"}
+                          id="note"
+                          name="note"
+                          placeholder="Notes"
+                          label="Notes"
+                          type="text"
                           isTextArea
                         />
                       </Grid>
                     </Grid>
 
                     {/* Next Button */}
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: { xs: "stretch", sm: "flex-end" },
+                        mt: 3,
+                      }}
+                    >
                       <Button
                         variant="contained"
                         onClick={() => handleNext(validateForm)}
                         size="large"
+                        fullWidth
+                        sx={{ maxWidth: { sm: 240 } }}
                       >
                         Next: Select Items
                       </Button>
@@ -710,10 +681,16 @@ export default function CreateInvoice() {
                 {/* Step 2: Select Items */}
                 {activeStep === 1 && (
                   <Box>
-                    <Typography variant="h5" sx={{ mb: 3 }}>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        mb: { xs: 2, md: 3 },
+                        fontSize: { xs: "1.1rem", sm: "1.5rem" },
+                      }}
+                    >
                       Select Items
                     </Typography>
-                    {/* Use shared ItemsSelectionTable component */}
+
                     <ItemsSelectionTable
                       items={items}
                       selectedItems={selectedItems}
@@ -734,14 +711,26 @@ export default function CreateInvoice() {
                       setShowDiscountInput={setShowDiscountInput}
                       discountAmount={discountAmount}
                       finalAmount={finalAmount}
+                      deposit={deposit}
+                      setDeposit={setDeposit}
                     />
 
                     {/* Navigation Buttons */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: { xs: "column-reverse", sm: "row" },
+                        justifyContent: "space-between",
+                        gap: { xs: 1, sm: 0 },
+                        mt: 4,
+                      }}
+                    >
                       <Button
                         variant="outlined"
                         onClick={handleBack}
                         size="large"
+                        fullWidth
+                        sx={{ maxWidth: { sm: 160 } }}
                       >
                         Back
                       </Button>
@@ -750,8 +739,10 @@ export default function CreateInvoice() {
                         onClick={() => handleSubmitStep2(handleSubmit)}
                         disabled={isSubmitting}
                         size="large"
+                        fullWidth
+                        sx={{ maxWidth: { sm: 240 } }}
                       >
-                        {isSubmitting ? 'Creating Invoice...' : 'Create Invoice'}
+                        {isSubmitting ? "Creating Invoice..." : "Create Invoice"}
                       </Button>
                     </Box>
                   </Box>

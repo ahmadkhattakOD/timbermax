@@ -74,6 +74,12 @@ const headCells: HeadCell[] = [
     label: "Total (A$)",
   },
   {
+    id: "deposit",
+    numeric: true,
+    disablePadding: true,
+    label: "Deposit (A$)",
+  },
+  {
     id: "status",
     numeric: false,
     disablePadding: true,
@@ -424,6 +430,15 @@ export function useInvoices() {
           <Typography fontWeight={600}>
             ${(Number(row.total) || 0).toFixed(2)}
           </Typography>
+        </TableCell>
+        <TableCell align="right" sx={{ minWidth: 120 }}>
+          {row.deposit ? (
+            <Typography fontWeight={600} color="primary">
+              ${(Number(row.deposit) || 0).toFixed(2)}
+            </Typography>
+          ) : (
+            <Typography color="text.secondary">—</Typography>
+          )}
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Chip

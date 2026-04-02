@@ -106,6 +106,9 @@ export function useEditInvoice(invoiceId: number) {
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
+  // Deposit state
+  const [deposit, setDeposit] = useState<number>(0);
+
   const [initialValues, setInitialValues] = useState<ValuesEditInvoice>({
     invoice_number: "",
     contactName: "",
@@ -710,6 +713,7 @@ export function useEditInvoice(invoiceId: number) {
         total: finalAmount,
         discount: discount,
         discount_type: discountType,
+        deposit: deposit,
         invoice_date: values.invoice_date
           ? new Date(values.invoice_date)
           : null,
@@ -964,6 +968,11 @@ export function useEditInvoice(invoiceId: number) {
           setShowDiscountInput(true);
         }
 
+        // Set deposit if present
+        if (invoice.deposit && invoice.deposit > 0) {
+          setDeposit(invoice.deposit);
+        }
+
         // Set initial form values - USE INVOICE ADDRESS, NOT CUSTOMER ADDRESS
         setInitialValues({
           invoice_number: invoice.invoice_number || "",
@@ -1123,5 +1132,8 @@ export function useEditInvoice(invoiceId: number) {
     setShowDiscountInput,
     discountAmount,
     finalAmount,
+    // Deposit
+    deposit,
+    setDeposit,
   };
 }

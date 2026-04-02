@@ -61,6 +61,8 @@ interface ItemsSelectionTableProps {
   setShowDiscountInput?: (value: boolean) => void;
   discountAmount?: number;
   finalAmount?: number;
+  deposit?: number;
+  setDeposit?: (value: number) => void;
 }
 
 export default function ItemsSelectionTable({
@@ -83,6 +85,8 @@ export default function ItemsSelectionTable({
   setShowDiscountInput,
   discountAmount = 0,
   finalAmount,
+  deposit = 0,
+  setDeposit,
 }: ItemsSelectionTableProps) {
   // State to force input reset
   const [inputKey, setInputKey] = React.useState(0);
@@ -461,6 +465,55 @@ export default function ItemsSelectionTable({
                 </TableCell>
                 <TableCell></TableCell>
               </TableRow>
+
+              {/* Deposit Row (only for invoices) */}
+              {showDiscount && setDeposit && (
+                <TableRow>
+                  <TableCell colSpan={7} align="right">
+                    <strong>Deposit:</strong>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2">$</Typography>
+                      <input
+                        type="number"
+                        value={deposit}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          setDeposit(isNaN(value) || value < 0 ? 0 : value);
+                        }}
+                        style={{
+                          width: "100px",
+                          padding: "8px",
+                          border: "1px solid #ccc",
+                          borderRadius: "4px",
+                        }}
+                        min={0}
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </Box>
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              )}
+
+              {/* Balance Due Row (only when deposit > 0) */}
+              {showDiscount && deposit > 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="right">
+                    <Typography variant="h6" color="primary">
+                      <strong>Balance Due:</strong>
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="h6" color="primary">
+                      <strong>{formatCurrency((showDiscount && finalAmount !== undefined ? finalAmount : totalAmount) - deposit)}</strong>
+                    </Typography>
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>

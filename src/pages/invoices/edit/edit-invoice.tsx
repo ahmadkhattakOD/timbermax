@@ -90,6 +90,9 @@ export default function EditInvoice() {
     setShowDiscountInput,
     discountAmount,
     finalAmount,
+    // Deposit
+    deposit,
+    setDeposit,
   } = useEditInvoice(id ? parseInt(id) : 0);
 
   if (loading) {
@@ -879,6 +882,8 @@ export default function EditInvoice() {
                       setShowDiscountInput={setShowDiscountInput}
                       discountAmount={discountAmount}
                       finalAmount={finalAmount}
+                      deposit={deposit}
+                      setDeposit={setDeposit}
                     />
 
                     {/* Navigation Buttons */}

@@ -25,6 +25,7 @@ export interface InvoiceSupabase {
   post_code?: string;
   payment_method?: string;
   payment_date?: Date | string;
+  deposit?: number;
 }
 
 export interface InvoiceItemSupabase {
@@ -146,6 +147,7 @@ quotations (
 ),
 
 total,
+deposit,
 status,
 invoice_date,
 due_date,
@@ -307,7 +309,7 @@ ${this.itemsClassName} (
          address, suburb, state, post_code,
          customer:customers ( id, name, phone, mobile, email, address, suburb, state, post_code ),
          quotation_id, quotations ( id, quotation_number ),
-         total, discount, discount_type, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
+         total, discount, discount_type, deposit, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
          ${this.itemsClassName} (
            id, item_id, quantity, unit_price, total_price, warehouse_id,
            items ( id, name, itemCode, sellPrice, gst )
@@ -507,6 +509,7 @@ ${this.itemsClassName} (
           quotation_number
         ),
         total,
+        deposit,
         status,
         invoice_date,
         due_date,

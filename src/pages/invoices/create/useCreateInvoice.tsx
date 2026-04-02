@@ -112,6 +112,9 @@ export function useCreateInvoice() {
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
+  // Deposit state
+  const [deposit, setDeposit] = useState<number>(0);
+
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateSubTotal(item),
     0,
@@ -853,6 +856,7 @@ export function useCreateInvoice() {
         status: "draft",
         discount: discount,
         discount_type: discountType,
+        deposit: deposit,
         // Save address snapshot to invoice
         address: invoiceAddress.address,
         suburb: invoiceAddress.suburb,
@@ -1265,6 +1269,9 @@ export function useCreateInvoice() {
     setShowDiscountInput,
     discountAmount,
     finalAmount,
+    // Deposit
+    deposit,
+    setDeposit,
     // Quotation search properties
     handleQuotationSearchDebounced,
     loadingQuotations,
