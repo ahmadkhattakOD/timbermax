@@ -111,7 +111,6 @@ export const generateAndDownloadQuotationPDF = async (
       return [
         index + 1,
         itemNameWithGst,
-        item.items?.itemCode || "N/A",
         quantity.toFixed(2),
         `$${unitPrice.toFixed(2)}`,
         `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
@@ -145,7 +144,7 @@ export const generateAndDownloadQuotationPDF = async (
 
     autoTable(doc, {
       startY: 130, // Increased from 100 to 130
-      head: [["#", "Items", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
+      head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -159,11 +158,10 @@ export const generateAndDownloadQuotationPDF = async (
       },
       columnStyles: {
         0: { cellWidth: 10 }, // #
-        1: { cellWidth: 70 }, // Description (increased width for star symbol)
-        2: { cellWidth: 25 }, // Code
-        3: { cellWidth: 20 }, // Qty
-        4: { cellWidth: 30 }, // Unit Price
-        5: { cellWidth: 30 }, // Total (now shows subtotal)
+        1: { cellWidth: 95 }, // Description
+        2: { cellWidth: 20 }, // Qty
+        3: { cellWidth: 30 }, // Unit Price
+        4: { cellWidth: 30 }, // Total
       },
     });
 
@@ -310,14 +308,13 @@ export const generateAndDownloadDeliveryDocument = async (
       return [
         index + 1,
         itemNameWithGst,
-        item.items?.itemCode || "N/A",
         quantity.toFixed(2),
       ];
     });
 
     autoTable(doc, {
       startY: 135, // Increased from 100
-      head: [["#", "Item Description", "Code", "Quantity"]],
+      head: [["#", "Item Description", "Quantity"]],
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -331,9 +328,8 @@ export const generateAndDownloadDeliveryDocument = async (
       },
       columnStyles: {
         0: { cellWidth: 10 },
-        1: { cellWidth: 80 },
+        1: { cellWidth: 110 },
         2: { cellWidth: 30 },
-        3: { cellWidth: 30 },
       },
     });
 
@@ -640,7 +636,6 @@ export const openQuotationPDFInNewTab = async (
       return [
         index + 1,
         itemNameWithGst,
-        item.items?.itemCode || "N/A",
         quantity.toFixed(2),
         `$${unitPrice.toFixed(2)}`,
         `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
@@ -674,7 +669,7 @@ export const openQuotationPDFInNewTab = async (
 
     autoTable(doc, {
       startY: 130,
-      head: [["#", "Items", "Code", "Qty", "Unit Price", "Total"]], // Removed GST column
+      head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -688,11 +683,10 @@ export const openQuotationPDFInNewTab = async (
       },
       columnStyles: {
         0: { cellWidth: 10 }, // #
-        1: { cellWidth: 70 }, // Description (increased width for star symbol)
-        2: { cellWidth: 25 }, // Code
-        3: { cellWidth: 20 }, // Qty
-        4: { cellWidth: 30 }, // Unit Price
-        5: { cellWidth: 30 }, // Total (now shows subtotal)
+        1: { cellWidth: 95 }, // Description
+        2: { cellWidth: 20 }, // Qty
+        3: { cellWidth: 30 }, // Unit Price
+        4: { cellWidth: 30 }, // Total
       },
     });
 

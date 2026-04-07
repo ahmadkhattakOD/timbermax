@@ -189,7 +189,6 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     return [
       index + 1,
       itemNameWithGst,
-      item.items?.itemCode || "N/A",
       quantity.toFixed(2),
       `$${unitPrice.toFixed(2)}`,
       `$${subtotal.toFixed(2)}`,
@@ -223,7 +222,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
   autoTable(doc, {
     startY: addrEndY + 18,
-    head: [["#", "Items", "Code", "Qty", "Unit Price", "Total"]],
+    head: [["#", "Items", "Qty", "Unit Price", "Total"]],
     body: tableData,
     theme: "grid",
     headStyles: {
@@ -237,11 +236,10 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     },
     columnStyles: {
       0: { cellWidth: 10 },
-      1: { cellWidth: 70 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 20 },
+      1: { cellWidth: 95 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 30 },
       4: { cellWidth: 30 },
-      5: { cellWidth: 30 },
     },
   });
 
@@ -633,7 +631,6 @@ export const generateDeliveryNotePDF = async (
       return [
         index + 1,
         itemNameWithGst,
-        item.items?.itemCode || "N/A",
         quantity.toFixed(2),
         "",
       ];
@@ -641,7 +638,7 @@ export const generateDeliveryNotePDF = async (
 
     autoTable(doc, {
       startY: 130, // Increased from 100
-      head: [["#", "Item Description", "Code", "Quantity", "Received"]],
+      head: [["#", "Item Description", "Quantity", "Received"]],
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -655,10 +652,9 @@ export const generateDeliveryNotePDF = async (
       },
       columnStyles: {
         0: { cellWidth: 10 },
-        1: { cellWidth: 80 },
+        1: { cellWidth: 110 },
         2: { cellWidth: 30 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 40 },
+        3: { cellWidth: 40 },
       },
     });
 
