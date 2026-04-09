@@ -38,6 +38,16 @@ const addCompanyLogo = async (
   }
 };
 
+// Returns updated Y — adds a new page if the needed space won't fit
+const checkAndAddPage = (doc: jsPDF, currentY: number, neededMM: number, topMargin: number = 14): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  if (currentY + neededMM > pageHeight - 14) {
+    doc.addPage();
+    return topMargin;
+  }
+  return currentY;
+};
+
 export const generateAndDownloadQuotationPDF = async (
   quotation: Quotation
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
@@ -165,19 +175,19 @@ export const generateAndDownloadQuotationPDF = async (
       },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-    // GST note + disclaimer as one continuous block
+    // Disclaimer — only add page if the disclaimer itself won't fit
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
       "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
       180,
     );
-    doc.text(gstDisclaimerLines, 14, finalY);
+    let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 10, gstDisclaimerLines.length * 4.5);
+    doc.text(gstDisclaimerLines, 14, postTableY);
 
-    // Summary Section
-    const summaryY = finalY + 22;
+    // Summary Section — only add page if summary block won't fit
+    const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30);
+    let summaryY = checkAndAddPage(doc, postTableY + gstDisclaimerLines.length * 4.5 + 12, summaryNeeded);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Summary:", 120, summaryY);
@@ -206,8 +216,8 @@ export const generateAndDownloadQuotationPDF = async (
     doc.text(`Grand Total:`, 120, currentY);
     doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
-    // Bank Details
-    const bankY = currentY + 20;
+    // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
+    let bankY = checkAndAddPage(doc, currentY + 20, 35);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -217,14 +227,14 @@ export const generateAndDownloadQuotationPDF = async (
     doc.text("BSB No: 065 167", 14, bankY + 21);
     doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
-    // Notes Section
-    const notesY = bankY + 40;
+    // Notes — only add page if notes themselves won't fit
     if (quotation.note) {
+      const splitNotes = doc.splitTextToSize(quotation.note, 180);
+      let notesY = checkAndAddPage(doc, bankY + 40, splitNotes.length * 4.5 + 12);
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, notesY);
       doc.setFont("helvetica", "normal");
-      const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, notesY + 10);
+      doc.text(splitNotes, 14, notesY + 6);
     }
 
     const fileName = `quotation_${quotation.quotation_number}_${getDateFormatted(
@@ -333,19 +343,18 @@ export const generateAndDownloadDeliveryDocument = async (
       },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
-
-    // GST note + disclaimer as one continuous block
+    // Disclaimer — only add page if the disclaimer itself won't fit
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
       "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
       180,
     );
-    doc.text(gstDisclaimerLines, 14, finalY);
+    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 20, gstDisclaimerLines.length * 4.5);
+    doc.text(gstDisclaimerLines, 14, delivFinalY);
 
-    // Bank Details
-    const bankY = finalY + 10;
+    // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
+    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 6, 35);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -356,18 +365,20 @@ export const generateAndDownloadDeliveryDocument = async (
     doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
     // Notes Section
-    const noteStartY = bankY + 38;
+    let noteStartY = bankY + 38;
     if (quotation.note) {
+      const splitNotes = doc.splitTextToSize(quotation.note, 180);
+      noteStartY = checkAndAddPage(doc, noteStartY, splitNotes.length * 4.5 + 12);
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, noteStartY);
       doc.setFont("helvetica", "normal");
-      const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, noteStartY + 10);
+      doc.text(splitNotes, 14, noteStartY + 6);
+      noteStartY += splitNotes.length * 4.5 + 10;
     }
 
-    // Delivery Instructions
+    // Delivery Instructions — only add page if instructions + signatures won't fit (~60mm)
+    let instructionsY = checkAndAddPage(doc, noteStartY + 10, 60);
     doc.setFont("helvetica", "bold");
-    const instructionsY = noteStartY + (quotation.note ? 30 : 10);
     doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
     doc.text("Please ensure all items are checked upon delivery.", 14, instructionsY + 10);
@@ -492,19 +503,18 @@ export const generateQuotationPDFBase64 = async (
       },
     });
 
-    let finalY = (doc as any).lastAutoTable.finalY + 6;
-
-    // GST note + disclaimer as one continuous block
+    // Disclaimer — only add page if the disclaimer itself won't fit
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
       "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
       180,
     );
+    let finalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, finalY);
 
-    // Totals
-    finalY += 8;
+    // Totals — only add page if totals block won't fit
+    finalY = checkAndAddPage(doc, finalY + gstDisclaimerLines.length * 4.5 + 4, discountRaw2 > 0 ? 36 : 26);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("Subtotal:", 140, finalY);
@@ -525,8 +535,8 @@ export const generateQuotationPDFBase64 = async (
     doc.text("Grand Total:", 140, finalY);
     doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
 
-    // Bank Details
-    finalY += 12;
+    // Bank Details — only add page if the 4 bank lines won't fit (~30mm)
+    finalY = checkAndAddPage(doc, finalY + 12, 30);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, finalY);
@@ -542,13 +552,13 @@ export const generateQuotationPDFBase64 = async (
     doc.text("Account Number: 1056 5353", 14, finalY);
 
     if (quotation.note) {
-      finalY += 10;
+      const splitNotes = doc.splitTextToSize(quotation.note, 180);
+      finalY = checkAndAddPage(doc, finalY + 10, splitNotes.length * 4.5 + 12);
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, finalY);
       doc.setFont("helvetica", "normal");
       finalY += 4;
-      const splitNotes = doc.splitTextToSize(quotation.note, 180);
       doc.text(splitNotes, 14, finalY);
     }
 
@@ -690,19 +700,19 @@ export const openQuotationPDFInNewTab = async (
       },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-    // GST note + disclaimer as one continuous block
+    // Disclaimer — only add page if the disclaimer itself won't fit
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
       "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
       180,
     );
-    doc.text(gstDisclaimerLines, 14, finalY);
+    let postTableY3 = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 10, gstDisclaimerLines.length * 4.5);
+    doc.text(gstDisclaimerLines, 14, postTableY3);
 
-    // Summary Section
-    const summaryY = finalY + 22;
+    // Summary Section — only add page if summary block won't fit
+    const summaryNeeded3 = 10 + (discountRaw3 > 0 ? 40 : 30);
+    let summaryY = checkAndAddPage(doc, postTableY3 + gstDisclaimerLines.length * 4.5 + 12, summaryNeeded3);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Summary:", 120, summaryY);
@@ -731,8 +741,8 @@ export const openQuotationPDFInNewTab = async (
     doc.text(`Grand Total:`, 120, currentY);
     doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
-    // Bank Details
-    const bankY = currentY + 20;
+    // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
+    let bankY = checkAndAddPage(doc, currentY + 20, 35);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -742,14 +752,14 @@ export const openQuotationPDFInNewTab = async (
     doc.text("BSB No: 065 167", 14, bankY + 21);
     doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
-    // Notes Section
-    const notesY = bankY + 40;
+    // Notes — only add page if notes themselves won't fit
     if (quotation.note) {
+      const splitNotes = doc.splitTextToSize(quotation.note, 180);
+      let notesY = checkAndAddPage(doc, bankY + 40, splitNotes.length * 4.5 + 12);
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, notesY);
       doc.setFont("helvetica", "normal");
-      const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      doc.text(splitNotes, 14, notesY + 10);
+      doc.text(splitNotes, 14, notesY + 6);
     }
 
     const pdfBlob = doc.output("blob");

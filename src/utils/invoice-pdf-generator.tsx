@@ -76,6 +76,16 @@ const addPaidStampImage = async (doc: jsPDF) => {
   }
 };
 
+// Returns updated Y — adds a new page if the needed space won't fit
+const checkAndAddPage = (doc: jsPDF, currentY: number, neededMM: number, topMargin: number = 14): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  if (currentY + neededMM > pageHeight - 14) {
+    doc.addPage();
+    return topMargin;
+  }
+  return currentY;
+};
+
 // Shared helper that builds invoice PDF content onto a jsPDF doc
 const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   await addCompanyLogo(doc, 14, 20);
@@ -243,10 +253,18 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     },
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  // Disclaimer — only add page if this line itself won't fit
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  const disclaimerText =
+    "All materials supplied are non-returnable and non-refundableaass. Thank you for your business";
+  const disclaimerLines = doc.splitTextToSize(disclaimerText, 180);
+  let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 10, disclaimerLines.length * 5);
+  doc.text(disclaimerLines, 14, postTableY);
 
-  // Summary Section
-  const summaryY = finalY + 22;
+  // Summary Section — only add page if summary block won't fit (header + 4 rows = ~50mm)
+  const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30);
+  let summaryY = checkAndAddPage(doc, postTableY + disclaimerLines.length * 5 + 12, summaryNeeded);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("Payment Summary:", 120, summaryY);
@@ -278,8 +296,8 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.text(`Total Due:`, 120, currentY);
   doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
-  // Bank Details
-  const bankY = currentY + 20;
+  // Bank Details — only add page if the 5 bank lines won't fit (~42mm)
+  let bankY = checkAndAddPage(doc, currentY + 20, 42);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("Bank Details:", 14, bankY);
@@ -290,25 +308,14 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.text("Account Number: 1056 5353", 14, bankY + 28);
   doc.text("Reference: " + invoice.invoice_number, 14, bankY + 35);
 
-  // Notes Section
+  // Notes — only add page if notes themselves won't fit
   if (invoice.note) {
-    doc.setFont("helvetica", "bold");
-    doc.text("Notes:", 14, bankY + 48);
-    doc.setFont("helvetica", "normal");
     const splitNotes = doc.splitTextToSize(invoice.note, 180);
-    doc.text(splitNotes, 14, bankY + 54);
-  }
-
-  // Disclaimer at bottom center for invoice
-  {
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    const disclaimerText =
-      "All materials supplied are non-returnable and non-refundableaass. Thank you for your business";
-    const lines = doc.splitTextToSize(disclaimerText, 180);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text(lines, pageWidth / 2, pageHeight - 15, { align: "center" });
+    let notesY = checkAndAddPage(doc, bankY + 48, splitNotes.length * 5 + 10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 14, notesY);
+    doc.setFont("helvetica", "normal");
+    doc.text(splitNotes, 14, notesY + 6);
   }
 
   // Paid stamp overlay
@@ -467,19 +474,18 @@ export const generateInvoicePDFBase64 = async (
       },
     });
 
-    let finalY = (doc as any).lastAutoTable.finalY + 6;
-
-    // GST note + disclaimer as one continuous block
+    // Disclaimer — only add page if this line itself won't fit
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
       " All materials supplied are non-returnable and non-refundable. Thank you for your business",
       180,
     );
+    let finalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, finalY);
 
-    // Totals
-    finalY += 8;
+    // Totals — only add page if totals block won't fit
+    finalY = checkAndAddPage(doc, finalY + gstDisclaimerLines.length * 4.5 + 4, discountRaw > 0 ? 36 : 26);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("Subtotal:", 140, finalY);
@@ -503,8 +509,8 @@ export const generateInvoicePDFBase64 = async (
     doc.text("Total Due:", 140, finalY);
     doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
 
-    // Bank Details
-    finalY += 12;
+    // Bank Details — only add page if the 5 bank lines won't fit (~30mm)
+    finalY = checkAndAddPage(doc, finalY + 12, 30);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, finalY);
@@ -522,26 +528,14 @@ export const generateInvoicePDFBase64 = async (
     doc.text("Reference: " + invoice.invoice_number, 14, finalY);
 
     if (invoice.note) {
-      finalY += 8;
+      const splitNotes = doc.splitTextToSize(invoice.note, 180);
+      finalY = checkAndAddPage(doc, finalY + 8, splitNotes.length * 4.5 + 12);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
       doc.text("Notes:", 14, finalY);
       doc.setFont("helvetica", "normal");
       finalY += 4;
-      const splitNotes = doc.splitTextToSize(invoice.note, 180);
       doc.text(splitNotes, 14, finalY);
-    }
-
-    // Disclaimer for compressed invoice PDF
-    {
-      const pageWidth = doc.internal.pageSize.width;
-      const pageHeight = doc.internal.pageSize.height;
-      const disclaimerText =
-        "All materials supplied are non-returnable and non-refundable.  Thank you for your business";
-      const lines = doc.splitTextToSize(disclaimerText, 180);
-      doc.setFontSize(7.5);
-      doc.setFont("helvetica", "italic");
-      doc.text(lines, pageWidth / 2, pageHeight - 15, { align: "center" });
     }
 
     // Paid stamp overlay
@@ -658,19 +652,18 @@ export const generateDeliveryNotePDF = async (
       },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
-
-    // GST note + disclaimer as one continuous block
+    // Disclaimer — only add page if the disclaimer itself won't fit
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
       "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
       180,
     );
-    doc.text(gstDisclaimerLines, 14, finalY);
+    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 20, gstDisclaimerLines.length * 4.5);
+    doc.text(gstDisclaimerLines, 14, delivFinalY);
 
-    // Bank Details
-    const bankY = finalY + 10;
+    // Bank Details — only add page if bank lines won't fit (~35mm)
+    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 6, 35);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -681,18 +674,20 @@ export const generateDeliveryNotePDF = async (
     doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
     // Notes Section
-    const noteY = bankY + 38;
+    let noteY = bankY + 38;
     if (invoice.note) {
+      const splitNotes = doc.splitTextToSize(invoice.note, 180);
+      noteY = checkAndAddPage(doc, noteY, splitNotes.length * 4.5 + 12);
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, noteY);
       doc.setFont("helvetica", "normal");
-      const splitNotes = doc.splitTextToSize(invoice.note, 180);
-      doc.text(splitNotes, 14, noteY + 10);
+      doc.text(splitNotes, 14, noteY + 6);
+      noteY += splitNotes.length * 4.5 + 10;
     }
 
-    // Delivery Instructions
+    // Delivery Instructions — only add page if instructions + signatures won't fit (~60mm)
+    let instructionsY = checkAndAddPage(doc, noteY + 10, 60);
     doc.setFont("helvetica", "bold");
-    const instructionsY = noteY + (invoice.note ? 30 : 10);
     doc.text("Delivery Instructions:", 14, instructionsY);
     doc.setFont("helvetica", "normal");
     doc.text(

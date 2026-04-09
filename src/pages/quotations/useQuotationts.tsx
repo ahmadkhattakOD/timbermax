@@ -28,7 +28,7 @@ import {
   Truck,
   Xd,
 } from "iconsax-react";
-import { X, Download, Send as SendIcon, Code, RotateCcw } from "lucide-react";
+import { X, Download, Send as SendIcon, Code, RotateCcw, Copy } from "lucide-react";
 import {
   generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
@@ -43,7 +43,7 @@ import {
   initialRowsPerPage,
   useDebouncedSearch,
 } from "utils/helpers";
-import QuotationsRepository from "utils/repositories/quotationRepo";
+import QuotationsRepository, { QuotationSupabase } from "utils/repositories/quotationRepo";
 import { ValuesFilterQuotations } from "types";
 import StocksRepository from "utils/repositories/stocksRepository";
 import {
@@ -707,6 +707,19 @@ export function useQuotations() {
                 </IconButton>
               </Tooltip>
             )}
+
+            {/* Duplicate Quotation */}
+            <Tooltip title="Duplicate Quotation">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  duplicateQuotation(row.id);
+                }}
+              >
+                <Copy size={18} />
+              </IconButton>
+            </Tooltip>
           </Box>
         </TableCell>
       </>
@@ -1454,6 +1467,76 @@ export function useQuotations() {
     }
   }
 
+  async function duplicateQuotation(quotationId: number) {
+    try {
+      const quotationsRepo = new QuotationsRepository();
+
+      const quotationResponse = await quotationsRepo.getSingle(quotationId);
+      if (!quotationResponse?.quotationData) {
+        throw new Error("Quotation not found");
+      }
+
+      const existing = quotationResponse.quotationData;
+      const nextNumber = await quotationsRepo.getNextQuotationNumber();
+
+      const newQuotation: QuotationSupabase = {
+        quotation_number: nextNumber,
+        customer_id: existing.customer_id,
+        total: existing.total,
+        discount: existing.discount || 0,
+        discount_type: existing.discount_type || "percentage",
+        status: "draft",
+        valid_until: existing.valid_until ? new Date(existing.valid_until) : null,
+        note: existing.note || "",
+        address: existing.address || "",
+        suburb: existing.suburb || "",
+        state: existing.state || "",
+        post_code: existing.post_code || "",
+      };
+
+      const items = (existing.quotation_items || []).map((item: any) => ({
+        item_id: item.item_id,
+        quantity: parseFloat(item.quantity),
+        warehouse_id: item.warehouse_id || 1,
+      }));
+
+      const result = await quotationsRepo.createWithStockReservation(newQuotation, items);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to duplicate quotation");
+      }
+
+      const newQuotationId = result.quotation?.id;
+      if (newQuotationId) {
+        for (const item of (existing.quotation_items || [])) {
+          await quotationsRepo.addItem({
+            quotation_id: newQuotationId,
+            item_id: item.item_id,
+            quantity: parseFloat(item.quantity),
+            unit_price: parseFloat(item.unit_price),
+            warehouse_id: item.warehouse_id || 1,
+          });
+        }
+      }
+
+      openSnackbar({
+        open: true,
+        message: `Quotation duplicated as ${nextNumber}`,
+        variant: "alert",
+        alert: { color: "success" },
+      } as SnackbarProps);
+      await getData();
+    } catch (error: any) {
+      console.error("Error duplicating quotation:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to duplicate quotation: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+  }
+
   function openDeleteConfirmModal() {
     setDeleteConfirmModalOpen(true);
   }
@@ -2007,6 +2090,7 @@ export function useQuotations() {
     convertToInvoice,
     viewItems,
     cancelQuotation,
+    duplicateQuotation,
     resendQuotationEmail,
     updateQuotationStatus,
     downloadQuotationPDF,

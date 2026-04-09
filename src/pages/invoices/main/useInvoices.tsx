@@ -25,7 +25,7 @@ import {
   initialRowsPerPage,
   useDebouncedSearch,
 } from "utils/helpers";
-import InvoicesRepository from "utils/repositories/invoicesRepository";
+import InvoicesRepository, { InvoiceSupabase } from "utils/repositories/invoicesRepository";
 import {
   generateAndDownloadInvoicePDF,
   generateDeliveryNotePDF,
@@ -44,7 +44,7 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
-import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, RotateCcw } from "lucide-react";
+import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, RotateCcw, Copy } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import supabase from "utils/supabase";
 import {
@@ -692,6 +692,26 @@ export function useInvoices() {
                 </span>
               </Tooltip>
             )}
+
+            {/* Duplicate Invoice */}
+            <Tooltip title="Duplicate Invoice">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    duplicateInvoice(row.id);
+                  }}
+                  disabled={isActionLoading(row.id)}
+                >
+                  {isActionLoading(row.id) ? (
+                    <CircularProgress size={18} thickness={5} />
+                  ) : (
+                    <Copy size={18} />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
           </Box>
         </TableCell>
       </>
@@ -1862,6 +1882,69 @@ export function useInvoices() {
       openSnackbar({
         open: true,
         message: `Failed to cancel invoice: ${error.message}`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
+      removeActionLoadingId(invoiceId);
+    }
+  };
+
+  const duplicateInvoice = async (invoiceId: number) => {
+    try {
+      addActionLoadingId(invoiceId);
+      const invoicesRepo = new InvoicesRepository();
+
+      const invoiceResponse: any = await invoicesRepo.getSingle(invoiceId);
+      if (!invoiceResponse?.invoiceData) {
+        throw new Error("Invoice not found");
+      }
+
+      const existing = invoiceResponse.invoiceData;
+      const nextNumber = await invoicesRepo.getNextInvoiceNumber();
+
+      const newInvoice: InvoiceSupabase = {
+        invoice_number: nextNumber,
+        customer_id: existing.customer_id,
+        total: existing.total,
+        discount: existing.discount || 0,
+        discount_type: existing.discount_type || "percentage",
+        deposit: existing.deposit || 0,
+        status: "draft",
+        invoice_date: new Date(),
+        due_date: existing.due_date ? new Date(existing.due_date) : undefined,
+        note: existing.note || "",
+        address: existing.address || "",
+        suburb: existing.suburb || "",
+        state: existing.state || "",
+        post_code: existing.post_code || "",
+      };
+
+      const items = (existing.invoice_items || []).map((item: any) => ({
+        item_id: item.item_id,
+        quantity: parseFloat(item.quantity),
+        unit_price: parseFloat(item.unit_price),
+        warehouse_id: item.warehouse_id || 1,
+      }));
+
+      const result = await invoicesRepo.createWithStockReduction(newInvoice, items);
+
+      if (result.success) {
+        openSnackbar({
+          open: true,
+          message: `Invoice duplicated as ${nextNumber}`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+        await getData();
+      } else {
+        throw new Error(result.error || "Failed to duplicate invoice");
+      }
+    } catch (error: any) {
+      console.error("Error duplicating invoice:", error);
+      openSnackbar({
+        open: true,
+        message: `Failed to duplicate invoice: ${error.message}`,
         variant: "alert",
         alert: { color: "error" },
       } as SnackbarProps);
