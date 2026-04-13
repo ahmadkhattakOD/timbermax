@@ -640,6 +640,64 @@ class StocksRepository {
     }
   }
 
+  /**
+   * Correct stock quantity to an absolute value (used for fixing incorrect entries).
+   * Records as an "adjustment" movement with a mandatory reason.
+   */
+  public async adjustStock(
+    stockId: number,
+    itemId: number,
+    warehouseId: number,
+    newQuantity: number,
+    reason: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const userId = await this.getCurrentUserId();
+
+      const { data: currentStock, error: fetchError } = await supabase
+        .from(this.className)
+        .select("id, quantity")
+        .eq("id", stockId)
+        .maybeSingle();
+
+      if (fetchError || !currentStock) {
+        return { success: false, error: "Could not find stock record" };
+      }
+
+      const quantityBefore = parseFloat(currentStock.quantity);
+      const quantityChange = newQuantity - quantityBefore;
+
+      const { error: updateError } = await supabase
+        .from(this.className)
+        .update({
+          quantity: newQuantity,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", stockId);
+
+      if (updateError) {
+        return { success: false, error: updateError.message };
+      }
+
+      await this.recordMovement(
+        stockId,
+        itemId,
+        warehouseId,
+        userId,
+        "adjustment",
+        quantityChange,
+        quantityBefore,
+        newQuantity,
+        `[CORRECTION] ${reason}`,
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error adjusting stock:", error);
+      return { success: false, error: "Unexpected error" };
+    }
+  }
+
   public async delete(ids: readonly number[]) {
     try {
       const { data, error } = await supabase

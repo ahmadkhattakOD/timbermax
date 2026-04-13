@@ -177,7 +177,7 @@ const StockHistoryModal = ({
       case "release":
         return "▶️";
       case "adjustment":
-        return "⚙️";
+        return "✏️";
       default:
         return "📝";
     }
@@ -229,15 +229,26 @@ const StockHistoryModal = ({
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
                         <span>{getMovementIcon(movement.movement_type)}</span>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: getMovementColor(movement.movement_type),
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {movement.movement_type.toUpperCase()}
-                        </Typography>
+                        <Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: getMovementColor(movement.movement_type),
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {movement.movement_type.toUpperCase()}
+                          </Typography>
+                          {movement.movement_type === "adjustment" && (
+                            <Chip
+                              label="CORRECTION"
+                              size="small"
+                              color="warning"
+                              variant="outlined"
+                              sx={{ fontSize: "0.65rem", height: 18 }}
+                            />
+                          )}
+                        </Box>
                       </Box>
                     </TableCell>
                     <TableCell>{formatUser(movement.user)}</TableCell>
@@ -247,20 +258,35 @@ const StockHistoryModal = ({
                         color={
                           movement.movement_type === "in"
                             ? "success.main"
-                            : "error.main"
+                            : movement.movement_type === "out"
+                              ? "error.main"
+                              : movement.quantity_change >= 0
+                                ? "success.main"
+                                : "error.main"
                         }
                         fontWeight="bold"
                       >
-                        {movement.movement_type === "in"
-                          ? "+"
-                          : movement.movement_type === "out"
-                            ? "-"
-                            : ""}
+                        {movement.quantity_change >= 0 ? "+" : ""}
                         {movement.quantity_change}
                       </Typography>
                     </TableCell>
                     <TableCell>{movement.quantity_after}</TableCell>
-                    <TableCell>{movement.notes || "-"}</TableCell>
+                    <TableCell>
+                      {movement.movement_type === "adjustment" && movement.notes ? (
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            color="warning.main"
+                            fontWeight={600}
+                            display="block"
+                          >
+                            {movement.notes.replace(/^\[CORRECTION\]\s*/, "")}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        movement.notes || "-"
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -437,8 +463,8 @@ export function useStock() {
         <TableCell sx={{ minWidth: 150 }}>
           {new Date(row.updated_at).toLocaleDateString()}
         </TableCell>
-        <TableCell sx={{ minWidth: 150 }}>
-          <Box sx={{ display: "flex", gap: 1 }}>
+        <TableCell sx={{ minWidth: 200 }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Tooltip title="View Stock History">
               <IconButton
                 size="small"
@@ -448,7 +474,19 @@ export function useStock() {
                 }}
                 color="primary"
               >
-                {/* <History size={18} /> */} History
+                History
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Correct Stock Quantity">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/stock/${row.id}/edit`);
+                }}
+                color="warning"
+              >
+                Edit
               </IconButton>
             </Tooltip>
             {reserved > 0 && (

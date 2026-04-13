@@ -3,37 +3,51 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { isNumeric } from "utils/helpers";
-import ItemsRepository from "utils/repositories/itemsRepository";
-import StocksRepository, {
-  StockSupabase,
-} from "utils/repositories/stocksRepository";
-import WarehousesRepository from "utils/repositories/warehousesRepository";
+import StocksRepository from "utils/repositories/stocksRepository";
 
 export interface ValuesEditStock {
-  item: string;
-  warehouse: string;
-  quantity: string;
   newQuantity: string;
   notes: string;
+  correctQuantity: string;
+  reason: string;
 }
 
 export function useEditStock() {
   const navigate = useNavigate();
   const [stock, setStock] = useState<any>(null);
-  const [items, setItems] = useState<any[]>([]);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { id } = useParams();
 
   function validate(values: ValuesEditStock) {
     const errors = {} as ValuesEditStock;
 
-    if (!values.item) {
-      errors.item = "required";
+    const hasAdd = values.newQuantity !== "" && values.newQuantity !== "0" && values.newQuantity !== undefined;
+    const hasCorrect = values.correctQuantity !== "" && values.correctQuantity !== undefined;
+
+    if (!hasAdd && !hasCorrect) {
+      errors.newQuantity = "Fill in quantity to add or a corrected quantity";
     }
 
-    if (!values.warehouse) {
-      errors.warehouse = "required";
+    if (hasAdd && hasCorrect) {
+      errors.newQuantity = "Use only one: either add quantity or correct quantity, not both";
+      errors.correctQuantity = "Use only one: either add quantity or correct quantity, not both";
+    }
+
+    if (hasAdd) {
+      const val = parseFloat(values.newQuantity);
+      if (isNaN(val) || val <= 0) {
+        errors.newQuantity = "must be a positive number";
+      }
+    }
+
+    if (hasCorrect) {
+      const val = parseFloat(values.correctQuantity);
+      if (isNaN(val) || val < 0) {
+        errors.correctQuantity = "cannot be negative";
+      }
+      if (!values.reason || !values.reason.trim()) {
+        errors.reason = "required when correcting quantity";
+      }
     }
 
     return errors;
@@ -41,65 +55,81 @@ export function useEditStock() {
 
   async function onSubmit(values: ValuesEditStock) {
     try {
-      if (id && isNumeric(id)) {
-        const updatedStock = {
-          item: parseInt(values.item),
-          warehouse: parseInt(values.warehouse),
-          quantity: parseInt(values.newQuantity),
-          updated_at: new Date(),
-          notes: String(values.notes),
-        };
+      if (!id || !isNumeric(id) || !stock) {
+        openSnackbar({
+          open: true,
+          message: "Stock could not be updated. Please try again.",
+          variant: "alert",
+          alert: { color: "error" },
+        } as SnackbarProps);
+        navigate("/stock");
+        return;
+      }
 
-        const stocksRepository = new StocksRepository();
-        const editedStock = await stocksRepository.create(
-          updatedStock,
-          values.notes,
+      const stocksRepository = new StocksRepository();
+      const hasAdd = values.newQuantity !== "" && values.newQuantity !== "0";
+
+      if (hasAdd) {
+        // Add quantity → type "in"
+        const added = await stocksRepository.create(
+          {
+            item: stock.item.id,
+            warehouse: stock.warehouse.id,
+            quantity: parseFloat(values.newQuantity),
+          },
+          values.notes || undefined,
         );
 
-        if (editedStock) {
+        if (added) {
           openSnackbar({
             open: true,
-            message: "Stock edited successfully.",
+            message: "Stock added successfully.",
             variant: "alert",
-            alert: {
-              color: "success",
-            },
+            alert: { color: "success" },
           } as SnackbarProps);
         } else {
           openSnackbar({
             open: true,
-            message:
-              "Stock could not be edited successfully. Please try again.",
+            message: "Stock could not be added. Please try again.",
             variant: "alert",
-            alert: {
-              color: "error",
-            },
+            alert: { color: "error" },
           } as SnackbarProps);
         }
-
-        navigate("/stock");
       } else {
-        openSnackbar({
-          open: true,
-          message: "Stock could not be edited successfully. Please try again.",
-          variant: "alert",
-          alert: {
-            color: "error",
-          },
-        } as SnackbarProps);
+        // Correct quantity → type "adjustment"
+        const result = await stocksRepository.adjustStock(
+          stock.id,
+          stock.item.id,
+          stock.warehouse.id,
+          parseFloat(values.correctQuantity),
+          values.reason.trim(),
+        );
 
-        navigate("/stock");
+        if (result.success) {
+          openSnackbar({
+            open: true,
+            message: "Stock quantity corrected successfully.",
+            variant: "alert",
+            alert: { color: "success" },
+          } as SnackbarProps);
+        } else {
+          openSnackbar({
+            open: true,
+            message: result.error || "Stock could not be corrected. Please try again.",
+            variant: "alert",
+            alert: { color: "error" },
+          } as SnackbarProps);
+        }
       }
+
+      navigate("/stock");
     } catch (e) {
       openSnackbar({
         open: true,
-        message: "Stock could not be edited successfully. Please try again.",
+        message: "Stock could not be updated. Please try again.",
         variant: "alert",
-        alert: {
-          color: "error",
-        },
+        alert: { color: "error" },
       } as SnackbarProps);
-
       navigate("/stock");
     }
   }
@@ -116,32 +146,12 @@ export function useEditStock() {
         }
       }
     }
-  }
-
-  async function getItemsWarehouses() {
-    const itemsRepository = new ItemsRepository();
-    const allItems = await itemsRepository.getWithoutFilters();
-    if (allItems) {
-      const { itemsData, itemsError } = allItems;
-      if (itemsData && !itemsError) {
-        setItems(itemsData);
-      }
-    }
-    const warehousesRepository = new WarehousesRepository();
-    const allWarehouses = await warehousesRepository.getWithoutFilters();
-    if (allWarehouses) {
-      const { warehousesData, warehousesError } = allWarehouses;
-      if (warehousesData && !warehousesError) {
-        setWarehouses(warehousesData);
-      }
-    }
     setLoading(false);
   }
 
   useEffect(() => {
     getStock();
-    getItemsWarehouses();
   }, []);
 
-  return { validate, onSubmit, stock, loading, items, warehouses };
+  return { validate, onSubmit, stock, loading };
 }
