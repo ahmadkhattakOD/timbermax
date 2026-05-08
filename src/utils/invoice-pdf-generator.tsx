@@ -588,7 +588,7 @@ export const generateDeliveryNotePDF = async (
       align: "right",
     });
     doc.text(
-      `Status: ${invoice.delivery_status?.toUpperCase() || ""}`,
+      `Status: ${invoice.delivery_status?.replace(/_/g, " ").toUpperCase() || ""}`,
       180,
       75,
       {

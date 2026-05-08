@@ -400,6 +400,16 @@ export function useInvoices() {
       delivered: "success",
       returned: "error",
       pending: "warning",
+      pick_up: "secondary",
+    };
+
+    const deliveryLabels: any = {
+      pending: "Pending",
+      packed: "Packed",
+      shipped: "Shipped",
+      delivered: "Delivered",
+      returned: "Returned",
+      pick_up: "Pick Up",
     };
 
     return (
@@ -459,12 +469,7 @@ export function useInvoices() {
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Chip
-            label={
-              row.delivery_status
-                ? row.delivery_status.charAt(0).toUpperCase() +
-                  row.delivery_status.slice(1)
-                : "Pending"
-            }
+            label={deliveryLabels[row.delivery_status || "pending"] || row.delivery_status}
             color={deliveryColors[row.delivery_status || "pending"]}
             size="small"
             onClick={(e) => {
@@ -1310,6 +1315,7 @@ export function useInvoices() {
     setEmailPdfBase64("");
     setEmailPdfFileName("");
     setEmailPdfDownloadUrl("");
+    setEmailExtraRecipients(["info@timbermax.com.au"]);
     setEmailDialogOpen(true);
 
     // Generate compressed PDF, upload to storage, then inject download link into body

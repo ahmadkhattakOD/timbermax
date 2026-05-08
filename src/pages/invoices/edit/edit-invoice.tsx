@@ -615,6 +615,7 @@ export default function EditInvoice() {
                             { label: "Packed", value: "packed" },
                             { label: "Shipped", value: "shipped" },
                             { label: "Delivered", value: "delivered" },
+                            { label: "Pick Up", value: "pick_up" },
                             { label: "Returned", value: "returned" },
                           ]}
                           optional={false}

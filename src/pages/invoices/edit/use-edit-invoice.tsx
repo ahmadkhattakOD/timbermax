@@ -38,7 +38,7 @@ export interface ValuesEditInvoice {
   due_date: string;
   note: string;
   status: "draft" | "sent" | "paid" | "cancelled" | "converted" | "overdue";
-  delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned";
+  delivery_status: "pending" | "packed" | "shipped" | "delivered" | "returned" | "pick_up";
   payment_method: string;
 }
 

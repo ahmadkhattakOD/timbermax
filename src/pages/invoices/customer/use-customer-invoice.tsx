@@ -341,7 +341,7 @@ export function useCustomerInvoices(customerId: number) {
     const canDownloadPDF = row.status !== "cancelled";
     const canDownloadDeliveryNote =
       row.delivery_status &&
-      ["packed", "shipped", "delivered"].includes(row.delivery_status);
+      ["packed", "shipped", "delivered", "pick_up"].includes(row.delivery_status);
 
     // Status chip colors
     const statusColors: any = {
@@ -358,6 +358,16 @@ export function useCustomerInvoices(customerId: number) {
       delivered: "success",
       returned: "error",
       pending: "warning",
+      pick_up: "secondary",
+    };
+
+    const deliveryLabels: any = {
+      pending: "Pending",
+      packed: "Packed",
+      shipped: "Shipped",
+      delivered: "Delivered",
+      returned: "Returned",
+      pick_up: "Pick Up",
     };
 
     return (
@@ -393,12 +403,7 @@ export function useCustomerInvoices(customerId: number) {
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Chip
-            label={
-              row.delivery_status
-                ? row.delivery_status.charAt(0).toUpperCase() +
-                  row.delivery_status.slice(1)
-                : "Pending"
-            }
+            label={deliveryLabels[row.delivery_status || "pending"] || row.delivery_status}
             color={deliveryColors[row.delivery_status || "pending"]}
             size="small"
             onClick={(e) => {

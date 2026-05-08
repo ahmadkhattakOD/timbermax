@@ -120,7 +120,7 @@ export interface Invoice {
   quotation_id?: number | null;
   quotations?: Quotation;
   status: "draft" | "sent" | "paid" | "cancelled" | "overdue";
-  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
+  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned" | "pick_up";
   total: number;
   discount?: number;
   discount_type?: "percentage" | "fixed";

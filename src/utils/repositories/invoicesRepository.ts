@@ -12,7 +12,7 @@ export interface InvoiceSupabase {
   discount?: number;
   discount_type?: "percentage" | "fixed";
   status?: "draft" | "sent" | "paid" | "cancelled" | "converted" | "overdue";
-  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned";
+  delivery_status?: "pending" | "packed" | "shipped" | "delivered" | "returned" | "pick_up";
   invoice_date?: Date | string;
   due_date?: Date | string;
   note?: string;
@@ -96,48 +96,17 @@ class InvoicesRepository {
     filters?: ValuesFilterInvoices,
   ) {
     try {
+      const customerJoin = filters?.customer_name ? "customers!inner" : "customers";
+
       const query = supabase
         .from(this.className)
-        //       .select(
-        //         `
-        // id,
-        // invoice_number,
-        // delivery_status,
-
-        // customers!inner (
-        //   id, name, phone, mobile, email, address, suburb, state, post_code
-        // ),
-
-        // quotation_id,
-        // quotations (
-        //   quotation_number
-        // ),
-
-        // total,
-        // status,
-        // invoice_date,
-        // note,
-        // created_at,
-        // updated_at,
-
-        // ${this.itemsClassName}!inner (
-        //   quantity,
-        //   unit_price,
-        //   items!inner (
-        //     id, name, itemCode, sellPrice
-        //   )
-        // )
-        // `,
-        //         { count: "exact" },
-        //       )
-
         .select(
           `
 id,
 invoice_number,
 delivery_status,
 
-customers (
+${customerJoin} (
   id, name, phone, mobile, email, address, suburb, state, post_code
 ),
 
@@ -276,7 +245,8 @@ ${this.itemsClassName} (
       | "packed"
       | "shipped"
       | "delivered"
-      | "returned",
+      | "returned"
+      | "pick_up",
   ) {
     try {
       const { data, error } = await supabase

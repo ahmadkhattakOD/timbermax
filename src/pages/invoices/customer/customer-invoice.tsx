@@ -444,6 +444,35 @@ export default function CustomerInvoices() {
             />
           </Box>
         </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForDelivery) {
+              updateDeliveryStatus(selectedInvoiceForDelivery, "pick_up");
+              handleDeliveryMenuClose();
+            }
+          }}
+          sx={{ py: 1.5 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              width: "100%",
+            }}
+          >
+            <Chip
+              label="Pick Up"
+              size="small"
+              sx={{
+                bgcolor: "secondary.light",
+                color: "secondary.contrastText",
+                minWidth: 80,
+              }}
+            />
+          </Box>
+        </MenuItem>
       </Menu>
 
       <ModalDeleteConfirm
@@ -519,6 +548,7 @@ export default function CustomerInvoices() {
                         { label: "Packed", value: "packed" },
                         { label: "Shipped", value: "shipped" },
                         { label: "Delivered", value: "delivered" },
+                        { label: "Pick Up", value: "pick_up" },
                         { label: "Returned", value: "returned" },
                       ]}
                     />,

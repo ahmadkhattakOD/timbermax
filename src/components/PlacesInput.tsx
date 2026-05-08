@@ -86,6 +86,7 @@ const PlacesInput = ({
         minLengthAutocomplete={3}
         selectProps={{
           name: name,
+          isClearable: true,
           onChange: (newValue, action) => {
             onChange(newValue, action);
             setVisible(true);
