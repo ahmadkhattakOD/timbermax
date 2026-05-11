@@ -209,6 +209,7 @@ class QuotationsRepository {
           )`,
         )
         .eq("id", id)
+        .order("id", { referencedTable: "quotation_items", ascending: true })
         .limit(1)
         .maybeSingle();
 
@@ -227,7 +228,8 @@ class QuotationsRepository {
           `*,
           items!inner(*)`,
         )
-        .eq("quotation_id", quotationId);
+        .eq("quotation_id", quotationId)
+        .order("id", { ascending: true });
 
       return { data, error };
     } catch (error) {

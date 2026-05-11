@@ -107,13 +107,13 @@ export const generateAndDownloadQuotationPDF = async (
     doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120); // Increased y
 
     // Items Table - moved startY down
-    const items = quotation.quotation_items || [];
+    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
       const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      
+
       // Add star (*) to item name if GST applies
       const itemName = item.items?.name || "N/A";
       const itemNameWithGst = gst ? `${itemName} *` : itemName;
@@ -157,6 +157,8 @@ export const generateAndDownloadQuotationPDF = async (
       head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
+      showHead: "everyPage",
+      margin: { top: 14, right: 14, bottom: 14, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
@@ -168,7 +170,7 @@ export const generateAndDownloadQuotationPDF = async (
       },
       columnStyles: {
         0: { cellWidth: 10 }, // #
-        1: { cellWidth: 95 }, // Description
+        1: { cellWidth: 92 }, // Description — was 95, reduced to keep total ≤182mm (A4 - margins)
         2: { cellWidth: 20 }, // Qty
         3: { cellWidth: 30 }, // Unit Price
         4: { cellWidth: 30 }, // Total
@@ -308,7 +310,7 @@ export const generateAndDownloadDeliveryDocument = async (
     doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 120);
 
     // Items Table for Delivery
-    const items = quotation.quotation_items || [];
+    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const gst = item.items?.gst || false;
@@ -327,6 +329,8 @@ export const generateAndDownloadDeliveryDocument = async (
       head: [["#", "Item Description", "Quantity"]],
       body: tableData,
       theme: "grid",
+      showHead: "everyPage",
+      margin: { top: 14, right: 14, bottom: 14, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
@@ -452,7 +456,7 @@ export const generateQuotationPDFBase64 = async (
     });
 
     // Items table
-    const items = quotation.quotation_items || [];
+    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
     const tableData = items.map((item: any, index: number) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
@@ -492,6 +496,8 @@ export const generateQuotationPDFBase64 = async (
       head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
+      showHead: "everyPage",
+      margin: { top: 14, right: 14, bottom: 14, left: 14 },
       headStyles: { fillColor: [156, 106, 58], textColor: 255, fontSize: 8 },
       styles: { fontSize: 7.5, cellPadding: 2 },
       columnStyles: {
@@ -632,13 +638,13 @@ export const openQuotationPDFInNewTab = async (
     doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120);
 
     // Items Table
-    const items = quotation.quotation_items || [];
+    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
       const subtotal = quantity * unitPrice;
       const gst = item.items?.gst || false;
-      
+
       // Add star (*) to item name if GST applies
       const itemName = item.items?.name || "N/A";
       const itemNameWithGst = gst ? `${itemName} *` : itemName;
@@ -682,6 +688,8 @@ export const openQuotationPDFInNewTab = async (
       head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
+      showHead: "everyPage",
+      margin: { top: 14, right: 14, bottom: 14, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
@@ -693,7 +701,7 @@ export const openQuotationPDFInNewTab = async (
       },
       columnStyles: {
         0: { cellWidth: 10 }, // #
-        1: { cellWidth: 95 }, // Description
+        1: { cellWidth: 92 }, // Description — was 95, reduced to keep total ≤182mm (A4 - margins)
         2: { cellWidth: 20 }, // Qty
         3: { cellWidth: 30 }, // Unit Price
         4: { cellWidth: 30 }, // Total
@@ -768,10 +776,12 @@ export const openQuotationPDFInNewTab = async (
     // Open in new tab
     window.open(pdfUrl, "_blank");
 
-    // Clean up the URL after some time
+    // Revoke only after enough time for the PDF viewer to fully load all pages.
+    // 1 second was too short — PDF viewers lazy-load pages on scroll, causing
+    // page 2+ to appear blank when the blob URL was already revoked.
     setTimeout(() => {
       URL.revokeObjectURL(pdfUrl);
-    }, 1000);
+    }, 60000);
   } catch (error) {
     console.error("Error opening PDF in new tab:", error);
     throw error;
