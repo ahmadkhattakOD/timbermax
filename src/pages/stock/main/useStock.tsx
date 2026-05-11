@@ -540,17 +540,9 @@ export function useStock() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
-    setSearchValue(value);
-
-    if (value.trim()) {
-      let temp = { ...filters };
-      temp.item = value;
-      setFilters(temp);
-    } else {
-      let temp = { ...filters };
-      temp.item = "";
-      setFilters(temp);
-    }
+    // Functional update avoids stale closure — always merges into latest filters state
+    // regardless of how many re-renders happened between keystroke and debounce firing.
+    setFilters((prev) => ({ ...prev, item: value.trim() ? value : "" }));
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -648,6 +640,8 @@ export function useStock() {
 
     if (JSON.stringify(newFilters) !== JSON.stringify(filters)) {
       setFilters(newFilters);
+      // Keep the search box in sync with the item param from URL
+      setSearchValue(newFilters.item);
     }
   }, [location.search]);
 
@@ -691,6 +685,8 @@ export function useStock() {
   async function handleFiltersSubmit(values: ValuesFilterStock) {
     try {
       setFilters(values);
+      // Keep search box in sync with the item filter applied from the modal
+      setSearchValue(values.item || "");
       setFilterModalOpen(false);
 
       const params = new URLSearchParams();

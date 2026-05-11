@@ -258,7 +258,7 @@ export function formEmail(email: string) {
 
 export const useDebouncedSearch = (
   callback: Function,
-  delay: number = 1000,
+  delay: number = 400,
 ) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 

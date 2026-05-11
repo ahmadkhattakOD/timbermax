@@ -100,6 +100,7 @@ export function useCreateQuotation() {
   const [showDiscountInput, setShowDiscountInput] = useState<boolean>(false);
 
   const quotationNumberRef = useRef("");
+  const warehousesCacheRef = useRef<any[] | null>(null);
 
   const totalAmount = selectedItems.reduce(
     (sum, item) => sum + calculateSubTotal(item),
@@ -115,22 +116,27 @@ export function useCreateQuotation() {
   // Function to get ALL warehouses for an item
   const getWarehousesForItem = async (itemId: number) => {
     try {
+      // Fetch warehouses + stock for this item in parallel.
+      // Warehouses are cached — they don't change during a create session.
       const warehousesRepo = new WarehousesRepository();
-      const allWarehouses = await warehousesRepo.getWithoutFilters();
+      const [allWarehouses, stockResult] = await Promise.all([
+        warehousesCacheRef.current
+          ? Promise.resolve({ warehousesData: warehousesCacheRef.current })
+          : warehousesRepo.getWithoutFilters().then((r) => {
+              if (r?.warehousesData) warehousesCacheRef.current = r.warehousesData;
+              return r;
+            }),
+        supabase
+          .from("stocks")
+          .select(`id, quantity, reserved, warehouse`)
+          .eq("item", itemId),
+      ]);
 
       if (!allWarehouses?.warehousesData) {
         return [];
       }
 
-      const { data: stockData, error } = await supabase
-        .from("stocks")
-        .select(`
-          id,
-          quantity,
-          reserved,
-          warehouse
-        `)
-        .eq("item", itemId);
+      const { data: stockData, error } = stockResult;
 
       if (error) {
         console.error("Error fetching stock for item:", error);
@@ -726,18 +732,15 @@ export function useCreateQuotation() {
         return;
       }
 
-      // Add quotation items with warehouse_id
+      // Add quotation items with warehouse_id — sequential to preserve insertion order
+      // (IDs are assigned by DB in arrival order; sort-by-id in PDFs depends on this)
       for (const item of selectedItems) {
-        const itemQuantity = parseFloat(item.quantity);
-        const itemUnitPrice = Number(item.unit_price);
-        const warehouseId = item.warehouse_id || 1;
-
         await quotationsRepo.addItem({
           quotation_id: quotationId,
           item_id: item.item_id,
-          quantity: itemQuantity,
-          unit_price: itemUnitPrice,
-          warehouse_id: warehouseId,
+          quantity: parseFloat(item.quantity),
+          unit_price: Number(item.unit_price),
+          warehouse_id: item.warehouse_id || 1,
         });
       }
 

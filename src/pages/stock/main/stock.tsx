@@ -79,7 +79,7 @@ export default function Stock() {
             }}
           >
             <SearchInput
-              placeholder="Search Item Name"
+              placeholder="Search by item name or code"
               value={searchValue}
               onChange={(e) => {
                 setSearchValue(e.target.value);

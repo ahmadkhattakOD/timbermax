@@ -348,35 +348,31 @@ class QuotationsRepository {
         return { success: false, error: "Failed to create quotation" };
       }
 
-      // 2. Reserve stock for each item with warehouse
+      // 2. Reserve stock for each item with warehouse — run in parallel
       const stocksRepo = new StocksRepository();
-      const reservationResults = [];
-
-      for (const item of items) {
-        const warehouseId = item.warehouse_id || 1; // Default to warehouse 1
-        
-        const reserveResult = await stocksRepo.reserveForQuotation(
-          item.item_id,
-          warehouseId, // PASS warehouse_id
-          item.quantity,
-          createdQuotation.id,
-        );
-
-        reservationResults.push({
-          itemId: item.item_id,
-          warehouseId: warehouseId,
-          success: reserveResult.success,
-          error: reserveResult.error,
-        });
-
-        // If any reservation fails, log it
-        if (!reserveResult.success) {
-          console.error(
-            `Failed to reserve stock for item ${item.item_id} in warehouse ${warehouseId}:`,
-            reserveResult.error,
+      const reservationResults = await Promise.all(
+        items.map(async (item) => {
+          const warehouseId = item.warehouse_id || 1;
+          const reserveResult = await stocksRepo.reserveForQuotation(
+            item.item_id,
+            warehouseId,
+            item.quantity,
+            createdQuotation.id,
           );
-        }
-      }
+          if (!reserveResult.success) {
+            console.error(
+              `Failed to reserve stock for item ${item.item_id} in warehouse ${warehouseId}:`,
+              reserveResult.error,
+            );
+          }
+          return {
+            itemId: item.item_id,
+            warehouseId,
+            success: reserveResult.success,
+            error: reserveResult.error,
+          };
+        })
+      );
 
       return {
         success: true,

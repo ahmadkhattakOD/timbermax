@@ -96,6 +96,7 @@ export function useCreateInvoice() {
   const [customerName, setCustomerName] = useState<string>("");
 
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
+  const warehousesCacheRef = useRef<any[] | null>(null);
 
   // New states for customer addresses
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
@@ -132,26 +133,28 @@ export function useCreateInvoice() {
   // Function to get ALL warehouses for an item (including those with 0 or negative stock)
   const getWarehousesForItem = async (itemId: number) => {
     try {
-      // First get all warehouses
+      // Fetch warehouses + stock for this item in parallel.
+      // Warehouses are cached — they don't change during a create session.
       const warehousesRepo = new WarehousesRepository();
-      const allWarehouses = await warehousesRepo.getWithoutFilters();
+      const [allWarehouses, stockResult] = await Promise.all([
+        warehousesCacheRef.current
+          ? Promise.resolve({ warehousesData: warehousesCacheRef.current })
+          : warehousesRepo.getWithoutFilters().then((r) => {
+              if (r?.warehousesData) warehousesCacheRef.current = r.warehousesData;
+              return r;
+            }),
+        supabase
+          .from("stocks")
+          .select(`id, quantity, reserved, warehouse`)
+          .eq("item", itemId),
+      ]);
 
       if (!allWarehouses?.warehousesData) {
         return [];
       }
 
       // Get stock data for this item in all warehouses
-      const { data: stockData, error } = await supabase
-        .from("stocks")
-        .select(
-          `
-          id,
-          quantity,
-          reserved,
-          warehouse
-        `,
-        )
-        .eq("item", itemId);
+      const { data: stockData, error } = stockResult;
 
       if (error) {
         console.error("Error fetching stock for item:", error);
@@ -886,18 +889,15 @@ export function useCreateInvoice() {
 
         const invoiceId = createdInvoice.id;
 
-        // 2. Add invoice items
+        // 2. Add invoice items — sequential to preserve insertion order
+        // (IDs are assigned by DB in arrival order; sort-by-id in PDFs depends on this)
         for (const item of selectedItems) {
-          const itemQuantity = parseFloat(item.quantity);
-          const itemUnitPrice = Number(item.unit_price);
-          const warehouseId = item.warehouse_id || 1; // Get warehouse_id
-
           await invoicesRepo.addItem({
             invoice_id: invoiceId,
             item_id: item.item_id,
-            quantity: itemQuantity,
-            unit_price: itemUnitPrice,
-            warehouse_id: warehouseId,
+            quantity: parseFloat(item.quantity),
+            unit_price: Number(item.unit_price),
+            warehouse_id: item.warehouse_id || 1,
           });
         }
 

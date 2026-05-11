@@ -219,9 +219,7 @@ export function useViewSales() {
   const theme = useTheme();
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    let temp = { ...filters };
-    temp.contactName = e.target.value;
-    setFilters(temp);
+    setFilters((prev) => ({ ...prev, contactName: e.target.value }));
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);

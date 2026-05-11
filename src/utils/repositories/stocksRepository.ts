@@ -247,7 +247,11 @@ class StocksRepository {
 
       if (filters) {
         if (filters.item) {
-          query.ilike("item.name", `%${filters.item}%`);
+          // Search both item name and item code so typing either works
+          query.or(
+            `name.ilike.%${filters.item}%,itemCode.ilike.%${filters.item}%`,
+            { referencedTable: "item" },
+          );
         }
         if (filters.warehouse) {
           query.eq("warehouse", filters.warehouse);
@@ -265,7 +269,8 @@ class StocksRepository {
           query.gte("updated_at", filters.updatedAtFrom);
         }
         if (filters.updatedAtTo) {
-          query.lte("updated_at", filters.updatedAtTo);
+          // Append end-of-day so stocks updated on the "To" date are included
+          query.lte("updated_at", filters.updatedAtTo + "T23:59:59");
         }
       }
 
@@ -488,7 +493,11 @@ class StocksRepository {
 
       if (filters) {
         if (filters.item) {
-          query.ilike("item.name", `%${filters.item}%`);
+          // Search both item name and item code so typing either works
+          query.or(
+            `name.ilike.%${filters.item}%,itemCode.ilike.%${filters.item}%`,
+            { referencedTable: "item" },
+          );
         }
         if (filters.warehouse) {
           query.eq("warehouse", filters.warehouse);
@@ -506,7 +515,8 @@ class StocksRepository {
           query.gte("updated_at", filters.updatedAtFrom);
         }
         if (filters.updatedAtTo) {
-          query.lte("updated_at", filters.updatedAtTo);
+          // Append end-of-day so stocks updated on the "To" date are included
+          query.lte("updated_at", filters.updatedAtTo + "T23:59:59");
         }
       }
 

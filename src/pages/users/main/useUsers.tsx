@@ -97,9 +97,7 @@ export function useUsers() {
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    let temp = { ...filters };
-    temp.fullName = e.target.value;
-    setFilters(temp);
+    setFilters((prev) => ({ ...prev, fullName: e.target.value }));
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);

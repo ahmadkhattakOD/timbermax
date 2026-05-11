@@ -231,9 +231,7 @@ export function useSelectSale() {
   const theme = useTheme();
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    let temp = { ...filters };
-    temp.contactName = e.target.value;
-    setFilters(temp);
+    setFilters((prev) => ({ ...prev, contactName: e.target.value }));
   }
   const getDateColor = (saleDate: string | number | Date): "green" | "orange" | "red" => {
     const today = new Date();

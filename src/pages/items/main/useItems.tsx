@@ -96,9 +96,7 @@ export function useItems() {
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    let temp = { ...filters };
-    temp.name = e.target.value;
-    setFilters(temp);
+    setFilters((prev) => ({ ...prev, name: e.target.value }));
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
