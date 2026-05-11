@@ -186,7 +186,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.text(`Email: ${customer?.email || "N/A"}`, 14, addrEndY + 7);
 
   // Items Table
-  const items = invoice.invoice_items || [];
+  const items = [...(invoice.invoice_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
   const tableData = items.map((item: any, index: number) => {
     const quantity = parseFloat(item.quantity) || 0;
     const unitPrice = parseFloat(item.unit_price) || 0;
@@ -235,6 +235,8 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     head: [["#", "Items", "Qty", "Unit Price", "Total"]],
     body: tableData,
     theme: "grid",
+    showHead: "everyPage",
+    margin: { top: 14, right: 14, bottom: 14, left: 14 },
     headStyles: {
       fillColor: BRAND_COLORS.primary as any,
       textColor: 255,
@@ -246,7 +248,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     },
     columnStyles: {
       0: { cellWidth: 10 },
-      1: { cellWidth: 95 },
+      1: { cellWidth: 92 }, // was 95 — reduced to keep total at 182mm (A4 - margins)
       2: { cellWidth: 20 },
       3: { cellWidth: 30 },
       4: { cellWidth: 30 },
@@ -422,7 +424,7 @@ export const generateInvoicePDFBase64 = async (
     });
 
     // Items Table
-    const items = invoice.invoice_items || [];
+    const items = [...(invoice.invoice_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
     const tableData = items.map((item: any, index: number) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
@@ -463,6 +465,8 @@ export const generateInvoicePDFBase64 = async (
       head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
+      showHead: "everyPage",
+      margin: { top: 14, right: 14, bottom: 14, left: 14 },
       headStyles: { fillColor: [156, 106, 58], textColor: 255, fontSize: 8 },
       styles: { fontSize: 7.5, cellPadding: 2 },
       columnStyles: {
@@ -615,7 +619,7 @@ export const generateDeliveryNotePDF = async (
     // doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
 
     // Items Table (simplified for delivery)
-    const items = invoice.invoice_items || [];
+    const items = [...(invoice.invoice_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity) || 0;
       const gst = item.items?.gst || false;
@@ -635,10 +639,12 @@ export const generateDeliveryNotePDF = async (
       head: [["#", "Item Description", "Quantity", "Received"]],
       body: tableData,
       theme: "grid",
+      showHead: "everyPage",
+      margin: { top: 14, right: 14, bottom: 14, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
-      }, // Same green as quotation delivery
+      },
       styles: {
         fontSize: 9,
         lineColor: BRAND_COLORS.tableBorder as any,
@@ -646,7 +652,7 @@ export const generateDeliveryNotePDF = async (
       },
       columnStyles: {
         0: { cellWidth: 10 },
-        1: { cellWidth: 110 },
+        1: { cellWidth: 102 }, // was 110 — reduced to keep total at 182mm (A4 - margins)
         2: { cellWidth: 30 },
         3: { cellWidth: 40 },
       },

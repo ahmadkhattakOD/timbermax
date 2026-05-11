@@ -286,6 +286,7 @@ ${this.itemsClassName} (
          )`,
         )
         .eq("id", id)
+        .order("id", { referencedTable: this.itemsClassName, ascending: true })
         .limit(1)
         .maybeSingle();
 
@@ -306,7 +307,8 @@ ${this.itemsClassName} (
           items (id, name, itemCode, sellPrice)
         `,
         )
-        .eq("invoice_id", invoiceId);
+        .eq("invoice_id", invoiceId)
+        .order("id", { ascending: true });
 
       return { data, error };
     } catch (error) {
