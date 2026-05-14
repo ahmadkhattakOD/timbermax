@@ -107,7 +107,10 @@ export const generateAndDownloadQuotationPDF = async (
     doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120); // Increased y
 
     // Items Table - moved startY down
-    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+    const items = [...(quotation.quotation_items || [])].sort(
+      (a: any, b: any) =>
+        (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+    );
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
@@ -310,7 +313,10 @@ export const generateAndDownloadDeliveryDocument = async (
     doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 120);
 
     // Items Table for Delivery
-    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+    const items = [...(quotation.quotation_items || [])].sort(
+      (a: any, b: any) =>
+        (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+    );
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const gst = item.items?.gst || false;
@@ -456,7 +462,10 @@ export const generateQuotationPDFBase64 = async (
     });
 
     // Items table
-    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+    const items = [...(quotation.quotation_items || [])].sort(
+      (a: any, b: any) =>
+        (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+    );
     const tableData = items.map((item: any, index: number) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
@@ -638,7 +647,10 @@ export const openQuotationPDFInNewTab = async (
     doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120);
 
     // Items Table
-    const items = [...(quotation.quotation_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+    const items = [...(quotation.quotation_items || [])].sort(
+      (a: any, b: any) =>
+        (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+    );
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);

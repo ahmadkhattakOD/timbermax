@@ -186,7 +186,10 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.text(`Email: ${customer?.email || "N/A"}`, 14, addrEndY + 7);
 
   // Items Table
-  const items = [...(invoice.invoice_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+  const items = [...(invoice.invoice_items || [])].sort(
+    (a: any, b: any) =>
+      (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+  );
   const tableData = items.map((item: any, index: number) => {
     const quantity = parseFloat(item.quantity) || 0;
     const unitPrice = parseFloat(item.unit_price) || 0;
@@ -424,7 +427,10 @@ export const generateInvoicePDFBase64 = async (
     });
 
     // Items Table
-    const items = [...(invoice.invoice_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+    const items = [...(invoice.invoice_items || [])].sort(
+    (a: any, b: any) =>
+      (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+  );
     const tableData = items.map((item: any, index: number) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
@@ -619,7 +625,10 @@ export const generateDeliveryNotePDF = async (
     // doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
 
     // Items Table (simplified for delivery)
-    const items = [...(invoice.invoice_items || [])].sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+    const items = [...(invoice.invoice_items || [])].sort(
+    (a: any, b: any) =>
+      (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+  );
     const tableData = items.map((item: any, index: number) => {
       const quantity = parseFloat(item.quantity) || 0;
       const gst = item.items?.gst || false;

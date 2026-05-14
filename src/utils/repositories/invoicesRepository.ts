@@ -34,6 +34,7 @@ export interface InvoiceItemSupabase {
   quantity: number;
   unit_price: number;
   warehouse_id?: number;
+  sort_order?: number;
 }
 
 class InvoicesRepository {
@@ -125,6 +126,7 @@ created_at,
 updated_at,
 
 ${this.itemsClassName} (
+  sort_order,
   quantity,
   unit_price,
   items (
@@ -136,6 +138,10 @@ ${this.itemsClassName} (
         )
 
         .order(orderBy, { ascending })
+        .order("sort_order", {
+          referencedTable: this.itemsClassName,
+          ascending: true,
+        })
         .range(rangeStart, rangeEnd)
         .limit(limit);
 
@@ -281,11 +287,15 @@ ${this.itemsClassName} (
          quotation_id, quotations ( id, quotation_number ),
          total, discount, discount_type, deposit, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
          ${this.itemsClassName} (
-           id, item_id, quantity, unit_price, total_price, warehouse_id,
+           id, item_id, quantity, unit_price, total_price, warehouse_id, sort_order,
            items ( id, name, itemCode, sellPrice, gst )
          )`,
         )
         .eq("id", id)
+        .order("sort_order", {
+          referencedTable: this.itemsClassName,
+          ascending: true,
+        })
         .order("id", { referencedTable: this.itemsClassName, ascending: true })
         .limit(1)
         .maybeSingle();
@@ -308,6 +318,7 @@ ${this.itemsClassName} (
         `,
         )
         .eq("invoice_id", invoiceId)
+        .order("sort_order", { ascending: true })
         .order("id", { ascending: true });
 
       return { data, error };
@@ -327,6 +338,7 @@ ${this.itemsClassName} (
           quantity: item.quantity,
           unit_price: item.unit_price,
           warehouse_id: item.warehouse_id || 1, // Default to warehouse 1 if not provided
+          sort_order: item.sort_order ?? 0,
         })
         .select();
 
@@ -489,6 +501,7 @@ ${this.itemsClassName} (
         created_at,
         updated_at,
         ${this.itemsClassName} (
+          sort_order,
           quantity,
           unit_price,
           items (
@@ -499,6 +512,10 @@ ${this.itemsClassName} (
           { count: "exact" },
         )
         .order(orderBy, { ascending: ascending })
+        .order("sort_order", {
+          referencedTable: this.itemsClassName,
+          ascending: true,
+        })
         .range(rangeStart, rangeEnd)
         .limit(limit)
         .eq("customer_id", customerId);
@@ -663,14 +680,16 @@ ${this.itemsClassName} (
       const createdInvoice = await this.create(invoice);
       if (!createdInvoice) return null;
 
-      // Copy items from quotation
+      // Copy items from quotation — sequential, preserving order
       if (quotation.quotation_items && quotation.quotation_items.length > 0) {
-        for (const item of quotation.quotation_items) {
+        for (let i = 0; i < quotation.quotation_items.length; i++) {
+          const item = quotation.quotation_items[i];
           await this.addItem({
             invoice_id: createdInvoice.id,
             item_id: item.item_id,
             quantity: item.quantity,
             unit_price: item.unit_price,
+            sort_order: i,
           });
         }
       }
@@ -700,6 +719,7 @@ ${this.itemsClassName} (
       quantity: number;
       warehouse_id?: number;
       unit_price: number; // ADD this
+      sort_order?: number;
     }>,
   ) {
     try {
@@ -722,16 +742,19 @@ ${this.itemsClassName} (
       const stocksRepo = new StocksRepository();
       const reductionResults = [];
 
-      for (const item of items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         const warehouseId = item.warehouse_id || 1;
 
         // Save invoice item WITH warehouse_id and unit_price
+        // sort_order preserves the order items were chosen in
         await this.addItem({
           invoice_id: createdInvoice.id,
           item_id: item.item_id,
           quantity: item.quantity,
           unit_price: item.unit_price || 0, // Use actual unit_price
           warehouse_id: warehouseId,
+          sort_order: item.sort_order ?? i,
         });
 
         // Reduce stock

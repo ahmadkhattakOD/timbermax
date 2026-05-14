@@ -889,15 +889,16 @@ export function useCreateInvoice() {
 
         const invoiceId = createdInvoice.id;
 
-        // 2. Add invoice items — sequential to preserve insertion order
-        // (IDs are assigned by DB in arrival order; sort-by-id in PDFs depends on this)
-        for (const item of selectedItems) {
+        // 2. Add invoice items — sequential, sort_order = chosen position
+        for (let i = 0; i < selectedItems.length; i++) {
+          const item = selectedItems[i];
           await invoicesRepo.addItem({
             invoice_id: invoiceId,
             item_id: item.item_id,
             quantity: parseFloat(item.quantity),
             unit_price: Number(item.unit_price),
             warehouse_id: item.warehouse_id || 1,
+            sort_order: i,
           });
         }
 
@@ -945,11 +946,12 @@ export function useCreateInvoice() {
         // ============================================
 
         // Prepare items for stock reduction with warehouse IDs
-        const itemsForStockReduction = selectedItems.map((item) => ({
+        const itemsForStockReduction = selectedItems.map((item, index) => ({
           item_id: item.item_id,
           quantity: parseFloat(item.quantity),
           warehouse_id: item.warehouse_id || 1,
           unit_price: Number(item.unit_price),
+          sort_order: index,
         }));
 
         // Check for low/negative stock items to show warning

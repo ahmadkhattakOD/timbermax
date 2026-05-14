@@ -732,15 +732,16 @@ export function useCreateQuotation() {
         return;
       }
 
-      // Add quotation items with warehouse_id — sequential to preserve insertion order
-      // (IDs are assigned by DB in arrival order; sort-by-id in PDFs depends on this)
-      for (const item of selectedItems) {
+      // Add quotation items — sequential, sort_order = chosen position
+      for (let i = 0; i < selectedItems.length; i++) {
+        const item = selectedItems[i];
         await quotationsRepo.addItem({
           quotation_id: quotationId,
           item_id: item.item_id,
           quantity: parseFloat(item.quantity),
           unit_price: Number(item.unit_price),
           warehouse_id: item.warehouse_id || 1,
+          sort_order: i,
         });
       }
 

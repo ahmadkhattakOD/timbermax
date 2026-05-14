@@ -644,8 +644,9 @@ export function useEditQuotation(quotationId: number) {
           );
         }
 
-        // Update or add items
-        for (const selectedItem of selectedItems) {
+        // Update or add items — sort_order rewritten to match the table order
+        for (let index = 0; index < selectedItems.length; index++) {
+          const selectedItem = selectedItems[index];
           const itemId = selectedItem.item_id;
           const newQuantity = parseFloat(selectedItem.quantity);
           const itemUnitPrice = Number(selectedItem.unit_price);
@@ -664,6 +665,7 @@ export function useEditQuotation(quotationId: number) {
               quantity: newQuantity,
               unit_price: itemUnitPrice,
               warehouse_id: warehouseId,
+              sort_order: index,
             });
           } else {
             // Add new item with warehouse
@@ -673,6 +675,7 @@ export function useEditQuotation(quotationId: number) {
               quantity: newQuantity,
               unit_price: itemUnitPrice,
               warehouse_id: warehouseId,
+              sort_order: index,
             });
 
             // Reserve stock for new item in specified warehouse

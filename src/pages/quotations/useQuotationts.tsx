@@ -1508,13 +1508,16 @@ export function useQuotations() {
 
       const newQuotationId = result.quotation?.id;
       if (newQuotationId) {
-        for (const item of (existing.quotation_items || [])) {
+        const sourceItems = existing.quotation_items || [];
+        for (let i = 0; i < sourceItems.length; i++) {
+          const item = sourceItems[i];
           await quotationsRepo.addItem({
             quotation_id: newQuotationId,
             item_id: item.item_id,
             quantity: parseFloat(item.quantity),
             unit_price: parseFloat(item.unit_price),
             warehouse_id: item.warehouse_id || 1,
+            sort_order: i,
           });
         }
       }

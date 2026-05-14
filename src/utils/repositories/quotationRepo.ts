@@ -37,6 +37,7 @@ export interface QuotationItemSupabase {
   unit_price: number;
   total_price?: number;
   warehouse_id?: number; // ADDED
+  sort_order?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -123,6 +124,10 @@ class QuotationsRepository {
           { count: "exact" },
         )
         .order(orderBy, { ascending: ascending })
+        .order("sort_order", {
+          referencedTable: this.itemsClassName,
+          ascending: true,
+        })
         .range(rangeStart, rangeEnd)
         .limit(limit);
 
@@ -209,6 +214,10 @@ class QuotationsRepository {
           )`,
         )
         .eq("id", id)
+        .order("sort_order", {
+          referencedTable: "quotation_items",
+          ascending: true,
+        })
         .order("id", { referencedTable: "quotation_items", ascending: true })
         .limit(1)
         .maybeSingle();
@@ -229,6 +238,7 @@ class QuotationsRepository {
           items!inner(*)`,
         )
         .eq("quotation_id", quotationId)
+        .order("sort_order", { ascending: true })
         .order("id", { ascending: true });
 
       return { data, error };
@@ -695,6 +705,10 @@ class QuotationsRepository {
           { count: "exact" },
         )
         .order(orderBy, { ascending: ascending })
+        .order("sort_order", {
+          referencedTable: this.itemsClassName,
+          ascending: true,
+        })
         .range(rangeStart, rangeEnd)
         .limit(limit)
         .eq("customer_id", customerId);
