@@ -563,168 +563,156 @@ export const generateInvoicePDFBase64 = async (
   }
 };
 
+const buildDeliveryNoteContent = async (doc: jsPDF, invoice: Invoice) => {
+  await addCompanyLogo(doc, 14, 20);
+
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("DELIVERY NOTE", 105, 45, { align: "center" });
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(COMPANY_INFO.name, 14, 60);
+  doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+  doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+  doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+  doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
+
+  doc.setFont("helvetica", "normal");
+  doc.text(`Delivery Note #: ${invoice.invoice_number}-DEL`, 180, 60, { align: "right" });
+  doc.text(`Date: ${getDateFormatted(new Date().toISOString())}`, 180, 65, { align: "right" });
+  doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 70, { align: "right" });
+  doc.text(`Status: ${invoice.delivery_status?.replace(/_/g, " ").toUpperCase() || ""}`, 180, 75, { align: "right" });
+
+  const customer = invoice.customer;
+  doc.setFont("helvetica", "bold");
+  doc.text("DELIVER TO:", 14, 95);
+  doc.setFont("helvetica", "normal");
+  doc.text(customer?.name || "N/A", 14, 100);
+  doc.text(invoice.address || "", 14, 105);
+  if (invoice.suburb) {
+    doc.text(`${invoice.suburb} ${invoice.state} ${invoice.post_code}`, 14, 110);
+  }
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
+
+  const items = [...(invoice.invoice_items || [])].sort(
+    (a: any, b: any) => (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+  );
+  const tableData = items.map((item: any, index: number) => {
+    const quantity = parseFloat(item.quantity) || 0;
+    const gst = item.items?.gst || false;
+    const itemName = item.items?.name || "N/A";
+    return [index + 1, gst ? `${itemName} *` : itemName, quantity.toFixed(2), ""];
+  });
+
+  autoTable(doc, {
+    startY: 120,
+    head: [["#", "Item Description", "Quantity", "Received"]],
+    body: tableData,
+    theme: "grid",
+    showHead: "everyPage",
+    margin: { top: 14, right: 14, bottom: 5, left: 14 },
+    headStyles: { fillColor: BRAND_COLORS.primary as any, textColor: 255 },
+    styles: { fontSize: 9, lineColor: BRAND_COLORS.tableBorder as any, textColor: BRAND_COLORS.textDark as any },
+    columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 102 }, 2: { cellWidth: 30 }, 3: { cellWidth: 40 } },
+  });
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  const gstDisclaimerLines = doc.splitTextToSize(
+    "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+    180,
+  );
+  let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
+  doc.text(gstDisclaimerLines, 14, delivFinalY);
+
+  let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 5, 35);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("Bank Details:", 14, bankY);
+  doc.setFont("helvetica", "normal");
+  doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+  doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+  doc.text("BSB No: 065 167", 14, bankY + 21);
+  doc.text("Account Number: 1056 5353", 14, bankY + 28);
+
+  let noteY = bankY + 32;
+  if (invoice.note) {
+    const splitNotes = doc.splitTextToSize(invoice.note, 180);
+    noteY = checkAndAddPage(doc, noteY, splitNotes.length * 4.5 + 12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 14, noteY);
+    doc.setFont("helvetica", "normal");
+    doc.text(splitNotes, 14, noteY + 6);
+    noteY += splitNotes.length * 4.5 + 8;
+  }
+
+  let sigY = checkAndAddPage(doc, noteY + 8, 28);
+  doc.setFont("helvetica", "bold");
+  doc.text("CUSTOMER SIGNATURE:", 14, sigY);
+  doc.line(14, sigY + 5, 100, sigY + 5);
+  doc.setFont("helvetica", "normal");
+  doc.text("Name: ____________________", 14, sigY + 10);
+  doc.text("Date: ____________________", 14, sigY + 16);
+  doc.setFont("helvetica", "bold");
+  doc.text("DELIVERY PERSON:", 120, sigY);
+  doc.line(120, sigY + 5, 180, sigY + 5);
+  doc.setFont("helvetica", "normal");
+  doc.text("Name: ____________________", 120, sigY + 10);
+  doc.text("Date: ____________________", 120, sigY + 16);
+};
+
 export const generateDeliveryNotePDF = async (
   invoice: Invoice,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
-
-    // Add company logo
-    await addCompanyLogo(doc, 14, 20);
-
-    // Header - moved down
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("DELIVERY NOTE", 105, 45, { align: "center" });
-
-    // Company Info - moved down (same branding)
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(COMPANY_INFO.name, 14, 60);
-    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
-    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
-    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
-    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
-
-    // Delivery Info (right aligned) - moved down
-    doc.setFont("helvetica", "normal");
-    doc.text(`Delivery Note #: ${invoice.invoice_number}-DEL`, 180, 60, {
-      align: "right",
-    });
-    doc.text(`Date: ${getDateFormatted(new Date().toISOString())}`, 180, 65, {
-      align: "right",
-    });
-    doc.text(`Invoice #: ${invoice.invoice_number}`, 180, 70, {
-      align: "right",
-    });
-    doc.text(
-      `Status: ${invoice.delivery_status?.replace(/_/g, " ").toUpperCase() || ""}`,
-      180,
-      75,
-      {
-        align: "right",
-      },
-    );
-
-    // Customer Info - moved down
-    // Use address snapshot from invoice, not from customer table
-    const customer = invoice.customer;
-    doc.setFont("helvetica", "bold");
-    doc.text("DELIVER TO:", 14, 95); // Increased y
-    doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 100);
-    doc.text(invoice.address || "", 14, 105); // Use invoice address snapshot
-    if (invoice.suburb) {
-      doc.text(
-        `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
-        14,
-        110,
-      );
-    }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
-    // doc.text(`Mobile: ${customer?.mobile || "N/A"}`, 14, 120);
-
-    // Items Table (simplified for delivery)
-    const items = [...(invoice.invoice_items || [])].sort(
-    (a: any, b: any) =>
-      (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
-  );
-    const tableData = items.map((item: any, index: number) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const gst = item.items?.gst || false;
-      const itemName = item.items?.name || "N/A";
-      const itemNameWithGst = gst ? `${itemName} *` : itemName;
-
-      return [
-        index + 1,
-        itemNameWithGst,
-        quantity.toFixed(2),
-        "",
-      ];
-    });
-
-    autoTable(doc, {
-      startY: 120,
-      head: [["#", "Item Description", "Quantity", "Received"]],
-      body: tableData,
-      theme: "grid",
-      showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 5, left: 14 },
-      headStyles: {
-        fillColor: BRAND_COLORS.primary as any,
-        textColor: 255,
-      },
-      styles: {
-        fontSize: 9,
-        lineColor: BRAND_COLORS.tableBorder as any,
-        textColor: BRAND_COLORS.textDark as any,
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 102 }, // was 110 — reduced to keep total at 182mm (A4 - margins)
-        2: { cellWidth: 30 },
-        3: { cellWidth: 40 },
-      },
-    });
-
-    // Disclaimer — only add page if the disclaimer itself won't fit
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    const gstDisclaimerLines = doc.splitTextToSize(
-      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
-      180,
-    );
-    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
-    doc.text(gstDisclaimerLines, 14, delivFinalY);
-
-    // Bank Details — only add page if bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 5, 35);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text("Bank Details:", 14, bankY);
-    doc.setFont("helvetica", "normal");
-    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
-    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
-    doc.text("BSB No: 065 167", 14, bankY + 21);
-    doc.text("Account Number: 1056 5353", 14, bankY + 28);
-
-    // Notes Section
-    let noteY = bankY + 32;
-    if (invoice.note) {
-      const splitNotes = doc.splitTextToSize(invoice.note, 180);
-      noteY = checkAndAddPage(doc, noteY, splitNotes.length * 4.5 + 12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, noteY);
-      doc.setFont("helvetica", "normal");
-      doc.text(splitNotes, 14, noteY + 6);
-      noteY += splitNotes.length * 4.5 + 8;
-    }
-
-    // Signature Section
-    let sigY = checkAndAddPage(doc, noteY + 8, 28);
-    doc.setFont("helvetica", "bold");
-    doc.text("CUSTOMER SIGNATURE:", 14, sigY);
-    doc.line(14, sigY + 5, 100, sigY + 5);
-    doc.setFont("helvetica", "normal");
-    doc.text("Name: ____________________", 14, sigY + 10);
-    doc.text("Date: ____________________", 14, sigY + 16);
-
-    doc.setFont("helvetica", "bold");
-    doc.text("DELIVERY PERSON:", 120, sigY);
-    doc.line(120, sigY + 5, 180, sigY + 5);
-    doc.setFont("helvetica", "normal");
-    doc.text("Name: ____________________", 120, sigY + 10);
-    doc.text("Date: ____________________", 120, sigY + 16);
-
-    const fileName = `delivery_note_${invoice.invoice_number}_${getDateFormatted(
-      new Date().toISOString(),
-    )}.pdf`;
-
+    await buildDeliveryNoteContent(doc, invoice);
+    const fileName = `delivery_note_${invoice.invoice_number}_${getDateFormatted(new Date().toISOString())}.pdf`;
     doc.save(fileName);
-
     return { success: true, fileName };
   } catch (error: any) {
     console.error("Error generating delivery note:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+const openBlobAndPrint = (doc: jsPDF) => {
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url);
+  if (win) {
+    win.addEventListener("load", () => {
+      setTimeout(() => win.print(), 250);
+    });
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+};
+
+export const printInvoicePDF = async (
+  invoice: Invoice,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const doc = new jsPDF();
+    await buildInvoicePDF(doc, invoice);
+    openBlobAndPrint(doc);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error printing invoice PDF:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const printDeliveryNotePDF = async (
+  invoice: Invoice,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const doc = new jsPDF();
+    await buildDeliveryNoteContent(doc, invoice);
+    openBlobAndPrint(doc);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error printing delivery note PDF:", error);
     return { success: false, error: error.message };
   }
 };

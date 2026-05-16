@@ -58,206 +58,125 @@ const checkAndAddPage = (doc: jsPDF, currentY: number, neededMM: number, topMarg
   return currentY;
 };
 
+const buildQuotationContent = async (doc: jsPDF, quotation: Quotation) => {
+  await addCompanyLogo(doc, 14, 20);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("QUOTATION", 105, 45, { align: "center" });
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(COMPANY_INFO.name, 14, 60);
+  doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+  doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+  doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+  doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 60, { align: "right" });
+  doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 65, { align: "right" });
+  const customer = quotation.customers;
+  doc.setFont("helvetica", "bold");
+  doc.text("BILL TO:", 14, 95);
+  doc.setFont("helvetica", "normal");
+  doc.text(customer?.name || "N/A", 14, 100);
+  doc.text(quotation.address || "", 14, 105);
+  if (quotation.suburb) {
+    doc.text(`${quotation.suburb} ${quotation.state} ${quotation.post_code}`, 14, 110);
+  }
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
+  doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120);
+
+  const items = [...(quotation.quotation_items || [])].sort(
+    (a: any, b: any) => (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+  );
+  const tableData = items.map((item: any, index: number) => {
+    const quantity = parseFloat(item.quantity);
+    const unitPrice = parseFloat(item.unit_price);
+    const gst = item.items?.gst || false;
+    const itemName = item.items?.name || "N/A";
+    return [index + 1, gst ? `${itemName} *` : itemName, quantity.toFixed(2), `$${unitPrice.toFixed(2)}`, `$${(quantity * unitPrice).toFixed(2)}`];
+  });
+
+  let totalSubtotal = 0, totalGST = 0, subtotalWithGST = 0;
+  items.forEach((item: any) => {
+    const qty = parseFloat(item.quantity), price = parseFloat(item.unit_price);
+    const sub = qty * price, gstAmt = item.items?.gst ? sub * 0.1 : 0;
+    totalSubtotal += sub; totalGST += gstAmt; subtotalWithGST += sub + gstAmt;
+  });
+
+  const discountRaw = quotation.discount || 0;
+  const discountType = (quotation as any).discount_type || "percentage";
+  const discountAmount = discountType === "fixed" ? Math.min(discountRaw, subtotalWithGST) : (subtotalWithGST * discountRaw) / 100;
+  const grandTotal = subtotalWithGST - discountAmount;
+
+  autoTable(doc, {
+    startY: 126,
+    head: [["#", "Items", "Qty", "Unit Price", "Total"]],
+    body: tableData,
+    theme: "grid",
+    showHead: "everyPage",
+    margin: { top: 14, right: 14, bottom: 5, left: 14 },
+    headStyles: { fillColor: BRAND_COLORS.primary as any, textColor: 255 },
+    styles: { fontSize: 8, lineColor: BRAND_COLORS.tableBorder as any, textColor: BRAND_COLORS.textDark as any },
+    columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 92 }, 2: { cellWidth: 20 }, 3: { cellWidth: 30 }, 4: { cellWidth: 30 } },
+  });
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  const disclaimerLines = doc.splitTextToSize(DISCLAIMER, 180);
+  let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, disclaimerLines.length * 4.5);
+  doc.text(disclaimerLines, 14, postTableY);
+
+  const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30);
+  let summaryY = checkAndAddPage(doc, postTableY + disclaimerLines.length * 4.5 + 8, summaryNeeded);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Summary:", 120, summaryY);
+  doc.setFont("helvetica", "normal");
+  let currentY = summaryY + 10;
+  doc.text("Subtotal:", 120, currentY);
+  doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, { align: "right" });
+  currentY += 10;
+  doc.text("GST:", 120, currentY);
+  doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, { align: "right" });
+  if (discountRaw > 0) {
+    currentY += 10;
+    const lbl = discountType === "fixed" ? `Discount ($${discountRaw.toFixed(2)}):` : `Discount (${discountRaw}%):`;
+    doc.text(lbl, 120, currentY);
+    doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
+  }
+  currentY += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Grand Total:", 120, currentY);
+  doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
+
+  let bankY = checkAndAddPage(doc, currentY + 12, 35);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Bank Details:", 14, bankY);
+  doc.setFont("helvetica", "normal");
+  doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+  doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+  doc.text("BSB No: 065 167", 14, bankY + 21);
+  doc.text("Account Number: 1056 5353", 14, bankY + 28);
+
+  if (quotation.note) {
+    const splitNotes = doc.splitTextToSize(quotation.note, 180);
+    let notesY = checkAndAddPage(doc, bankY + 34, splitNotes.length * 4.5 + 12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 14, notesY);
+    doc.setFont("helvetica", "normal");
+    doc.text(splitNotes, 14, notesY + 6);
+  }
+};
+
 export const generateAndDownloadQuotationPDF = async (
   quotation: Quotation
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
-
-    // Add company logo in top left corner
-    await addCompanyLogo(doc, 14, 20);
-
-    // Header - moved down to make room for logo
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("QUOTATION", 105, 45, { align: "center" }); // Increased y from 20 to 45
-
-    // Company Info - moved down
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(COMPANY_INFO.name, 14, 60);
-    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
-    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
-    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
-    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
-
-    // Quotation Info (right aligned) - moved down
-    doc.setFont("helvetica", "normal");
-    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 60, {
-      align: "right",
-    });
-    doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 65, {
-      align: "right",
-    });
-    // doc.text(
-    //   `Valid Until: ${
-    //     quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
-    //   }`,
-    //   180,
-    //   70,
-    //   { align: "right" }
-    // );
-
-    // Customer Info - moved down
-    // Use address snapshot from quotation, not from customer table
-    const customer = quotation.customers;
-    doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 14, 95); // Increased y from 65 to 95
-    doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 100); // Increased y
-    doc.text(quotation.address || "", 14, 105); // Use quotation address snapshot
-    if (quotation.suburb) {
-      doc.text(
-        `${quotation.suburb} ${quotation.state} ${quotation.post_code}`,
-        14,
-        110 // Increased y
-      );
-    }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115); // Increased y
-    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120); // Increased y
-
-    // Items Table - moved startY down
-    const items = [...(quotation.quotation_items || [])].sort(
-      (a: any, b: any) =>
-        (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
-    );
-    const tableData = items.map((item: any, index: number) => {
-      const quantity = parseFloat(item.quantity);
-      const unitPrice = parseFloat(item.unit_price);
-      const subtotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-
-      // Add star (*) to item name if GST applies
-      const itemName = item.items?.name || "N/A";
-      const itemNameWithGst = gst ? `${itemName} *` : itemName;
-
-      return [
-        index + 1,
-        itemNameWithGst,
-        quantity.toFixed(2),
-        `$${unitPrice.toFixed(2)}`,
-        `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
-      ];
-    });
-
-    // Calculate totals
-    let totalSubtotal = 0;
-    let totalGST = 0;
-    let subtotalWithGST = 0;
-
-    items.forEach((item: any) => {
-      const quantity = parseFloat(item.quantity);
-      const unitPrice = parseFloat(item.unit_price);
-      const subtotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-      const gstAmount = gst ? subtotal * 0.1 : 0;
-
-      totalSubtotal += subtotal;
-      totalGST += gstAmount;
-      subtotalWithGST += subtotal + gstAmount;
-    });
-
-    // Apply discount if present
-    const discountRaw = quotation.discount || 0;
-    const discountType = (quotation as any).discount_type || "percentage";
-    const discountAmount = discountType === "fixed"
-      ? Math.min(discountRaw, subtotalWithGST)
-      : (subtotalWithGST * discountRaw) / 100;
-    const grandTotal = subtotalWithGST - discountAmount;
-
-    autoTable(doc, {
-      startY: 126,
-      head: [["#", "Items", "Qty", "Unit Price", "Total"]],
-      body: tableData,
-      theme: "grid",
-      showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 5, left: 14 },
-      headStyles: {
-        fillColor: BRAND_COLORS.primary as any,
-        textColor: 255,
-      },
-      styles: {
-        fontSize: 8,
-        lineColor: BRAND_COLORS.tableBorder as any,
-        textColor: BRAND_COLORS.textDark as any,
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 92 },
-        2: { cellWidth: 20 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 30 },
-      },
-    });
-
-    // Disclaimer — only add page if the disclaimer itself won't fit
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    const gstDisclaimerLines = doc.splitTextToSize(
-      DISCLAIMER,
-      180,
-    );
-    let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
-    doc.text(gstDisclaimerLines, 14, postTableY);
-
-    // Summary Section — only add page if summary block won't fit
-    const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30);
-    let summaryY = checkAndAddPage(doc, postTableY + gstDisclaimerLines.length * 4.5 + 8, summaryNeeded);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Summary:", 120, summaryY);
-
-    doc.setFont("helvetica", "normal");
-    let currentY = summaryY + 10;
-
-    doc.text(`Subtotal:`, 120, currentY);
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, { align: "right" });
-
-    currentY += 10;
-    doc.text(`GST:`, 120, currentY);
-    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, { align: "right" });
-
-    if (discountRaw > 0) {
-      currentY += 10;
-      const discountLabel = discountType === "fixed"
-        ? `Discount ($${discountRaw.toFixed(2)}):`
-        : `Discount (${discountRaw}%):`;
-      doc.text(discountLabel, 120, currentY);
-      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
-    }
-
-    currentY += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total:`, 120, currentY);
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
-
-    // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, currentY + 12, 35);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Bank Details:", 14, bankY);
-    doc.setFont("helvetica", "normal");
-    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
-    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
-    doc.text("BSB No: 065 167", 14, bankY + 21);
-    doc.text("Account Number: 1056 5353", 14, bankY + 28);
-
-    // Notes — only add page if notes themselves won't fit
-    if (quotation.note) {
-      const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      let notesY = checkAndAddPage(doc, bankY + 34, splitNotes.length * 4.5 + 12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, notesY);
-      doc.setFont("helvetica", "normal");
-      doc.text(splitNotes, 14, notesY + 6);
-    }
-
-    const fileName = `quotation_${quotation.quotation_number}_${getDateFormatted(
-      new Date().toISOString()
-    )}.pdf`;
-
+    await buildQuotationContent(doc, quotation);
+    const fileName = `quotation_${quotation.quotation_number}_${getDateFormatted(new Date().toISOString())}.pdf`;
     doc.save(fileName);
-
     return { success: true, fileName };
   } catch (error: any) {
     console.error("Error generating PDF:", error);
@@ -265,161 +184,105 @@ export const generateAndDownloadQuotationPDF = async (
   }
 };
 
-// Update the Delivery Document function
+const buildDeliveryContent = async (doc: jsPDF, quotation: Quotation) => {
+  await addCompanyLogo(doc, 14, 20);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("DELIVERY NOTE", 105, 45, { align: "center" });
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(COMPANY_INFO.name, 14, 60);
+  doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+  doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+  doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+  doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
+  doc.text(`Delivery Note #: ${quotation.quotation_number}-DEL`, 180, 60, { align: "right" });
+  doc.text(`Date: ${getDateFormatted(new Date().toISOString())}`, 180, 65, { align: "right" });
+  doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 70, { align: "right" });
+
+  const customer = quotation.customers as any;
+  doc.setFont("helvetica", "bold");
+  doc.text("DELIVER TO:", 14, 100);
+  doc.setFont("helvetica", "normal");
+  doc.text(customer?.name || "N/A", 14, 105);
+  doc.text(quotation.address || "", 14, 110);
+  if (quotation.suburb) {
+    doc.text(`${quotation.suburb} ${quotation.state} ${quotation.post_code}`, 14, 115);
+  }
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 120);
+
+  const items = [...(quotation.quotation_items || [])].sort(
+    (a: any, b: any) => (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
+  );
+  const tableData = items.map((item: any, index: number) => {
+    const qty = parseFloat(item.quantity);
+    const gst = item.items?.gst || false;
+    const name = item.items?.name || "N/A";
+    return [index + 1, gst ? `${name} *` : name, qty.toFixed(2), ""];
+  });
+
+  autoTable(doc, {
+    startY: 126,
+    head: [["#", "Item Description", "Quantity", "Received"]],
+    body: tableData,
+    theme: "grid",
+    showHead: "everyPage",
+    margin: { top: 14, right: 14, bottom: 5, left: 14 },
+    headStyles: { fillColor: BRAND_COLORS.primary as any, textColor: 255 },
+    styles: { fontSize: 8, lineColor: BRAND_COLORS.tableBorder as any, textColor: BRAND_COLORS.textDark as any },
+    columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 102 }, 2: { cellWidth: 30 }, 3: { cellWidth: 40 } },
+  });
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  const disclaimerLines = doc.splitTextToSize(DISCLAIMER, 180);
+  let finalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, disclaimerLines.length * 4.5);
+  doc.text(disclaimerLines, 14, finalY);
+
+  let bankY = checkAndAddPage(doc, finalY + disclaimerLines.length * 4.5 + 5, 35);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("Bank Details:", 14, bankY);
+  doc.setFont("helvetica", "normal");
+  doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+  doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+  doc.text("BSB No: 065 167", 14, bankY + 21);
+  doc.text("Account Number: 1056 5353", 14, bankY + 28);
+
+  let noteY = bankY + 32;
+  if (quotation.note) {
+    const splitNotes = doc.splitTextToSize(quotation.note, 180);
+    noteY = checkAndAddPage(doc, noteY, splitNotes.length * 4.5 + 12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 14, noteY);
+    doc.setFont("helvetica", "normal");
+    doc.text(splitNotes, 14, noteY + 6);
+    noteY += splitNotes.length * 4.5 + 8;
+  }
+
+  let sigY = checkAndAddPage(doc, noteY + 8, 28);
+  doc.setFont("helvetica", "bold");
+  doc.text("CUSTOMER SIGNATURE:", 14, sigY);
+  doc.line(14, sigY + 5, 100, sigY + 5);
+  doc.setFont("helvetica", "normal");
+  doc.text("Name: ____________________", 14, sigY + 10);
+  doc.text("Date: ____________________", 14, sigY + 16);
+  doc.setFont("helvetica", "bold");
+  doc.text("DELIVERY PERSON:", 120, sigY);
+  doc.line(120, sigY + 5, 180, sigY + 5);
+  doc.setFont("helvetica", "normal");
+  doc.text("Name: ____________________", 120, sigY + 10);
+  doc.text("Date: ____________________", 120, sigY + 16);
+};
+
 export const generateAndDownloadDeliveryDocument = async (
   quotation: Quotation
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
     const doc = new jsPDF();
-
-    // Add company logo in top left corner
-    await addCompanyLogo(doc, 14, 20);
-
-    // Header - moved down
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("DELIVERY NOTE", 105, 45, { align: "center" });
-
-    // Company Info - moved down
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(COMPANY_INFO.name, 14, 60);
-    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
-    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
-    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
-    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
-
-    // Document Info (right aligned) - moved down
-    doc.text(
-      `Delivery Note #: ${quotation.quotation_number}-DEL`,
-      180,
-      60,
-      {
-        align: "right",
-      }
-    );
-    doc.text(`Date: ${getDateFormatted(new Date().toISOString())}`, 180, 65, {
-      align: "right",
-    });
-    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 70, {
-      align: "right",
-    });
-
-    // Customer Info - moved down
-    // Use address snapshot from quotation, not from customer table
-    const customer = quotation.customers as any;
-    doc.setFont("helvetica", "bold");
-    doc.text("DELIVER TO:", 14, 100); // Increased y
-    doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 105);
-    doc.text(quotation.address || "", 14, 110); // Use quotation address snapshot
-    if (quotation.suburb) {
-      doc.text(
-        `${quotation.suburb} ${quotation.state} ${quotation.post_code}`,
-        14,
-        115
-      );
-    }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 120);
-
-    // Items Table for Delivery
-    const items = [...(quotation.quotation_items || [])].sort(
-      (a: any, b: any) =>
-        (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
-    );
-    const tableData = items.map((item: any, index: number) => {
-      const quantity = parseFloat(item.quantity);
-      const gst = item.items?.gst || false;
-      const itemName = item.items?.name || "N/A";
-      const itemNameWithGst = gst ? `${itemName} *` : itemName;
-
-      return [
-        index + 1,
-        itemNameWithGst,
-        quantity.toFixed(2),
-        "",
-      ];
-    });
-
-    autoTable(doc, {
-      startY: 126,
-      head: [["#", "Item Description", "Quantity", "Received"]],
-      body: tableData,
-      theme: "grid",
-      showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 5, left: 14 },
-      headStyles: {
-        fillColor: BRAND_COLORS.primary as any,
-        textColor: 255,
-      },
-      styles: {
-        fontSize: 8,
-        lineColor: BRAND_COLORS.tableBorder as any,
-        textColor: BRAND_COLORS.textDark as any,
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 102 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 40 },
-      },
-    });
-
-    // Disclaimer — only add page if the disclaimer itself won't fit
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    const gstDisclaimerLines = doc.splitTextToSize(
-      DISCLAIMER,
-      180,
-    );
-    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
-    doc.text(gstDisclaimerLines, 14, delivFinalY);
-
-    // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 5, 35);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text("Bank Details:", 14, bankY);
-    doc.setFont("helvetica", "normal");
-    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
-    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
-    doc.text("BSB No: 065 167", 14, bankY + 21);
-    doc.text("Account Number: 1056 5353", 14, bankY + 28);
-
-    // Notes Section
-    let noteStartY = bankY + 32;
-    if (quotation.note) {
-      const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      noteStartY = checkAndAddPage(doc, noteStartY, splitNotes.length * 4.5 + 12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, noteStartY);
-      doc.setFont("helvetica", "normal");
-      doc.text(splitNotes, 14, noteStartY + 6);
-      noteStartY += splitNotes.length * 4.5 + 8;
-    }
-
-    // Signature Section
-    let sigY = checkAndAddPage(doc, noteStartY + 8, 28);
-    doc.setFont("helvetica", "bold");
-    doc.text("CUSTOMER SIGNATURE:", 14, sigY);
-    doc.line(14, sigY + 5, 100, sigY + 5);
-    doc.setFont("helvetica", "normal");
-    doc.text("Name: ____________________", 14, sigY + 10);
-    doc.text("Date: ____________________", 14, sigY + 16);
-
-    doc.setFont("helvetica", "bold");
-    doc.text("DELIVERY PERSON:", 120, sigY);
-    doc.line(120, sigY + 5, 180, sigY + 5);
-    doc.setFont("helvetica", "normal");
-    doc.text("Name: ____________________", 120, sigY + 10);
-    doc.text("Date: ____________________", 120, sigY + 16);
-
-    const fileName = `delivery_${quotation.quotation_number}_${getDateFormatted(
-      new Date().toISOString()
-    )}.pdf`;
-
+    await buildDeliveryContent(doc, quotation);
+    const fileName = `delivery_${quotation.quotation_number}_${getDateFormatted(new Date().toISOString())}.pdf`;
     doc.save(fileName);
-
     return { success: true, fileName };
   } catch (error: any) {
     console.error("Error generating delivery document:", error);
@@ -600,215 +463,53 @@ export const generateQuotationPDFBase64 = async (
   }
 };
 
-// Update the openQuotationPDFInNewTab function
 export const openQuotationPDFInNewTab = async (
   quotation: Quotation
 ): Promise<void> => {
+  const doc = new jsPDF();
+  await buildQuotationContent(doc, quotation);
+  const pdfBlob = doc.output("blob");
+  const pdfUrl = URL.createObjectURL(pdfBlob);
+  window.open(pdfUrl, "_blank");
+  setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+};
+
+const openBlobAndPrint = (doc: any) => {
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url);
+  if (win) {
+    win.addEventListener("load", () => {
+      setTimeout(() => win.print(), 250);
+    });
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+};
+
+export const printQuotationPDF = async (
+  quotation: Quotation,
+): Promise<{ success: boolean; error?: string }> => {
   try {
     const doc = new jsPDF();
+    await buildQuotationContent(doc, quotation);
+    openBlobAndPrint(doc);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error printing quotation PDF:", error);
+    return { success: false, error: error.message };
+  }
+};
 
-    // Add company logo
-    await addCompanyLogo(doc, 14, 20);
-
-    // Header - moved down
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("QUOTATION", 105, 45, { align: "center" });
-
-    // Company Info - moved down
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(COMPANY_INFO.name, 14, 60);
-    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
-    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
-    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
-    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
-
-    // Quotation Info (right aligned) - moved down
-    doc.setFont("helvetica", "normal");
-    doc.text(`Quotation #: ${quotation.quotation_number}`, 180, 60, {
-      align: "right",
-    });
-    doc.text(`Date: ${getDateFormatted(quotation.created_at)}`, 180, 65, {
-      align: "right",
-    });
-    // doc.text(
-    //   `Valid Until: ${
-    //     quotation.valid_until ? getDateFormatted(quotation.valid_until) : "N/A"
-    //   }`,
-    //   180,
-    //   70,
-    //   { align: "right" }
-    // );
-
-    // Customer Info - moved down
-    // Use address snapshot from quotation, not from customer table
-    const customer = quotation.customers;
-    doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 14, 95);
-    doc.setFont("helvetica", "normal");
-    doc.text(customer?.name || "N/A", 14, 100);
-    doc.text(quotation.address || "", 14, 105); // Use quotation address snapshot
-    if (quotation.suburb) {
-      doc.text(
-        `${quotation.suburb} ${quotation.state} ${quotation.post_code}`,
-        14,
-        110
-      );
-    }
-    doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
-    doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120);
-
-    // Items Table
-    const items = [...(quotation.quotation_items || [])].sort(
-      (a: any, b: any) =>
-        (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
-    );
-    const tableData = items.map((item: any, index: number) => {
-      const quantity = parseFloat(item.quantity);
-      const unitPrice = parseFloat(item.unit_price);
-      const subtotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-
-      // Add star (*) to item name if GST applies
-      const itemName = item.items?.name || "N/A";
-      const itemNameWithGst = gst ? `${itemName} *` : itemName;
-
-      return [
-        index + 1,
-        itemNameWithGst,
-        quantity.toFixed(2),
-        `$${unitPrice.toFixed(2)}`,
-        `$${subtotal.toFixed(2)}`, // Now showing subtotal (without GST)
-      ];
-    });
-
-    // Calculate totals
-    let totalSubtotal = 0;
-    let totalGST = 0;
-    let subtotalWithGST = 0;
-
-    items.forEach((item: any) => {
-      const quantity = parseFloat(item.quantity);
-      const unitPrice = parseFloat(item.unit_price);
-      const subtotal = quantity * unitPrice;
-      const gst = item.items?.gst || false;
-      const gstAmount = gst ? subtotal * 0.1 : 0;
-
-      totalSubtotal += subtotal;
-      totalGST += gstAmount;
-      subtotalWithGST += subtotal + gstAmount;
-    });
-
-    // Apply discount if present
-    const discountRaw3 = quotation.discount || 0;
-    const discountType3 = (quotation as any).discount_type || "percentage";
-    const discountAmount = discountType3 === "fixed"
-      ? Math.min(discountRaw3, subtotalWithGST)
-      : (subtotalWithGST * discountRaw3) / 100;
-    const grandTotal = subtotalWithGST - discountAmount;
-
-    autoTable(doc, {
-      startY: 126,
-      head: [["#", "Items", "Qty", "Unit Price", "Total"]],
-      body: tableData,
-      theme: "grid",
-      showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 5, left: 14 },
-      headStyles: {
-        fillColor: BRAND_COLORS.primary as any,
-        textColor: 255,
-      },
-      styles: {
-        fontSize: 8,
-        lineColor: BRAND_COLORS.tableBorder as any,
-        textColor: BRAND_COLORS.textDark as any,
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 92 },
-        2: { cellWidth: 20 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 30 },
-      },
-    });
-
-    // Disclaimer — only add page if the disclaimer itself won't fit
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    const gstDisclaimerLines = doc.splitTextToSize(
-      DISCLAIMER,
-      180,
-    );
-    let postTableY3 = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
-    doc.text(gstDisclaimerLines, 14, postTableY3);
-
-    // Summary Section — only add page if summary block won't fit
-    const summaryNeeded3 = 10 + (discountRaw3 > 0 ? 40 : 30);
-    let summaryY = checkAndAddPage(doc, postTableY3 + gstDisclaimerLines.length * 4.5 + 8, summaryNeeded3);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Summary:", 120, summaryY);
-
-    doc.setFont("helvetica", "normal");
-    let currentY = summaryY + 10;
-
-    doc.text(`Subtotal:`, 120, currentY);
-    doc.text(`$${totalSubtotal.toFixed(2)}`, 180, currentY, { align: "right" });
-
-    currentY += 10;
-    doc.text(`GST:`, 120, currentY);
-    doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, { align: "right" });
-
-    if (discountRaw3 > 0) {
-      currentY += 10;
-      const discountLabel3 = discountType3 === "fixed"
-        ? `Discount ($${discountRaw3.toFixed(2)}):`
-        : `Discount (${discountRaw3}%):`;
-      doc.text(discountLabel3, 120, currentY);
-      doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
-    }
-
-    currentY += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total:`, 120, currentY);
-    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
-
-    // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, currentY + 12, 35);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Bank Details:", 14, bankY);
-    doc.setFont("helvetica", "normal");
-    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
-    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
-    doc.text("BSB No: 065 167", 14, bankY + 21);
-    doc.text("Account Number: 1056 5353", 14, bankY + 28);
-
-    // Notes — only add page if notes themselves won't fit
-    if (quotation.note) {
-      const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      let notesY = checkAndAddPage(doc, bankY + 34, splitNotes.length * 4.5 + 12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes:", 14, notesY);
-      doc.setFont("helvetica", "normal");
-      doc.text(splitNotes, 14, notesY + 6);
-    }
-
-    const pdfBlob = doc.output("blob");
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-
-    // Open in new tab
-    window.open(pdfUrl, "_blank");
-
-    // Revoke only after enough time for the PDF viewer to fully load all pages.
-    // 1 second was too short — PDF viewers lazy-load pages on scroll, causing
-    // page 2+ to appear blank when the blob URL was already revoked.
-    setTimeout(() => {
-      URL.revokeObjectURL(pdfUrl);
-    }, 60000);
-  } catch (error) {
-    console.error("Error opening PDF in new tab:", error);
-    throw error;
+export const printQuotationDeliveryNote = async (
+  quotation: Quotation,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const doc = new jsPDF();
+    await buildDeliveryContent(doc, quotation);
+    openBlobAndPrint(doc);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error printing quotation delivery note:", error);
+    return { success: false, error: error.message };
   }
 };

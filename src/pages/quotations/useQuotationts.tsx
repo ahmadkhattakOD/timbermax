@@ -28,12 +28,14 @@ import {
   Truck,
   Xd,
 } from "iconsax-react";
-import { X, Download, Send as SendIcon, Code, RotateCcw, Copy } from "lucide-react";
+import { X, Download, Send as SendIcon, Code, RotateCcw, Copy, Printer } from "lucide-react";
 import {
   generateAndDownloadDeliveryDocument,
   generateAndDownloadQuotationPDF,
   generateQuotationPDFBase64,
   openQuotationPDFInNewTab,
+  printQuotationPDF,
+  printQuotationDeliveryNote,
 } from "utils/quotation-pdf-generator";
 import emailjs from "@emailjs/browser";
 import supabase from "utils/supabase";
@@ -220,6 +222,10 @@ export function useQuotations() {
   const [selectedQuotationForStatus, setSelectedQuotationForStatus] = useState<
     number | null
   >(null);
+
+  // Print menu state
+  const [printMenuAnchor, setPrintMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedQuotationForPrint, setSelectedQuotationForPrint] = useState<number | null>(null);
 
   // Email dialog state
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -505,6 +511,27 @@ export function useQuotations() {
     </Dialog>
   );
 
+  const handlePrint = useCallback(async (type: "quotation" | "delivery", quotationId: number) => {
+    setPrintMenuAnchor(null);
+    try {
+      const quotationsRepo = new QuotationsRepository();
+      const response = await quotationsRepo.getSingle(quotationId);
+      if (!response?.quotationData) throw new Error("Quotation not found");
+      if (type === "quotation") {
+        await printQuotationPDF(response.quotationData as any);
+      } else {
+        await printQuotationDeliveryNote(response.quotationData as any);
+      }
+    } catch (error: any) {
+      openSnackbar({
+        open: true,
+        message: error.message || "Failed to print",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+  }, []);
+
   // Update the generateTableCells function to add Delivery Document button
   function generateTableCells(
     row: Quotation,
@@ -718,6 +745,20 @@ export function useQuotations() {
                 }}
               >
                 <Copy size={18} />
+              </IconButton>
+            </Tooltip>
+
+            {/* Print */}
+            <Tooltip title="Print">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedQuotationForPrint(row.id);
+                  setPrintMenuAnchor(e.currentTarget);
+                }}
+              >
+                <Printer size={18} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -2067,6 +2108,8 @@ export function useQuotations() {
     csvLink,
     statusMenuAnchor,
     selectedQuotationForStatus,
+    printMenuAnchor,
+    selectedQuotationForPrint,
 
     // State setters
     setOrder,
@@ -2076,6 +2119,8 @@ export function useQuotations() {
     setRowsPerPage,
     setSearchValue,
     setStatusMenuAnchor,
+    setPrintMenuAnchor,
+    handlePrint,
 
     // Functions
     goToCreate,

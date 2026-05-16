@@ -119,6 +119,10 @@ export default function MainInvoices() {
     statusMenuAnchor,
     selectedInvoiceForStatus,
     setStatusMenuAnchor,
+    printMenuAnchor,
+    selectedInvoiceForPrint,
+    setPrintMenuAnchor,
+    handlePrint,
   } = useInvoices();
 
   // Delivery status menu
@@ -521,6 +525,29 @@ export default function MainInvoices() {
 
       {PaymentMethodDialog}
       {EmailDialog}
+
+      {/* Print Menu */}
+      <Menu
+        anchorEl={printMenuAnchor}
+        open={Boolean(printMenuAnchor)}
+        onClose={() => setPrintMenuAnchor(null)}
+        PaperProps={{ sx: { mt: 1, minWidth: 180 } }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForPrint) handlePrint("invoice", selectedInvoiceForPrint);
+          }}
+        >
+          Print Invoice PDF
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedInvoiceForPrint) handlePrint("delivery", selectedInvoiceForPrint);
+          }}
+        >
+          Print Delivery Note
+        </MenuItem>
+      </Menu>
 
       <ModalDeleteConfirm
         open={deleteConfirmModalOpen}

@@ -56,6 +56,10 @@ export default function Quotations() {
     selectedQuotationForStatus,
     setStatusMenuAnchor,
     updateQuotationStatus,
+    printMenuAnchor,
+    selectedQuotationForPrint,
+    setPrintMenuAnchor,
+    handlePrint,
   } = useQuotations();
 
   // Quotation status menu
@@ -392,6 +396,29 @@ export default function Quotations() {
               sx={{ minWidth: 80 }}
             />
           </Box>
+        </MenuItem>
+      </Menu>
+
+      {/* Print Menu */}
+      <Menu
+        anchorEl={printMenuAnchor}
+        open={Boolean(printMenuAnchor)}
+        onClose={() => setPrintMenuAnchor(null)}
+        PaperProps={{ sx: { mt: 1, minWidth: 180 } }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedQuotationForPrint) handlePrint("quotation", selectedQuotationForPrint);
+          }}
+        >
+          Print Quotation PDF
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedQuotationForPrint) handlePrint("delivery", selectedQuotationForPrint);
+          }}
+        >
+          Print Delivery Note
         </MenuItem>
       </Menu>
 

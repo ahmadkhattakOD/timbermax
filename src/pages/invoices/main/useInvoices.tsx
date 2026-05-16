@@ -30,6 +30,8 @@ import {
   generateAndDownloadInvoicePDF,
   generateDeliveryNotePDF,
   generateInvoicePDFBase64,
+  printInvoicePDF,
+  printDeliveryNotePDF,
 } from "utils/invoice-pdf-generator";
 import { SnackbarProps } from "types/snackbar";
 import {
@@ -44,7 +46,7 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
-import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, RotateCcw, Copy } from "lucide-react";
+import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, RotateCcw, Copy, Printer } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import supabase from "utils/supabase";
 import {
@@ -151,6 +153,10 @@ export function useInvoices() {
   const [selectedInvoiceForStatus, setSelectedInvoiceForStatus] = useState<
     number | null
   >(null);
+
+  // Print menu state
+  const [printMenuAnchor, setPrintMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedInvoiceForPrint, setSelectedInvoiceForPrint] = useState<number | null>(null);
 
   // Payment method dialog state
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
@@ -364,6 +370,30 @@ export function useInvoices() {
       } as SnackbarProps);
     } finally {
       setLoading(false);
+      removeActionLoadingId(invoiceId);
+    }
+  }, []);
+
+  const handlePrint = useCallback(async (type: "invoice" | "delivery", invoiceId: number) => {
+    setPrintMenuAnchor(null);
+    addActionLoadingId(invoiceId);
+    try {
+      const invoicesRepo = new InvoicesRepository();
+      const invoiceResponse = await invoicesRepo.getSingle(invoiceId);
+      if (!invoiceResponse?.invoiceData) throw new Error("Invoice not found");
+      if (type === "invoice") {
+        await printInvoicePDF(invoiceResponse.invoiceData as any);
+      } else {
+        await printDeliveryNotePDF(invoiceResponse.invoiceData as any);
+      }
+    } catch (error: any) {
+      openSnackbar({
+        open: true,
+        message: error.message || "Failed to print",
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    } finally {
       removeActionLoadingId(invoiceId);
     }
   }, []);
@@ -714,6 +744,23 @@ export function useInvoices() {
                   ) : (
                     <Copy size={18} />
                   )}
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            {/* Print */}
+            <Tooltip title="Print">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedInvoiceForPrint(row.id);
+                    setPrintMenuAnchor(e.currentTarget);
+                  }}
+                  disabled={isActionLoading(row.id)}
+                >
+                  <Printer size={18} />
                 </IconButton>
               </span>
             </Tooltip>
@@ -2204,6 +2251,8 @@ export function useInvoices() {
     selectedInvoiceForDelivery,
     statusMenuAnchor,
     selectedInvoiceForStatus,
+    printMenuAnchor,
+    selectedInvoiceForPrint,
 
     // State setters
     setOrder,
@@ -2214,6 +2263,8 @@ export function useInvoices() {
     setSearchValue,
     setDeliveryMenuAnchor,
     setStatusMenuAnchor,
+    setPrintMenuAnchor,
+    handlePrint,
 
     // Functions
     goToCreate,
