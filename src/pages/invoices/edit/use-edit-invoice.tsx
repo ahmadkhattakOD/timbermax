@@ -43,6 +43,7 @@ export interface ValuesEditInvoice {
 }
 
 export interface InvoiceItem {
+  invoice_item_id?: number;
   item_id: number;
   name: string;
   itemCode: string;
@@ -896,13 +897,23 @@ export function useEditInvoice(invoiceId: number) {
             const currentQuantity = parseFloat(currentItem.quantity);
             const currentWarehouseId = currentItem.warehouse_id || 1;
 
-            // Update invoice item with warehouse
-            await invoicesRepo.updateItem(invoiceId, itemId, {
-              quantity: newQuantity,
-              unit_price: itemUnitPrice,
-              warehouse_id: warehouseId,
-              sort_order: index,
-            });
+            // Update invoice item — use primary key (id) for precise match
+            const rowId = selectedItem.invoice_item_id ?? currentItem.id;
+            if (rowId) {
+              await invoicesRepo.updateItemById(rowId, {
+                quantity: newQuantity,
+                unit_price: itemUnitPrice,
+                warehouse_id: warehouseId,
+                sort_order: index,
+              });
+            } else {
+              await invoicesRepo.updateItem(invoiceId, itemId, {
+                quantity: newQuantity,
+                unit_price: itemUnitPrice,
+                warehouse_id: warehouseId,
+                sort_order: index,
+              });
+            }
 
             // Adjust stock if quantity changed OR warehouse changed
             if (
@@ -1120,6 +1131,7 @@ export function useEditInvoice(invoiceId: number) {
               );
 
               return {
+                invoice_item_id: item.id,
                 item_id: item.item_id,
                 name: item.items?.name || "",
                 itemCode: item.items?.itemCode || "",
@@ -1199,6 +1211,7 @@ export function useEditInvoice(invoiceId: number) {
     selectedItems,
     addItem,
     removeItem,
+    reorderItems: setSelectedItems,
     updateItem,
     totalAmount,
     loadingItems,

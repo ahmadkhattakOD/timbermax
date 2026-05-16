@@ -38,6 +38,7 @@ export default function CreateQuotation() {
     selectedItems,
     addItem,
     removeItem,
+    reorderItems,
     updateItem,
     totalAmount,
     handleSearchDebounced,
@@ -623,6 +624,7 @@ export default function CreateQuotation() {
                       selectedItems={selectedItems}
                       addItem={addItem}
                       removeItem={removeItem}
+                      reorderItems={reorderItems}
                       updateItem={updateItem}
                       totalAmount={totalAmount}
                       loadingItems={loadingItems}

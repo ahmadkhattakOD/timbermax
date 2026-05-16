@@ -972,6 +972,7 @@ export function useCreateQuotation() {
     selectedItems,
     addItem,
     removeItem,
+    reorderItems: setSelectedItems,
     updateItem,
     totalAmount,
     handleSearchDebounced,

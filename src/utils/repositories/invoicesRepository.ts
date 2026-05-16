@@ -448,6 +448,24 @@ ${this.itemsClassName} (
     }
   }
 
+  public async updateItemById(rowId: number, updates: any) {
+    try {
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .update(updates)
+        .eq("id", rowId)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error updating invoice item by id:", error);
+      return null;
+    }
+  }
+
   public async updateItem(invoiceId: number, itemId: number, updates: any) {
     try {
       const { data, error } = await supabase

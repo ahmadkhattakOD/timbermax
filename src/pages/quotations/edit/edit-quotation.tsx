@@ -41,6 +41,7 @@ export default function EditQuotation() {
     selectedItems,
     addItem,
     removeItem,
+    reorderItems,
     updateItem,
     totalAmount,
     loadingItems,
@@ -584,6 +585,7 @@ export default function EditQuotation() {
                       selectedItems={selectedItems}
                       addItem={addItem}
                       removeItem={removeItem}
+                      reorderItems={reorderItems}
                       updateItem={updateItem}
                       totalAmount={totalAmount}
                       loadingItems={loadingItems}

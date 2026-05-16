@@ -484,6 +484,24 @@ class QuotationsRepository {
     }
   }
 
+  public async updateItemById(rowId: number, updates: Partial<QuotationItemSupabase>) {
+    try {
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .update(updates)
+        .eq("id", rowId)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("Error updating quotation item by id:", error);
+      return null;
+    }
+  }
+
   public async updateItem(
     quotationId: number,
     itemId: number,

@@ -45,6 +45,7 @@ export default function EditInvoice() {
     selectedItems,
     addItem,
     removeItem,
+    reorderItems,
     updateItem,
     totalAmount,
     loadingItems,
@@ -875,6 +876,7 @@ export default function EditInvoice() {
                       selectedItems={selectedItems}
                       addItem={addItem}
                       removeItem={removeItem}
+                      reorderItems={reorderItems}
                       updateItem={updateItem}
                       totalAmount={totalAmount}
                       loadingItems={loadingItems}
