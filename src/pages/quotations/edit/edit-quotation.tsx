@@ -122,43 +122,6 @@ export default function EditQuotation() {
   }
 
   // Check if quotation can be edited
-  const isEditable = currentStatus === "draft" || currentStatus === "sent";
-
-  if (!isEditable) {
-    return (
-      <Box
-        sx={{
-          height: "100%",
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: "column",
-          gap: 2,
-          p: 3,
-        }}
-      >
-        <Typography variant="h6" color="error">
-          This quotation cannot be edited
-        </Typography>
-        <Typography variant="body1" textAlign="center">
-          Only draft and sent quotations can be edited.
-          <br />
-          Current status:{" "}
-          <strong>
-            {currentStatus?.charAt(0).toUpperCase() + currentStatus?.slice(1)}
-          </strong>
-        </Typography>
-        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-          <ActionButton
-            text="Back to Quotations"
-            onClick={() => navigate("/quotations")}
-          />
-        </Box>
-      </Box>
-    );
-  }
-
   const steps = ['Quotation Details', 'Select Items'];
 
   const handleBack = () => {
@@ -167,7 +130,7 @@ export default function EditQuotation() {
 
   return (
     <Formik
-      enableReinitialize={false}
+      enableReinitialize={true}
       validateOnMount={false}
       validateOnChange={false}
       validateOnBlur={true}

@@ -141,55 +141,6 @@ export default function EditInvoice() {
     );
   }
 
-  // Check if invoice can be edited
-  const isEditable = currentStatus === "draft" || currentStatus === "sent" || currentStatus === "overdue";
-
-  if (!isEditable) {
-    return (
-      <Box
-        sx={{
-          height: "100%",
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: "column",
-          gap: 2,
-          p: 3,
-        }}
-      >
-        <Typography variant="h6" color="error">
-          This invoice cannot be edited
-        </Typography>
-        <Typography variant="body1" textAlign="center">
-          Only draft, sent, and overdue invoices can be edited.
-          <br />
-          Current status:{" "}
-          <strong>
-            {currentStatus?.charAt(0).toUpperCase() + currentStatus?.slice(1)}
-          </strong>
-          <br />
-          Delivery status:{" "}
-          <strong>
-            {invoiceData?.delivery_status?.charAt(0).toUpperCase() +
-              invoiceData?.delivery_status?.slice(1) || "Pending"}
-          </strong>
-        </Typography>
-        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-          <ActionButton
-            text="Back to Invoices"
-            onClick={() => navigate("/invoices")}
-          />
-          <ActionButton
-            text="View Details"
-            onClick={() => navigate(`/invoices/view/${id}`)}
-            color="info"
-          />
-        </Box>
-      </Box>
-    );
-  }
-
   const steps = ['Invoice Details', 'Select Items'];
 
   const handleBack = () => {
@@ -198,7 +149,7 @@ export default function EditInvoice() {
 
   return (
     <Formik
-      enableReinitialize={false}
+      enableReinitialize={true}
       validateOnMount={false}
       validateOnChange={false}
       validateOnBlur={true}
