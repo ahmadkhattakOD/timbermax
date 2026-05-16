@@ -79,7 +79,7 @@ const addPaidStampImage = async (doc: jsPDF) => {
 // Returns updated Y — adds a new page if the needed space won't fit
 const checkAndAddPage = (doc: jsPDF, currentY: number, neededMM: number, topMargin: number = 14): number => {
   const pageHeight = doc.internal.pageSize.height;
-  if (currentY + neededMM > pageHeight - 14) {
+  if (currentY + neededMM > pageHeight - 5) {
     doc.addPage();
     return topMargin;
   }
@@ -234,12 +234,12 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   const grandTotal = subtotalWithGST - discountAmount;
 
   autoTable(doc, {
-    startY: addrEndY + 18,
+    startY: addrEndY + 10,
     head: [["#", "Items", "Qty", "Unit Price", "Total"]],
     body: tableData,
     theme: "grid",
     showHead: "everyPage",
-    margin: { top: 14, right: 14, bottom: 14, left: 14 },
+    margin: { top: 14, right: 14, bottom: 8, left: 14 },
     headStyles: {
       fillColor: BRAND_COLORS.primary as any,
       textColor: 255,
@@ -251,7 +251,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     },
     columnStyles: {
       0: { cellWidth: 10 },
-      1: { cellWidth: 92 }, // was 95 — reduced to keep total at 182mm (A4 - margins)
+      1: { cellWidth: 92 },
       2: { cellWidth: 20 },
       3: { cellWidth: 30 },
       4: { cellWidth: 30 },
@@ -262,17 +262,17 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.setFontSize(8);
   doc.setFont("helvetica", "italic");
   const disclaimerText =
-    "All materials supplied are non-returnable and non-refundableaass. Thank you for your business";
+    "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business";
   const disclaimerLines = doc.splitTextToSize(disclaimerText, 180);
-  let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 10, disclaimerLines.length * 5);
+  let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, disclaimerLines.length * 5);
   doc.text(disclaimerLines, 14, postTableY);
 
   // Summary Section — only add page if summary block won't fit (header + 4 rows = ~50mm)
   const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30);
-  let summaryY = checkAndAddPage(doc, postTableY + disclaimerLines.length * 5 + 12, summaryNeeded);
+  let summaryY = checkAndAddPage(doc, postTableY + disclaimerLines.length * 5 + 8, summaryNeeded);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("Payment Summary:", 120, summaryY);
+  doc.text("Summary:", 120, summaryY);
 
   doc.setFont("helvetica", "normal");
   let currentY = summaryY + 10;
@@ -298,11 +298,11 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
   currentY += 10;
   doc.setFont("helvetica", "bold");
-  doc.text(`Total Due:`, 120, currentY);
+  doc.text(`Grand Total:`, 120, currentY);
   doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
   // Bank Details — only add page if the 5 bank lines won't fit (~42mm)
-  let bankY = checkAndAddPage(doc, currentY + 20, 42);
+  let bankY = checkAndAddPage(doc, currentY + 12, 42);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("Bank Details:", 14, bankY);
@@ -316,7 +316,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   // Notes — only add page if notes themselves won't fit
   if (invoice.note) {
     const splitNotes = doc.splitTextToSize(invoice.note, 180);
-    let notesY = checkAndAddPage(doc, bankY + 48, splitNotes.length * 5 + 10);
+    let notesY = checkAndAddPage(doc, bankY + 42, splitNotes.length * 5 + 10);
     doc.setFont("helvetica", "bold");
     doc.text("Notes:", 14, notesY);
     doc.setFont("helvetica", "normal");
@@ -472,7 +472,7 @@ export const generateInvoicePDFBase64 = async (
       body: tableData,
       theme: "grid",
       showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 14, left: 14 },
+      margin: { top: 14, right: 14, bottom: 5, left: 14 },
       headStyles: { fillColor: [156, 106, 58], textColor: 255, fontSize: 8 },
       styles: { fontSize: 7.5, cellPadding: 2 },
       columnStyles: {
@@ -488,10 +488,10 @@ export const generateInvoicePDFBase64 = async (
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
-      " All materials supplied are non-returnable and non-refundable. Thank you for your business",
+      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
       180,
     );
-    let finalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
+    let finalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 5, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, finalY);
 
     // Totals — only add page if totals block won't fit
@@ -516,7 +516,7 @@ export const generateInvoicePDFBase64 = async (
     }
     finalY += 6;
     doc.setFont("helvetica", "bold");
-    doc.text("Total Due:", 140, finalY);
+    doc.text("Grand Total:", 140, finalY);
     doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
 
     // Bank Details — only add page if the 5 bank lines won't fit (~30mm)
@@ -644,12 +644,12 @@ export const generateDeliveryNotePDF = async (
     });
 
     autoTable(doc, {
-      startY: 130, // Increased from 100
+      startY: 120,
       head: [["#", "Item Description", "Quantity", "Received"]],
       body: tableData,
       theme: "grid",
       showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 14, left: 14 },
+      margin: { top: 14, right: 14, bottom: 5, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
@@ -674,11 +674,11 @@ export const generateDeliveryNotePDF = async (
       "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
       180,
     );
-    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 20, gstDisclaimerLines.length * 4.5);
+    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, delivFinalY);
 
     // Bank Details — only add page if bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 6, 35);
+    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 5, 35);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -689,7 +689,7 @@ export const generateDeliveryNotePDF = async (
     doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
     // Notes Section
-    let noteY = bankY + 38;
+    let noteY = bankY + 32;
     if (invoice.note) {
       const splitNotes = doc.splitTextToSize(invoice.note, 180);
       noteY = checkAndAddPage(doc, noteY, splitNotes.length * 4.5 + 12);
@@ -697,37 +697,24 @@ export const generateDeliveryNotePDF = async (
       doc.text("Notes:", 14, noteY);
       doc.setFont("helvetica", "normal");
       doc.text(splitNotes, 14, noteY + 6);
-      noteY += splitNotes.length * 4.5 + 10;
+      noteY += splitNotes.length * 4.5 + 8;
     }
 
-    // Delivery Instructions — only add page if instructions + signatures won't fit (~60mm)
-    let instructionsY = checkAndAddPage(doc, noteY + 10, 60);
-    doc.setFont("helvetica", "bold");
-    doc.text("Delivery Instructions:", 14, instructionsY);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      "1. Check all items against this delivery note.",
-      14,
-      instructionsY + 10,
-    );
-    doc.text(
-      "2. Report any discrepancies immediately.",
-      14,
-      instructionsY + 15,
-    );
-    doc.text("3. Ensure packaging is intact.", 14, instructionsY + 20);
-
     // Signature Section
+    let sigY = checkAndAddPage(doc, noteY + 8, 28);
     doc.setFont("helvetica", "bold");
-    doc.text("CUSTOMER SIGNATURE:", 14, instructionsY + 40);
-    doc.line(14, instructionsY + 45, 100, instructionsY + 45);
-    doc.text("Name: ____________________", 14, instructionsY + 50);
-    doc.text("Date: ____________________", 14, instructionsY + 55);
+    doc.text("CUSTOMER SIGNATURE:", 14, sigY);
+    doc.line(14, sigY + 5, 100, sigY + 5);
+    doc.setFont("helvetica", "normal");
+    doc.text("Name: ____________________", 14, sigY + 10);
+    doc.text("Date: ____________________", 14, sigY + 16);
 
-    doc.text("DELIVERY PERSON:", 120, instructionsY + 40);
-    doc.line(120, instructionsY + 45, 180, instructionsY + 45);
-    doc.text("Name: ____________________", 120, instructionsY + 50);
-    doc.text("Date: ____________________", 120, instructionsY + 55);
+    doc.setFont("helvetica", "bold");
+    doc.text("DELIVERY PERSON:", 120, sigY);
+    doc.line(120, sigY + 5, 180, sigY + 5);
+    doc.setFont("helvetica", "normal");
+    doc.text("Name: ____________________", 120, sigY + 10);
+    doc.text("Date: ____________________", 120, sigY + 16);
 
     const fileName = `delivery_note_${invoice.invoice_number}_${getDateFormatted(
       new Date().toISOString(),

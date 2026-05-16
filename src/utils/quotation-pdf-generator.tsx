@@ -38,10 +38,20 @@ const addCompanyLogo = async (
   }
 };
 
+const COMPANY_INFO = {
+  name: "TIMBER MAX SUPPLY PTY LTD",
+  abn: "95 689 199 773",
+  phone: "08 8212 4703",
+  email: "info@timbermax.com.au",
+  website: "timbermax.com.au",
+};
+
+const DISCLAIMER = "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business";
+
 // Returns updated Y — adds a new page if the needed space won't fit
 const checkAndAddPage = (doc: jsPDF, currentY: number, neededMM: number, topMargin: number = 14): number => {
   const pageHeight = doc.internal.pageSize.height;
-  if (currentY + neededMM > pageHeight - 14) {
+  if (currentY + neededMM > pageHeight - 5) {
     doc.addPage();
     return topMargin;
   }
@@ -65,11 +75,11 @@ export const generateAndDownloadQuotationPDF = async (
     // Company Info - moved down
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
-    doc.text("ABN: 95 689 199 773", 14, 65);
-    doc.text("Phone: 08 8212 4703", 14, 70);
-    doc.text("Email: info@timbermax.com.au", 14, 75);
-    doc.text("Website: timbermax.com.au", 14, 80);
+    doc.text(COMPANY_INFO.name, 14, 60);
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
 
     // Quotation Info (right aligned) - moved down
     doc.setFont("helvetica", "normal");
@@ -156,12 +166,12 @@ export const generateAndDownloadQuotationPDF = async (
     const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
-      startY: 130, // Increased from 100 to 130
+      startY: 126,
       head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
       showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 14, left: 14 },
+      margin: { top: 14, right: 14, bottom: 5, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
@@ -172,11 +182,11 @@ export const generateAndDownloadQuotationPDF = async (
         textColor: BRAND_COLORS.textDark as any,
       },
       columnStyles: {
-        0: { cellWidth: 10 }, // #
-        1: { cellWidth: 92 }, // Description — was 95, reduced to keep total ≤182mm (A4 - margins)
-        2: { cellWidth: 20 }, // Qty
-        3: { cellWidth: 30 }, // Unit Price
-        4: { cellWidth: 30 }, // Total
+        0: { cellWidth: 10 },
+        1: { cellWidth: 92 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30 },
       },
     });
 
@@ -184,15 +194,15 @@ export const generateAndDownloadQuotationPDF = async (
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
-      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      DISCLAIMER,
       180,
     );
-    let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 10, gstDisclaimerLines.length * 4.5);
+    let postTableY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, postTableY);
 
     // Summary Section — only add page if summary block won't fit
     const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30);
-    let summaryY = checkAndAddPage(doc, postTableY + gstDisclaimerLines.length * 4.5 + 12, summaryNeeded);
+    let summaryY = checkAndAddPage(doc, postTableY + gstDisclaimerLines.length * 4.5 + 8, summaryNeeded);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Summary:", 120, summaryY);
@@ -222,7 +232,7 @@ export const generateAndDownloadQuotationPDF = async (
     doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
     // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, currentY + 20, 35);
+    let bankY = checkAndAddPage(doc, currentY + 12, 35);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -235,7 +245,7 @@ export const generateAndDownloadQuotationPDF = async (
     // Notes — only add page if notes themselves won't fit
     if (quotation.note) {
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      let notesY = checkAndAddPage(doc, bankY + 40, splitNotes.length * 4.5 + 12);
+      let notesY = checkAndAddPage(doc, bankY + 34, splitNotes.length * 4.5 + 12);
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, notesY);
       doc.setFont("helvetica", "normal");
@@ -268,20 +278,20 @@ export const generateAndDownloadDeliveryDocument = async (
     // Header - moved down
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("DELIVERY DOCUMENT", 105, 45, { align: "center" });
+    doc.text("DELIVERY NOTE", 105, 45, { align: "center" });
 
     // Company Info - moved down
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
-    doc.text("ABN: 95 688 199 773", 14, 65);
-    doc.text("Phone: 08 8212 4703", 14, 70);
-    doc.text("Email: info@timbermax.com.au", 14, 75);
-    doc.text("Website: timbermax.com.au", 14, 80);
+    doc.text(COMPANY_INFO.name, 14, 60);
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
 
     // Document Info (right aligned) - moved down
     doc.text(
-      `Delivery Document #: ${quotation.quotation_number}-DEL`,
+      `Delivery Note #: ${quotation.quotation_number}-DEL`,
       180,
       60,
       {
@@ -327,16 +337,17 @@ export const generateAndDownloadDeliveryDocument = async (
         index + 1,
         itemNameWithGst,
         quantity.toFixed(2),
+        "",
       ];
     });
 
     autoTable(doc, {
-      startY: 135, // Increased from 100
-      head: [["#", "Item Description", "Quantity"]],
+      startY: 126,
+      head: [["#", "Item Description", "Quantity", "Received"]],
       body: tableData,
       theme: "grid",
       showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 14, left: 14 },
+      margin: { top: 14, right: 14, bottom: 5, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
@@ -348,8 +359,9 @@ export const generateAndDownloadDeliveryDocument = async (
       },
       columnStyles: {
         0: { cellWidth: 10 },
-        1: { cellWidth: 110 },
+        1: { cellWidth: 102 },
         2: { cellWidth: 30 },
+        3: { cellWidth: 40 },
       },
     });
 
@@ -357,14 +369,14 @@ export const generateAndDownloadDeliveryDocument = async (
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
-      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      DISCLAIMER,
       180,
     );
-    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 20, gstDisclaimerLines.length * 4.5);
+    let delivFinalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, delivFinalY);
 
     // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 6, 35);
+    let bankY = checkAndAddPage(doc, delivFinalY + gstDisclaimerLines.length * 4.5 + 5, 35);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -375,7 +387,7 @@ export const generateAndDownloadDeliveryDocument = async (
     doc.text("Account Number: 1056 5353", 14, bankY + 28);
 
     // Notes Section
-    let noteStartY = bankY + 38;
+    let noteStartY = bankY + 32;
     if (quotation.note) {
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
       noteStartY = checkAndAddPage(doc, noteStartY, splitNotes.length * 4.5 + 12);
@@ -383,23 +395,24 @@ export const generateAndDownloadDeliveryDocument = async (
       doc.text("Notes:", 14, noteStartY);
       doc.setFont("helvetica", "normal");
       doc.text(splitNotes, 14, noteStartY + 6);
-      noteStartY += splitNotes.length * 4.5 + 10;
+      noteStartY += splitNotes.length * 4.5 + 8;
     }
 
-    // Delivery Instructions — only add page if instructions + signatures won't fit (~60mm)
-    let instructionsY = checkAndAddPage(doc, noteStartY + 10, 60);
-    doc.setFont("helvetica", "bold");
-    doc.text("Delivery Instructions:", 14, instructionsY);
-    doc.setFont("helvetica", "normal");
-    doc.text("Please ensure all items are checked upon delivery.", 14, instructionsY + 10);
-
     // Signature Section
+    let sigY = checkAndAddPage(doc, noteStartY + 8, 28);
     doc.setFont("helvetica", "bold");
-    doc.text("Customer Signature:", 14, instructionsY + 40);
-    doc.line(14, instructionsY + 45, 100, instructionsY + 45);
+    doc.text("CUSTOMER SIGNATURE:", 14, sigY);
+    doc.line(14, sigY + 5, 100, sigY + 5);
+    doc.setFont("helvetica", "normal");
+    doc.text("Name: ____________________", 14, sigY + 10);
+    doc.text("Date: ____________________", 14, sigY + 16);
 
-    doc.text("Delivery Person:", 120, instructionsY + 40);
-    doc.line(120, instructionsY + 45, 180, instructionsY + 45);
+    doc.setFont("helvetica", "bold");
+    doc.text("DELIVERY PERSON:", 120, sigY);
+    doc.line(120, sigY + 5, 180, sigY + 5);
+    doc.setFont("helvetica", "normal");
+    doc.text("Name: ____________________", 120, sigY + 10);
+    doc.text("Date: ____________________", 120, sigY + 16);
 
     const fileName = `delivery_${quotation.quotation_number}_${getDateFormatted(
       new Date().toISOString()
@@ -446,7 +459,7 @@ export const generateQuotationPDFBase64 = async (
 
     // Bill To
     doc.setFont("helvetica", "bold");
-    doc.text("TO:", 14, 54);
+    doc.text("BILL TO:", 14, 54);
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 59);
     const addressParts = [
@@ -506,7 +519,7 @@ export const generateQuotationPDFBase64 = async (
       body: tableData,
       theme: "grid",
       showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 14, left: 14 },
+      margin: { top: 14, right: 14, bottom: 5, left: 14 },
       headStyles: { fillColor: [156, 106, 58], textColor: 255, fontSize: 8 },
       styles: { fontSize: 7.5, cellPadding: 2 },
       columnStyles: {
@@ -522,10 +535,10 @@ export const generateQuotationPDFBase64 = async (
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
-      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      DISCLAIMER,
       180,
     );
-    let finalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
+    let finalY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 5, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, finalY);
 
     // Totals — only add page if totals block won't fit
@@ -551,7 +564,7 @@ export const generateQuotationPDFBase64 = async (
     doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
 
     // Bank Details — only add page if the 4 bank lines won't fit (~30mm)
-    finalY = checkAndAddPage(doc, finalY + 12, 30);
+    finalY = checkAndAddPage(doc, finalY + 8, 30);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, finalY);
@@ -605,11 +618,11 @@ export const openQuotationPDFInNewTab = async (
     // Company Info - moved down
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("TIMBER MAX SUPPLY PTY LTD", 14, 60);
-    doc.text("ABN: 95 688 199 773", 14, 65);
-    doc.text("Phone: 08 8212 4703", 14, 70);
-    doc.text("Email: info@timbermax.com.au", 14, 75);
-    doc.text("Website: timbermax.com.au", 14, 80);
+    doc.text(COMPANY_INFO.name, 14, 60);
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+    doc.text(`Website: ${COMPANY_INFO.website}`, 14, 80);
 
     // Quotation Info (right aligned) - moved down
     doc.setFont("helvetica", "normal");
@@ -696,12 +709,12 @@ export const openQuotationPDFInNewTab = async (
     const grandTotal = subtotalWithGST - discountAmount;
 
     autoTable(doc, {
-      startY: 130,
+      startY: 126,
       head: [["#", "Items", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
       showHead: "everyPage",
-      margin: { top: 14, right: 14, bottom: 14, left: 14 },
+      margin: { top: 14, right: 14, bottom: 5, left: 14 },
       headStyles: {
         fillColor: BRAND_COLORS.primary as any,
         textColor: 255,
@@ -712,11 +725,11 @@ export const openQuotationPDFInNewTab = async (
         textColor: BRAND_COLORS.textDark as any,
       },
       columnStyles: {
-        0: { cellWidth: 10 }, // #
-        1: { cellWidth: 92 }, // Description — was 95, reduced to keep total ≤182mm (A4 - margins)
-        2: { cellWidth: 20 }, // Qty
-        3: { cellWidth: 30 }, // Unit Price
-        4: { cellWidth: 30 }, // Total
+        0: { cellWidth: 10 },
+        1: { cellWidth: 92 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30 },
       },
     });
 
@@ -724,15 +737,15 @@ export const openQuotationPDFInNewTab = async (
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     const gstDisclaimerLines = doc.splitTextToSize(
-      "* Items marked with an asterisk (*) are GST applicable. All materials supplied are non-returnable and non-refundable. Payment is required by the due date shown on this invoice. Thank you for your business",
+      DISCLAIMER,
       180,
     );
-    let postTableY3 = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 10, gstDisclaimerLines.length * 4.5);
+    let postTableY3 = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 6, gstDisclaimerLines.length * 4.5);
     doc.text(gstDisclaimerLines, 14, postTableY3);
 
     // Summary Section — only add page if summary block won't fit
     const summaryNeeded3 = 10 + (discountRaw3 > 0 ? 40 : 30);
-    let summaryY = checkAndAddPage(doc, postTableY3 + gstDisclaimerLines.length * 4.5 + 12, summaryNeeded3);
+    let summaryY = checkAndAddPage(doc, postTableY3 + gstDisclaimerLines.length * 4.5 + 8, summaryNeeded3);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Summary:", 120, summaryY);
@@ -762,7 +775,7 @@ export const openQuotationPDFInNewTab = async (
     doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
 
     // Bank Details — only add page if the 4 bank lines won't fit (~35mm)
-    let bankY = checkAndAddPage(doc, currentY + 20, 35);
+    let bankY = checkAndAddPage(doc, currentY + 12, 35);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Bank Details:", 14, bankY);
@@ -775,7 +788,7 @@ export const openQuotationPDFInNewTab = async (
     // Notes — only add page if notes themselves won't fit
     if (quotation.note) {
       const splitNotes = doc.splitTextToSize(quotation.note, 180);
-      let notesY = checkAndAddPage(doc, bankY + 40, splitNotes.length * 4.5 + 12);
+      let notesY = checkAndAddPage(doc, bankY + 34, splitNotes.length * 4.5 + 12);
       doc.setFont("helvetica", "bold");
       doc.text("Notes:", 14, notesY);
       doc.setFont("helvetica", "normal");
