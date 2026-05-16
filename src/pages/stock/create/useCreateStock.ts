@@ -1,5 +1,5 @@
 import { openSnackbar } from "api/snackbar";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import ItemsRepository from "utils/repositories/itemsRepository";
@@ -7,18 +7,24 @@ import StocksRepository, {
   StockSupabase,
 } from "utils/repositories/stocksRepository";
 import WarehousesRepository from "utils/repositories/warehousesRepository";
+import { useDebouncedSearch } from "utils/helpers";
 
 export interface ValuesCreateStock {
   item: string;
   warehouse: string;
   quantity: string;
-  notes?: string; // ✅ Optional notes field
+  notes?: string;
 }
 
 export function useCreateStock() {
   const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+  const [itemSearch, setItemSearch] = useState("");
+  const [warehouseSearch, setWarehouseSearch] = useState("");
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<any | null>(null);
   const navigate = useNavigate();
 
   function validate(values: ValuesCreateStock) {
@@ -36,8 +42,6 @@ export function useCreateStock() {
       errors.quantity = "required-valid-number";
     }
 
-    // Notes are optional, no validation needed
-
     return errors;
   }
 
@@ -51,12 +55,9 @@ export function useCreateStock() {
       };
 
       const stocksRepository = new StocksRepository();
-      
-      // ✅ Pass optional notes to create method
-      // UserId is now handled automatically inside the repository via Supabase auth
       const createdStock = await stocksRepository.create(
         newStock,
-        values.notes || undefined  // Pass notes if provided
+        values.notes || undefined
       );
 
       if (createdStock) {
@@ -94,30 +95,58 @@ export function useCreateStock() {
     }
   }
 
-  async function getItemsWarehouses() {
-    setLoading(true);
+  async function getItems() {
+    setLoadingItems(true);
     const itemsRepository = new ItemsRepository();
-    const allItems = await itemsRepository.getWithoutFilters();
-    if (allItems) {
-      const { itemsData, itemsError } = allItems;
-      if (itemsData && !itemsError) {
-        setItems(itemsData);
-      }
+    const result = await itemsRepository.getByName(itemSearch, 200);
+    if (result?.itemsData) {
+      setItems(result.itemsData);
     }
-    const warehousesRepository = new WarehousesRepository();
-    const allWarehouses = await warehousesRepository.getWithoutFilters();
-    if (allWarehouses) {
-      const { warehousesData, warehousesError } = allWarehouses;
-      if (warehousesData && !warehousesError) {
-        setWarehouses(warehousesData);
-      }
-    }
-    setLoading(false);
+    setLoadingItems(false);
   }
 
-  useEffect(() => {
-    getItemsWarehouses();
-  }, []);
+  async function getWarehouses() {
+    setLoadingWarehouses(true);
+    const warehousesRepository = new WarehousesRepository();
+    const result = await warehousesRepository.getByName(warehouseSearch, 200);
+    if (result?.warehousesData) {
+      setWarehouses(result.warehousesData);
+    }
+    setLoadingWarehouses(false);
+  }
 
-  return { items, warehouses, loading, validate, onSubmit };
+  function handleItemSearchChange(e: ChangeEvent<HTMLInputElement>) {
+    setItemSearch(e.target.value);
+  }
+
+  const handleItemSearchDebounced = useDebouncedSearch(handleItemSearchChange);
+
+  function handleWarehouseSearchChange(e: ChangeEvent<HTMLInputElement>) {
+    setWarehouseSearch(e.target.value);
+  }
+
+  const handleWarehouseSearchDebounced = useDebouncedSearch(handleWarehouseSearchChange);
+
+  useEffect(() => {
+    getItems();
+  }, [itemSearch]);
+
+  useEffect(() => {
+    getWarehouses();
+  }, [warehouseSearch]);
+
+  return {
+    items,
+    warehouses,
+    loadingItems,
+    loadingWarehouses,
+    selectedItem,
+    setSelectedItem,
+    selectedWarehouse,
+    setSelectedWarehouse,
+    handleItemSearchDebounced,
+    handleWarehouseSearchDebounced,
+    validate,
+    onSubmit,
+  };
 }

@@ -73,6 +73,26 @@ class WarehousesRepository {
     }
   }
 
+  public async getByName(searchTerm: string = "", limit: number = 10) {
+    try {
+      let query = supabase
+        .from(this.className)
+        .select("*")
+        .order("name", { ascending: true })
+        .limit(limit);
+
+      if (searchTerm.trim()) {
+        query = query.ilike("name", `%${searchTerm}%`);
+      }
+
+      const { data: warehousesData, error: warehousesError } = await query;
+      return { warehousesData, warehousesError };
+    } catch (error) {
+      console.error("Error searching warehouses:", error);
+      return { warehousesData: [], warehousesError: error };
+    }
+  }
+
   public async getWithoutFilters() {
     try {
       const { data: warehousesData, error: warehousesError } = await supabase

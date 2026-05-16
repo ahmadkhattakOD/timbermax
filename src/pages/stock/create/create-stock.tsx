@@ -2,31 +2,26 @@
 import FormLayout from "components/FormLayout";
 import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
-import FormDropdown from "components/FormDropdown";
+import InputDropdown from "components/InputDropdown";
 import { useCreateStock } from "./useCreateStock";
-import { Box } from "@mui/system";
-import CircularLoader from "components/CircularLoader";
 
 // ==============================|| CREATE STOCK PAGE ||============================== //
 
 export default function CreateStock() {
-  const { items, warehouses, loading, validate, onSubmit } = useCreateStock();
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          height: "100%",
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <CircularLoader />
-      </Box>
-    );
-  }
+  const {
+    items,
+    warehouses,
+    loadingItems,
+    loadingWarehouses,
+    selectedItem,
+    setSelectedItem,
+    selectedWarehouse,
+    setSelectedWarehouse,
+    handleItemSearchDebounced,
+    handleWarehouseSearchDebounced,
+    validate,
+    onSubmit,
+  } = useCreateStock();
 
   return (
     <Formik
@@ -40,36 +35,43 @@ export default function CreateStock() {
       validate={validate}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, errors, touched, isSubmitting }) => (
+      {({ handleSubmit, errors, touched, isSubmitting, setFieldValue }) => (
         <Form onSubmit={handleSubmit}>
           <FormLayout
             isSubmitting={isSubmitting}
             submitButtonText={"add"}
             inputs={[
-              <FormDropdown
+              <InputDropdown
                 id={"item"}
                 name={"item"}
                 label={"item"}
-                useFormattedStrings={false}
                 optional={false}
+                options={items.map((item) => ({ id: item.id, name: item.name }))}
+                value={selectedItem ? { id: selectedItem.id, name: selectedItem.name } : null}
+                loading={loadingItems}
+                onChange={handleItemSearchDebounced}
+                onSelect={(e) => {
+                  const id = e.target.value;
+                  setSelectedItem(id ? items.find((i) => i.id == id) || null : null);
+                  setFieldValue("item", id ? id.toString() : "");
+                }}
                 error={touched.item ? errors.item : ""}
-                options={items.map((item) => {
-                  return { label: item.name, value: item.id.toString() };
-                })}
               />,
-              <FormDropdown
+              <InputDropdown
                 id={"warehouse"}
                 name={"warehouse"}
                 label={"warehouse"}
-                useFormattedStrings={false}
                 optional={false}
+                options={warehouses.map((w) => ({ id: w.id, name: w.name }))}
+                value={selectedWarehouse ? { id: selectedWarehouse.id, name: selectedWarehouse.name } : null}
+                loading={loadingWarehouses}
+                onChange={handleWarehouseSearchDebounced}
+                onSelect={(e) => {
+                  const id = e.target.value;
+                  setSelectedWarehouse(id ? warehouses.find((w) => w.id == id) || null : null);
+                  setFieldValue("warehouse", id ? id.toString() : "");
+                }}
                 error={touched.warehouse ? errors.warehouse : ""}
-                options={warehouses.map((warehouse) => {
-                  return {
-                    label: warehouse.name,
-                    value: warehouse.id.toString(),
-                  };
-                })}
               />,
               <FormInput
                 id={"quantity"}
@@ -80,7 +82,6 @@ export default function CreateStock() {
                 optional={false}
                 error={touched.quantity ? errors.quantity : ""}
               />,
-              // ✅ Add notes field (optional)
               <FormInput
                 id={"notes"}
                 name={"notes"}
