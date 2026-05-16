@@ -22,6 +22,7 @@ import {
 import PlacesInput from "components/PlacesInput";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
+import NewAddressForm from "components/NewAddressForm";
 import { useParams, useNavigate } from "react-router-dom";
 import ActionButton from "components/ActionButton";
 import { useEffect, useMemo, useCallback, useState } from "react";
@@ -76,6 +77,13 @@ export default function EditInvoice() {
     selectedAddressIndex,
     handleAddressSelect,
     customerId,
+    addingNewAddress,
+    setAddingNewAddress,
+    newAddressForm,
+    setNewAddressForm,
+    saveNewAddress,
+    savingNewAddress,
+    changeNewAddress,
     // Payment method properties
     selectedPaymentMethod,
     setSelectedPaymentMethod,
@@ -681,6 +689,29 @@ export default function EditInvoice() {
                           }}
                           optional={false}
                         />
+                        {!addingNewAddress && (
+                          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+                            <Typography
+                              sx={{ color: theme.palette.primary.main, cursor: "pointer", fontSize: "14px", fontWeight: 600 }}
+                              onClick={() => setAddingNewAddress(true)}
+                            >
+                              + Add New Address
+                            </Typography>
+                          </Box>
+                        )}
+                        {addingNewAddress && (
+                          <NewAddressForm
+                            form={newAddressForm}
+                            onChange={setNewAddressForm}
+                            onAddressChange={changeNewAddress}
+                            onSave={saveNewAddress}
+                            saving={savingNewAddress}
+                            onCancel={() => {
+                              setAddingNewAddress(false);
+                              setNewAddressForm({ address: "", suburb: "", state: "", post_code: "", is_primary: false });
+                            }}
+                          />
+                        )}
                       </Grid>
 
                       <Grid item xs={12} md={6}>
@@ -747,9 +778,34 @@ export default function EditInvoice() {
                           // For customers without addresses or manual entry
                           <Box>
                       {customerId && customerAddresses.length === 0 ? (
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                          No addresses found for this customer. Please enter address manually below.
-                        </Alert>
+                        <Box>
+                          <Alert severity="info" sx={{ mb: 2 }}>
+                            No addresses found for this customer. Please enter address manually or save a new one.
+                          </Alert>
+                          {!addingNewAddress && (
+                            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
+                              <Typography
+                                sx={{ color: theme.palette.primary.main, cursor: "pointer", fontSize: "14px", fontWeight: 600 }}
+                                onClick={() => setAddingNewAddress(true)}
+                              >
+                                + Add New Address
+                              </Typography>
+                            </Box>
+                          )}
+                          {addingNewAddress && (
+                            <NewAddressForm
+                              form={newAddressForm}
+                              onChange={setNewAddressForm}
+                              onAddressChange={changeNewAddress}
+                              onSave={saveNewAddress}
+                              saving={savingNewAddress}
+                              onCancel={() => {
+                                setAddingNewAddress(false);
+                                setNewAddressForm({ address: "", suburb: "", state: "", post_code: "", is_primary: false });
+                              }}
+                            />
+                          )}
+                        </Box>
                       ) : null}
 
                       <Grid container spacing={2}>
