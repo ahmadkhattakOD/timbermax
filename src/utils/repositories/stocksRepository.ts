@@ -472,7 +472,7 @@ class StocksRepository {
         .select(
           `
     id,
-    item!inner (id, name, itemCode),
+    item!inner (id, name, itemCode, description),
     warehouse!inner (id, name),
     quantity,
     reserved,
@@ -498,6 +498,11 @@ class StocksRepository {
             `name.ilike.%${filters.item}%,itemCode.ilike.%${filters.item}%`,
             { referencedTable: "item" },
           );
+        }
+        if (filters.category) {
+          query.ilike("description", `%${filters.category}%`, {
+            referencedTable: "item",
+          });
         }
         if (filters.warehouse) {
           query.eq("warehouse", filters.warehouse);

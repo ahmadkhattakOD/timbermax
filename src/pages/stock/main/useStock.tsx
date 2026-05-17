@@ -43,6 +43,12 @@ const headCells: HeadCell[] = [
     label: "Item",
   },
   {
+    id: "category",
+    numeric: false,
+    disablePadding: true,
+    label: "Category",
+  },
+  {
     id: "warehouse",
     numeric: false,
     disablePadding: true,
@@ -100,6 +106,7 @@ export interface ValuesFilterStock {
   maximumQuantity: string;
   updatedAtFrom: string;
   updatedAtTo: string;
+  category: string;
 }
 
 const initialFilters: ValuesFilterStock = {
@@ -110,6 +117,7 @@ const initialFilters: ValuesFilterStock = {
   maximumQuantity: "",
   updatedAtFrom: "",
   updatedAtTo: "",
+  category: "",
 };
 
 // History Modal Component
@@ -400,6 +408,9 @@ export function useStock() {
           </Box>
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
+          {row.item?.description || "-"}
+        </TableCell>
+        <TableCell sx={{ minWidth: 150 }}>
           {row.warehouse?.name || "Unknown Warehouse"}
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
@@ -637,6 +648,8 @@ export function useStock() {
       newFilters.updatedAtFrom = params.get("updatedAtFrom") || "";
     if (params.has("updatedAtTo"))
       newFilters.updatedAtTo = params.get("updatedAtTo") || "";
+    if (params.has("category"))
+      newFilters.category = params.get("category") || "";
 
     if (JSON.stringify(newFilters) !== JSON.stringify(filters)) {
       setFilters(newFilters);

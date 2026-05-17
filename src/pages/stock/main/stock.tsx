@@ -155,6 +155,14 @@ export default function Stock() {
                         };
                       })}
                     />,
+                    <FormInput
+                      key="category"
+                      id={"category"}
+                      name={"category"}
+                      placeholder={"Category"}
+                      label="Category"
+                      type={"text"}
+                    />,
                     <FormDropdown
                       key="warehouse"
                       id={"warehouse"}
