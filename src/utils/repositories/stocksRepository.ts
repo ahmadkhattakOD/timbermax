@@ -500,7 +500,7 @@ class StocksRepository {
           );
         }
         if (filters.category) {
-          query.ilike("description", `%${filters.category}%`, {
+          query.or(`description.ilike.%${filters.category}%`, {
             referencedTable: "item",
           });
         }
