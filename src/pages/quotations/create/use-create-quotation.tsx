@@ -93,15 +93,6 @@ export function useCreateQuotation() {
     state: '',
     post_code: '',
   });
-  const [addingNewAddress, setAddingNewAddress] = useState(false);
-  const [savingNewAddress, setSavingNewAddress] = useState(false);
-  const [newAddressForm, setNewAddressForm] = useState<CustomerAddress & { is_primary: boolean }>({
-    address: '',
-    suburb: '',
-    state: '',
-    post_code: '',
-    is_primary: false,
-  });
 
   // Discount state
   const [discount, setDiscount] = useState<number>(0);
@@ -408,104 +399,6 @@ export function useCreateQuotation() {
       setSelectedPostCode(selectedAddr.post_code);
     }
   };
-
-  async function changeNewAddress(newValue: any, actionMeta: any) {
-    const description = newValue?.value?.description ?? "";
-    let suburb = "";
-    let state = "";
-    let postCode = "";
-    if (newValue?.value?.place_id) {
-      try {
-        const results = await geocodeByPlaceId(newValue.value.place_id);
-        const components = results[0]?.address_components ?? [];
-        suburb =
-          components.find((c: any) => c.types.includes("locality"))?.long_name ||
-          components.find((c: any) => c.types.includes("sublocality_level_1"))?.long_name || "";
-        const stateShort =
-          components.find((c: any) => c.types.includes("administrative_area_level_1"))?.short_name ?? "";
-        state = stateAbbreviations[stateShort as keyof typeof stateAbbreviations] || stateShort;
-        postCode = components.find((c: any) => c.types.includes("postal_code"))?.long_name ?? "";
-      } catch (e) {
-        const parsed = parseAddress(description);
-        suburb = parsed.suburb;
-        state = parsed.state;
-      }
-    } else {
-      const parsed = parseAddress(description);
-      suburb = parsed.suburb;
-      state = parsed.state;
-    }
-    setNewAddressForm((f) => ({
-      ...f,
-      address: description,
-      suburb: suburb || f.suburb,
-      state: state || f.state,
-      post_code: postCode || f.post_code,
-    }));
-  }
-
-  async function saveNewAddress() {
-    if (!selectedCustomer || !newAddressForm.address.trim()) return;
-    setSavingNewAddress(true);
-    try {
-      const customersRepo = new CustomersRepository();
-      const customerResponse = await customersRepo.getSingle(selectedCustomer);
-      if (customerResponse?.customerData) {
-        const customer = customerResponse.customerData;
-        let existingAddresses: CustomerAddress[] = customer.addresses || [];
-        if (newAddressForm.is_primary) {
-          existingAddresses = existingAddresses.map((a) => ({ ...a, is_primary: false }));
-        }
-        const newAddr: CustomerAddress = {
-          address: newAddressForm.address,
-          suburb: newAddressForm.suburb,
-          state: newAddressForm.state,
-          post_code: newAddressForm.post_code,
-          is_primary: newAddressForm.is_primary,
-        };
-        const updatedAddresses = [...existingAddresses, newAddr];
-        const updated = await customersRepo.edit(selectedCustomer, {
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone,
-          mobile: customer.mobile,
-          notes: customer.notes,
-          addresses: updatedAddresses,
-        });
-        if (updated) {
-          const newIndex = updatedAddresses.length - 1;
-          const newAddressesWithSelection: CustomerAddressWithSelection[] = updatedAddresses.map((addr, i) => ({
-            ...addr,
-            id: i,
-            displayText: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code}${addr.is_primary ? ' (Primary)' : ''}`,
-          }));
-          setCustomerAddresses(newAddressesWithSelection);
-          setSelectedAddressIndex(newIndex);
-          setSelectedAddressDetails({
-            address: newAddr.address,
-            suburb: newAddr.suburb,
-            state: newAddr.state,
-            post_code: newAddr.post_code,
-          });
-          setSelectedAddress(newAddr.address);
-          setSelectedSuburb(newAddr.suburb);
-          setSelectedState(newAddr.state);
-          setSelectedPostCode(newAddr.post_code);
-          setAddingNewAddress(false);
-          setNewAddressForm({ address: '', suburb: '', state: '', post_code: '', is_primary: false });
-          openSnackbar({
-            open: true,
-            message: 'Address saved to customer profile.',
-            variant: 'alert',
-            alert: { color: 'success' },
-          } as SnackbarProps);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving new address:', error);
-    }
-    setSavingNewAddress(false);
-  }
 
   const addItem = async (itemId: number) => {
     const item = items.find((i) => i.id === itemId);
@@ -1004,13 +897,6 @@ export function useCreateQuotation() {
     selectedAddressDetails,
     handleAddressSelect,
     setSelectedAddressDetails,
-    addingNewAddress,
-    setAddingNewAddress,
-    newAddressForm,
-    setNewAddressForm,
-    saveNewAddress,
-    savingNewAddress,
-    changeNewAddress,
     // Discount properties
     discount,
     setDiscount,

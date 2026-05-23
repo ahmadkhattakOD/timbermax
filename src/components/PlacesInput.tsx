@@ -87,8 +87,6 @@ const PlacesInput = ({
         selectProps={{
           name: name,
           isClearable: true,
-          menuPortalTarget: document.body,
-          menuPosition: "fixed" as const,
           onChange: (newValue, action) => {
             onChange(newValue, action);
             setVisible(true);
@@ -102,7 +100,6 @@ const PlacesInput = ({
           placeholder: placeholder,
           value: value ? { label: value, value: { description: value } } : null,
           styles: {
-            menuPortal: (provided: any) => ({ ...provided, zIndex: 9999 }),
             control: (provided) => ({
               ...provided,
               borderRadius: "8px",
