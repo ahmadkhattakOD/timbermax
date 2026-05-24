@@ -112,6 +112,12 @@ const headCells: HeadCell[] = [
     label: "Due Date",
   },
   {
+    id: "created_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Date Created",
+  },
+  {
     id: "actions",
     numeric: false,
     disablePadding: true,
@@ -541,6 +547,11 @@ export function useInvoices() {
               No due date
             </Typography>
           )}
+        </TableCell>
+        <TableCell sx={{ minWidth: 150 }}>
+          <Typography variant="body2">
+            {row.created_at ? getDateFormatted(row.created_at) : "-"}
+          </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 300 }}>
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>

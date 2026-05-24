@@ -543,6 +543,15 @@ export function useEditInvoice(invoiceId: number) {
 
   async function onSubmit(values: ValuesEditInvoice) {
     try {
+      if (invoiceData?.status === "paid") {
+        openSnackbar({
+          open: true,
+          message: "Paid invoices are view-only and cannot be edited.",
+          variant: "alert",
+          alert: { color: "warning" },
+        } as SnackbarProps);
+        return;
+      }
       if (selectedItems.length === 0) {
         openSnackbar({
           open: true,

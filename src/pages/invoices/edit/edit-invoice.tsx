@@ -328,6 +328,8 @@ export default function EditInvoice() {
           handleCustomPaymentMethodChange,
         ]);
 
+        const isReadOnly = invoiceData?.status === "paid";
+
         return (
           <Form onSubmit={handleSubmit}>
             <Container maxWidth="lg">
@@ -341,6 +343,13 @@ export default function EditInvoice() {
                   ))}
                 </Stepper>
 
+                {isReadOnly && (
+                  <Alert severity="info" sx={{ mb: 3 }}>
+                    This invoice has been paid and is view-only. Editing is
+                    disabled.
+                  </Alert>
+                )}
+
                 {/* Step 1: Invoice Details */}
                 {activeStep === 0 && (
                   <Box>
@@ -348,6 +357,11 @@ export default function EditInvoice() {
                       Invoice Details
                     </Typography>
 
+                    <Box
+                      component="fieldset"
+                      disabled={isReadOnly}
+                      sx={{ border: "none", p: 0, m: 0, minInlineSize: "auto" }}
+                    >
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={6}>
                         <FormInput
@@ -786,6 +800,7 @@ export default function EditInvoice() {
                         />
                       </Grid>
                     </Grid>
+                    </Box>
 
                     {/* Navigation Buttons */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
@@ -794,14 +809,14 @@ export default function EditInvoice() {
                         onClick={() => navigate("/invoices")}
                         size="large"
                       >
-                        Cancel
+                        {isReadOnly ? "Back to Invoices" : "Cancel"}
                       </Button>
                       <Button
                         variant="contained"
                         onClick={handleNext}
                         size="large"
                       >
-                        Next: Select Items
+                        {isReadOnly ? "View Items" : "Next: Select Items"}
                       </Button>
                     </Box>
                   </Box>
@@ -814,6 +829,11 @@ export default function EditInvoice() {
                       Select Items
                     </Typography>
 
+                    <Box
+                      component="fieldset"
+                      disabled={isReadOnly}
+                      sx={{ border: "none", p: 0, m: 0, minInlineSize: "auto" }}
+                    >
                     {/* Use shared ItemsSelectionTable component */}
                     <ItemsSelectionTable
                       items={items}
@@ -839,6 +859,7 @@ export default function EditInvoice() {
                       deposit={deposit}
                       setDeposit={setDeposit}
                     />
+                    </Box>
 
                     {/* Navigation Buttons */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
@@ -855,17 +876,19 @@ export default function EditInvoice() {
                           onClick={() => navigate("/invoices")}
                           size="large"
                         >
-                          Cancel
+                          {isReadOnly ? "Back to Invoices" : "Cancel"}
                         </Button>
                       </Box>
-                      <Button
-                        variant="contained"
-                        onClick={handleSubmitStep2}
-                        disabled={isSubmitting}
-                        size="large"
-                      >
-                        {isSubmitting ? 'Updating Invoice...' : 'Update Invoice'}
-                      </Button>
+                      {!isReadOnly && (
+                        <Button
+                          variant="contained"
+                          onClick={handleSubmitStep2}
+                          disabled={isSubmitting}
+                          size="large"
+                        >
+                          {isSubmitting ? 'Updating Invoice...' : 'Update Invoice'}
+                        </Button>
+                      )}
                     </Box>
                   </Box>
                 )}

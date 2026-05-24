@@ -107,6 +107,12 @@ const headCells: HeadCell[] = [
     label: "Note",
   },
   {
+    id: "created_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Date Created",
+  },
+  {
     id: "actions",
     numeric: false,
     disablePadding: true,
@@ -606,6 +612,11 @@ export function useQuotations() {
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           {row.note || "-"}
+        </TableCell>
+        <TableCell sx={{ minWidth: 150 }}>
+          <Typography variant="body2">
+            {row.created_at ? getDateFormatted(row.created_at) : "-"}
+          </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 350 }}>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
