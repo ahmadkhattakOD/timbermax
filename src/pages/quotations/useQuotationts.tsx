@@ -200,6 +200,8 @@ export const initialFilters: ValuesFilterQuotations = {
   item_code: "",
 };
 
+const MANDATORY_QUOTATION_CC = "info@timbermax.com.au";
+
 export function useQuotations() {
   const [data, setData] = useState<Quotation[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
@@ -999,7 +1001,8 @@ export function useQuotations() {
     }
     try {
       setEmailSending(true);
-      const allRecipients = [emailTo, ...emailExtraRecipients.map((e) => e.trim())].filter(Boolean);
+      const rawRecipients = [emailTo, ...emailExtraRecipients.map((e) => e.trim()), MANDATORY_QUOTATION_CC].filter(Boolean);
+      const allRecipients = Array.from(new Set(rawRecipients.map((e) => e.toLowerCase())));
       await Promise.all(
         allRecipients.map((recipient) =>
           emailjs.send(
@@ -1078,6 +1081,18 @@ export function useQuotations() {
                 fullWidth
                 size="small"
                 sx={{ flex: 2 }}
+              />
+            </Box>
+
+            {/* Mandatory CC (always applied) */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <TextField
+                label="CC (always)"
+                value={MANDATORY_QUOTATION_CC}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                helperText="Automatically CC'd on every quotation email"
               />
             </Box>
 
