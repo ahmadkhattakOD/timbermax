@@ -827,7 +827,7 @@ export function useQuotations() {
              style="background-color:#9C6A3A;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:4px;font-size:15px;font-weight:600;display:inline-block;">
             Download Quotation PDF
           </a>
-          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">Link expires in 30 days</p>
+          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">This download link does not expire</p>
         </div>`
       : "";
 
@@ -884,11 +884,11 @@ export function useQuotations() {
         return null;
       }
 
-      const { data: urlData } = await supabase.storage
+      const { data: urlData } = supabase.storage
         .from("gallery")
-        .createSignedUrl(uploadData.path, 60 * 60 * 24 * 30); // 30 days
+        .getPublicUrl(uploadData.path); // permanent, never expires
 
-      return urlData?.signedUrl || null;
+      return urlData?.publicUrl || null;
     } catch (e) {
       console.error("Error uploading quotation PDF to storage:", e);
       return null;

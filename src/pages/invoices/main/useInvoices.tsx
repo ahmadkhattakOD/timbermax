@@ -1247,7 +1247,7 @@ export function useInvoices() {
              style="background-color:#9C6A3A;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:4px;font-size:15px;font-weight:600;display:inline-block;">
             Download Invoice PDF
           </a>
-          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">Link expires in 30 days</p>
+          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">This download link does not expire</p>
         </div>`
       : "";
 
@@ -1322,7 +1322,7 @@ export function useInvoices() {
     };
   };
 
-  // Upload base64 PDF to Supabase Storage and return a 30-day signed URL
+  // Upload base64 PDF to Supabase Storage and return a permanent public URL
   const uploadPdfToStorage = async (
     base64DataUri: string,
     invoiceNumber: string,
@@ -1346,11 +1346,11 @@ export function useInvoices() {
         return null;
       }
 
-      const { data: urlData } = await supabase.storage
+      const { data: urlData } = supabase.storage
         .from("gallery")
-        .createSignedUrl(uploadData.path, 60 * 60 * 24 * 30); // 30 days
+        .getPublicUrl(uploadData.path); // permanent, never expires
 
-      return urlData?.signedUrl || null;
+      return urlData?.publicUrl || null;
     } catch (e) {
       console.error("Error uploading PDF to storage:", e);
       return null;
@@ -1390,7 +1390,7 @@ export function useInvoices() {
           setEmailPdfBase64(pdfResult.base64);
           setEmailPdfFileName(fileName);
 
-          // Upload and get a real signed URL
+          // Upload and get a permanent public URL
           const downloadUrl = await uploadPdfToStorage(pdfResult.base64, row.invoice_number);
           if (downloadUrl) {
             setEmailPdfDownloadUrl(downloadUrl);
