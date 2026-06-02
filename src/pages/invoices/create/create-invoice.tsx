@@ -33,6 +33,8 @@ export default function CreateInvoice() {
   const quotationIdFromUrl = searchParams.get("quotation_id");
   const [activeStep, setActiveStep] = useState(0);
   const [step1Errors, setStep1Errors] = useState<any>({});
+  // One-time delivery address typed on the invoice (not saved to the customer)
+  const [customAddress, setCustomAddress] = useState(false);
 
   const {
     validate,
@@ -194,6 +196,8 @@ export default function CreateInvoice() {
       }) => {
         // Auto-populate customer details when selected
         useEffect(() => {
+          // Leave one-time-address mode whenever the customer changes
+          setCustomAddress(false);
           if (selectedCustomer) {
             const customer = customers.find((c) => c.id === selectedCustomer);
             if (customer) {
@@ -609,22 +613,73 @@ export default function CreateInvoice() {
                         {!createInlineCustomer && selectedCustomer && customerAddresses.length > 0 ? (
                           <Grid container spacing={{ xs: 1, sm: 2 }}>
                             <Grid item xs={12}>
-                              <FormDropdown
-                                key="address-select"
-                                id="address-select"
-                                name="address-select"
-                                label="Select Delivery Address"
-                                useFormattedStrings={false}
-                                options={customerAddresses.map((addr, index) => ({
-                                  label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code}${addr.is_primary ? " (Primary)" : ""}`,
-                                  value: index.toString(),
-                                }))}
-                                value={selectedAddressIndex.toString()}
-                                onChange={(e) => {
-                                  handleAddressSelect(parseInt(e.target.value));
-                                }}
-                                optional={false}
-                              />
+                              {!customAddress ? (
+                                <FormDropdown
+                                  key="address-select"
+                                  id="address-select"
+                                  name="address-select"
+                                  label="Select Delivery Address"
+                                  useFormattedStrings={false}
+                                  options={customerAddresses.map((addr, index) => ({
+                                    label: `${addr.address}, ${addr.suburb} ${addr.state} ${addr.post_code}${addr.is_primary ? " (Primary)" : ""}`,
+                                    value: index.toString(),
+                                  }))}
+                                  value={selectedAddressIndex.toString()}
+                                  onChange={(e) => {
+                                    handleAddressSelect(parseInt(e.target.value));
+                                  }}
+                                  optional={false}
+                                  secondaryLabel={
+                                    <Box
+                                      sx={{
+                                        color: theme.palette.primary.main,
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: 600,
+                                      }}
+                                      onClick={() => {
+                                        setCustomAddress(true);
+                                        handleAddressSelect(-1);
+                                        setFieldValue("address", "");
+                                        setFieldValue("suburb", "");
+                                        setFieldValue("state", "");
+                                        setFieldValue("postCode", "");
+                                      }}
+                                    >
+                                      Enter a new address
+                                    </Box>
+                                  }
+                                />
+                              ) : (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mb: "0.5rem",
+                                  }}
+                                >
+                                  <Typography sx={{ fontSize: "16px" }}>
+                                    New Delivery Address (this invoice only)
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      color: theme.palette.primary.main,
+                                      cursor: "pointer",
+                                      fontSize: "14px",
+                                      fontWeight: 600,
+                                    }}
+                                    onClick={() => {
+                                      setCustomAddress(false);
+                                      handleAddressSelect(
+                                        selectedAddressIndex >= 0 ? selectedAddressIndex : 0,
+                                      );
+                                    }}
+                                  >
+                                    Use saved address
+                                  </Box>
+                                </Box>
+                              )}
                             </Grid>
                             <Grid item xs={12}>
                               <AddressFields />

@@ -1,5 +1,5 @@
 import { Box, Typography, styled, Checkbox, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Field, useField } from "formik";
 import { FormattedMessage } from "react-intl";
 
@@ -12,7 +12,7 @@ interface FieldInputProps {
   id: string;
   name: string;
   label?: string;
-  secondaryLabel?: string | null;
+  secondaryLabel?: ReactNode;
   value?: string;
   optional?: true | false;
   error?: string;

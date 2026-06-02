@@ -273,6 +273,10 @@ export function useEditQuotation(quotationId: number) {
         state: selectedAddr.state,
         postCode: selectedAddr.post_code,
       }));
+    } else {
+      // Custom one-time address mode (not saved to customer). Index -1 makes the
+      // address-populate effect skip, so typed fields are preserved.
+      setSelectedAddressIndex(-1);
     }
   };
 

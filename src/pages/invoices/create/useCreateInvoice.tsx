@@ -293,6 +293,16 @@ export function useCreateInvoice() {
       setSelectedSuburb(selectedAddr.suburb);
       setSelectedState(selectedAddr.state);
       setSelectedPostCode(selectedAddr.post_code);
+    } else {
+      // Custom one-time address mode (not saved to customer). Index -1 makes the
+      // address-populate effect skip, so typed fields are preserved.
+      setSelectedAddressIndex(-1);
+      setSelectedAddressDetails({
+        address: "",
+        suburb: "",
+        state: "",
+        post_code: "",
+      });
     }
   };
 
@@ -838,15 +848,15 @@ export function useCreateInvoice() {
         }
       }
 
-      // Use selected address details for the invoice snapshot
-      const invoiceAddress = selectedCustomer && customerAddresses.length > 0 && selectedAddressIndex !== -1
-        ? selectedAddressDetails
-        : {
-            address: values.address,
-            suburb: values.suburb,
-            state: values.state,
-            post_code: values.postCode,
-          };
+      // Snapshot whatever is shown in the address fields. These bind to the live
+      // form values (saved address selection populates them, manual/one-time edits
+      // overwrite them) and are never written back to the customer record.
+      const invoiceAddress = {
+        address: values.address,
+        suburb: values.suburb,
+        state: values.state,
+        post_code: values.postCode,
+      };
 
       const newInvoice: InvoiceSupabase = {
         invoice_number: values.invoice_number,

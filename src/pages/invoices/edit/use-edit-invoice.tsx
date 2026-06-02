@@ -284,12 +284,12 @@ export function useEditInvoice(invoiceId: number) {
     if (index >= 0 && index < customerAddresses.length) {
       setSelectedAddressIndex(index);
       const selectedAddr = customerAddresses[index];
-      
+
       setSelectedAddress(selectedAddr.address);
       setSelectedSuburb(selectedAddr.suburb);
       setSelectedState(selectedAddr.state);
       setSelectedPostCode(selectedAddr.post_code);
-      
+
       // Update initial values
       setInitialValues(prev => ({
         ...prev,
@@ -298,6 +298,10 @@ export function useEditInvoice(invoiceId: number) {
         state: selectedAddr.state,
         postCode: selectedAddr.post_code,
       }));
+    } else {
+      // Custom one-time address mode (not saved to customer). Index -1 makes the
+      // address-populate effect skip, so typed fields are preserved.
+      setSelectedAddressIndex(-1);
     }
   };
 
