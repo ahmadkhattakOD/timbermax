@@ -301,7 +301,7 @@ export default function CreateInvoice() {
 
         return (
           <Form onSubmit={handleSubmit}>
-            <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+            <Container maxWidth={activeStep === 1 ? "xl" : "lg"} sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
               <Paper
                 elevation={3}
                 sx={{

@@ -332,7 +332,7 @@ export default function EditInvoice() {
 
         return (
           <Form onSubmit={handleSubmit}>
-            <Container maxWidth="lg">
+            <Container maxWidth={activeStep === 1 ? "xl" : "lg"}>
               <Paper elevation={3} sx={{ p: 4, mt: 3 }}>
                 {/* Stepper */}
                 <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
