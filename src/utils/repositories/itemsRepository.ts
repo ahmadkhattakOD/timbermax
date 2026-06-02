@@ -84,17 +84,19 @@ class ItemsRepository {
     }
   }
 
-  public async getByName(searchTerm: string = "", limit: number = 10) {
+  public async getByName(searchTerm: string = "", limit: number = 1000) {
     try {
       let query = supabase
         .from(this.className)
         .select("*")
-        .order("name", { ascending: true })
-        .limit(limit);
-        
+        .order("name", { ascending: true });
+
         if (searchTerm.trim()) {
-          // Search in both name and itemCode fields
-          query = query.or(`name.ilike.%${searchTerm}%,itemCode.ilike.%${searchTerm}%`);
+          // Search in both name and itemCode fields — return full match set, not just `limit`
+          query = query.or(`name.ilike.%${searchTerm}%,itemCode.ilike.%${searchTerm}%`).limit(1000);
+        } else {
+          // No search: cap initial dropdown list for perf
+          query = query.limit(limit);
         }
         
         const { data: itemsData, error: itemsError } = await query;

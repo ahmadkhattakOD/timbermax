@@ -122,6 +122,9 @@ const InputDropdown = ({
           options={options}
           loading={loading}
           autoComplete={false}
+          ListboxProps={{
+            sx: { maxHeight: "40vh", overflowY: "auto" },
+          }}
           renderOption={(props, option) => {
             const { key, ...restProps } = props as any;
             const prop = { ...restProps };
