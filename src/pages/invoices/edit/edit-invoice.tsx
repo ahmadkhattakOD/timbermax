@@ -3,7 +3,6 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { InvoiceItem, useEditInvoice } from "./use-edit-invoice";
-import { australianStates } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
@@ -19,7 +18,7 @@ import {
   Container,
 } from "@mui/material";
 
-import PlacesInput from "components/PlacesInput";
+import AddressFields from "components/AddressFields";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
 import { useParams, useNavigate } from "react-router-dom";
@@ -704,65 +703,12 @@ export default function EditInvoice() {
                         )}
                       </Grid>
 
-                      <Grid item xs={12} md={6}>
-                        <PlacesInput
-                          key="address"
-                          id="address"
-                          name="address"
-                          placeholder="Address"
-                          onChange={(newValue, actionMeta) => {
-                            setFieldValue(
-                              "address",
-                              newValue?.value?.description ?? ""
-                            );
-                            changeAddress(newValue, actionMeta, setFieldValue);
-                          }}
-                          value={values.address}
-                          label="Address"
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormInput
-                          key="suburb"
-                          id={"suburb"}
-                          name={"suburb"}
-                          placeholder={"Suburb"}
-                          label="Suburb"
-                          type={"text"}
-                          value={values.suburb}
-                          onChange={(e) => setFieldValue("suburb", e.target.value)}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormDropdown
-                          key="state"
-                          id={"state"}
-                          name={"state"}
-                          label="State"
-                          useFormattedStrings={false}
-                          options={australianStates.map((state) => ({
-                            label: state,
-                            value: state,
-                          }))}
-                          value={values.state}
-                          onChange={(e) => setFieldValue("state", e.target.value)}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormInput
-                          key="postCode"
-                          id={"postCode"}
-                          name={"postCode"}
-                          placeholder={"Post Code"}
-                          label="Post Code"
-                          type={"text"}
-                          value={values.postCode}
-                          onChange={(e) => setFieldValue("postCode", e.target.value)}
-                        />
-                            </Grid>
+                      <AddressFields
+                        variant="document"
+                        values={values}
+                        setFieldValue={setFieldValue}
+                        changeAddress={changeAddress}
+                      />
                           </Grid>
                         ) : (
                           // For customers without addresses or manual entry
@@ -774,65 +720,12 @@ export default function EditInvoice() {
                       ) : null}
 
                       <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                          <PlacesInput
-                            key="address"
-                            id="address"
-                            name="address"
-                            placeholder="Address"
-                            onChange={(newValue, actionMeta) => {
-                              setFieldValue(
-                                "address",
-                                newValue?.value?.description ?? ""
-                              );
-                              changeAddress(newValue, actionMeta, setFieldValue);
-                            }}
-                            value={values.address}
-                            label="Address"
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormInput
-                            key="suburb"
-                            id={"suburb"}
-                            name={"suburb"}
-                            placeholder={"Suburb"}
-                            label="Suburb"
-                            type={"text"}
-                            value={values.suburb}
-                            onChange={(e) => setFieldValue("suburb", e.target.value)}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormDropdown
-                            key="state"
-                            id={"state"}
-                            name={"state"}
-                            label="State"
-                            useFormattedStrings={false}
-                            options={australianStates.map((state) => ({
-                              label: state,
-                              value: state,
-                            }))}
-                            value={values.state}
-                            onChange={(e) => setFieldValue("state", e.target.value)}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} sm={6} md={3}>
-                          <FormInput
-                            key="postCode"
-                            id={"postCode"}
-                            name={"postCode"}
-                            placeholder={"Post Code"}
-                            label="Post Code"
-                            type={"text"}
-                            value={values.postCode}
-                            onChange={(e) => setFieldValue("postCode", e.target.value)}
-                          />
-                            </Grid>
+                        <AddressFields
+                          variant="document"
+                          values={values}
+                          setFieldValue={setFieldValue}
+                          changeAddress={changeAddress}
+                        />
                           </Grid>
                         </Box>
                         )}

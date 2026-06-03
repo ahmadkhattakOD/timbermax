@@ -2,10 +2,7 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateInvoice } from "./useCreateInvoice";
-import {
-  australianStates,
-  getDateFormattedForField,
-} from "utils/helpers";
+import { getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
@@ -20,7 +17,7 @@ import {
   Container,
   Paper,
 } from "@mui/material";
-import PlacesInput from "components/PlacesInput";
+import AddressFields from "components/AddressFields";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
 import { useState, useEffect } from "react";
@@ -241,65 +238,18 @@ export default function CreateInvoice() {
           }
         }, [selectedAddressIndex, customerAddresses, setFieldValue]);
 
-        // Shared address fields – used in both address-select and manual modes
-        const AddressFields = () => (
+        // Shared address fields – used in both address-select and manual modes.
+        // Kept as a JSX element (stable type) so PlacesInput is not remounted on
+        // re-render (the Vercel "flicker" bug). Fields come from the shared
+        // module-scope <AddressFields> component.
+        const addressFields = (
           <Grid container spacing={{ xs: 1, sm: 2 }}>
-            <Grid item xs={12}>
-              <PlacesInput
-                key="address"
-                id="address"
-                name="address"
-                placeholder="Address"
-                onChange={(newValue, actionMeta) => {
-                  setFieldValue("address", newValue?.value?.description ?? "");
-                  changeAddress(newValue, actionMeta, setFieldValue);
-                }}
-                value={values.address}
-                label="Address"
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={5}>
-              <FormInput
-                key="suburb"
-                id="suburb"
-                name="suburb"
-                placeholder="Suburb"
-                label="Suburb"
-                type="text"
-                value={values.suburb}
-                onChange={(e) => setFieldValue("suburb", e.target.value)}
-              />
-            </Grid>
-
-            <Grid item xs={6} sm={4}>
-              <FormDropdown
-                key="state"
-                id="state"
-                name="state"
-                label="State"
-                useFormattedStrings={false}
-                options={australianStates.map((state) => ({
-                  label: state,
-                  value: state,
-                }))}
-                value={values.state}
-                onChange={(e) => setFieldValue("state", e.target.value)}
-              />
-            </Grid>
-
-            <Grid item xs={6} sm={3}>
-              <FormInput
-                key="postCode"
-                id="postCode"
-                name="postCode"
-                placeholder="Post Code"
-                label="Post Code"
-                type="text"
-                value={values.postCode}
-                onChange={(e) => setFieldValue("postCode", e.target.value)}
-              />
-            </Grid>
+            <AddressFields
+              variant="invoice"
+              values={values}
+              setFieldValue={setFieldValue}
+              changeAddress={changeAddress}
+            />
           </Grid>
         );
 
@@ -682,7 +632,7 @@ export default function CreateInvoice() {
                               )}
                             </Grid>
                             <Grid item xs={12}>
-                              <AddressFields />
+                              {addressFields}
                             </Grid>
                           </Grid>
                         ) : (
@@ -694,7 +644,7 @@ export default function CreateInvoice() {
                                   No addresses found for this customer. Please enter address manually below.
                                 </Alert>
                               )}
-                            <AddressFields />
+                            {addressFields}
                           </Box>
                         )}
                       </Grid>

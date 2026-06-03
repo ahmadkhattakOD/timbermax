@@ -9,7 +9,9 @@
       "Bash(npx vite build:*)",
       "Bash(grep -E \"\\\\.\\(tsx|jsx|ts|js\\)$\")",
       "Bash(xargs ls)",
-      "Bash(git revert *)"
+      "Bash(git revert *)",
+      "Bash(export TMPDIR=/Users/sid/Downloads/Ultramatic-main/.tmp)",
+      "Bash(grep -n \"AddressFields\" src/pages/invoices/edit/edit-invoice.tsx src/pages/quotations/create/create-quotation.tsx src/pages/quotations/edit/edit-quotation.tsx)"
     ]
   }
 }
