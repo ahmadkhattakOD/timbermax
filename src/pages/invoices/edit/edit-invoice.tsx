@@ -76,6 +76,7 @@ export default function EditInvoice() {
     // New properties for address selection
     customerAddresses,
     selectedAddressIndex,
+    isCustomAddress,
     handleAddressSelect,
     customerId,
     // Payment method properties
@@ -96,6 +97,12 @@ export default function EditInvoice() {
     deposit,
     setDeposit,
   } = useEditInvoice(id ? parseInt(id) : 0);
+
+  // When the loaded invoice uses a one-time address not saved on the customer,
+  // open the custom-address UI so the snapshot fields show instead of the dropdown.
+  useEffect(() => {
+    if (isCustomAddress) setCustomAddress(true);
+  }, [isCustomAddress]);
 
   if (loading) {
     return (

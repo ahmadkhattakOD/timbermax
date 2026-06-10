@@ -64,6 +64,7 @@ export default function EditQuotation() {
     // New properties for address selection
     customerAddresses,
     selectedAddressIndex,
+    isCustomAddress,
     handleAddressSelect,
     customerId,
     // Discount properties
@@ -76,6 +77,12 @@ export default function EditQuotation() {
     showDiscountInput,
     setShowDiscountInput,
   } = useEditQuotation(id ? parseInt(id) : 0);
+
+  // When the loaded quotation uses a one-time address not saved on the customer,
+  // open the custom-address UI so the snapshot fields show instead of the dropdown.
+  useEffect(() => {
+    if (isCustomAddress) setCustomAddress(true);
+  }, [isCustomAddress]);
 
   if (loading) {
     return (

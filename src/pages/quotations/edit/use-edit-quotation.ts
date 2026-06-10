@@ -91,6 +91,9 @@ export function useEditQuotation(quotationId: number) {
   // New states for customer addresses
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddressWithSelection[]>([]);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
+  // True when the quotation's saved address is a one-time address not in the
+  // customer's saved list. Drives the edit page into custom-address mode.
+  const [isCustomAddress, setIsCustomAddress] = useState<boolean>(false);
 
   const [initialValues, setInitialValues] = useState<ValuesEditQuotation>({
     quotation_number: "",
@@ -232,6 +235,13 @@ export function useEditQuotation(quotationId: number) {
           post_code: customer.post_code || '',
         };
 
+        const hasSavedAddress = !!(
+          addrToMatch.address ||
+          addrToMatch.suburb ||
+          addrToMatch.state ||
+          addrToMatch.post_code
+        );
+
         const matchingIndex = addresses.findIndex(addr =>
           addr.address === addrToMatch.address &&
           addr.suburb === addrToMatch.suburb &&
@@ -241,10 +251,18 @@ export function useEditQuotation(quotationId: number) {
 
         if (matchingIndex !== -1) {
           setSelectedAddressIndex(matchingIndex);
+          setIsCustomAddress(false);
+        } else if (hasSavedAddress) {
+          // The quotation carries a one-time custom address that isn't in the
+          // customer's saved list. Keep index -1 so the address-populate effect
+          // skips and the saved snapshot is preserved (don't fall back to primary).
+          setSelectedAddressIndex(-1);
+          setIsCustomAddress(true);
         } else if (addresses.length > 0) {
-          // If no exact match, select the primary or first address
+          // No saved snapshot: select the primary or first address
           const primaryIndex = addresses.findIndex(addr => addr.is_primary);
           setSelectedAddressIndex(primaryIndex !== -1 ? primaryIndex : 0);
+          setIsCustomAddress(false);
         }
       }
     } catch (error) {
@@ -902,6 +920,7 @@ export function useEditQuotation(quotationId: number) {
     // New properties for address selection
     customerAddresses,
     selectedAddressIndex,
+    isCustomAddress,
     handleAddressSelect,
     customerId,
     // Discount properties
