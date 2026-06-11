@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Quotation } from "types";
-import { getDateFormatted } from "./helpers";
+import { getDateFormatted, formatFullAddress } from "./helpers";
 import { BRAND_COLORS } from "themes/theme/default";
 
 // Helper function to load and add logo
@@ -78,12 +78,19 @@ const buildQuotationContent = async (doc: jsPDF, quotation: Quotation) => {
   doc.text("BILL TO:", 14, 95);
   doc.setFont("helvetica", "normal");
   doc.text(customer?.name || "N/A", 14, 100);
-  doc.text(quotation.address || "", 14, 105);
-  if (quotation.suburb) {
-    doc.text(`${quotation.suburb} ${quotation.state} ${quotation.post_code}`, 14, 110);
-  }
-  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
-  doc.text(`Email: ${customer?.email || "N/A"}`, 14, 120);
+  const billAddrLines = doc.splitTextToSize(
+    formatFullAddress({
+      address: quotation.address,
+      suburb: quotation.suburb,
+      state: quotation.state,
+      postCode: quotation.post_code,
+    }),
+    110,
+  );
+  doc.text(billAddrLines, 14, 105);
+  let billY = 105 + billAddrLines.length * 5;
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, billY);
+  doc.text(`Email: ${customer?.email || "N/A"}`, 14, billY + 5);
 
   const items = [...(quotation.quotation_items || [])].sort(
     (a: any, b: any) => (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
@@ -205,11 +212,17 @@ const buildDeliveryContent = async (doc: jsPDF, quotation: Quotation) => {
   doc.text("DELIVER TO:", 14, 100);
   doc.setFont("helvetica", "normal");
   doc.text(customer?.name || "N/A", 14, 105);
-  doc.text(quotation.address || "", 14, 110);
-  if (quotation.suburb) {
-    doc.text(`${quotation.suburb} ${quotation.state} ${quotation.post_code}`, 14, 115);
-  }
-  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 120);
+  const delAddrLines = doc.splitTextToSize(
+    formatFullAddress({
+      address: quotation.address,
+      suburb: quotation.suburb,
+      state: quotation.state,
+      postCode: quotation.post_code,
+    }),
+    110,
+  );
+  doc.text(delAddrLines, 14, 110);
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 110 + delAddrLines.length * 5);
 
   const items = [...(quotation.quotation_items || [])].sort(
     (a: any, b: any) => (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
@@ -325,9 +338,14 @@ export const generateQuotationPDFBase64 = async (
     doc.text("BILL TO:", 14, 54);
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 59);
+    const fullAddress = formatFullAddress({
+      address: quotation.address,
+      suburb: quotation.suburb,
+      state: quotation.state,
+      postCode: quotation.post_code,
+    });
     const addressParts = [
-      quotation.address,
-      [quotation.suburb, quotation.state, quotation.post_code].filter(Boolean).join(" "),
+      ...(fullAddress ? (doc.splitTextToSize(fullAddress, 120) as string[]) : []),
       customer?.email ? `Email: ${customer.email}` : null,
       customer?.phone ? `Phone: ${customer.phone}` : null,
     ].filter(Boolean);

@@ -369,6 +369,65 @@ export function parseAddress(address: string): {
   }
 }
 
+export interface AddressInput {
+  address?: string | null;
+  suburb?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postCode?: string | null;
+}
+
+// Returns every spelling of a state we should treat as a duplicate
+// (e.g. "New South Wales" <-> "NSW") so we never print both.
+const getStateVariants = (state: string): string[] => {
+  const trimmed = state.trim();
+  const variants = [trimmed];
+  // full name -> abbreviation
+  const abbrEntry = Object.entries(stateAbbreviations).find(
+    ([, full]) => full.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (abbrEntry) variants.push(abbrEntry[0]);
+  // abbreviation -> full name
+  const full = (stateAbbreviations as Record<string, string>)[trimmed.toUpperCase()];
+  if (full) variants.push(full);
+  return variants;
+};
+
+// Generic address formatter shared by every PDF generator (quotations + invoices).
+// Joins street, suburb, state, country and post code into a single line while
+// dropping any part that is already contained in the address — so a suburb,
+// state, country or postcode that the user typed into the street address is
+// never repeated. All parts are optional. State is matched against both its
+// full name and abbreviation. Country defaults to "Australia".
+//   e.g. "1C Hazel Street, Blair Athol, SA, Australia, 5084"
+export function formatFullAddress(parts: AddressInput): string {
+  const { address, suburb, state, postCode } = parts;
+  const country = parts.country ?? "Australia";
+
+  const result: string[] = [];
+  // Lowercased haystack of everything emitted so far, used for de-duplication.
+  let seen = "";
+
+  const isPresent = (variants: string[]): boolean =>
+    variants.some((v) => v.trim() && seen.includes(v.trim().toLowerCase()));
+
+  const push = (value?: string | null, variants?: string[]) => {
+    const v = (value ?? "").toString().trim();
+    if (!v) return;
+    if (isPresent(variants && variants.length ? variants : [v])) return;
+    result.push(v);
+    seen += ` ${v.toLowerCase()} `;
+  };
+
+  push(address);
+  push(suburb);
+  push(state, state ? getStateVariants(state) : undefined);
+  push(country);
+  push(postCode);
+
+  return result.join(", ");
+}
+
 export const confirmFileSize = (file: File, limit: number = 5) => {
   const maxSizeInBytes = limit * 1000 * 1000;
   return file.size <= maxSizeInBytes;

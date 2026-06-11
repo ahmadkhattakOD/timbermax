@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { BRAND_COLORS } from "themes/theme/default";
-import { getDateFormatted } from "utils/helpers";
+import { getDateFormatted, formatFullAddress } from "utils/helpers";
 import { Invoice } from "types";
 
 // Helper function to load and add logo (same as quotation example)
@@ -157,27 +157,17 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.text("BILL TO:", 14, 100);
   doc.setFont("helvetica", "normal");
   doc.text(customer?.name || "N/A", 14, 106);
-  doc.text(invoice.address || "", 14, 111);
-  const address = (invoice.address || "").toLowerCase();
-  const suburb = (invoice.suburb || "").toLowerCase();
-  const state = (invoice.state || "").toLowerCase();
-  const postCode = (invoice.post_code || "").toLowerCase();
-
-  const addressContainsLocation =
-    address.includes(suburb) ||
-    address.includes(state) ||
-    address.includes(postCode);
-
-  let addrEndY = 116;
-
-  if (invoice.suburb && !addressContainsLocation) {
-    doc.text(
-      `${invoice.suburb} ${invoice.state} ${invoice.post_code}`,
-      14,
-      116,
-    );
-    addrEndY = 121;
-  }
+  const billAddrLines = doc.splitTextToSize(
+    formatFullAddress({
+      address: invoice.address,
+      suburb: invoice.suburb,
+      state: invoice.state,
+      postCode: invoice.post_code,
+    }),
+    110,
+  );
+  doc.text(billAddrLines, 14, 111);
+  const addrEndY = 111 + billAddrLines.length * 5;
   doc.text(
     `Phone: ${customer?.phone || customer?.mobile || "N/A"}`,
     14,
@@ -406,17 +396,14 @@ export const generateInvoicePDFBase64 = async (
     doc.text("BILL TO:", 14, 65);
     doc.setFont("helvetica", "normal");
     doc.text(customer?.name || "N/A", 14, 70);
-    const emailBase64AddrContainsSuburb =
-      invoice.address &&
-      invoice.suburb &&
-      invoice.address.toLowerCase().includes(invoice.suburb.toLowerCase());
+    const fullAddress = formatFullAddress({
+      address: invoice.address,
+      suburb: invoice.suburb,
+      state: invoice.state,
+      postCode: invoice.post_code,
+    });
     const addressParts = [
-      invoice.address,
-      !emailBase64AddrContainsSuburb && invoice.suburb
-        ? [invoice.suburb, invoice.state, invoice.post_code]
-            .filter(Boolean)
-            .join(" ")
-        : null,
+      ...(fullAddress ? (doc.splitTextToSize(fullAddress, 120) as string[]) : []),
       customer?.email ? `Email: ${customer.email}` : null,
       customer?.phone ? `Phone: ${customer.phone}` : null,
     ].filter(Boolean);
@@ -589,11 +576,17 @@ const buildDeliveryNoteContent = async (doc: jsPDF, invoice: Invoice) => {
   doc.text("DELIVER TO:", 14, 95);
   doc.setFont("helvetica", "normal");
   doc.text(customer?.name || "N/A", 14, 100);
-  doc.text(invoice.address || "", 14, 105);
-  if (invoice.suburb) {
-    doc.text(`${invoice.suburb} ${invoice.state} ${invoice.post_code}`, 14, 110);
-  }
-  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 115);
+  const delAddrLines = doc.splitTextToSize(
+    formatFullAddress({
+      address: invoice.address,
+      suburb: invoice.suburb,
+      state: invoice.state,
+      postCode: invoice.post_code,
+    }),
+    110,
+  );
+  doc.text(delAddrLines, 14, 105);
+  doc.text(`Phone: ${customer?.phone || "N/A"}`, 14, 105 + delAddrLines.length * 5);
 
   const items = [...(invoice.invoice_items || [])].sort(
     (a: any, b: any) => (a.sort_order ?? a.id ?? 0) - (b.sort_order ?? b.id ?? 0),
