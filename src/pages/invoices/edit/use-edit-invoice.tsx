@@ -827,6 +827,10 @@ export function useEditInvoice(invoiceId: number) {
                 unit_price: itemUnitPrice,
                 warehouse_id: warehouseId,
                 sort_order: index,
+                item_name: selectedItem.name,
+                item_code: selectedItem.itemCode,
+                item_sell_price: itemUnitPrice,
+                item_gst: selectedItem.gst,
               });
             } else {
               await invoicesRepo.updateItem(invoiceId, itemId, {
@@ -834,6 +838,10 @@ export function useEditInvoice(invoiceId: number) {
                 unit_price: itemUnitPrice,
                 warehouse_id: warehouseId,
                 sort_order: index,
+                item_name: selectedItem.name,
+                item_code: selectedItem.itemCode,
+                item_sell_price: itemUnitPrice,
+                item_gst: selectedItem.gst,
               });
             }
 
@@ -892,6 +900,10 @@ export function useEditInvoice(invoiceId: number) {
               unit_price: itemUnitPrice,
               warehouse_id: warehouseId,
               sort_order: index,
+              item_name: selectedItem.name,
+              item_code: selectedItem.itemCode,
+              item_sell_price: itemUnitPrice,
+              item_gst: selectedItem.gst,
             });
 
             // Reduce stock for new item in specified warehouse
@@ -1052,18 +1064,23 @@ export function useEditInvoice(invoiceId: number) {
                 (a, b) => b.available - a.available,
               );
 
+              // Prefer the frozen snapshot; fall back to the live item join
+              const snapName = item.item_name ?? item.items?.name ?? "";
+              const snapCode = item.item_code ?? item.items?.itemCode ?? "";
+              const snapGst = item.item_gst ?? item.items?.gst ?? false;
+
               return {
                 invoice_item_id: item.id,
                 item_id: item.item_id,
-                name: item.items?.name || "",
-                itemCode: item.items?.itemCode || "",
+                name: snapName,
+                itemCode: snapCode,
                 quantity: item.quantity.toString(),
                 unit_price: item.unit_price.toString(),
-                gst: item.items?.gst || false,
+                gst: snapGst,
                 total: calculateItemTotal({
                   quantity: item.quantity.toString(),
                   unit_price: item.unit_price.toString(),
-                  gst: item.items?.gst || false,
+                  gst: snapGst,
                 }).toString(),
                 warehouse_id: item.warehouse_id || 1,
                 available_warehouses: sortedWarehouses,

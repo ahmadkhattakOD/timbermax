@@ -319,11 +319,11 @@ export function useQuotations() {
       // Format items for display
       const formattedItems = items.map((item: any, index: number) => ({
         id: index + 1,
-        name: item.items?.name || "Unknown",
-        code: item.items?.itemCode || "N/A",
+        name: (item.item_name ?? item.items?.name) || "Unknown",
+        code: (item.item_code ?? item.items?.itemCode) || "N/A",
         quantity: parseFloat(item.quantity) || 0,
         unit_price: parseFloat(item.unit_price) || 0,
-        gst: item?.items?.gst || false,
+        gst: (item.item_gst ?? item?.items?.gst) || false,
       }));
 
       // Calculate totals using utility function
@@ -1585,6 +1585,10 @@ export function useQuotations() {
             unit_price: parseFloat(item.unit_price),
             warehouse_id: item.warehouse_id || 1,
             sort_order: i,
+            item_name: item.item_name ?? item.items?.name,
+            item_code: item.item_code ?? item.items?.itemCode,
+            item_sell_price: item.item_sell_price ?? parseFloat(item.unit_price),
+            item_gst: item.item_gst ?? item.items?.gst,
           });
         }
       }
@@ -2033,7 +2037,7 @@ export function useQuotations() {
       // Create a message with all items
       let itemsMessage = "Items in this quotation:\n\n";
       items.forEach((item: any, index: number) => {
-        itemsMessage += `${index + 1}. ${item.items?.name || "Unknown"} (${item.items?.itemCode || "N/A"})\n`;
+        itemsMessage += `${index + 1}. ${(item.item_name ?? item.items?.name) || "Unknown"} (${(item.item_code ?? item.items?.itemCode) || "N/A"})\n`;
         itemsMessage += `   Quantity: ${item.quantity}\n`;
         itemsMessage += `   Unit Price: $${item.unit_price?.toFixed(2) || "0.00"}\n`;
         itemsMessage += `   Total: $${item.total_price?.toFixed(2) || "0.00"}\n\n`;

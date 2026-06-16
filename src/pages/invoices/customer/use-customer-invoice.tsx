@@ -208,11 +208,11 @@ export function useCustomerInvoices(customerId: number) {
 
       const formattedItems = items.map((item: any, index: number) => ({
         id: index + 1,
-        name: item.items?.name || "Unknown",
-        code: item.items?.itemCode || "N/A",
+        name: item.item_name ?? item.items?.name ?? "Unknown",
+        code: item.item_code ?? item.items?.itemCode ?? "N/A",
         quantity: parseFloat(item.quantity) || 0,
         unitPrice: parseFloat(item.unit_price) || 0,
-        gst: item?.items?.gst || false,
+        gst: item.item_gst ?? item?.items?.gst ?? false,
         total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
       }));
 

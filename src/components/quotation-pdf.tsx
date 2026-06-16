@@ -359,8 +359,9 @@ const QuotationPDF: React.FC<QuotationPDFProps> = ({ quotation }) => {
                     {index + 1}
                   </Text>
                   <Text style={[styles.tableCol, styles.col2]}>
-                    {item.items?.name || "Unnamed Item"}
-                    {item.items?.itemCode && `\nCode: ${item.items.itemCode}`}
+                    {(item as any).item_name ?? item.items?.name ?? "Unnamed Item"}
+                    {((item as any).item_code ?? item.items?.itemCode) &&
+                      `\nCode: ${(item as any).item_code ?? item.items?.itemCode}`}
                     {item.description && `\n${item.description}`}
                   </Text>
                   <Text

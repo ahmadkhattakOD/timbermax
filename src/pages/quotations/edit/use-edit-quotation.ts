@@ -691,6 +691,10 @@ export function useEditQuotation(quotationId: number) {
                 unit_price: itemUnitPrice,
                 warehouse_id: warehouseId,
                 sort_order: index,
+                item_name: selectedItem.name,
+                item_code: selectedItem.itemCode,
+                item_sell_price: itemUnitPrice,
+                item_gst: selectedItem.gst,
               });
             } else {
               await quotationsRepo.updateItem(quotationId, itemId, {
@@ -698,6 +702,10 @@ export function useEditQuotation(quotationId: number) {
                 unit_price: itemUnitPrice,
                 warehouse_id: warehouseId,
                 sort_order: index,
+                item_name: selectedItem.name,
+                item_code: selectedItem.itemCode,
+                item_sell_price: itemUnitPrice,
+                item_gst: selectedItem.gst,
               });
             }
           } else {
@@ -709,6 +717,10 @@ export function useEditQuotation(quotationId: number) {
               unit_price: itemUnitPrice,
               warehouse_id: warehouseId,
               sort_order: index,
+              item_name: selectedItem.name,
+              item_code: selectedItem.itemCode,
+              item_sell_price: itemUnitPrice,
+              item_gst: selectedItem.gst,
             });
 
             // Reserve stock for new item in specified warehouse
@@ -854,15 +866,15 @@ export function useEditQuotation(quotationId: number) {
               return {
                 quotation_item_id: item.id,
                 item_id: item.item_id,
-                name: item.items?.name || "",
-                itemCode: item.items?.itemCode || "",
+                name: (item.item_name ?? item.items?.name) || "",
+                itemCode: (item.item_code ?? item.items?.itemCode) || "",
                 quantity: item.quantity.toString(),
                 unit_price: item.unit_price.toString(),
-                gst: item.items?.gst || false,
+                gst: (item.item_gst ?? item.items?.gst) || false,
                 total: calculateItemTotal({
                   quantity: item.quantity.toString(),
                   unit_price: item.unit_price.toString(),
-                  gst: item.items?.gst || false,
+                  gst: (item.item_gst ?? item.items?.gst) || false,
                 }).toString(),
                 warehouse_id: item.warehouse_id || 1,
                 available_warehouses: sortedWarehouses,

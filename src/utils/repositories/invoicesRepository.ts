@@ -35,6 +35,12 @@ export interface InvoiceItemSupabase {
   unit_price: number;
   warehouse_id?: number;
   sort_order?: number;
+  // Snapshot of the item at the moment the line was added. Persisted so the line
+  // survives intact even if the source item is later edited or deleted.
+  item_name?: string;
+  item_code?: string;
+  item_sell_price?: number;
+  item_gst?: boolean;
 }
 
 class InvoicesRepository {
@@ -129,6 +135,10 @@ ${this.itemsClassName} (
   sort_order,
   quantity,
   unit_price,
+  item_name,
+  item_code,
+  item_sell_price,
+  item_gst,
   items (
     id, name, itemCode, sellPrice,gst
   )
@@ -288,6 +298,7 @@ ${this.itemsClassName} (
          total, discount, discount_type, deposit, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
          ${this.itemsClassName} (
            id, item_id, quantity, unit_price, total_price, warehouse_id, sort_order,
+           item_name, item_code, item_sell_price, item_gst,
            items ( id, name, itemCode, sellPrice, gst )
          )`,
         )
@@ -339,6 +350,11 @@ ${this.itemsClassName} (
           unit_price: item.unit_price,
           warehouse_id: item.warehouse_id || 1, // Default to warehouse 1 if not provided
           sort_order: item.sort_order ?? 0,
+          // Snapshot item details so the line is immune to later item edits/deletes
+          item_name: item.item_name ?? null,
+          item_code: item.item_code ?? null,
+          item_sell_price: item.item_sell_price ?? null,
+          item_gst: item.item_gst ?? null,
         })
         .select();
 
@@ -522,6 +538,10 @@ ${this.itemsClassName} (
           sort_order,
           quantity,
           unit_price,
+          item_name,
+          item_code,
+          item_sell_price,
+          item_gst,
           items (
             id, name, itemCode, sellPrice, gst
           )
@@ -676,7 +696,7 @@ ${this.itemsClassName} (
         .select(
           `
           id, quotation_number, customer_id, total, note,
-          quotation_items ( item_id, quantity, unit_price )
+          quotation_items ( item_id, quantity, unit_price, item_name, item_code, item_sell_price, item_gst )
         `,
         )
         .eq("id", quotationId)
@@ -708,6 +728,10 @@ ${this.itemsClassName} (
             quantity: item.quantity,
             unit_price: item.unit_price,
             sort_order: i,
+            item_name: item.item_name,
+            item_code: item.item_code,
+            item_sell_price: item.item_sell_price,
+            item_gst: item.item_gst,
           });
         }
       }
@@ -738,6 +762,10 @@ ${this.itemsClassName} (
       warehouse_id?: number;
       unit_price: number; // ADD this
       sort_order?: number;
+      item_name?: string;
+      item_code?: string;
+      item_sell_price?: number;
+      item_gst?: boolean;
     }>,
   ) {
     try {
@@ -773,6 +801,10 @@ ${this.itemsClassName} (
           unit_price: item.unit_price || 0, // Use actual unit_price
           warehouse_id: warehouseId,
           sort_order: item.sort_order ?? i,
+          item_name: item.item_name,
+          item_code: item.item_code,
+          item_sell_price: item.item_sell_price,
+          item_gst: item.item_gst,
         });
 
         // Reduce stock

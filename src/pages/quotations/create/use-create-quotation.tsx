@@ -752,6 +752,10 @@ export function useCreateQuotation() {
           unit_price: Number(item.unit_price),
           warehouse_id: item.warehouse_id || 1,
           sort_order: i,
+          item_name: item.name,
+          item_code: item.itemCode,
+          item_sell_price: Number(item.unit_price),
+          item_gst: item.gst,
         });
       }
 

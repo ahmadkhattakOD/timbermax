@@ -40,6 +40,11 @@ export interface QuotationItemSupabase {
   sort_order?: number;
   created_at?: string;
   updated_at?: string;
+  // Snapshot of the item when the line was added; survives item edit/delete.
+  item_name?: string;
+  item_code?: string;
+  item_sell_price?: number;
+  item_gst?: boolean;
 }
 
 class QuotationsRepository {
@@ -114,13 +119,13 @@ class QuotationsRepository {
           customer:customer_id!inner(*),
           quotation_items(
             *,
-            items!inner(
+            items(
               id,
               name,
               itemCode,
               sellPrice
             )
-          )`, // ADDED * to include all fields including warehouse_id
+          )`, // left join (not !inner) so lines whose source item was deleted still appear; snapshot cols come via *
           { count: "exact" },
         )
         .order(orderBy, { ascending: ascending })
@@ -210,7 +215,7 @@ class QuotationsRepository {
           customers!inner(*),
           quotation_items(
             *,
-            items!inner(*)
+            items(*)
           )`,
         )
         .eq("id", id)
@@ -235,7 +240,7 @@ class QuotationsRepository {
         .from(this.itemsClassName)
         .select(
           `*,
-          items!inner(*)`,
+          items(*)`,
         )
         .eq("quotation_id", quotationId)
         .order("sort_order", { ascending: true })
@@ -636,7 +641,7 @@ class QuotationsRepository {
           const quantity = parseFloat(item.quantity);
           const unitPrice = parseFloat(item.unit_price);
           const base = quantity * unitPrice;
-          const gst = item.items?.gst ? base * 0.1 : 0;
+          const gst = (item.item_gst ?? item.items?.gst) ? base * 0.1 : 0;
           totalWithGST += base + gst;
         });
       }

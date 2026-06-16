@@ -184,9 +184,9 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     const quantity = parseFloat(item.quantity) || 0;
     const unitPrice = parseFloat(item.unit_price) || 0;
     const subtotal = quantity * unitPrice;
-    const gst = item.items?.gst || false;
+    const gst = (item.item_gst ?? item.items?.gst) || false;
 
-    const itemName = item.items?.name || "N/A";
+    const itemName = (item.item_name ?? item.items?.name) || "N/A";
     const itemNameWithGst = gst ? `${itemName} *` : itemName;
 
     return [
@@ -207,7 +207,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     const quantity = parseFloat(item.quantity) || 0;
     const unitPrice = parseFloat(item.unit_price) || 0;
     const subtotal = quantity * unitPrice;
-    const gst = item.items?.gst || false;
+    const gst = (item.item_gst ?? item.items?.gst) || false;
     const gstAmount = gst ? subtotal * 0.1 : 0;
 
     totalSubtotal += subtotal;
@@ -421,8 +421,8 @@ export const generateInvoicePDFBase64 = async (
     const tableData = items.map((item: any, index: number) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
-      const gst = item.items?.gst || false;
-      const name = item.items?.name || "N/A";
+      const gst = (item.item_gst ?? item.items?.gst) || false;
+      const name = (item.item_name ?? item.items?.name) || "N/A";
       return [
         index + 1,
         gst ? `${name} *` : name,
@@ -439,7 +439,7 @@ export const generateInvoicePDFBase64 = async (
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
       const sub = qty * price;
-      const gstAmt = item.items?.gst ? sub * 0.1 : 0;
+      const gstAmt = (item.item_gst ?? item.items?.gst) ? sub * 0.1 : 0;
       totalSubtotal += sub;
       totalGST += gstAmt;
       subtotalWithGST += sub + gstAmt;
@@ -593,8 +593,8 @@ const buildDeliveryNoteContent = async (doc: jsPDF, invoice: Invoice) => {
   );
   const tableData = items.map((item: any, index: number) => {
     const quantity = parseFloat(item.quantity) || 0;
-    const gst = item.items?.gst || false;
-    const itemName = item.items?.name || "N/A";
+    const gst = (item.item_gst ?? item.items?.gst) || false;
+    const itemName = (item.item_name ?? item.items?.name) || "N/A";
     return [index + 1, gst ? `${itemName} *` : itemName, quantity.toFixed(2), ""];
   });
 

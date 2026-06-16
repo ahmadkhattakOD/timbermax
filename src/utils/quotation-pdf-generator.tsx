@@ -98,15 +98,15 @@ const buildQuotationContent = async (doc: jsPDF, quotation: Quotation) => {
   const tableData = items.map((item: any, index: number) => {
     const quantity = parseFloat(item.quantity);
     const unitPrice = parseFloat(item.unit_price);
-    const gst = item.items?.gst || false;
-    const itemName = item.items?.name || "N/A";
+    const gst = (item.item_gst ?? item.items?.gst) || false;
+    const itemName = (item.item_name ?? item.items?.name) || "N/A";
     return [index + 1, gst ? `${itemName} *` : itemName, quantity.toFixed(2), `$${unitPrice.toFixed(2)}`, `$${(quantity * unitPrice).toFixed(2)}`];
   });
 
   let totalSubtotal = 0, totalGST = 0, subtotalWithGST = 0;
   items.forEach((item: any) => {
     const qty = parseFloat(item.quantity), price = parseFloat(item.unit_price);
-    const sub = qty * price, gstAmt = item.items?.gst ? sub * 0.1 : 0;
+    const sub = qty * price, gstAmt = (item.item_gst ?? item.items?.gst) ? sub * 0.1 : 0;
     totalSubtotal += sub; totalGST += gstAmt; subtotalWithGST += sub + gstAmt;
   });
 
@@ -229,8 +229,8 @@ const buildDeliveryContent = async (doc: jsPDF, quotation: Quotation) => {
   );
   const tableData = items.map((item: any, index: number) => {
     const qty = parseFloat(item.quantity);
-    const gst = item.items?.gst || false;
-    const name = item.items?.name || "N/A";
+    const gst = (item.item_gst ?? item.items?.gst) || false;
+    const name = (item.item_name ?? item.items?.name) || "N/A";
     return [index + 1, gst ? `${name} *` : name, qty.toFixed(2), ""];
   });
 
@@ -363,8 +363,8 @@ export const generateQuotationPDFBase64 = async (
     const tableData = items.map((item: any, index: number) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
-      const gst = item.items?.gst || false;
-      const name = item.items?.name || "N/A";
+      const gst = (item.item_gst ?? item.items?.gst) || false;
+      const name = (item.item_name ?? item.items?.name) || "N/A";
       return [
         index + 1,
         gst ? `${name} *` : name,
@@ -381,7 +381,7 @@ export const generateQuotationPDFBase64 = async (
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unit_price) || 0;
       const sub = qty * price;
-      const gstAmt = item.items?.gst ? sub * 0.1 : 0;
+      const gstAmt = (item.item_gst ?? item.items?.gst) ? sub * 0.1 : 0;
       totalSubtotal += sub;
       totalGST += gstAmt;
       subtotalWithGST += sub + gstAmt;

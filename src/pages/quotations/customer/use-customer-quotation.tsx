@@ -199,8 +199,8 @@ export function useCustomerQuotations(customerId: number) {
       // Format items for display - EXACTLY LIKE ORIGINAL
       const formattedItems = items.map((item: any, index: number) => ({
         id: index + 1,
-        name: item.items?.name || "Unknown",
-        code: item.items?.itemCode || "N/A",
+        name: (item.item_name ?? item.items?.name) || "Unknown",
+        code: (item.item_code ?? item.items?.itemCode) || "N/A",
         quantity: parseFloat(item.quantity) || 0,
         unitPrice: parseFloat(item.unit_price) || 0,
         total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
@@ -1140,7 +1140,7 @@ export function useCustomerQuotations(customerId: number) {
       // Create a message with all items
       let itemsMessage = "Items in this quotation:\n\n";
       items.forEach((item: any, index: number) => {
-        itemsMessage += `${index + 1}. ${item.items?.name || "Unknown"} (${item.items?.itemCode || "N/A"})\n`;
+        itemsMessage += `${index + 1}. ${(item.item_name ?? item.items?.name) || "Unknown"} (${(item.item_code ?? item.items?.itemCode) || "N/A"})\n`;
         itemsMessage += `   Quantity: ${item.quantity}\n`;
         itemsMessage += `   Unit Price: $${item.unit_price?.toFixed(2) || "0.00"}\n`;
         itemsMessage += `   Total: $${item.total_price?.toFixed(2) || "0.00"}\n\n`;

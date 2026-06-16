@@ -623,11 +623,11 @@ export function useCreateInvoice() {
 
               return {
                 item_id: item.item_id,
-                name: item.items?.name,
-                itemCode: item.items?.itemCode,
+                name: item.item_name ?? item.items?.name,
+                itemCode: item.item_code ?? item.items?.itemCode,
                 quantity: item.quantity,
                 unit_price: item.unit_price,
-                gst: item.items?.gst || false,
+                gst: item.item_gst ?? item.items?.gst ?? false,
                 total: item.total_price,
                 warehouse_id:
                   sortedWarehouses.length > 0
@@ -909,6 +909,10 @@ export function useCreateInvoice() {
             unit_price: Number(item.unit_price),
             warehouse_id: item.warehouse_id || 1,
             sort_order: i,
+            item_name: item.name,
+            item_code: item.itemCode,
+            item_sell_price: Number(item.unit_price),
+            item_gst: item.gst,
           });
         }
 
@@ -962,6 +966,10 @@ export function useCreateInvoice() {
           warehouse_id: item.warehouse_id || 1,
           unit_price: Number(item.unit_price),
           sort_order: index,
+          item_name: item.name,
+          item_code: item.itemCode,
+          item_sell_price: Number(item.unit_price),
+          item_gst: item.gst,
         }));
 
         // Check for low/negative stock items to show warning
