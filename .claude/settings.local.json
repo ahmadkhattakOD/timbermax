@@ -15,7 +15,8 @@
       "Bash(perl -0pi -e 's/item\\\\.items\\\\?\\\\.gst \\\\|\\\\| false/\\(item.item_gst ?? item.items?.gst\\) || false/g; s/item\\\\.items\\\\?\\\\.name \\\\|\\\\| \"N\\\\/A\"/\\(item.item_name ?? item.items?.name\\) || \"N\\\\/A\"/g; s/item\\\\.items\\\\?\\\\.gst \\\\? sub \\\\* 0\\\\.1 : 0/\\(item.item_gst ?? item.items?.gst\\) ? sub * 0.1 : 0/g' src/utils/invoice-pdf-generator.tsx)",
       "Bash(export CLAUDE_CODE_TMPDIR=/Users/sid/Downloads/Ultramatic-main/.tmpgrep)",
       "Bash(grep -rn \"item\\\\.items?\\\\.\\\\|item?\\\\.items?\\\\.\" src)",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

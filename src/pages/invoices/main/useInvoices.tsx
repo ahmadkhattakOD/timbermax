@@ -48,7 +48,6 @@ import {
 } from "@mui/material";
 import { Download, Send, Wallet, Eye, Truck, X, Bell, Code, RotateCcw, Copy, Printer } from "lucide-react";
 import emailjs from "@emailjs/browser";
-import supabase from "utils/supabase";
 import {
   calculateItemTotal,
   calculateTotalBreakdown,
@@ -205,7 +204,6 @@ export function useInvoices() {
   const [emailExtraRecipients, setEmailExtraRecipients] = useState<string[]>([]);
   const [emailPdfBase64, setEmailPdfBase64] = useState<string>("");
   const [emailPdfFileName, setEmailPdfFileName] = useState<string>("");
-  const [emailPdfDownloadUrl, setEmailPdfDownloadUrl] = useState<string>("");
 
   // Action functions
   const goToCreate = () => navigate("/invoices/create");
@@ -1225,7 +1223,6 @@ export function useInvoices() {
     greeting: string,
     main: string,
     closing: string,
-    downloadUrl?: string,
   ): string => {
     triggerType = getEffectiveTriggerType(triggerType, invoice);
     const invNum = invoice.invoice_number || "";
@@ -1240,16 +1237,6 @@ export function useInvoices() {
       text.split(/\n\n/).map((para) =>
         `<p style="${defaultStyle}">${para.replace(/\n/g, "<br/>")}</p>`
       ).join("");
-
-    const downloadSection = downloadUrl
-      ? `<div style="text-align:center;margin:28px 0 8px 0;">
-          <a href="${downloadUrl}" target="_blank"
-             style="background-color:#9C6A3A;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:4px;font-size:15px;font-weight:600;display:inline-block;">
-            Download Invoice PDF
-          </a>
-          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">This download link does not expire</p>
-        </div>`
-      : "";
 
     let infoBox = "";
     if (triggerType === "sent") {
@@ -1286,7 +1273,6 @@ export function useInvoices() {
       <p style="font-size:15px;color:#555;line-height:1.6;">${main}</p>
       ${dueDatePara}
       ${infoBox}
-      ${downloadSection}
       ${textToHtml(closing)}
     `;
 
@@ -1296,7 +1282,6 @@ export function useInvoices() {
   const generateEmailBody = (
     triggerType: EmailTriggerType,
     invoice: any,
-    downloadUrl?: string,
   ): { subject: string; body: string } => {
     const invNum = invoice.invoice_number || "";
     const daysOverdue = invoice.due_date
@@ -1318,43 +1303,8 @@ export function useInvoices() {
 
     return {
       subject,
-      body: buildBodyFromParts(triggerType, invoice, parts.greeting, parts.main, parts.closing, downloadUrl),
+      body: buildBodyFromParts(triggerType, invoice, parts.greeting, parts.main, parts.closing),
     };
-  };
-
-  // Upload base64 PDF to Supabase Storage and return a permanent public URL
-  const uploadPdfToStorage = async (
-    base64DataUri: string,
-    invoiceNumber: string,
-  ): Promise<string | null> => {
-    try {
-      const base64Data = base64DataUri.split(",")[1] || base64DataUri;
-      const binaryStr = atob(base64Data);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const filePath = `invoices/${invoiceNumber}_${Date.now()}.pdf`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("gallery")
-        .upload(filePath, blob, { upsert: true, contentType: "application/pdf" });
-
-      if (uploadError || !uploadData) {
-        console.error("Failed to upload PDF to storage:", uploadError);
-        return null;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from("gallery")
-        .getPublicUrl(uploadData.path); // permanent, never expires
-
-      return urlData?.publicUrl || null;
-    } catch (e) {
-      console.error("Error uploading PDF to storage:", e);
-      return null;
-    }
   };
 
   const openEmailDialog = async (triggerType: EmailTriggerType, row: any) => {
@@ -1372,11 +1322,10 @@ export function useInvoices() {
     setEmailEditMode("preview");
     setEmailPdfBase64("");
     setEmailPdfFileName("");
-    setEmailPdfDownloadUrl("");
     setEmailExtraRecipients(["info@timbermax.com.au"]);
     setEmailDialogOpen(true);
 
-    // Generate compressed PDF, upload to storage, then inject download link into body
+    // Generate the compressed PDF in-memory only — attached directly at send time, never stored
     try {
       const invoicesRepo = new InvoicesRepository();
       const invoiceResponse: any = await invoicesRepo.getSingle(row.id);
@@ -1389,19 +1338,10 @@ export function useInvoices() {
           const fileName = pdfResult.fileName || `invoice_${row.invoice_number}.pdf`;
           setEmailPdfBase64(pdfResult.base64);
           setEmailPdfFileName(fileName);
-
-          // Upload and get a permanent public URL
-          const downloadUrl = await uploadPdfToStorage(pdfResult.base64, row.invoice_number);
-          if (downloadUrl) {
-            setEmailPdfDownloadUrl(downloadUrl);
-            // Re-generate body with the download button injected
-            const { body: updatedBody } = generateEmailBody(triggerType, row, downloadUrl);
-            setEmailBody(updatedBody);
-          }
         }
       }
     } catch (e) {
-      console.error("Failed to generate/upload PDF for email:", e);
+      console.error("Failed to generate PDF for email:", e);
     }
   };
 
@@ -1420,7 +1360,6 @@ export function useInvoices() {
     setEmailExtraRecipients([]);
     setEmailPdfBase64("");
     setEmailPdfFileName("");
-    setEmailPdfDownloadUrl("");
   };
 
   const proceedAfterEmail = async () => {
@@ -1479,12 +1418,24 @@ export function useInvoices() {
 
       const allRecipients = [emailTo, ...emailExtraRecipients.map((e) => e.trim())].filter(Boolean);
 
+      // Raw base64 (strip the "data:application/pdf;...;base64," prefix) for the EmailJS attachment
+      const pdfContent = emailPdfBase64.includes(",")
+        ? emailPdfBase64.split(",")[1]
+        : emailPdfBase64;
+
       await Promise.all(
         allRecipients.map((recipient) =>
           emailjs.send(
             import.meta.env.VITE_EMAILJS_SERVICE_ID,
             import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-            { to_email: recipient, subject: emailSubject, body: emailBody },
+            {
+              to_email: recipient,
+              subject: emailSubject,
+              body: emailBody,
+              // Variable attachment — declared in the EmailJS template settings
+              content: pdfContent,
+              file_name: emailPdfFileName || "invoice.pdf",
+            },
             import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
           )
         )
@@ -1646,14 +1597,12 @@ export function useInvoices() {
                     {emailPdfFileName || "Invoice PDF"}
                   </Typography>
                   <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)" }}>
-                    {emailPdfDownloadUrl
-                      ? "Download link ready — included in email body"
-                      : emailPdfBase64
-                      ? "Uploading to get download link…"
+                    {emailPdfBase64
+                      ? "Ready — attached directly to this email"
                       : "Generating PDF…"}
                   </Typography>
                 </Box>
-                {emailPdfDownloadUrl ? (
+                {emailPdfBase64 ? (
                   <Button
                     size="small"
                     variant="outlined"
@@ -1677,7 +1626,7 @@ export function useInvoices() {
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <CircularProgress size={16} sx={{ color: "#fff" }} />
                     <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>
-                      {emailPdfBase64 ? "Uploading…" : "Generating…"}
+                      Generating…
                     </Typography>
                   </Box>
                 )}
@@ -1748,7 +1697,6 @@ export function useInvoices() {
                         setEmailBody(buildBodyFromParts(
                           emailTriggerType, emailInvoiceData,
                           e.target.value, emailFriendlyMain, emailFriendlyClosing,
-                          emailPdfDownloadUrl || undefined,
                         ));
                       }
                     }}
@@ -1765,7 +1713,6 @@ export function useInvoices() {
                         setEmailBody(buildBodyFromParts(
                           emailTriggerType, emailInvoiceData,
                           emailFriendlyGreeting, e.target.value, emailFriendlyClosing,
-                          emailPdfDownloadUrl || undefined,
                         ));
                       }
                     }}
@@ -1784,7 +1731,6 @@ export function useInvoices() {
                         setEmailBody(buildBodyFromParts(
                           emailTriggerType, emailInvoiceData,
                           emailFriendlyGreeting, emailFriendlyMain, e.target.value,
-                          emailPdfDownloadUrl || undefined,
                         ));
                       }
                     }}
@@ -1864,7 +1810,7 @@ export function useInvoices() {
             <Button
               onClick={sendEmail}
               variant="contained"
-              disabled={emailSending || !emailTo || !emailPdfDownloadUrl}
+              disabled={emailSending || !emailTo || !emailPdfBase64}
               startIcon={emailSending ? <CircularProgress size={16} /> : <Send size={16} />}
               sx={{
                 textTransform: "none",
@@ -1893,7 +1839,6 @@ export function useInvoices() {
       emailExtraRecipients,
       emailPdfBase64,
       emailPdfFileName,
-      emailPdfDownloadUrl,
     ]
   );
 

@@ -38,7 +38,6 @@ import {
   printQuotationDeliveryNote,
 } from "utils/quotation-pdf-generator";
 import emailjs from "@emailjs/browser";
-import supabase from "utils/supabase";
 import { Quotation } from "types";
 import {
   getDateFormatted,
@@ -249,7 +248,6 @@ export function useQuotations() {
   const [emailExtraRecipients, setEmailExtraRecipients] = useState<string[]>([]);
   const [emailPdfBase64, setEmailPdfBase64] = useState<string>("");
   const [emailPdfFileName, setEmailPdfFileName] = useState<string>("");
-  const [emailPdfDownloadUrl, setEmailPdfDownloadUrl] = useState<string>("");
   const [emailIsResend, setEmailIsResend] = useState(false);
 
   function goToCreate() {
@@ -810,7 +808,6 @@ export function useQuotations() {
     greeting: string,
     main: string,
     closing: string,
-    downloadUrl?: string,
   ): string => {
     const quotNum = quotation.quotation_number || "";
     const total = `$${(Number(quotation.total) || 0).toFixed(2)}`;
@@ -820,16 +817,6 @@ export function useQuotations() {
       text.split(/\n\n/).map((para) =>
         `<p style="font-size:15px;color:#555;line-height:1.6;">${para.replace(/\n/g, "<br/>")}</p>`
       ).join("");
-
-    const downloadSection = downloadUrl
-      ? `<div style="text-align:center;margin:28px 0 8px 0;">
-          <a href="${downloadUrl}" target="_blank"
-             style="background-color:#9C6A3A;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:4px;font-size:15px;font-weight:600;display:inline-block;">
-            Download Quotation PDF
-          </a>
-          <p style="font-size:11px;color:#aaa;margin:6px 0 0 0;">This download link does not expire</p>
-        </div>`
-      : "";
 
     const infoBox = `<div style="background-color:#fdf6ef;border-left:4px solid #9C6A3A;padding:16px;margin:24px 0;border-radius:4px;">
       <p style="margin:0;font-size:14px;color:#333;">
@@ -842,7 +829,6 @@ export function useQuotations() {
       <p style="font-size:16px;color:#333;">${greeting}</p>
       <p style="font-size:15px;color:#555;line-height:1.6;">${main}</p>
       ${infoBox}
-      ${downloadSection}
       ${textToHtml(closing)}
     `;
 
@@ -851,48 +837,13 @@ export function useQuotations() {
 
   const generateQuotationEmailBody = (
     quotation: any,
-    downloadUrl?: string,
   ): { subject: string; body: string } => {
     const quotNum = quotation.quotation_number || "";
     const parts = getQuotationFriendlyParts(quotation);
     return {
       subject: `Quotation ${quotNum} from Timber Max Supply`,
-      body: buildQuotationBodyFromParts(quotation, parts.greeting, parts.main, parts.closing, downloadUrl),
+      body: buildQuotationBodyFromParts(quotation, parts.greeting, parts.main, parts.closing),
     };
-  };
-
-  const uploadQuotationPdfToStorage = async (
-    base64DataUri: string,
-    quotationNumber: string,
-  ): Promise<string | null> => {
-    try {
-      const base64Data = base64DataUri.split(",")[1] || base64DataUri;
-      const binaryStr = atob(base64Data);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const filePath = `quotations/${quotationNumber}_${Date.now()}.pdf`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("gallery")
-        .upload(filePath, blob, { upsert: true, contentType: "application/pdf" });
-
-      if (uploadError || !uploadData) {
-        console.error("Failed to upload quotation PDF to storage:", uploadError);
-        return null;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from("gallery")
-        .getPublicUrl(uploadData.path); // permanent, never expires
-
-      return urlData?.publicUrl || null;
-    } catch (e) {
-      console.error("Error uploading quotation PDF to storage:", e);
-      return null;
-    }
   };
 
   const openQuotationEmailDialog = async (row: any, resend = false) => {
@@ -913,9 +864,9 @@ export function useQuotations() {
     setEmailExtraRecipients([]);
     setEmailPdfBase64("");
     setEmailPdfFileName("");
-    setEmailPdfDownloadUrl("");
     setEmailDialogOpen(true);
 
+    // Generate the compressed PDF in-memory only — attached directly at send time, never stored
     try {
       const quotationsRepo = new QuotationsRepository();
       const quotationResponse = await quotationsRepo.getSingle(row.id);
@@ -929,17 +880,10 @@ export function useQuotations() {
           const fileName = pdfResult.fileName || `quotation_${row.quotation_number}.pdf`;
           setEmailPdfBase64(pdfResult.base64);
           setEmailPdfFileName(fileName);
-
-          const downloadUrl = await uploadQuotationPdfToStorage(pdfResult.base64, row.quotation_number);
-          if (downloadUrl) {
-            setEmailPdfDownloadUrl(downloadUrl);
-            const { body: updatedBody } = generateQuotationEmailBody(row, downloadUrl);
-            setEmailBody(updatedBody);
-          }
         }
       }
     } catch (e) {
-      console.error("Failed to generate/upload quotation PDF for email:", e);
+      console.error("Failed to generate quotation PDF for email:", e);
     }
   };
 
@@ -957,7 +901,6 @@ export function useQuotations() {
     setEmailExtraRecipients([]);
     setEmailPdfBase64("");
     setEmailPdfFileName("");
-    setEmailPdfDownloadUrl("");
     setEmailIsResend(false);
   };
 
@@ -1003,12 +946,25 @@ export function useQuotations() {
       setEmailSending(true);
       const rawRecipients = [emailTo, ...emailExtraRecipients.map((e) => e.trim()), MANDATORY_QUOTATION_CC].filter(Boolean);
       const allRecipients = Array.from(new Set(rawRecipients.map((e) => e.toLowerCase())));
+
+      // Raw base64 (strip the "data:application/pdf;...;base64," prefix) for the EmailJS attachment
+      const pdfContent = emailPdfBase64.includes(",")
+        ? emailPdfBase64.split(",")[1]
+        : emailPdfBase64;
+
       await Promise.all(
         allRecipients.map((recipient) =>
           emailjs.send(
             import.meta.env.VITE_EMAILJS_SERVICE_ID,
             import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-            { to_email: recipient, subject: emailSubject, body: emailBody },
+            {
+              to_email: recipient,
+              subject: emailSubject,
+              body: emailBody,
+              // Variable attachment — declared in the EmailJS template settings
+              content: pdfContent,
+              file_name: emailPdfFileName || "quotation.pdf",
+            },
             import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
           )
         )
@@ -1149,14 +1105,12 @@ export function useQuotations() {
                   {emailPdfFileName || "Quotation PDF"}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)" }}>
-                  {emailPdfDownloadUrl
-                    ? "Download link ready — included in email body"
-                    : emailPdfBase64
-                    ? "Uploading to get download link…"
+                  {emailPdfBase64
+                    ? "Ready — attached directly to this email"
                     : "Generating PDF…"}
                 </Typography>
               </Box>
-              {emailPdfDownloadUrl ? (
+              {emailPdfBase64 ? (
                 <Button
                   size="small"
                   variant="outlined"
@@ -1180,7 +1134,7 @@ export function useQuotations() {
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <CircularProgress size={16} sx={{ color: "#fff" }} />
                   <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>
-                    {emailPdfBase64 ? "Uploading…" : "Generating…"}
+                    Generating…
                   </Typography>
                 </Box>
               )}
@@ -1251,7 +1205,6 @@ export function useQuotations() {
                       setEmailBody(buildQuotationBodyFromParts(
                         emailQuotationData,
                         e.target.value, emailFriendlyMain, emailFriendlyClosing,
-                        emailPdfDownloadUrl || undefined,
                       ));
                     }
                   }}
@@ -1268,7 +1221,6 @@ export function useQuotations() {
                       setEmailBody(buildQuotationBodyFromParts(
                         emailQuotationData,
                         emailFriendlyGreeting, e.target.value, emailFriendlyClosing,
-                        emailPdfDownloadUrl || undefined,
                       ));
                     }
                   }}
@@ -1287,7 +1239,6 @@ export function useQuotations() {
                       setEmailBody(buildQuotationBodyFromParts(
                         emailQuotationData,
                         emailFriendlyGreeting, emailFriendlyMain, e.target.value,
-                        emailPdfDownloadUrl || undefined,
                       ));
                     }
                   }}
@@ -1365,7 +1316,7 @@ export function useQuotations() {
           <Button
             onClick={sendQuotationEmail}
             variant="contained"
-            disabled={emailSending || !emailTo || !emailPdfDownloadUrl}
+            disabled={emailSending || !emailTo || !emailPdfBase64}
             startIcon={emailSending ? <CircularProgress size={16} /> : <SendIcon size={16} />}
             sx={{
               textTransform: "none",
@@ -1392,7 +1343,6 @@ export function useQuotations() {
       emailExtraRecipients,
       emailPdfBase64,
       emailPdfFileName,
-      emailPdfDownloadUrl,
       emailIsResend,
     ]
   );
