@@ -531,3 +531,149 @@ export const printQuotationDeliveryNote = async (
     return { success: false, error: error.message };
   }
 };
+// ==================== CUSTOMER QUOTATION REPORT PDF ====================
+
+export interface QuotationReportPdfData {
+  customerName: string;
+  customerId: number;
+  rangeLabel: string;
+  summary: {
+    count: number;
+    grandTotal: number;
+    approvedTotal: number;
+    approvedCount: number;
+    pendingTotal: number;
+    pendingCount: number;
+    convertedTotal: number;
+    convertedCount: number;
+    cancelledTotal: number;
+    cancelledCount: number;
+    itemsTotal: number;
+    byStatus: Record<string, { count: number; total: number }>;
+  };
+  rows: any[];
+}
+
+const capQuote = (s: string) =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+export const generateCustomerQuotationReportPDF = async (
+  report: QuotationReportPdfData,
+): Promise<{ success: boolean; fileName?: string; error?: string }> => {
+  try {
+    const doc = new jsPDF();
+    await addCompanyLogo(doc, 14, 20);
+
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("QUOTATION REPORT", 105, 45, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(COMPANY_INFO.name, 14, 60);
+    doc.text(`ABN: ${COMPANY_INFO.abn}`, 14, 65);
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, 14, 70);
+    doc.text(`Email: ${COMPANY_INFO.email}`, 14, 75);
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`Customer: ${report.customerName || "N/A"}`, 196, 60, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(`Period: ${report.rangeLabel}`, 196, 65, { align: "right" });
+    doc.text(`Generated: ${getDateFormatted(new Date())}`, 196, 70, {
+      align: "right",
+    });
+
+    const s = report.summary;
+    doc.setDrawColor(...(BRAND_COLORS.tableBorder as [number, number, number]));
+    doc.setFillColor(253, 246, 239);
+    doc.roundedRect(14, 88, 182, 26, 2, 2, "FD");
+
+    const summaryCells: [string, string][] = [
+      ["Total (excl. cancelled)", `$${s.grandTotal.toFixed(2)}`],
+      ["Approved", `$${s.approvedTotal.toFixed(2)} (${s.approvedCount})`],
+      ["Pending", `$${s.pendingTotal.toFixed(2)} (${s.pendingCount})`],
+      ["Quotations", `${s.count} (${s.itemsTotal} items)`],
+    ];
+    const colW = 182 / 4;
+    summaryCells.forEach((cell, i) => {
+      const x = 14 + colW * i + 4;
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.setFont("helvetica", "normal");
+      doc.text(cell[0], x, 96);
+      doc.setFontSize(12);
+      doc.setTextColor(...(BRAND_COLORS.primary as [number, number, number]));
+      doc.setFont("helvetica", "bold");
+      doc.text(cell[1], x, 104);
+    });
+    doc.setTextColor(...(BRAND_COLORS.textDark as [number, number, number]));
+
+    const tableData = report.rows.map((q: any) => [
+      q.quotation_number ?? "",
+      getDateFormatted(q.created_at),
+      capQuote(q.status ?? ""),
+      String(q.quotation_items?.length || 0),
+      `$${(Number(q.total) || 0).toFixed(2)}`,
+    ]);
+
+    autoTable(doc, {
+      startY: 120,
+      head: [["Quotation #", "Date", "Status", "Items", "Total"]],
+      body: tableData,
+      foot: [
+        [
+          { content: "Total", colSpan: 4, styles: { halign: "right" } } as any,
+          `$${s.grandTotal.toFixed(2)}`,
+        ],
+      ],
+      theme: "grid",
+      showHead: "everyPage",
+      margin: { top: 14, right: 14, bottom: 12, left: 14 },
+      headStyles: {
+        fillColor: BRAND_COLORS.primary as any,
+        textColor: 255,
+        fontSize: 8,
+      },
+      footStyles: {
+        fillColor: [245, 240, 235] as any,
+        textColor: BRAND_COLORS.textDark as any,
+        fontStyle: "bold",
+        fontSize: 9,
+      },
+      styles: {
+        fontSize: 8,
+        lineColor: BRAND_COLORS.tableBorder as any,
+        textColor: BRAND_COLORS.textDark as any,
+      },
+      columnStyles: {
+        0: { cellWidth: 36 },
+        3: { halign: "center" },
+        4: { halign: "right" },
+      },
+    });
+
+    let finalY = (doc as any).lastAutoTable.finalY + 8;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(
+      `Total excludes cancelled quotations. Cancelled: $${s.cancelledTotal.toFixed(
+        2,
+      )} (${s.cancelledCount}). Converted: $${s.convertedTotal.toFixed(2)} (${
+        s.convertedCount
+      }).`,
+      14,
+      finalY,
+    );
+
+    const fileName = `report_quotations_customer_${
+      report.customerId
+    }_${getDateFormatted(new Date()).replace(/-/g, "")}.pdf`;
+    doc.save(fileName);
+    return { success: true, fileName };
+  } catch (error: any) {
+    console.error("Error generating quotation report PDF:", error);
+    return { success: false, error: error.message };
+  }
+};

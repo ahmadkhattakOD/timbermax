@@ -21,7 +21,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { Download, Truck, Send, Wallet, FileText, X } from "lucide-react";
+import { Download, Truck, Send, Wallet, FileText, X, BarChart3 } from "lucide-react";
 import { useCustomerInvoices } from "./use-customer-invoice";
 
 export default function CustomerInvoices() {
@@ -141,6 +141,14 @@ export default function CustomerInvoices() {
                 Delete ({selected.length})
               </Button>
             )}
+            <Button
+              variant="outlined"
+              startIcon={<BarChart3 size={18} />}
+              onClick={() => navigate(`/invoices/customer/${id}/report`)}
+              sx={{ gap: 1 }}
+            >
+              View Report
+            </Button>
             <ActionButton
               text="Go to All Invoices"
               onClick={() => navigate("/invoices")}

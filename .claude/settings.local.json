@@ -16,7 +16,8 @@
       "Bash(export CLAUDE_CODE_TMPDIR=/Users/sid/Downloads/Ultramatic-main/.tmpgrep)",
       "Bash(grep -rn \"item\\\\.items?\\\\.\\\\|item?\\\\.items?\\\\.\" src)",
       "Bash(echo \"exit=$?\")",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(git add *)"
     ]
   }
 }

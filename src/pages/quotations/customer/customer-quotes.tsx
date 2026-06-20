@@ -13,7 +13,8 @@ import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Typography } from "@mui/material";
+import { Typography, Button } from "@mui/material";
+import { BarChart3 } from "lucide-react";
 import { useCustomerQuotations } from "./use-customer-quotation";
 
 export default function CustomerQuotations() {
@@ -85,6 +86,14 @@ export default function CustomerQuotations() {
       <CreateAndFiltersLayout
         actionButton={
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <Button
+              variant="outlined"
+              startIcon={<BarChart3 size={18} />}
+              onClick={() => navigate(`/quotations/customer/${id}/report`)}
+              sx={{ gap: 1 }}
+            >
+              View Report
+            </Button>
             <ActionButton
               text="Go to customers"
               onClick={() => navigate("/customers")}

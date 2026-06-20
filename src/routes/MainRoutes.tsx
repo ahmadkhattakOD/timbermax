@@ -54,7 +54,9 @@ import Quotations from "pages/quotations/quotation";
 import EditQuotation from "pages/quotations/edit/edit-quotation";
 import EditInvoice from "pages/invoices/edit/edit-invoice";
 import CustomerQuotations from "pages/quotations/customer/customer-quotes";
+import CustomerQuotationReport from "pages/quotations/report/customer-quotation-report";
 import CustomerInvoices from "pages/invoices/customer/customer-invoice";
+import CustomerReport from "pages/invoices/report/customer-report";
 
 const MaintenanceError = Loadable(
   lazy(() => import("pages/maintenance/error/404"))
@@ -125,6 +127,10 @@ const MainRoutes = {
         {
           path: "quotations/customer/:id",
           element: <CustomerQuotations />,
+        },
+        {
+          path: "quotations/customer/:id/report",
+          element: <CustomerQuotationReport />,
         },
       ],
     },
@@ -365,6 +371,10 @@ const MainRoutes = {
         {
           path: "invoices/customer/:id",
           element: <CustomerInvoices />,
+        },
+        {
+          path: "invoices/customer/:id/report",
+          element: <CustomerReport />,
         },
       ],
     },
