@@ -719,6 +719,8 @@ export interface ReportPdfData {
   summary: {
     count: number;
     grandTotal: number;
+    subtotalTotal: number;
+    gstTotal: number;
     paidTotal: number;
     paidCount: number;
     outstandingTotal: number;
@@ -745,7 +747,7 @@ export const generateCustomerReportPDF = async (
     // Title
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("INVOICE REPORT", 105, 45, { align: "center" });
+    doc.text("CUSTOMER INVOICE STATEMENT", 105, 45, { align: "center" });
 
     // Company info (left)
     doc.setFontSize(10);
@@ -773,10 +775,10 @@ export const generateCustomerReportPDF = async (
     doc.roundedRect(14, 88, 182, 26, 2, 2, "FD");
 
     const summaryCells: [string, string][] = [
-      ["Total (excl. cancelled)", `$${s.grandTotal.toFixed(2)}`],
-      ["Paid", `$${s.paidTotal.toFixed(2)} (${s.paidCount})`],
-      ["Outstanding", `$${s.outstandingTotal.toFixed(2)} (${s.outstandingCount})`],
-      ["Invoices", `${s.count} (${s.itemsTotal} items)`],
+      ["Total Invoiced", `$${s.grandTotal.toFixed(2)}`],
+      ["Amount Paid", `$${s.paidTotal.toFixed(2)} (${s.paidCount})`],
+      ["Balance Due", `$${s.outstandingTotal.toFixed(2)} (${s.outstandingCount})`],
+      ["Invoices / Items", `${s.count} (${s.itemsTotal} items)`],
     ];
     const colW = 182 / 4;
     summaryCells.forEach((cell, i) => {
@@ -806,7 +808,7 @@ export const generateCustomerReportPDF = async (
     autoTable(doc, {
       startY: 120,
       head: [
-        ["Invoice #", "Date", "Status", "Delivery", "Items", "Deposit", "Total"],
+        ["Invoice No.", "Invoice Date", "Status", "Fulfilment", "Items", "Payments / Deposit", "Invoice Total"],
       ],
       body: tableData,
       foot: [
@@ -843,17 +845,43 @@ export const generateCustomerReportPDF = async (
       },
     });
 
+    // Subtotal / GST / Grand Total breakdown (right-aligned)
+    let totalsY = checkAndAddPage(doc, (doc as any).lastAutoTable.finalY + 8, 24);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Subtotal:", 140, totalsY);
+    doc.text(`$${s.subtotalTotal.toFixed(2)}`, 196, totalsY, { align: "right" });
+    totalsY += 6;
+    doc.text("GST:", 140, totalsY);
+    doc.text(`$${s.gstTotal.toFixed(2)}`, 196, totalsY, { align: "right" });
+    totalsY += 6;
+    doc.setFont("helvetica", "bold");
+    doc.text("Grand Total:", 140, totalsY);
+    doc.text(`$${s.grandTotal.toFixed(2)}`, 196, totalsY, { align: "right" });
+
     // Cancelled note
-    let finalY = (doc as any).lastAutoTable.finalY + 8;
+    let finalY = checkAndAddPage(doc, totalsY + 8, 12);
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.text(
-      `Total excludes cancelled invoices. Cancelled: $${s.cancelledTotal.toFixed(
+      `Cancelled invoices are excluded from this statement. Cancelled total: $${s.cancelledTotal.toFixed(
         2,
-      )} (${s.cancelledCount}).`,
+      )} across ${s.cancelledCount} invoices.`,
       14,
       finalY,
     );
+
+    // Bank Details — same block as a normal invoice; new page if it won't fit
+    let bankY = checkAndAddPage(doc, finalY + 12, 42);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bank Details:", 14, bankY);
+    doc.setFont("helvetica", "normal");
+    doc.text("Bank Detail: Commonwealth Bank", 14, bankY + 7);
+    doc.text("Account Name: Timbermax Supply Pty Ltd", 14, bankY + 14);
+    doc.text("BSB No: 065 167", 14, bankY + 21);
+    doc.text("Account Number: 1056 5353", 14, bankY + 28);
+    doc.text("Reference: " + (report.customerName || "N/A"), 14, bankY + 35);
 
     const fileName = `report_customer_${report.customerId}_${getDateFormatted(
       new Date(),

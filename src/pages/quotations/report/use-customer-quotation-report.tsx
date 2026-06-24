@@ -73,6 +73,8 @@ export const resolvePreset = (
 export interface QuotationReportSummary {
   count: number;
   grandTotal: number;
+  subtotalTotal: number; // sum of item subtotals (ex GST), excl. cancelled
+  gstTotal: number; // sum of GST (10% on GST items), excl. cancelled
   approvedTotal: number;
   approvedCount: number;
   pendingTotal: number;
@@ -88,6 +90,8 @@ export interface QuotationReportSummary {
 const emptySummary: QuotationReportSummary = {
   count: 0,
   grandTotal: 0,
+  subtotalTotal: 0,
+  gstTotal: 0,
   approvedTotal: 0,
   approvedCount: 0,
   pendingTotal: 0,
@@ -98,6 +102,22 @@ const emptySummary: QuotationReportSummary = {
   cancelledCount: 0,
   itemsTotal: 0,
   byStatus: {},
+};
+
+// Per-quotation GST + ex-GST subtotal, mirroring the quotation PDF (10% on GST items)
+const quotationGstBreakdown = (q: any): { subtotal: number; gst: number } => {
+  const items = q.quotation_items || [];
+  let subtotal = 0;
+  let gst = 0;
+  items.forEach((item: any) => {
+    const qty = parseFloat(item.quantity) || 0;
+    const unitPrice = parseFloat(item.unit_price) || 0;
+    const lineSub = qty * unitPrice;
+    const hasGst = (item.item_gst ?? item.items?.gst) || false;
+    subtotal += lineSub;
+    gst += hasGst ? lineSub * 0.1 : 0;
+  });
+  return { subtotal, gst };
 };
 
 export function useCustomerQuotationReport(customerId: number) {
@@ -189,6 +209,9 @@ export function useCustomerQuotationReport(customerId: number) {
 
         if (status !== "cancelled") {
           acc.grandTotal += total;
+          const { subtotal, gst } = quotationGstBreakdown(q);
+          acc.subtotalTotal += subtotal;
+          acc.gstTotal += gst;
         }
         if (approvedStatuses.includes(status)) {
           acc.approvedTotal += total;
@@ -234,9 +257,9 @@ export function useCustomerQuotationReport(customerId: number) {
 
   const rangeLabel = useMemo(() => {
     if (!range.from && !range.to) return "All time";
-    const from = range.from ? getDateFormatted(range.from) : "…";
-    const to = range.to ? getDateFormatted(range.to) : "…";
-    return `${from} → ${to}`;
+    const from = range.from ? getDateFormatted(range.from) : "start";
+    const to = range.to ? getDateFormatted(range.to) : "today";
+    return `${from} to ${to}`;
   }, [range.from, range.to]);
 
   const downloadCsv = () => {

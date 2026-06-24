@@ -225,7 +225,7 @@ export default function CustomerReport() {
           >
             <Box>
               <Typography variant="h5" fontWeight={700}>
-                Invoice Report
+                Customer Invoice Statement
               </Typography>
               <Typography variant="body1" sx={{ mt: 0.5 }}>
                 {customerName || "Customer"}
@@ -233,7 +233,7 @@ export default function CustomerReport() {
             </Box>
             <Box sx={{ textAlign: "right" }}>
               <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                Period
+                Statement Period
               </Typography>
               <Typography variant="subtitle1" fontWeight={700}>
                 {rangeLabel}
@@ -255,7 +255,7 @@ export default function CustomerReport() {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={6} md={3}>
                 <SummaryCard
-                  label="Total (excl. cancelled)"
+                  label="Total Invoiced"
                   value={formatCurrency(summary.grandTotal)}
                   accent={ACCENT}
                   highlight
@@ -263,7 +263,7 @@ export default function CustomerReport() {
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <SummaryCard
-                  label="Paid"
+                  label="Amount Paid"
                   value={formatCurrency(summary.paidTotal)}
                   sub={`${summary.paidCount} invoice(s)`}
                   accent="#2e7d32"
@@ -271,7 +271,7 @@ export default function CustomerReport() {
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <SummaryCard
-                  label="Outstanding"
+                  label="Balance Due"
                   value={formatCurrency(summary.outstandingTotal)}
                   sub={`${summary.outstandingCount} invoice(s)`}
                   accent="#0288d1"
@@ -279,7 +279,7 @@ export default function CustomerReport() {
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <SummaryCard
-                  label="Invoices"
+                  label="Invoices / Items"
                   value={String(summary.count)}
                   sub={`${summary.itemsTotal} item(s)`}
                   accent="#616161"
@@ -334,13 +334,13 @@ export default function CustomerReport() {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ "& th": { fontWeight: 700 } }}>
-                    <TableCell>Invoice #</TableCell>
-                    <TableCell>Date</TableCell>
+                    <TableCell>Invoice No.</TableCell>
+                    <TableCell>Invoice Date</TableCell>
                     <TableCell>Status</TableCell>
-                    <TableCell>Delivery</TableCell>
+                    <TableCell>Fulfilment</TableCell>
                     <TableCell align="center">Items</TableCell>
-                    <TableCell align="right">Deposit</TableCell>
-                    <TableCell align="right">Total</TableCell>
+                    <TableCell align="right">Payments / Deposit</TableCell>
+                    <TableCell align="right">Invoice Total</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -419,6 +419,61 @@ export default function CustomerReport() {
               </Table>
             </TableContainer>
 
+            {/* Subtotal / GST / Grand Total breakdown */}
+            {data.length > 0 && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  mt: 2,
+                }}
+              >
+                <Box sx={{ minWidth: 260 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      py: 0.5,
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      Subtotal
+                    </Typography>
+                    <Typography variant="body2">
+                      {formatCurrency(summary.subtotalTotal)}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      py: 0.5,
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      GST
+                    </Typography>
+                    <Typography variant="body2">
+                      {formatCurrency(summary.gstTotal)}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ my: 0.5 }} />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      py: 0.5,
+                    }}
+                  >
+                    <Typography fontWeight={700}>Grand Total</Typography>
+                    <Typography fontWeight={700} sx={{ color: ACCENT }}>
+                      {formatCurrency(summary.grandTotal)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
             <Typography
               variant="caption"
               color="text.secondary"
@@ -428,9 +483,9 @@ export default function CustomerReport() {
                 size={12}
                 style={{ verticalAlign: "middle", marginRight: 4 }}
               />
-              Total excludes cancelled invoices. Cancelled:{" "}
-              {formatCurrency(summary.cancelledTotal)} ({summary.cancelledCount}
-              ).
+              Cancelled invoices are excluded from this statement. Cancelled
+              total: {formatCurrency(summary.cancelledTotal)} across{" "}
+              {summary.cancelledCount} invoices.
             </Typography>
           </Box>
         )}

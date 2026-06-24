@@ -76,6 +76,8 @@ export const resolvePreset = (
 export interface ReportSummary {
   count: number;
   grandTotal: number;
+  subtotalTotal: number; // sum of item subtotals (ex GST), excl. cancelled
+  gstTotal: number; // sum of GST (10% on GST items), excl. cancelled
   paidTotal: number;
   paidCount: number;
   outstandingTotal: number;
@@ -93,6 +95,8 @@ export interface ReportSummary {
 const emptySummary: ReportSummary = {
   count: 0,
   grandTotal: 0,
+  subtotalTotal: 0,
+  gstTotal: 0,
   paidTotal: 0,
   paidCount: 0,
   outstandingTotal: 0,
@@ -102,6 +106,22 @@ const emptySummary: ReportSummary = {
   depositTotal: 0,
   itemsTotal: 0,
   byStatus: {},
+};
+
+// Per-invoice GST + ex-GST subtotal, mirroring the invoice PDF (10% on GST items)
+const invoiceGstBreakdown = (inv: any): { subtotal: number; gst: number } => {
+  const items = inv.invoice_items || [];
+  let subtotal = 0;
+  let gst = 0;
+  items.forEach((item: any) => {
+    const qty = parseFloat(item.quantity) || 0;
+    const unitPrice = parseFloat(item.unit_price) || 0;
+    const lineSub = qty * unitPrice;
+    const hasGst = (item.item_gst ?? item.items?.gst) || false;
+    subtotal += lineSub;
+    gst += hasGst ? lineSub * 0.1 : 0;
+  });
+  return { subtotal, gst };
 };
 
 export function useCustomerReport(customerId: number) {
@@ -197,6 +217,9 @@ export function useCustomerReport(customerId: number) {
 
         if (status !== "cancelled") {
           acc.grandTotal += total;
+          const { subtotal, gst } = invoiceGstBreakdown(inv);
+          acc.subtotalTotal += subtotal;
+          acc.gstTotal += gst;
         }
         if (status === "paid") {
           acc.paidTotal += total;
@@ -240,9 +263,9 @@ export function useCustomerReport(customerId: number) {
   // Human-readable label for the active range
   const rangeLabel = useMemo(() => {
     if (!range.from && !range.to) return "All time";
-    const from = range.from ? getDateFormatted(range.from) : "…";
-    const to = range.to ? getDateFormatted(range.to) : "…";
-    return `${from} → ${to}`;
+    const from = range.from ? getDateFormatted(range.from) : "start";
+    const to = range.to ? getDateFormatted(range.to) : "today";
+    return `${from} to ${to}`;
   }, [range.from, range.to]);
 
   // CSV export of the current report
