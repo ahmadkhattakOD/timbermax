@@ -4,6 +4,60 @@ import { BRAND_COLORS } from "themes/theme/default";
 import { getDateFormatted, formatFullAddress } from "utils/helpers";
 import { Invoice } from "types";
 
+// ==================== PDF SIZE / IMAGE COMPRESSION LAYER ====================
+// EmailJS rejects attachments larger than 500 KB. To keep every generated PDF
+// comfortably under that limit we (1) downscale + re-encode embedded images to
+// the exact box they're drawn in, and (2) enable jsPDF stream compression on
+// every document. None of this changes how the PDF looks.
+
+// Max attachment size EmailJS allows (500 KB)
+const MAX_ATTACHMENT_BYTES = 500 * 1024;
+
+// Decoded byte length of a base64 payload (ignores any data-uri prefix)
+const base64ByteLength = (base64: string): number => {
+  const data = base64.includes(",") ? base64.split(",")[1] : base64;
+  const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0;
+  return Math.floor((data.length * 3) / 4) - padding;
+};
+
+const mmToPx = (mm: number, dpi: number) => Math.max(1, Math.round((mm / 25.4) * dpi));
+
+// Loads an image and returns a downscaled / re-compressed data URL sized for the
+// box it will occupy in the PDF. Shrinks the embedded image bytes dramatically
+// without altering its on-page appearance (same box, same stretch).
+const loadCompressedImage = async (
+  url: string,
+  boxWidthMm: number,
+  boxHeightMm: number,
+  format: "JPEG" | "PNG",
+  quality = 0.82,
+  dpi = 150,
+): Promise<string | null> => {
+  if (typeof window === "undefined") return null;
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const pxW = mmToPx(boxWidthMm, dpi);
+    const pxH = mmToPx(boxHeightMm, dpi);
+    const canvas = document.createElement("canvas");
+    canvas.width = pxW;
+    canvas.height = pxH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close?.();
+      return null;
+    }
+    ctx.drawImage(bitmap, 0, 0, pxW, pxH);
+    bitmap.close?.();
+    const mime = format === "PNG" ? "image/png" : "image/jpeg";
+    return canvas.toDataURL(mime, quality);
+  } catch (error) {
+    console.error("Error compressing image:", url, error);
+    return null;
+  }
+};
+
 // Helper function to load and add logo (same as quotation example)
 const addCompanyLogo = async (
   doc: jsPDF,
@@ -11,25 +65,10 @@ const addCompanyLogo = async (
   yPosition: number = 20,
 ) => {
   try {
-    // Path to the logo - same as quotation example
-    const logoUrl = "/timber.jpg";
-
-    // If you're running in a browser environment
-    if (typeof window !== "undefined") {
-      const response = await fetch(logoUrl);
-      const blob = await response.blob();
-      const reader = new FileReader();
-
-      return new Promise<void>((resolve, reject) => {
-        reader.onload = function () {
-          const base64 = reader.result as string;
-          // Add image to PDF
-          doc.addImage(base64, "JPEG", xPosition, yPosition, 45, 22); // Adjust size as needed
-          resolve();
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+    // Downscaled + re-encoded to the 45x22mm box it's drawn in (keeps PDF small)
+    const dataUrl = await loadCompressedImage("/timber.jpg", 45, 22, "JPEG", 0.85, 150);
+    if (dataUrl) {
+      doc.addImage(dataUrl, "JPEG", xPosition, yPosition, 45, 22);
     }
   } catch (error) {
     console.error("Error loading logo:", error);
@@ -46,30 +85,20 @@ const COMPANY_INFO = {
   website: "timbermax.com.au",
 };
 
-// Adds a "PAID" stamp image to the bottom-right of the page
-const addPaidStampImage = async (doc: jsPDF) => {
+// Adds a "PAID" stamp image to the bottom-right of the page.
+// dpi can be lowered to shrink the embedded stamp when fitting an email budget.
+const addPaidStampImage = async (doc: jsPDF, dpi: number = 150) => {
   try {
-    const stampUrl = "/paid.png";
-    if (typeof window !== "undefined") {
-      const response = await fetch(stampUrl);
-      const blob = await response.blob();
-      const reader = new FileReader();
-
-      return new Promise<void>((resolve, reject) => {
-        reader.onload = function () {
-          const base64 = reader.result as string;
-          const pageWidth = doc.internal.pageSize.width;
-          const pageHeight = doc.internal.pageSize.height;
-          const stampWidth = 60;
-          const stampHeight = 60;
-          const x = pageWidth - stampWidth - 10;
-          const y = pageHeight - stampHeight - 10;
-          doc.addImage(base64, "PNG", x, y, stampWidth, stampHeight);
-          resolve();
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+    // PNG keeps the stamp's transparency; downscaled to the 60x60mm draw box
+    const dataUrl = await loadCompressedImage("/paid.png", 60, 60, "PNG", 1, dpi);
+    if (dataUrl) {
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const stampWidth = 60;
+      const stampHeight = 60;
+      const x = pageWidth - stampWidth - 10;
+      const y = pageHeight - stampHeight - 10;
+      doc.addImage(dataUrl, "PNG", x, y, stampWidth, stampHeight);
     }
   } catch (error) {
     console.error("Error loading paid stamp:", error);
@@ -323,7 +352,7 @@ export const generateAndDownloadInvoicePDF = async (
   invoice: Invoice,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildInvoicePDF(doc, invoice);
 
     const fileName = `invoice_${invoice.invoice_number}_${getDateFormatted(
@@ -348,8 +377,13 @@ export const generateInvoicePDFBase64 = async (
   fileName?: string;
   error?: string;
 }> => {
-  try {
-    const doc = new jsPDF();
+  const fileName = `invoice_${invoice.invoice_number}.pdf`;
+
+  // Builds the compact invoice at a given image resolution and returns its
+  // base64 data-uri. imageDpi only affects the optional "PAID" stamp; lowering
+  // it shrinks the attachment so we can keep it under the EmailJS 500 KB limit.
+  const build = async (imageDpi: number): Promise<string> => {
+    const doc = new jsPDF({ compress: true });
 
     // Header — text only, no logo to keep size small
     doc.setFontSize(16);
@@ -537,11 +571,23 @@ export const generateInvoicePDFBase64 = async (
 
     // Paid stamp overlay
     if (invoice.status === "paid") {
-      await addPaidStampImage(doc);
+      await addPaidStampImage(doc, imageDpi);
     }
 
-    const fileName = `invoice_${invoice.invoice_number}.pdf`;
-    const base64 = doc.output("datauristring");
+    return doc.output("datauristring");
+  };
+
+  try {
+    // Compression layer: render once, and if the attachment is still over the
+    // 500 KB EmailJS limit, re-render the stamp at progressively lower
+    // resolution until it fits. Text-only (unpaid) invoices pass on the first
+    // pass since their size doesn't depend on imageDpi.
+    const dpiSteps = [150, 110, 90, 72];
+    let base64 = "";
+    for (const dpi of dpiSteps) {
+      base64 = await build(dpi);
+      if (base64ByteLength(base64) <= MAX_ATTACHMENT_BYTES) break;
+    }
 
     return { success: true, base64, fileName };
   } catch (error: any) {
@@ -659,7 +705,7 @@ export const generateDeliveryNotePDF = async (
   invoice: Invoice,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildDeliveryNoteContent(doc, invoice);
     const fileName = `delivery_note_${invoice.invoice_number}_${getDateFormatted(new Date().toISOString())}.pdf`;
     doc.save(fileName);
@@ -686,7 +732,7 @@ export const printInvoicePDF = async (
   invoice: Invoice,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildInvoicePDF(doc, invoice);
     openBlobAndPrint(doc);
     return { success: true };
@@ -700,7 +746,7 @@ export const printDeliveryNotePDF = async (
   invoice: Invoice,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildDeliveryNoteContent(doc, invoice);
     openBlobAndPrint(doc);
     return { success: true };
@@ -741,7 +787,7 @@ export const generateCustomerReportPDF = async (
   report: ReportPdfData,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await addCompanyLogo(doc, 14, 20);
 
     // Title

@@ -4,6 +4,60 @@ import { Quotation } from "types";
 import { getDateFormatted, formatFullAddress } from "./helpers";
 import { BRAND_COLORS } from "themes/theme/default";
 
+// ==================== PDF SIZE / IMAGE COMPRESSION LAYER ====================
+// EmailJS rejects attachments larger than 500 KB. To keep every generated PDF
+// comfortably under that limit we (1) downscale + re-encode embedded images to
+// the exact box they're drawn in, and (2) enable jsPDF stream compression on
+// every document. None of this changes how the PDF looks.
+
+// Max attachment size EmailJS allows (500 KB)
+const MAX_ATTACHMENT_BYTES = 500 * 1024;
+
+// Decoded byte length of a base64 payload (ignores any data-uri prefix)
+const base64ByteLength = (base64: string): number => {
+  const data = base64.includes(",") ? base64.split(",")[1] : base64;
+  const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0;
+  return Math.floor((data.length * 3) / 4) - padding;
+};
+
+const mmToPx = (mm: number, dpi: number) => Math.max(1, Math.round((mm / 25.4) * dpi));
+
+// Loads an image and returns a downscaled / re-compressed data URL sized for the
+// box it will occupy in the PDF. Shrinks the embedded image bytes dramatically
+// without altering its on-page appearance (same box, same stretch).
+const loadCompressedImage = async (
+  url: string,
+  boxWidthMm: number,
+  boxHeightMm: number,
+  format: "JPEG" | "PNG",
+  quality = 0.82,
+  dpi = 150,
+): Promise<string | null> => {
+  if (typeof window === "undefined") return null;
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const pxW = mmToPx(boxWidthMm, dpi);
+    const pxH = mmToPx(boxHeightMm, dpi);
+    const canvas = document.createElement("canvas");
+    canvas.width = pxW;
+    canvas.height = pxH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close?.();
+      return null;
+    }
+    ctx.drawImage(bitmap, 0, 0, pxW, pxH);
+    bitmap.close?.();
+    const mime = format === "PNG" ? "image/png" : "image/jpeg";
+    return canvas.toDataURL(mime, quality);
+  } catch (error) {
+    console.error("Error compressing image:", url, error);
+    return null;
+  }
+};
+
 // Helper function to load and add logo
 const addCompanyLogo = async (
   doc: jsPDF,
@@ -11,26 +65,10 @@ const addCompanyLogo = async (
   yPosition: number = 20
 ) => {
   try {
-    // Path to the logo - adjust based on your project structure
-    // If using Next.js, you might need a different approach
-    const logoUrl = "/timber.jpg";
-
-    // If you're running in a browser environment
-    if (typeof window !== "undefined") {
-      const response = await fetch(logoUrl);
-      const blob = await response.blob();
-      const reader = new FileReader();
-
-      return new Promise<void>((resolve, reject) => {
-        reader.onload = function () {
-          const base64 = reader.result as string;
-          // Add image to PDF
-          doc.addImage(base64, "JPEG", xPosition, yPosition, 45, 22); // Adjust size as needed
-          resolve();
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+    // Downscaled + re-encoded to the 45x22mm box it's drawn in (keeps PDF small)
+    const dataUrl = await loadCompressedImage("/timber.jpg", 45, 22, "JPEG", 0.85, 150);
+    if (dataUrl) {
+      doc.addImage(dataUrl, "JPEG", xPosition, yPosition, 45, 22);
     }
   } catch (error) {
     console.error("Error loading logo:", error);
@@ -180,7 +218,7 @@ export const generateAndDownloadQuotationPDF = async (
   quotation: Quotation
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildQuotationContent(doc, quotation);
     const fileName = `quotation_${quotation.quotation_number}_${getDateFormatted(new Date().toISOString())}.pdf`;
     doc.save(fileName);
@@ -292,7 +330,7 @@ export const generateAndDownloadDeliveryDocument = async (
   quotation: Quotation
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildDeliveryContent(doc, quotation);
     const fileName = `delivery_${quotation.quotation_number}_${getDateFormatted(new Date().toISOString())}.pdf`;
     doc.save(fileName);
@@ -308,7 +346,7 @@ export const generateQuotationPDFBase64 = async (
   quotation: Quotation
 ): Promise<{ success: boolean; base64?: string; fileName?: string; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     const customer = (quotation.customers || (quotation as any).customer) as any;
 
     // Header — text only, no logo
@@ -474,6 +512,17 @@ export const generateQuotationPDFBase64 = async (
     const fileName = `quotation_${quotation.quotation_number}.pdf`;
     const base64 = doc.output("datauristring");
 
+    // This PDF is text-only (no images) and stream-compressed, so it stays far
+    // under the EmailJS 500 KB limit. Warn if an unusually large quotation ever
+    // approaches it so it can be caught before EmailJS rejects the send.
+    if (base64ByteLength(base64) > MAX_ATTACHMENT_BYTES) {
+      console.warn(
+        `Quotation ${quotation.quotation_number} PDF is ${(
+          base64ByteLength(base64) / 1024
+        ).toFixed(0)} KB — above the ${MAX_ATTACHMENT_BYTES / 1024} KB email limit.`,
+      );
+    }
+
     return { success: true, base64, fileName };
   } catch (error: any) {
     console.error("Error generating compressed quotation PDF:", error);
@@ -484,7 +533,7 @@ export const generateQuotationPDFBase64 = async (
 export const openQuotationPDFInNewTab = async (
   quotation: Quotation
 ): Promise<void> => {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ compress: true });
   await buildQuotationContent(doc, quotation);
   const pdfBlob = doc.output("blob");
   const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -508,7 +557,7 @@ export const printQuotationPDF = async (
   quotation: Quotation,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildQuotationContent(doc, quotation);
     openBlobAndPrint(doc);
     return { success: true };
@@ -522,7 +571,7 @@ export const printQuotationDeliveryNote = async (
   quotation: Quotation,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await buildDeliveryContent(doc, quotation);
     openBlobAndPrint(doc);
     return { success: true };
@@ -563,7 +612,7 @@ export const generateCustomerQuotationReportPDF = async (
   report: QuotationReportPdfData,
 ): Promise<{ success: boolean; fileName?: string; error?: string }> => {
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true });
     await addCompanyLogo(doc, 14, 20);
 
     doc.setFontSize(20);
