@@ -21,6 +21,7 @@ import {
 import AddressFields from "components/AddressFields";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
+import CreateItemModal from "components/CreateItemModal";
 import { useParams, useNavigate } from "react-router-dom";
 import ActionButton from "components/ActionButton";
 import { useEffect, useMemo, useCallback, useState } from "react";
@@ -35,6 +36,8 @@ export default function EditInvoice() {
   const [step1Errors, setStep1Errors] = useState<any>({});
   // One-time delivery address typed on the invoice (not saved to the customer)
   const [customAddress, setCustomAddress] = useState(false);
+  // Inline "Create New Item" modal (step 2)
+  const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
 
   const {
     validate,
@@ -44,6 +47,7 @@ export default function EditInvoice() {
     loading,
     selectedItems,
     addItem,
+    addCreatedItemToInvoice,
     removeItem,
     reorderItems,
     updateItem,
@@ -813,6 +817,9 @@ export default function EditInvoice() {
                       finalAmount={finalAmount}
                       deposit={deposit}
                       setDeposit={setDeposit}
+                      onCreateNewItemClick={
+                        isReadOnly ? undefined : () => setCreateItemModalOpen(true)
+                      }
                     />
                     </Box>
 
@@ -849,6 +856,13 @@ export default function EditInvoice() {
                 )}
               </Paper>
             </Container>
+
+            {/* Inline item creation (step 2) — creates the item and adds it to the invoice */}
+            <CreateItemModal
+              open={createItemModalOpen}
+              onClose={() => setCreateItemModalOpen(false)}
+              onCreated={addCreatedItemToInvoice}
+            />
           </Form>
         );
       }}

@@ -20,6 +20,7 @@ import {
 import AddressFields from "components/AddressFields";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
+import CreateItemModal from "components/CreateItemModal";
 import { useState, useEffect } from "react";
 
 // ==============================|| CREATE QUOTATION PAGE ||============================== //
@@ -29,6 +30,8 @@ export default function CreateQuotation() {
   const [step1Errors, setStep1Errors] = useState<any>({});
   // One-time delivery address typed on the quotation (not saved to the customer)
   const [customAddress, setCustomAddress] = useState(false);
+  // Inline "Create New Item" modal (step 2)
+  const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
 
   const {
     validate,
@@ -38,6 +41,7 @@ export default function CreateQuotation() {
     loading,
     selectedItems,
     addItem,
+    addCreatedItemToQuotation,
     removeItem,
     reorderItems,
     updateItem,
@@ -533,6 +537,7 @@ export default function CreateQuotation() {
                       setShowDiscountInput={setShowDiscountInput}
                       discountAmount={discountAmount}
                       finalAmount={finalAmount}
+                      onCreateNewItemClick={() => setCreateItemModalOpen(true)}
                     />
 
                     {/* Navigation Buttons */}
@@ -557,6 +562,13 @@ export default function CreateQuotation() {
                 )}
               </Paper>
             </Container>
+
+            {/* Inline item creation (step 2) — creates the item and adds it to the quotation */}
+            <CreateItemModal
+              open={createItemModalOpen}
+              onClose={() => setCreateItemModalOpen(false)}
+              onCreated={addCreatedItemToQuotation}
+            />
           </Form>
         );
       }}

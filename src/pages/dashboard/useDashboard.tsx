@@ -246,7 +246,9 @@ const useDashboard = () => {
       console.log("Data fetched successfully");
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
-      setError("Failed to load dashboard data");
+      const reason =
+        (err as any)?.message || (err as any)?.details || String(err);
+      setError(`Failed to load dashboard data: ${reason}`);
     } finally {
       setLoading(false);
     }
@@ -406,6 +408,9 @@ const useDashboard = () => {
     const itemMap = new Map();
 
     data?.forEach((item: any) => {
+      // Skip rows whose item has been deleted (items relation is null)
+      if (!item.items) return;
+
       const existing = itemMap.get(item.items.id) || {
         id: item.items.id,
         name: item.items.name,
@@ -454,7 +459,8 @@ const useDashboard = () => {
 
     const result =
       data
-        ?.map((stock: any) => ({
+        ?.filter((stock: any) => stock.items)
+        .map((stock: any) => ({
           id: stock.items.id,
           name: stock.items.name,
           itemCode: stock.items.itemCode,
@@ -691,6 +697,8 @@ const useDashboard = () => {
     >();
 
     topCustomersData?.forEach((invoice: any) => {
+      if (!invoice.customers) return;
+
       const existing = customerMap.get(invoice.customers.id) || {
         id: invoice.customers.id,
         name: invoice.customers.name,

@@ -539,6 +539,43 @@ export function useCreateInvoice() {
     setSelectedItemId(null);
   };
 
+  // Adds an item that was just created inline (via the Create Item modal) to the
+  // invoice. Uses the created row directly to avoid the stale `items` state, then
+  // also exposes it in the search dropdown list.
+  const addCreatedItemToInvoice = async (created: any) => {
+    if (!created?.id) return;
+
+    // Surface the new item in the dropdown options as well
+    setItems((prev) => (prev.some((i) => i.id === created.id) ? prev : [created, ...prev]));
+
+    const allWarehouses = await getWarehousesForItem(created.id);
+    if (allWarehouses.length === 0) {
+      openSnackbar({
+        open: true,
+        message: `Item "${created.name}" created, but no warehouses are available to assign.`,
+        variant: "alert",
+        alert: { color: "warning" },
+      } as SnackbarProps);
+      return;
+    }
+
+    const sortedWarehouses = [...allWarehouses].sort((a, b) => b.available - a.available);
+
+    const newItem: InvoiceItem = {
+      item_id: created.id,
+      name: created.name,
+      itemCode: created.itemCode,
+      quantity: "1",
+      unit_price: created.sellPrice || 0,
+      gst: created.gst || false,
+      total: (created.sellPrice || 0).toString(),
+      warehouse_id: sortedWarehouses[0].id,
+      available_warehouses: sortedWarehouses,
+    };
+
+    setSelectedItems((prev) => [...prev, newItem]);
+  };
+
   const removeItem = (index: number) => {
     setSelectedItems(selectedItems.filter((_, i) => i !== index));
   };
@@ -1244,6 +1281,7 @@ export function useCreateInvoice() {
     loading,
     selectedItems,
     addItem,
+    addCreatedItemToInvoice,
     removeItem,
     reorderItems: setSelectedItems,
     updateItem,

@@ -20,7 +20,7 @@ import {
   ToggleButtonGroup,
 } from "@mui/material";
 import { Trash } from "iconsax-react";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Plus } from "lucide-react";
 import InputDropdown from "components/InputDropdown";
 import { calculateItemTotal, formatCurrency, calculateItemSubtotal, calculateItemGst } from "utils/calculateTotals";
 import {
@@ -79,6 +79,8 @@ interface ItemsSelectionTableProps {
   finalAmount?: number;
   deposit?: number;
   setDeposit?: (value: number) => void;
+  // When provided, renders a "Create New Item" button beside the item selector
+  onCreateNewItemClick?: () => void;
 }
 
 // ── Sortable row ──────────────────────────────────────────────────────────────
@@ -231,6 +233,7 @@ export default function ItemsSelectionTable({
   finalAmount,
   deposit = 0,
   setDeposit,
+  onCreateNewItemClick,
 }: ItemsSelectionTableProps) {
   const [inputKey, setInputKey] = React.useState(0);
 
@@ -266,26 +269,38 @@ export default function ItemsSelectionTable({
   return (
     <Box sx={{ width: "100%" }}>
       {/* Item Selection */}
-      <Box sx={{ mb: 2 }}>
-        <InputDropdown
-          key={`item_search_${inputKey}`}
-          id="item_search"
-          name="item_search"
-          label="Select Item"
-          options={items}
-          value={items.find((item) => item.id === selectedItemId) || null}
-          loading={loadingItems}
-          optional={false}
-          onChange={handleItemSearchDebounced}
-          onSelect={(e) => {
-            const itemId = parseInt(e.target.value);
-            if (itemId) {
-              addItem(itemId);
-              setSelectedItemId(null);
-              setInputKey((prev) => prev + 1);
-            }
-          }}
-        />
+      <Box sx={{ mb: 2, display: "flex", alignItems: "flex-end", gap: 1.5 }}>
+        <Box sx={{ flex: 1 }}>
+          <InputDropdown
+            key={`item_search_${inputKey}`}
+            id="item_search"
+            name="item_search"
+            label="Select Item"
+            options={items}
+            value={items.find((item) => item.id === selectedItemId) || null}
+            loading={loadingItems}
+            optional={false}
+            onChange={handleItemSearchDebounced}
+            onSelect={(e) => {
+              const itemId = parseInt(e.target.value);
+              if (itemId) {
+                addItem(itemId);
+                setSelectedItemId(null);
+                setInputKey((prev) => prev + 1);
+              }
+            }}
+          />
+        </Box>
+        {onCreateNewItemClick && (
+          <Button
+            variant="outlined"
+            startIcon={<Plus size={18} />}
+            onClick={onCreateNewItemClick}
+            sx={{ whiteSpace: "nowrap", flexShrink: 0, mb: "1px" }}
+          >
+            Create New Item
+          </Button>
+        )}
       </Box>
 
       {lowStockItems.length > 0 && (

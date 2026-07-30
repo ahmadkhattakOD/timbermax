@@ -20,6 +20,7 @@ import {
 import AddressFields from "components/AddressFields";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
+import CreateItemModal from "components/CreateItemModal";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -32,6 +33,8 @@ export default function CreateInvoice() {
   const [step1Errors, setStep1Errors] = useState<any>({});
   // One-time delivery address typed on the invoice (not saved to the customer)
   const [customAddress, setCustomAddress] = useState(false);
+  // Inline "Create New Item" modal (step 2)
+  const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
 
   const {
     validate,
@@ -43,6 +46,7 @@ export default function CreateInvoice() {
     loading,
     selectedItems,
     addItem,
+    addCreatedItemToInvoice,
     removeItem,
     reorderItems,
     updateItem,
@@ -720,6 +724,7 @@ export default function CreateInvoice() {
                       finalAmount={finalAmount}
                       deposit={deposit}
                       setDeposit={setDeposit}
+                      onCreateNewItemClick={() => setCreateItemModalOpen(true)}
                     />
 
                     {/* Navigation Buttons */}
@@ -756,6 +761,13 @@ export default function CreateInvoice() {
                 )}
               </Paper>
             </Container>
+
+            {/* Inline item creation (step 2) — creates the item and adds it to the invoice */}
+            <CreateItemModal
+              open={createItemModalOpen}
+              onClose={() => setCreateItemModalOpen(false)}
+              onCreated={addCreatedItemToInvoice}
+            />
           </Form>
         );
       }}
