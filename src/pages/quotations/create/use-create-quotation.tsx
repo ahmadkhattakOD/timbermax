@@ -8,6 +8,8 @@ import {
   parseAddress,
   stateAbbreviations,
   useDebouncedSearch,
+  roundAmount,
+  formatAmount,
 } from "utils/helpers";
 import { geocodeByPlaceId } from "react-google-places-autocomplete";
 import CustomersRepository, {
@@ -102,16 +104,17 @@ export function useCreateQuotation() {
   const quotationNumberRef = useRef("");
   const warehousesCacheRef = useRef<any[] | null>(null);
 
-  const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + calculateSubTotal(item),
-    0,
+  const totalAmount = roundAmount(
+    selectedItems.reduce((sum, item) => sum + calculateSubTotal(item), 0),
   );
 
   // Calculate final amount after discount
-  const discountAmount = discountType === "fixed"
-    ? Math.min(discount, totalAmount)
-    : (totalAmount * discount) / 100;
-  const finalAmount = totalAmount - discountAmount;
+  const discountAmount = roundAmount(
+    discountType === "fixed"
+      ? Math.min(discount, totalAmount)
+      : (totalAmount * discount) / 100,
+  );
+  const finalAmount = roundAmount(totalAmount - discountAmount);
 
   // Function to get ALL warehouses for an item
   const getWarehousesForItem = async (itemId: number) => {
@@ -738,7 +741,7 @@ export function useCreateQuotation() {
         const warningMessage = `Quotation will reserve stock from items with insufficient stock: ${lowStockItems
           .map(
             (item) =>
-              `${item.name} (${item.quantity} > ${item.available_warehouses.find((w) => w.id === item.warehouse_id)?.available || 0} available)`,
+              `${item.name} (${formatAmount(item.quantity)} > ${formatAmount(item.available_warehouses.find((w) => w.id === item.warehouse_id)?.available || 0)} available)`,
           )
           .join(", ")}`;
 
@@ -748,7 +751,7 @@ export function useCreateQuotation() {
       // Prepare items with warehouse IDs for reservation
       const itemsForReservation = selectedItems.map((item) => ({
         item_id: item.item_id,
-        quantity: parseFloat(item.quantity),
+        quantity: roundAmount(item.quantity),
         warehouse_id: item.warehouse_id || 1,
       }));
 
@@ -784,8 +787,8 @@ export function useCreateQuotation() {
         await quotationsRepo.addItem({
           quotation_id: quotationId,
           item_id: item.item_id,
-          quantity: parseFloat(item.quantity),
-          unit_price: Number(item.unit_price),
+          quantity: roundAmount(item.quantity),
+          unit_price: roundAmount(item.unit_price),
           warehouse_id: item.warehouse_id || 1,
           sort_order: i,
           item_name: item.name,

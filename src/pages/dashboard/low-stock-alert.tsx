@@ -1,4 +1,5 @@
 import React from "react";
+import { formatAmount } from "utils/helpers";
 import {
   Paper,
   Typography,
@@ -136,7 +137,7 @@ const LowStockAlert: React.FC<LowStockAlertProps> = ({ items }) => {
                       fontWeight="medium"
                       color={getStockLevelColor(item.available)}
                     >
-                      {item.available}
+                      {formatAmount(item.available)}
                     </Typography>
                   </Box>
                   <Box>
@@ -144,7 +145,7 @@ const LowStockAlert: React.FC<LowStockAlertProps> = ({ items }) => {
                       Reserved
                     </Typography>
                     <Typography variant="body2" fontWeight="medium">
-                      {item.reserved}
+                      {formatAmount(item.reserved)}
                     </Typography>
                   </Box>
                   <Box>
@@ -152,7 +153,7 @@ const LowStockAlert: React.FC<LowStockAlertProps> = ({ items }) => {
                       Total
                     </Typography>
                     <Typography variant="body2" fontWeight="medium">
-                      {item.quantity}
+                      {formatAmount(item.quantity)}
                     </Typography>
                   </Box>
                 </Stack>

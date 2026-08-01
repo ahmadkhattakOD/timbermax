@@ -11,6 +11,7 @@ import {
   getDateFormatted,
   initialRowsPerPage,
   useDebouncedSearch,
+  formatAmount,
 } from "utils/helpers";
 import OpportunityDescriptionsRepository from "utils/repositories/opportunityDescriptionsRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
@@ -302,13 +303,13 @@ export function useSelectSale() {
           )}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.deposit}
+          {formatAmount(row.deposit)}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.total}
+          {formatAmount(row.total)}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.total - row.deposit}
+          {formatAmount(row.total - row.deposit)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.payment_method && <FormattedMessage id={row.payment_method} />}

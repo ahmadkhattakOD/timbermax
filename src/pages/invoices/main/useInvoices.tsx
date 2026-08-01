@@ -20,10 +20,13 @@ import {
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
+import RowActionsMenu, { RowAction } from "components/RowActionsMenu";
 import {
   getDateFormatted,
   initialRowsPerPage,
   useDebouncedSearch,
+  formatAmount,
+  roundAmount,
 } from "utils/helpers";
 import InvoicesRepository, { InvoiceSupabase } from "utils/repositories/invoicesRepository";
 import {
@@ -93,12 +96,6 @@ const headCells: HeadCell[] = [
     label: "Delivery",
   },
   {
-    id: "items_count",
-    numeric: true,
-    disablePadding: true,
-    label: "Items",
-  },
-  {
     id: "note",
     numeric: false,
     disablePadding: true,
@@ -110,17 +107,24 @@ const headCells: HeadCell[] = [
     disablePadding: true,
     label: "Due Date",
   },
-  {
-    id: "created_at",
-    numeric: false,
-    disablePadding: true,
-    label: "Date Created",
-  },
+  // Actions sit ahead of the low-priority columns so they stay in view.
   {
     id: "actions",
     numeric: false,
     disablePadding: true,
     label: "Actions",
+  },
+  {
+    id: "items_count",
+    numeric: true,
+    disablePadding: true,
+    label: "Items",
+  },
+  {
+    id: "created_at",
+    numeric: false,
+    disablePadding: true,
+    label: "Date Created",
   },
 ];
 
@@ -251,8 +255,8 @@ export function useInvoices() {
         id: index + 1,
         name: item.item_name ?? item.items?.name ?? "Unknown",
         code: item.item_code ?? item.items?.itemCode ?? "N/A",
-        quantity: parseFloat(item.quantity) || 0,
-        unit_price: parseFloat(item.unit_price) || 0,
+        quantity: roundAmount(item.quantity),
+        unit_price: roundAmount(item.unit_price),
         gst: item.item_gst ?? item?.items?.gst ?? false,
       }));
 
@@ -422,7 +426,7 @@ export function useInvoices() {
     const statusColors: any = {
       draft: "warning",
       sent: "info",
-      paid: "success",
+      paid: "primary",
       cancelled: "error",
       overdue: "error",
     };
@@ -445,6 +449,109 @@ export function useInvoices() {
       returned: "Returned",
       pick_up: "Pick Up",
     };
+
+    // Every row action, in menu order. Same conditions the icon buttons used.
+    const rowActions: RowAction[] = [
+      ...(canDownloadPDF
+        ? [
+            {
+              label: "Download Invoice PDF",
+              icon: <Download size={18} />,
+              color: "primary.main",
+              onClick: () => downloadInvoicePDF(row.id),
+            },
+          ]
+        : []),
+      ...(canDownloadDeliveryNote
+        ? [
+            {
+              label: "Download Delivery Note",
+              icon: <Truck size={18} />,
+              color: "warning.main",
+              onClick: () => downloadDeliveryNotePDF(row.id),
+            },
+          ]
+        : []),
+      ...(itemsCount > 0
+        ? [
+            {
+              label: "View Items",
+              icon: <Eye size={18} />,
+              color: "info.main",
+              onClick: () => viewItemsModal(row.id),
+            },
+          ]
+        : []),
+      ...(canMarkSent
+        ? [
+            {
+              label: "Mark as Sent",
+              icon: <Send size={18} />,
+              color: "info.main",
+              divider: true,
+              onClick: () => markAsSent(row.id),
+            },
+          ]
+        : []),
+      ...(canMarkPaid
+        ? [
+            {
+              label: "Mark as Paid",
+              icon: <Wallet size={18} />,
+              color: "success.main",
+              onClick: () => markAsPaid(row.id),
+            },
+          ]
+        : []),
+      ...(row.status === "sent" || row.status === "overdue"
+        ? [
+            {
+              label: "Send Reminder",
+              icon: <Bell size={18} />,
+              color: "warning.main",
+              onClick: () => sendReminder(row.id),
+            },
+          ]
+        : []),
+      ...(row.status === "sent" ||
+      row.status === "paid" ||
+      row.status === "overdue"
+        ? [
+            {
+              label: "Resend Email",
+              icon: <RotateCcw size={18} />,
+              color: "primary.main",
+              onClick: () => resendEmail(row.id),
+            },
+          ]
+        : []),
+      {
+        label: "Duplicate Invoice",
+        icon: <Copy size={18} />,
+        divider: true,
+        onClick: () => duplicateInvoice(row.id),
+      },
+      {
+        label: "Print",
+        icon: <Printer size={18} />,
+        // Anchors the print submenu to the trigger button, which stays mounted.
+        onClick: (anchor: HTMLElement) => {
+          setSelectedInvoiceForPrint(row.id);
+          setPrintMenuAnchor(anchor);
+        },
+      },
+      ...(canCancel
+        ? [
+            {
+              label: "Cancel Invoice",
+              icon: <X size={18} />,
+              color: "error.main",
+              divider: true,
+              onClick: () => cancelInvoice(row.id),
+            },
+          ]
+        : []),
+    ];
 
     return (
       <>
@@ -518,9 +625,6 @@ export function useInvoices() {
             }}
           />
         </TableCell>
-        <TableCell align="center" sx={{ minWidth: 80 }}>
-          <Typography>{itemsCount}</Typography>
-        </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           <Typography variant="body2">{row.note || "-"}</Typography>
         </TableCell>
@@ -546,234 +650,19 @@ export function useInvoices() {
             </Typography>
           )}
         </TableCell>
+        <TableCell sx={{ minWidth: 80 }}>
+          <RowActionsMenu
+            loading={isActionLoading(row.id)}
+            actions={rowActions}
+          />
+        </TableCell>
+        <TableCell align="center" sx={{ minWidth: 80 }}>
+          <Typography>{itemsCount}</Typography>
+        </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           <Typography variant="body2">
             {row.created_at ? getDateFormatted(row.created_at) : "-"}
           </Typography>
-        </TableCell>
-        <TableCell sx={{ minWidth: 300 }}>
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-            {/* Download Invoice PDF */}
-            {canDownloadPDF && (
-              <Tooltip title="Download Invoice PDF">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      downloadInvoicePDF(row.id);
-                    }}
-                    color="primary"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <Download size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Download Delivery Note */}
-            {canDownloadDeliveryNote && (
-              <Tooltip title="Download Delivery Note">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      downloadDeliveryNotePDF(row.id);
-                    }}
-                    color="warning"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <Truck size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Mark as Sent */}
-            {canMarkSent && (
-              <Tooltip title="Mark as Sent">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      markAsSent(row.id);
-                    }}
-                    color="info"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <Send size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Send Reminder */}
-            {(row.status === "sent" || row.status === "overdue") && (
-              <Tooltip title="Send Reminder">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      sendReminder(row.id);
-                    }}
-                    color="warning"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <Bell size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Resend Email */}
-            {(row.status === "sent" || row.status === "paid" || row.status === "overdue") && (
-              <Tooltip title="Resend Email">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      resendEmail(row.id);
-                    }}
-                    color="primary"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <RotateCcw size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Mark as Paid */}
-            {canMarkPaid && (
-              <Tooltip title="Mark as Paid">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      markAsPaid(row.id);
-                    }}
-                    color="success"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <Wallet size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* View Items */}
-            {itemsCount > 0 && (
-              <Tooltip title="View Items">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      viewItemsModal(row.id);
-                    }}
-                    color="info"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <Eye size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Cancel Invoice */}
-            {canCancel && (
-              <Tooltip title="Cancel Invoice">
-                <span>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      cancelInvoice(row.id);
-                    }}
-                    color="error"
-                    disabled={isActionLoading(row.id)}
-                  >
-                    {isActionLoading(row.id) ? (
-                      <CircularProgress size={18} thickness={5} />
-                    ) : (
-                      <X size={18} />
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Duplicate Invoice */}
-            <Tooltip title="Duplicate Invoice">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    duplicateInvoice(row.id);
-                  }}
-                  disabled={isActionLoading(row.id)}
-                >
-                  {isActionLoading(row.id) ? (
-                    <CircularProgress size={18} thickness={5} />
-                  ) : (
-                    <Copy size={18} />
-                  )}
-                </IconButton>
-              </span>
-            </Tooltip>
-
-            {/* Print */}
-            <Tooltip title="Print">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedInvoiceForPrint(row.id);
-                    setPrintMenuAnchor(e.currentTarget);
-                  }}
-                  disabled={isActionLoading(row.id)}
-                >
-                  <Printer size={18} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Box>
         </TableCell>
       </>
     );
@@ -1044,10 +933,10 @@ export function useInvoices() {
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.code}</TableCell>
                   <TableCell align="right">
-                    {item.quantity.toFixed(2)}
+                    {formatAmount(item.quantity)}
                   </TableCell>
                   <TableCell align="right">
-                    ${item.unit_price.toFixed(2)}
+                    ${formatAmount(item.unit_price)}
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
@@ -1094,8 +983,8 @@ export function useInvoices() {
                   <TableCell colSpan={6} align="right">
                     <Typography>
                       {currentInvoiceInfo.breakdown.discountType === "fixed"
-                        ? `Discount ($${currentInvoiceInfo.breakdown.discountValue.toFixed(2)}):`
-                        : `Discount (${currentInvoiceInfo.breakdown.discountPercentage}%):`}
+                        ? `Discount ($${formatAmount(currentInvoiceInfo.breakdown.discountValue)}):`
+                        : `Discount (${formatAmount(currentInvoiceInfo.breakdown.discountPercentage)}%):`}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
@@ -1931,8 +1820,8 @@ export function useInvoices() {
 
       const items = (existing.invoice_items || []).map((item: any) => ({
         item_id: item.item_id,
-        quantity: parseFloat(item.quantity),
-        unit_price: parseFloat(item.unit_price),
+        quantity: roundAmount(item.quantity),
+        unit_price: roundAmount(item.unit_price),
         warehouse_id: item.warehouse_id || 1,
       }));
 
@@ -2074,7 +1963,7 @@ export function useInvoices() {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let invoice = data[i] as any;
-          csvString += `"${invoice.invoice_number ?? ""}","${invoice.customer?.name ?? ""}",${invoice.total ?? ""},"${invoice.status ?? ""}","${invoice.delivery_status ?? "pending"}","${invoice.invoice_items?.length || 0}","${invoice.due_date ? getDateFormatted(invoice.due_date) : 'No due date'}","${getDateFormatted(invoice.created_at)}","${invoice.note ?? ""}"\n`;
+          csvString += `"${invoice.invoice_number ?? ""}","${invoice.customer?.name ?? ""}",${formatAmount(invoice.total)},"${invoice.status ?? ""}","${invoice.delivery_status ?? "pending"}","${invoice.invoice_items?.length || 0}","${invoice.due_date ? getDateFormatted(invoice.due_date) : 'No due date'}","${getDateFormatted(invoice.created_at)}","${invoice.note ?? ""}"\n`;
         }
 
         setCsvData(csvString);

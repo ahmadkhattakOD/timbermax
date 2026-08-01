@@ -3,7 +3,7 @@ import { FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { UserRoles, isNumeric } from "utils/helpers";
+import { UserRoles, isNumeric, roundAmount } from "utils/helpers";
 import InvoicesRepository, {
   InvoiceSupabase,
 } from "utils/repositories/invoicesRepository";
@@ -162,15 +162,17 @@ export function useDeliverSale() {
 
               const newSalesPersonInvoice: any = {
                 sale: deliveredSale.id,
-                commission:
+                commission: roundAmount(
                   (parseFloat(values.total) - 300) *
-                  salesPersonCommissionPercentage,
+                    salesPersonCommissionPercentage
+                ),
                 beneficiary: values.salesPerson,
               };
               const newCloserInvoice: any = {
                 sale: deliveredSale.id,
-                commission:
-                  (parseFloat(values.total) - 300) * closerCommissionPercentage,
+                commission: roundAmount(
+                  (parseFloat(values.total) - 300) * closerCommissionPercentage
+                ),
                 beneficiary: values.closer,
               };
 

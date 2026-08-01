@@ -23,6 +23,7 @@ import { Trash } from "iconsax-react";
 import { GripVertical, Plus } from "lucide-react";
 import InputDropdown from "components/InputDropdown";
 import { calculateItemTotal, formatCurrency, calculateItemSubtotal, calculateItemGst } from "utils/calculateTotals";
+import { formatAmount, roundAmount } from "utils/helpers";
 import {
   DndContext,
   closestCenter,
@@ -134,7 +135,7 @@ function SortableRow({ id, item, index, removeItem, updateItem }: SortableRowPro
             <MenuItem value="" disabled>Select Warehouse</MenuItem>
             {item.available_warehouses.map((warehouse: Warehouse) => (
               <MenuItem key={warehouse.id} value={warehouse.id}>
-                {warehouse.name} ({warehouse.available} available)
+                {warehouse.name} ({formatAmount(warehouse.available)} available)
               </MenuItem>
             ))}
           </Select>
@@ -151,7 +152,7 @@ function SortableRow({ id, item, index, removeItem, updateItem }: SortableRowPro
               color={availableStock < 0 ? "error" : isLowStock ? "warning" : "success"}
               fontWeight={isLowStock ? "bold" : "normal"}
             >
-              {availableStock}
+              {formatAmount(availableStock)}
             </Typography>
             {isLowStock && (
               <Chip label="Low" size="small" color="warning" variant="outlined" sx={{ height: 20, fontSize: "0.7rem" }} />
@@ -249,9 +250,13 @@ export default function ItemsSelectionTable({
     return false;
   });
 
-  const subtotalExGst = selectedItems.reduce((s, i) => s + calculateItemSubtotal(i), 0);
-  const gstAmount = selectedItems.reduce((s, i) => s + calculateItemGst(i), 0);
-  const subtotalIncGst = subtotalExGst + gstAmount;
+  const subtotalExGst = roundAmount(
+    selectedItems.reduce((s, i) => s + calculateItemSubtotal(i), 0)
+  );
+  const gstAmount = roundAmount(
+    selectedItems.reduce((s, i) => s + calculateItemGst(i), 0)
+  );
+  const subtotalIncGst = roundAmount(subtotalExGst + gstAmount);
 
   // Stable IDs for dnd-kit — use index-based key so reorder works even without unique ids
   const rowIds = selectedItems.map((_, i) => `row-${i}`);

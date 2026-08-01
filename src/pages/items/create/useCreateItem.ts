@@ -6,7 +6,7 @@ import ItemsRepository, {
 } from "utils/repositories/itemsRepository";
 import { useEffect, useState } from "react";
 import VendorsRepository from "utils/repositories/vendorsRepository";
-import { useDebouncedSearch } from "utils/helpers";
+import { roundAmount, useDebouncedSearch } from "utils/helpers";
 
 export interface ValuesCreateItem {
   name: string;
@@ -133,8 +133,8 @@ export function useCreateItem() {
       }
 
       // Convert to numbers, handling any string representation
-      const sellPriceNum = values.sellPrice ? parseFloat(values.sellPrice.toString()) : 0;
-      const purchasePriceNum = values.purchasePrice ? parseFloat(values.purchasePrice.toString()) : 0;
+      const sellPriceNum = roundAmount(values.sellPrice);
+      const purchasePriceNum = roundAmount(values.purchasePrice);
 
       const newItem: ItemSupabase = {
         name: values.name,

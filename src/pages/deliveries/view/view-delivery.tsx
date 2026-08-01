@@ -10,6 +10,7 @@ import {
   australianStates,
   getDateFormattedForField,
   getDateTimeFormattedForField,
+  formatAmount,
 } from "utils/helpers";
 import DataTable from "components/data-table/DataTable";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
@@ -125,8 +126,8 @@ export default function ViewDelivery() {
         initialValues={{
           contactName: sale?.customer?.name ?? "",
           opportunityDescription: sale?.opportunity_description ?? "",
-          deposit: sale?.deposit ?? "",
-          total: sale?.total ?? "",
+          deposit: sale?.deposit != null ? formatAmount(sale.deposit) : "",
+          total: sale?.total != null ? formatAmount(sale.total) : "",
           paymentMethod: sale?.payment_method ?? "",
           phone: sale?.phone ?? "",
           address: sale?.address ?? "",
@@ -207,7 +208,7 @@ export default function ViewDelivery() {
                   label={"total"}
                   secondaryLabel={
                     values.deposit && values.total
-                      ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                      ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                       : null
                   }
                   optional={false}

@@ -25,6 +25,7 @@ import { useNavigate, useLocation } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import { getStockStyles } from "utils/getColors";
 import {
+  formatAmount,
   getDateTimeFormatted,
   initialRowsPerPage,
   useDebouncedSearch,
@@ -260,7 +261,7 @@ const StockHistoryModal = ({
                       </Box>
                     </TableCell>
                     <TableCell>{formatUser(movement.user)}</TableCell>
-                    <TableCell>{movement.quantity_before}</TableCell>
+                    <TableCell>{formatAmount(movement.quantity_before)}</TableCell>
                     <TableCell>
                       <Typography
                         color={
@@ -275,10 +276,10 @@ const StockHistoryModal = ({
                         fontWeight="bold"
                       >
                         {movement.quantity_change >= 0 ? "+" : ""}
-                        {movement.quantity_change}
+                        {formatAmount(movement.quantity_change)}
                       </Typography>
                     </TableCell>
-                    <TableCell>{movement.quantity_after}</TableCell>
+                    <TableCell>{formatAmount(movement.quantity_after)}</TableCell>
                     <TableCell>
                       {movement.movement_type === "adjustment" && movement.notes ? (
                         <Box>
@@ -674,7 +675,7 @@ export function useStock() {
           const reserved = parseFloat(stock.reserved) || 0;
           const available = quantity - reserved;
 
-          csvString += `"${stock?.item?.name ?? ""}","${stock?.item?.itemCode ?? ""}","${stock?.warehouse?.name ?? ""}",${quantity},${reserved},${available},"${stock?.status ?? ""}","${stock?.last_updated_by ?? "System"}","${stock?.updated_at ?? ""}"\n`;
+          csvString += `"${stock?.item?.name ?? ""}","${stock?.item?.itemCode ?? ""}","${stock?.warehouse?.name ?? ""}",${formatAmount(quantity)},${formatAmount(reserved)},${formatAmount(available)},"${stock?.status ?? ""}","${stock?.last_updated_by ?? "System"}","${stock?.updated_at ?? ""}"\n`;
         }
 
         setCsvData(csvString);

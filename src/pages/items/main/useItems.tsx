@@ -5,7 +5,11 @@ import { Copy } from "iconsax-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { initialRowsPerPage, useDebouncedSearch } from "utils/helpers";
+import {
+  formatAmount,
+  initialRowsPerPage,
+  useDebouncedSearch,
+} from "utils/helpers";
 import ItemsRepository from "utils/repositories/itemsRepository";
 
 const headCells: HeadCell[] = [
@@ -183,7 +187,9 @@ export function useItems() {
           {row.name}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }} align="right">
-          {row.stocks?.reduce((sum: number, s: any) => sum + (s.quantity ?? 0), 0) ?? 0}
+          {formatAmount(
+            row.stocks?.reduce((sum: number, s: any) => sum + (s.quantity ?? 0), 0) ?? 0
+          )}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           {row.vendors?.name || '-'}
@@ -191,10 +197,10 @@ export function useItems() {
         <TableCell sx={{ minWidth: 200 }}>{row.description}</TableCell>
         <TableCell sx={{ minWidth: 120 }}>{row.itemCode}</TableCell>
         <TableCell sx={{ minWidth: 120 }} align="right">
-          ${row.sellPrice ? row.sellPrice.toFixed(2) : "0.00"}
+          ${formatAmount(row.sellPrice)}
         </TableCell>
         <TableCell sx={{ minWidth: 140 }} align="right">
-          ${row.purchasePrice ? row.purchasePrice.toFixed(2) : "0.00"}
+          ${formatAmount(row.purchasePrice)}
         </TableCell>
         <TableCell sx={{ minWidth: 80 }} align="center">
           <Tooltip title="Duplicate item">
@@ -299,11 +305,13 @@ export function useItems() {
         for (let i = 0; i < data.length; i++) {
           let item = data[i] as any;
           const totalQty = item?.stocks?.reduce((sum: number, s: any) => sum + (s.quantity ?? 0), 0) ?? 0;
-          csvString += `${item?.name ?? ""},${totalQty},${
+          csvString += `${item?.name ?? ""},${formatAmount(totalQty)},${
             item?.vendors?.name ?? "-"
           },${item?.description ?? ""},${
             item?.itemCode ?? ""
-          },${item?.sellPrice ?? ""},${item?.purchasePrice ?? ""}\n`;
+          },${formatAmount(item?.sellPrice)},${formatAmount(
+            item?.purchasePrice
+          )}\n`;
         }
 
         setCsvData(csvString);

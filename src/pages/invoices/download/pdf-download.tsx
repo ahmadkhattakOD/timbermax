@@ -8,6 +8,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import Locales from "components/Locales";
+import { formatAmount } from "utils/helpers";
 import logo from "../../../assets/images/icons/ultramatic.png";
 import paidStamp from "../../../assets/images/icons/paid-stamp.png";
 import pendingStamp from "../../../assets/images/icons/pending-stamp.png";
@@ -340,10 +341,10 @@ const VerticalTableSales: React.FC<SalesTableProps> = ({ data }) => (
           <Text style={styles.verticalTableCell}>{row.customer?.name ?? ""}</Text>
         </View>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.deposit}</Text>
+          <Text style={styles.verticalTableCell}>{formatAmount(row.deposit)}</Text>
         </View>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.total}</Text>
+          <Text style={styles.verticalTableCell}>{formatAmount(row.total)}</Text>
         </View>
         <View style={styles.verticalTableCol}>
           <Text style={styles.verticalTableCell}>
@@ -362,7 +363,7 @@ const VerticalTableSales: React.FC<SalesTableProps> = ({ data }) => (
           <Text style={styles.verticalTableCell}>{row.show_name}</Text>
         </View>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.commission}</Text>
+          <Text style={styles.verticalTableCell}>{formatAmount(row.commission)}</Text>
         </View>
         <View style={styles.verticalTableCol}>
           <Text style={styles.verticalTableCell}>
@@ -410,10 +411,10 @@ const VerticalTableCancelled: React.FC<SalesTableProps> = ({ data }) => (
           <Text style={styles.verticalTableCell}>{row.customer?.name ?? ""}</Text>
         </View>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.deposit}</Text>
+          <Text style={styles.verticalTableCell}>{formatAmount(row.deposit)}</Text>
         </View>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.total}</Text>
+          <Text style={styles.verticalTableCell}>{formatAmount(row.total)}</Text>
         </View>
         <View style={styles.verticalTableCol}>
           <Text style={styles.verticalTableCell}>
@@ -424,7 +425,7 @@ const VerticalTableCancelled: React.FC<SalesTableProps> = ({ data }) => (
           <Text style={styles.verticalTableCell}>{row.closer?.full_name}</Text>
         </View>
         <View style={styles.verticalTableCol}>
-          <Text style={styles.verticalTableCell}>{row.commission}</Text>
+          <Text style={styles.verticalTableCell}>{formatAmount(row.commission)}</Text>
         </View>
         <View style={styles.verticalTableCol}>
           <Text style={styles.verticalTableCell}>

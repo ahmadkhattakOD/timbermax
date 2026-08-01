@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
+import RowActionsMenu, { RowAction } from "components/RowActionsMenu";
 import {
   AddCircle,
   CloseCircle,
@@ -43,6 +44,8 @@ import {
   getDateFormatted,
   initialRowsPerPage,
   useDebouncedSearch,
+  formatAmount,
+  roundAmount,
 } from "utils/helpers";
 import QuotationsRepository, { QuotationSupabase } from "utils/repositories/quotationRepo";
 import { ValuesFilterQuotations } from "types";
@@ -94,28 +97,29 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
+    id: "note",
+    numeric: false,
+    disablePadding: true,
+    label: "Note",
+  },
+  // Actions sit ahead of the low-priority columns so they stay in view.
+  {
+    id: "actions",
+    numeric: false,
+    disablePadding: true,
+    label: "Actions",
+  },
+  {
     id: "items_count",
     numeric: true,
     disablePadding: true,
     label: "Items",
   },
   {
-    id: "note",
-    numeric: false,
-    disablePadding: true,
-    label: "Note",
-  },
-  {
     id: "created_at",
     numeric: false,
     disablePadding: true,
     label: "Date Created",
-  },
-  {
-    id: "actions",
-    numeric: false,
-    disablePadding: true,
-    label: "Actions",
   },
 ];
 
@@ -319,8 +323,8 @@ export function useQuotations() {
         id: index + 1,
         name: (item.item_name ?? item.items?.name) || "Unknown",
         code: (item.item_code ?? item.items?.itemCode) || "N/A",
-        quantity: parseFloat(item.quantity) || 0,
-        unit_price: parseFloat(item.unit_price) || 0,
+        quantity: roundAmount(item.quantity),
+        unit_price: roundAmount(item.unit_price),
         gst: (item.item_gst ?? item?.items?.gst) || false,
       }));
 
@@ -422,10 +426,10 @@ export function useQuotations() {
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.code}</TableCell>
                   <TableCell align="right">
-                    {item.quantity.toFixed(2)}
+                    {formatAmount(item.quantity)}
                   </TableCell>
                   <TableCell align="right">
-                    ${item.unit_price.toFixed(2)}
+                    ${formatAmount(item.unit_price)}
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
@@ -472,8 +476,8 @@ export function useQuotations() {
                   <TableCell colSpan={6} align="right">
                     <Typography>
                       {currentQuotationInfo.breakdown.discountType === "fixed"
-                        ? `Discount ($${currentQuotationInfo.breakdown.discountValue.toFixed(2)}):`
-                        : `Discount (${currentQuotationInfo.breakdown.discountPercentage}%):`}
+                        ? `Discount ($${formatAmount(currentQuotationInfo.breakdown.discountValue)}):`
+                        : `Discount (${formatAmount(currentQuotationInfo.breakdown.discountPercentage)}%):`}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
@@ -554,6 +558,104 @@ export function useQuotations() {
       row.status || ""
     );
 
+    // Every row action, in menu order. Same conditions the icon buttons used.
+    const rowActions: RowAction[] = [
+      {
+        label: "Download Quotation PDF",
+        icon: <DocumentDownload size={18} />,
+        color: "primary.main",
+        onClick: () => downloadQuotationPDF(row.id),
+      },
+      ...(canDownloadDelivery && itemsCount > 0
+        ? [
+            {
+              label: "Download Delivery Document",
+              icon: <Truck size={18} />,
+              color: "warning.main",
+              onClick: () => downloadDeliveryDocument(row.id),
+            },
+          ]
+        : []),
+      ...(itemsCount > 0
+        ? [
+            {
+              label: "View Items",
+              icon: <Eye size={18} />,
+              color: "info.main",
+              onClick: () => viewItemsModal(row.id),
+            },
+          ]
+        : []),
+      ...(canMarkSent
+        ? [
+            {
+              label: "Mark as Sent",
+              icon: <Send size={18} />,
+              color: "info.main",
+              divider: true,
+              onClick: () => markAsSent(row.id),
+            },
+          ]
+        : []),
+      ...(canMarkApproved
+        ? [
+            {
+              label: "Mark as Approved",
+              icon: <AddCircle size={18} />,
+              color: "success.main",
+              divider: true,
+              onClick: () => markAsApproved(row.id),
+            },
+          ]
+        : []),
+      ...(row.status === "sent" || row.status === "approved"
+        ? [
+            {
+              label: "Resend Email",
+              icon: <RotateCcw size={18} />,
+              color: "primary.main",
+              onClick: () => resendQuotationEmail(row.id),
+            },
+          ]
+        : []),
+      ...(isConvertable
+        ? [
+            {
+              label: "Convert to Invoice",
+              icon: <Receipt size={18} />,
+              color: "success.main",
+              onClick: () => convertToInvoice(row.id),
+            },
+          ]
+        : []),
+      {
+        label: "Duplicate Quotation",
+        icon: <Copy size={18} />,
+        divider: true,
+        onClick: () => duplicateQuotation(row.id),
+      },
+      {
+        label: "Print",
+        icon: <Printer size={18} />,
+        // Anchors the print submenu to the trigger button, which stays mounted.
+        onClick: (anchor: HTMLElement) => {
+          setSelectedQuotationForPrint(row.id);
+          setPrintMenuAnchor(anchor);
+        },
+      },
+      ...(isCancellable
+        ? [
+            {
+              label: "Cancel Quotation",
+              icon: <CloseCircle size={18} />,
+              color: "error.main",
+              divider: true,
+              onClick: () => cancelQuotation(row.id),
+            },
+          ]
+        : []),
+    ];
+
     return (
       <>
         <TableCell padding="checkbox">
@@ -577,7 +679,7 @@ export function useQuotations() {
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>{row.customer?.name}</TableCell>
         <TableCell align="right" sx={{ minWidth: 150 }}>
-          ${row.total?.toFixed(2)}
+          ${formatAmount(row.total)}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           <Chip
@@ -607,172 +709,19 @@ export function useQuotations() {
           />
         </TableCell>
 
-        <TableCell align="center" sx={{ minWidth: 100 }}>
-          {itemsCount}
-        </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           {row.note || "-"}
+        </TableCell>
+        <TableCell sx={{ minWidth: 80 }}>
+          <RowActionsMenu actions={rowActions} />
+        </TableCell>
+        <TableCell align="center" sx={{ minWidth: 80 }}>
+          {itemsCount}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           <Typography variant="body2">
             {row.created_at ? getDateFormatted(row.created_at) : "-"}
           </Typography>
-        </TableCell>
-        <TableCell sx={{ minWidth: 350 }}>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {/* Mark as Sent Button (only for draft) */}
-            {canMarkSent && (
-              <Tooltip title="Mark as Sent">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markAsSent(row.id);
-                  }}
-                  color="info"
-                >
-                  <Send size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Mark as Approved Button (only for sent) */}
-            {canMarkApproved && (
-              <Tooltip title="Mark as Approved">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markAsApproved(row.id);
-                  }}
-                  color="success"
-                >
-                  <AddCircle size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* View Items Button - Always show if there are items */}
-            {itemsCount > 0 && (
-              <Tooltip title="View Items">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    viewItemsModal(row.id);
-                  }}
-                  color="info"
-                >
-                  <Eye size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Download PDF Button */}
-            <Tooltip title="Download Quotation PDF">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  downloadQuotationPDF(row.id);
-                }}
-                color="primary"
-              >
-                <DocumentDownload size={18} />
-              </IconButton>
-            </Tooltip>
-
-            {/* Download Delivery Document Button */}
-            {canDownloadDelivery && itemsCount > 0 && (
-              <Tooltip title="Download Delivery Document">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    downloadDeliveryDocument(row.id);
-                  }}
-                  color="warning"
-                >
-                  <Truck size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Convert to Invoice Button (only for approved quotations) */}
-            {isConvertable && (
-              <Tooltip title="Convert to Invoice">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    convertToInvoice(row.id);
-                  }}
-                  color="success"
-                >
-                  <Receipt size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Cancel Button (only for non-cancelled quotations) */}
-            {isCancellable && (
-              <Tooltip title="Cancel Quotation">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    cancelQuotation(row.id);
-                  }}
-                  color="error"
-                >
-                  <CloseCircle size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Resend Email (for sent and approved quotations) */}
-            {(row.status === "sent" || row.status === "approved") && (
-              <Tooltip title="Resend Email">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    resendQuotationEmail(row.id);
-                  }}
-                  color="primary"
-                >
-                  <RotateCcw size={18} />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            {/* Duplicate Quotation */}
-            <Tooltip title="Duplicate Quotation">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  duplicateQuotation(row.id);
-                }}
-              >
-                <Copy size={18} />
-              </IconButton>
-            </Tooltip>
-
-            {/* Print */}
-            <Tooltip title="Print">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedQuotationForPrint(row.id);
-                  setPrintMenuAnchor(e.currentTarget);
-                }}
-              >
-                <Printer size={18} />
-              </IconButton>
-            </Tooltip>
-          </Box>
         </TableCell>
       </>
     );
@@ -1513,7 +1462,7 @@ export function useQuotations() {
 
       const items = (existing.quotation_items || []).map((item: any) => ({
         item_id: item.item_id,
-        quantity: parseFloat(item.quantity),
+        quantity: roundAmount(item.quantity),
         warehouse_id: item.warehouse_id || 1,
       }));
 
@@ -1531,8 +1480,8 @@ export function useQuotations() {
           await quotationsRepo.addItem({
             quotation_id: newQuotationId,
             item_id: item.item_id,
-            quantity: parseFloat(item.quantity),
-            unit_price: parseFloat(item.unit_price),
+            quantity: roundAmount(item.quantity),
+            unit_price: roundAmount(item.unit_price),
             warehouse_id: item.warehouse_id || 1,
             sort_order: i,
             item_name: item.item_name ?? item.items?.name,
@@ -1656,7 +1605,7 @@ export function useQuotations() {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let quotation = data[i] as any;
-          csvString += `"${quotation.quotation_number ?? ""}","${quotation.customer?.name ?? ""}",${quotation.total ?? ""},"${quotation.status ?? ""}","${quotation.valid_until ? getDateFormatted(quotation.valid_until) : ""}",${quotation.quotation_items?.length || 0},"${getDateFormatted(quotation.created_at)}","${quotation.note ?? ""}"\n`;
+          csvString += `"${quotation.quotation_number ?? ""}","${quotation.customer?.name ?? ""}",${formatAmount(quotation.total)},"${quotation.status ?? ""}","${quotation.valid_until ? getDateFormatted(quotation.valid_until) : ""}",${quotation.quotation_items?.length || 0},"${getDateFormatted(quotation.created_at)}","${quotation.note ?? ""}"\n`;
         }
 
         setCsvData(csvString);
@@ -1988,9 +1937,9 @@ export function useQuotations() {
       let itemsMessage = "Items in this quotation:\n\n";
       items.forEach((item: any, index: number) => {
         itemsMessage += `${index + 1}. ${(item.item_name ?? item.items?.name) || "Unknown"} (${(item.item_code ?? item.items?.itemCode) || "N/A"})\n`;
-        itemsMessage += `   Quantity: ${item.quantity}\n`;
-        itemsMessage += `   Unit Price: $${item.unit_price?.toFixed(2) || "0.00"}\n`;
-        itemsMessage += `   Total: $${item.total_price?.toFixed(2) || "0.00"}\n\n`;
+        itemsMessage += `   Quantity: ${formatAmount(item.quantity)}\n`;
+        itemsMessage += `   Unit Price: $${formatAmount(item.unit_price)}\n`;
+        itemsMessage += `   Total: $${formatAmount(item.total_price)}\n\n`;
       });
 
       // Show items in an alert (you can replace this with a custom modal)

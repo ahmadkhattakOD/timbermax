@@ -17,6 +17,7 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { visuallyHidden } from "@mui/utils";
 import { DocumentDownload, Filter, Trash } from "iconsax-react";
+import ScrollNav from "components/ScrollNav";
 import { useDataTable } from "./useDataTable";
 import { FormattedMessage } from "react-intl";
 import useAuth from "hooks/useAuth";
@@ -81,6 +82,7 @@ interface DataTableProps {
   clickable?: boolean;
   showFilter?: boolean;
   onDownload?: () => void;
+  maxHeight?: number | string;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
@@ -236,6 +238,7 @@ export default function DataTable({
   clickable = true,
   showFilter = true,
   onDownload,
+  maxHeight = "calc(100vh - 320px)",
 }: DataTableProps) {
   const {
     handleRequestSort,
@@ -265,9 +268,13 @@ export default function DataTable({
 
   const { role } = useAuth();
   const canDelete = role === UserRoles.SuperAdmin;
+
+  // Rows scroll inside TableContainer, so the shortcut watches that element.
+  const tableContainerRef = React.useRef<HTMLDivElement>(null);
+
   return (
     <Box>
-      <Paper sx={{ width: "100%", mb: 2, borderRadius: "8px" }}>
+      <Paper sx={{ width: "100%", mb: 2, borderRadius: "8px", position: "relative" }}>
         <EnhancedTableToolbar
           numSelected={selected.length}
           tableTitle={tableTitle}
@@ -277,9 +284,41 @@ export default function DataTable({
           onDownload={onDownload}
           canDelete={canDelete}
         />
-        <TableContainer>
+        <TableContainer
+          ref={tableContainerRef}
+          sx={{
+            maxHeight: maxHeight,
+            overflowY: "auto",
+            // macOS/iOS hide overlay scrollbars until scrolling; force a persistent one
+            scrollbarWidth: "thin",
+            scrollbarColor: (theme) =>
+              `${theme.palette.secondary[400]} ${theme.palette.secondary.lighter}`,
+            "&::-webkit-scrollbar": {
+              width: 10,
+              height: 10,
+              WebkitAppearance: "none",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "secondary.lighter",
+              borderRadius: 5,
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "secondary.400",
+              borderRadius: 5,
+              border: "2px solid transparent",
+              backgroundClip: "content-box",
+              "&:hover": { backgroundColor: "secondary.main" },
+            },
+          }}
+        >
           <Table
-            sx={{ minWidth: 750 }}
+            stickyHeader
+            sx={{
+              minWidth: 750,
+              "& .MuiTableCell-stickyHeader": {
+                backgroundColor: "secondary.lighter",
+              },
+            }}
             aria-labelledby="tableTitle"
             size={"medium"}
           >
@@ -336,6 +375,11 @@ export default function DataTable({
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+        <ScrollNav
+          containerRef={tableContainerRef}
+          enabled={data.length > 10}
+          sx={{ position: "absolute", bottom: 72, right: 24 }}
         />
       </Paper>
     </Box>

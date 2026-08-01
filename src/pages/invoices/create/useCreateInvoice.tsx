@@ -6,6 +6,8 @@ import {
   useDebouncedSearch,
   calculateItemTotal,
   calculateSubTotal,
+  roundAmount,
+  formatAmount,
 } from "utils/helpers";
 import { geocodeByPlaceId } from "react-google-places-autocomplete";
 import { openSnackbar } from "api/snackbar";
@@ -116,17 +118,17 @@ export function useCreateInvoice() {
   // Deposit state
   const [deposit, setDeposit] = useState<number>(0);
 
-  const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + calculateSubTotal(item),
-    0,
+  const totalAmount = roundAmount(
+    selectedItems.reduce((sum, item) => sum + calculateSubTotal(item), 0),
   );
 
   // Calculate final amount after discount
-  const discountAmount =
+  const discountAmount = roundAmount(
     discountType === "percentage"
       ? (totalAmount * discount) / 100
-      : Math.min(discount, totalAmount);
-  const finalAmount = totalAmount - discountAmount;
+      : Math.min(discount, totalAmount),
+  );
+  const finalAmount = roundAmount(totalAmount - discountAmount);
 
   const customerIdFromUrl = searchParams.get("customer");
 
@@ -942,8 +944,8 @@ export function useCreateInvoice() {
           await invoicesRepo.addItem({
             invoice_id: invoiceId,
             item_id: item.item_id,
-            quantity: parseFloat(item.quantity),
-            unit_price: Number(item.unit_price),
+            quantity: roundAmount(item.quantity),
+            unit_price: roundAmount(item.unit_price),
             warehouse_id: item.warehouse_id || 1,
             sort_order: i,
             item_name: item.name,
@@ -999,9 +1001,9 @@ export function useCreateInvoice() {
         // Prepare items for stock reduction with warehouse IDs
         const itemsForStockReduction = selectedItems.map((item, index) => ({
           item_id: item.item_id,
-          quantity: parseFloat(item.quantity),
+          quantity: roundAmount(item.quantity),
           warehouse_id: item.warehouse_id || 1,
-          unit_price: Number(item.unit_price),
+          unit_price: roundAmount(item.unit_price),
           sort_order: index,
           item_name: item.name,
           item_code: item.itemCode,
@@ -1028,7 +1030,7 @@ export function useCreateInvoice() {
           const warningMessage = `Invoice will create NEGATIVE stock for: ${lowStockItems
             .map(
               (item) =>
-                `${item.name} (${item.quantity} > ${item.available_warehouses.find((w) => w.id === item.warehouse_id)?.available || 0} available)`,
+                `${item.name} (${formatAmount(item.quantity)} > ${formatAmount(item.available_warehouses.find((w) => w.id === item.warehouse_id)?.available || 0)} available)`,
             )
             .join(", ")}`;
 

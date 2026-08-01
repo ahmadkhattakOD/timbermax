@@ -9,6 +9,7 @@ import {
   getDateFormatted,
   initialRowsPerPage,
   isNumeric,
+  formatAmount,
 } from "utils/helpers";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 import SalesRepository from "utils/repositories/salesRepository";
@@ -242,13 +243,13 @@ export function useViewDelivery() {
           )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.sale?.deposit}
+          {formatAmount(row.sale?.deposit)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.sale?.total}
+          {formatAmount(row.sale?.total)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.commission}
+          {formatAmount(row.commission)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.beneficiary?.full_name}

@@ -19,6 +19,7 @@ import {
 import { ArrowLeft, Download, Printer, FileText } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getDateFormatted } from "utils/helpers";
+import ScrollNav from "components/ScrollNav";
 import { formatCurrency } from "utils/calculateTotals";
 import { generateCustomerReportPDF } from "utils/invoice-pdf-generator";
 import { useState } from "react";
@@ -34,7 +35,7 @@ const ACCENT = "#9C6A3A";
 const statusColors: Record<string, any> = {
   draft: "warning",
   sent: "info",
-  paid: "success",
+  paid: "primary",
   cancelled: "error",
   overdue: "error",
 };
@@ -490,6 +491,10 @@ export default function CustomerReport() {
           </Box>
         )}
       </Paper>
+      <ScrollNav
+        enabled={data.length > 10}
+        sx={{ position: "fixed", bottom: 32, right: 32 }}
+      />
     </Box>
   );
 }

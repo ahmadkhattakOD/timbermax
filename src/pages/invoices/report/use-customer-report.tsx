@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import CustomersRepository from "utils/repositories/customersRepository";
-import { getDateFormatted } from "utils/helpers";
+import { formatAmount, getDateFormatted, roundAmount } from "utils/helpers";
 
 // Date range presets supported by the report
 export type ReportPreset =
@@ -204,7 +204,7 @@ export function useCustomerReport(customerId: number) {
   const summary: ReportSummary = useMemo(() => {
     if (!data.length) return emptySummary;
     const outstandingStatuses = ["sent", "draft", "overdue"];
-    return data.reduce<ReportSummary>(
+    const totals = data.reduce<ReportSummary>(
       (acc, inv) => {
         const total = Number(inv.total) || 0;
         const deposit = Number(inv.deposit) || 0;
@@ -242,6 +242,24 @@ export function useCustomerReport(customerId: number) {
       },
       { ...emptySummary, byStatus: {} },
     );
+
+    // Round every accumulated money figure so no float noise reaches the UI/PDF.
+    return {
+      ...totals,
+      grandTotal: roundAmount(totals.grandTotal),
+      subtotalTotal: roundAmount(totals.subtotalTotal),
+      gstTotal: roundAmount(totals.gstTotal),
+      paidTotal: roundAmount(totals.paidTotal),
+      outstandingTotal: roundAmount(totals.outstandingTotal),
+      cancelledTotal: roundAmount(totals.cancelledTotal),
+      depositTotal: roundAmount(totals.depositTotal),
+      byStatus: Object.fromEntries(
+        Object.entries(totals.byStatus).map(([status, info]) => [
+          status,
+          { ...info, total: roundAmount(info.total) },
+        ]),
+      ),
+    };
   }, [data]);
 
   const setPreset = (preset: ReportPreset) => {
@@ -278,11 +296,9 @@ export function useCustomerReport(customerId: number) {
           inv.invoice_date,
         )}","${inv.status ?? ""}","${inv.delivery_status ?? "pending"}","${
           inv.invoice_items?.length || 0
-        }",${Number(inv.deposit) || 0},${Number(inv.total) || 0}\n`;
+        }",${formatAmount(inv.deposit)},${formatAmount(inv.total)}\n`;
       });
-      csv += `\nTotals,,,,,${summary.depositTotal.toFixed(
-        2,
-      )},${summary.grandTotal.toFixed(2)}\n`;
+      csv += `\nTotals,,,,,${formatAmount(summary.depositTotal)},${formatAmount(summary.grandTotal)}\n`;
 
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);

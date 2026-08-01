@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Quotation } from "types";
-import { getDateFormatted, formatFullAddress } from "./helpers";
+import { getDateFormatted, formatFullAddress, formatAmount } from "./helpers";
 import { BRAND_COLORS } from "themes/theme/default";
 
 // ==================== PDF SIZE / IMAGE COMPRESSION LAYER ====================
@@ -185,7 +185,7 @@ const buildQuotationContent = async (doc: jsPDF, quotation: Quotation) => {
   doc.text(`$${totalGST.toFixed(2)}`, 180, currentY, { align: "right" });
   if (discountRaw > 0) {
     currentY += 10;
-    const lbl = discountType === "fixed" ? `Discount ($${discountRaw.toFixed(2)}):` : `Discount (${discountRaw}%):`;
+    const lbl = discountType === "fixed" ? `Discount ($${formatAmount(discountRaw)}):` : `Discount (${formatAmount(discountRaw)}%):`;
     doc.text(lbl, 120, currentY);
     doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, { align: "right" });
   }
@@ -473,7 +473,7 @@ export const generateQuotationPDFBase64 = async (
       finalY += 5;
       const discountLabel2 = discountType2 === "fixed"
         ? `Discount ($${discountRaw2.toFixed(2)}):`
-        : `Discount (${discountRaw2}%):`;
+        : `Discount (${formatAmount(discountRaw2)}%):`;
       doc.text(discountLabel2, 140, finalY);
       doc.text(`-$${discountAmount.toFixed(2)}`, 196, finalY, { align: "right" });
     }

@@ -4,7 +4,11 @@ import { ErrorMessage, Field, Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateSale } from "./useCreateSale";
-import { australianStates, getDateFormattedForField } from "utils/helpers";
+import {
+  australianStates,
+  formatAmount,
+  getDateFormattedForField,
+} from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import { Box, IconButton, useTheme } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
@@ -259,7 +263,7 @@ export default function CreateSale() {
                 label={"total"}
                 secondaryLabel={
                   values.deposit && values.total
-                    ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                    ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                     : null
                 }
                 optional={false}

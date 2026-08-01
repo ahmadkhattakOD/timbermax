@@ -6,7 +6,11 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCloseSale } from "./useCloseSale";
 import CircularLoader from "components/CircularLoader";
-import { australianStates, getDateFormattedForField } from "utils/helpers";
+import {
+  australianStates,
+  formatAmount,
+  getDateFormattedForField,
+} from "utils/helpers";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import { FormattedMessage } from "react-intl";
 
@@ -85,8 +89,8 @@ export default function CloseSale() {
           initialValues={{
             contactName: sale.customer?.name ?? "",
             opportunityDescription: sale.opportunity_description ?? "",
-            deposit: sale.deposit ?? "",
-            total: sale.total ?? "",
+            deposit: sale.deposit != null ? formatAmount(sale.deposit) : "",
+            total: sale.total != null ? formatAmount(sale.total) : "",
             paymentMethod: sale.payment_method ?? "",
             phone: sale.phone ?? "",
             mobile: sale.mobile ?? "",
@@ -164,7 +168,7 @@ export default function CloseSale() {
                     label={"total"}
                     secondaryLabel={
                       values.deposit && values.total
-                        ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                        ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                         : null
                     }
                     optional={false}
@@ -423,8 +427,8 @@ export default function CloseSale() {
         initialValues={{
           contactName: sale.customer?.name ?? "",
           opportunityDescription: sale.opportunity_description ?? "",
-          deposit: sale.deposit ?? "",
-          total: sale.total ?? "",
+          deposit: sale.deposit != null ? formatAmount(sale.deposit) : "",
+          total: sale.total != null ? formatAmount(sale.total) : "",
           paymentMethod: sale.payment_method ?? "",
           phone: sale.phone ?? "",
           mobile: sale.mobile ?? "",
@@ -502,7 +506,7 @@ export default function CloseSale() {
                   label={"total"}
                   secondaryLabel={
                     values.deposit && values.total
-                      ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                      ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                       : null
                   }
                   optional={false}

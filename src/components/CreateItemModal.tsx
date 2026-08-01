@@ -19,7 +19,7 @@ import { openSnackbar } from "api/snackbar";
 import { SnackbarProps } from "types/snackbar";
 import ItemsRepository, { ItemSupabase } from "utils/repositories/itemsRepository";
 import VendorsRepository from "utils/repositories/vendorsRepository";
-import { useDebouncedSearch } from "utils/helpers";
+import { roundAmount, useDebouncedSearch } from "utils/helpers";
 
 // Same field set / validation as the standalone Create Item page, packaged as a
 // modal so a new item can be created without leaving the Create Invoice flow.
@@ -147,8 +147,8 @@ export default function CreateItemModal({ open, onClose, onCreated }: CreateItem
         name: values.name,
         description: values.description,
         itemCode: values.itemCode,
-        sellPrice: values.sellPrice ? parseFloat(values.sellPrice.toString()) : 0,
-        purchasePrice: values.purchasePrice ? parseFloat(values.purchasePrice.toString()) : 0,
+        sellPrice: roundAmount(values.sellPrice),
+        purchasePrice: roundAmount(values.purchasePrice),
         gst: values.gst || false,
         vendor_id: vendorId,
       };

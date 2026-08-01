@@ -9,6 +9,8 @@ import {
   getDateFormattedForField,
   calculateItemTotal,
   calculateSubTotal,
+  roundAmount,
+  formatAmount,
 } from "utils/helpers";
 import { geocodeByPlaceId } from "react-google-places-autocomplete";
 import CustomersRepository, {
@@ -132,16 +134,17 @@ export function useEditInvoice(invoiceId: number) {
     payment_method: "",
   });
 
-  const totalAmount = selectedItems.reduce(
-    (sum, item) => sum + calculateSubTotal(item),
-    0,
+  const totalAmount = roundAmount(
+    selectedItems.reduce((sum, item) => sum + calculateSubTotal(item), 0),
   );
 
   // Calculate final amount after discount
-  const discountAmount = discountType === "fixed"
-    ? Math.min(discount, totalAmount)
-    : (totalAmount * discount) / 100;
-  const finalAmount = totalAmount - discountAmount;
+  const discountAmount = roundAmount(
+    discountType === "fixed"
+      ? Math.min(discount, totalAmount)
+      : (totalAmount * discount) / 100,
+  );
+  const finalAmount = roundAmount(totalAmount - discountAmount);
 
   // Function to get ALL warehouses for an item
   const getWarehousesForItem = async (itemId: number) => {
@@ -922,7 +925,7 @@ export function useEditInvoice(invoiceId: number) {
                     itemId,
                     warehouseId,
                     Math.abs(quantityDiff),
-                    `Invoice #${invoiceId} edited: Quantity decreased by ${Math.abs(quantityDiff)}`,
+                    `Invoice #${invoiceId} edited: Quantity decreased by ${formatAmount(Math.abs(quantityDiff))}`,
                   );
                 }
               }

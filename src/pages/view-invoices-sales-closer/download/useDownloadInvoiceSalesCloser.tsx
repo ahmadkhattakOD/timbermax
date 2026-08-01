@@ -8,6 +8,8 @@ import {
   getDateTimeFormatted,
   initialRowsPerPage,
   isNumeric,
+  formatAmount,
+  roundAmount,
 } from "utils/helpers";
 import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
 import InvoicedSalesRepository from "utils/repositories/invoicedSalesRepository";
@@ -300,16 +302,16 @@ export function useDownloadInvoiceSalesCloser() {
           )}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.deposit}
+          {formatAmount(row.deposit)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.total}
+          {formatAmount(row.total)}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-        {row.total - row.deposit}
+        {formatAmount(row.total - row.deposit)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }} align="right">
-          {row.commission}
+          {formatAmount(row.commission)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.payment_method && <FormattedMessage id={row.payment_method} />}
@@ -436,10 +438,10 @@ export function useDownloadInvoiceSalesCloser() {
           {row.customer?.name}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.deposit}
+          {formatAmount(row.deposit)}
         </TableCell>
-        <TableCell align="right">{row.total}</TableCell>
-        <TableCell align="right">{row.commission}</TableCell>
+        <TableCell align="right">{formatAmount(row.total)}</TableCell>
+        <TableCell align="right">{formatAmount(row.commission)}</TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           {row.sale_date && getDateFormatted(row.sale_date)}
         </TableCell>
@@ -506,12 +508,14 @@ export function useDownloadInvoiceSalesCloser() {
           if (invoiceData && !invoiceError) {
             setInvoice(invoiceData);
             setGrandTotal(
-              (invoiceData.wages ?? 0) +
-                (invoiceData.travel_bonus ?? 0) +
-                (invoiceData.other_bonuses ?? 0) +
-                (invoiceData.total_commission ?? 0) -
-                (invoiceData.cancelled_sales ?? 0) -
-                (invoiceData.deductions ?? 0)
+              roundAmount(
+                (invoiceData.wages ?? 0) +
+                  (invoiceData.travel_bonus ?? 0) +
+                  (invoiceData.other_bonuses ?? 0) +
+                  (invoiceData.total_commission ?? 0) -
+                  (invoiceData.cancelled_sales ?? 0) -
+                  (invoiceData.deductions ?? 0)
+              )
             );
           }
         }

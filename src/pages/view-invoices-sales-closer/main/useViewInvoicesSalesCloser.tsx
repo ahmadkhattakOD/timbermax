@@ -9,6 +9,7 @@ import {
   getDateFormatted,
   getDateTimeFormatted,
   initialRowsPerPage,
+  formatAmount,
 } from "utils/helpers";
 import GeneratedInvoicesRepository from "utils/repositories/generatedInvoicesRepository";
 import ProfilesRepository from "utils/repositories/profilesRepository";
@@ -155,30 +156,32 @@ export function useViewInvoicesSalesCloser() {
           {row.end_date && getDateFormatted(row.end_date)}
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.wages +
-            row.travel_bonus +
-            row.other_bonuses +
-            row.total_commission -
-            row.cancelled_sales -
-            row.deductions}
+          {formatAmount(
+            row.wages +
+              row.travel_bonus +
+              row.other_bonuses +
+              row.total_commission -
+              row.cancelled_sales -
+              row.deductions
+          )}
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.wages}
+          {formatAmount(row.wages)}
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.travel_bonus}
+          {formatAmount(row.travel_bonus)}
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.other_bonuses}
+          {formatAmount(row.other_bonuses)}
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.total_commission}
+          {formatAmount(row.total_commission)}
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.cancelled_sales}
+          {formatAmount(row.cancelled_sales)}
         </TableCell>
         <TableCell sx={{ minWidth: 200, textAlign: "right" }}>
-          {row.deductions}
+          {formatAmount(row.deductions)}
         </TableCell>
         <TableCell sx={{ minWidth: 200 }}>
           <FormattedMessage id={row.status} />
@@ -242,14 +245,20 @@ export function useViewInvoicesSalesCloser() {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let invoice = data[i] as any;
-          csvString += `${invoice?.start_date ?? ""},${invoice?.end_date ?? ""},${
+          csvString += `${invoice?.start_date ?? ""},${invoice?.end_date ?? ""},${formatAmount(
             invoice?.wages +
-            invoice?.travel_bonus +
-            invoice?.other_bonuses +
-            invoice?.total_commission -
-            invoice?.cancelled_sales -
+              invoice?.travel_bonus +
+              invoice?.other_bonuses +
+              invoice?.total_commission -
+              invoice?.cancelled_sales -
+              invoice?.deductions
+          )},${formatAmount(invoice?.wages)},${formatAmount(
+            invoice?.travel_bonus
+          )},${formatAmount(invoice?.other_bonuses)},${formatAmount(
+            invoice?.total_commission
+          )},${formatAmount(invoice?.cancelled_sales)},${formatAmount(
             invoice?.deductions
-          },${invoice?.wages ?? ""},${invoice?.travel_bonus ?? ""},${invoice?.other_bonuses ?? ""},${invoice?.total_commission ?? ""},${invoice?.cancelled_sales ?? ""},${invoice?.deductions ?? ""},${invoice?.status ?? ""},${invoice?.created_at}\n`;
+          )},${invoice?.status ?? ""},${invoice?.created_at}\n`;
         }
 
         setCsvData(csvString);

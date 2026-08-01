@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { BRAND_COLORS } from "themes/theme/default";
-import { getDateFormatted, formatFullAddress } from "utils/helpers";
+import { getDateFormatted, formatFullAddress, formatAmount } from "utils/helpers";
 import { Invoice } from "types";
 
 // ==================== PDF SIZE / IMAGE COMPRESSION LAYER ====================
@@ -307,8 +307,8 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     currentY += 10;
     const discountLabel =
       discountType === "fixed"
-        ? `Discount ($${discountRaw.toFixed(2)}):`
-        : `Discount (${discountRaw}%):`;
+        ? `Discount ($${formatAmount(discountRaw)}):`
+        : `Discount (${formatAmount(discountRaw)}%):`;
     doc.text(discountLabel, 120, currentY);
     doc.text(`-$${discountAmount.toFixed(2)}`, 180, currentY, {
       align: "right",
@@ -528,8 +528,8 @@ export const generateInvoicePDFBase64 = async (
       finalY += 5;
       const discountLabel =
         discountType === "fixed"
-          ? `Discount ($${discountRaw.toFixed(2)}):`
-          : `Discount (${discountRaw}%):`;
+          ? `Discount ($${formatAmount(discountRaw)}):`
+          : `Discount (${formatAmount(discountRaw)}%):`;
       doc.text(discountLabel, 140, finalY);
       doc.text(`-$${discountAmount.toFixed(2)}`, 196, finalY, {
         align: "right",

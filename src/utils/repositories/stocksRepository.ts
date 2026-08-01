@@ -1,4 +1,5 @@
 import { ValuesFilterStock } from "pages/stock/main/useStock";
+import { roundAmount } from "utils/helpers";
 import supabase from "utils/supabase";
 
 export interface StockSupabase {
@@ -150,7 +151,7 @@ class StocksRepository {
         // UPDATE existing stock
         const existingStock = existingStockData[0];
         const quantityBefore = parseFloat(existingStock.quantity);
-        const quantityAfter = stock.quantity + quantityBefore;
+        const quantityAfter = roundAmount(stock.quantity + quantityBefore);
 
         const { data, error } = await supabase
           .from(this.className)
@@ -635,7 +636,7 @@ class StocksRepository {
             .update({
               item: stock.item,
               warehouse: stock.warehouse,
-              quantity: parseFloat(existingStock.quantity) - stock.quantity,
+              quantity: roundAmount(parseFloat(existingStock.quantity) - stock.quantity),
               reserved: parseFloat(existingStock.reserved) || 0,
               updated_at: new Date().toISOString(),
             })
@@ -680,7 +681,7 @@ class StocksRepository {
       }
 
       const quantityBefore = parseFloat(currentStock.quantity);
-      const quantityChange = newQuantity - quantityBefore;
+      const quantityChange = roundAmount(newQuantity - quantityBefore);
 
       const { error: updateError } = await supabase
         .from(this.className)
@@ -782,7 +783,7 @@ class StocksRepository {
       }
 
       // 4. Update stock reserved quantity
-      const newReserved = currentReserved + quantity;
+      const newReserved = roundAmount(currentReserved + quantity);
       const { error: updateError } = await supabase
         .from(this.className)
         .update({
@@ -822,7 +823,7 @@ class StocksRepository {
         reservationId: reservation.id,
         reservedQuantity: quantity,
         totalReserved: newReserved,
-        available: currentQuantity - newReserved,
+        available: roundAmount(currentQuantity - newReserved),
       };
     } catch (error: any) {
       console.error("Error reserving stock:", error);
@@ -892,9 +893,8 @@ class StocksRepository {
         if (stockData) {
           const currentQuantity = parseFloat(stockData.quantity) || 0;
           const currentReserved = parseFloat(stockData.reserved) || 0;
-          const newReserved = Math.max(
-            0,
-            currentReserved - reservation.quantity,
+          const newReserved = roundAmount(
+            Math.max(0, currentReserved - reservation.quantity),
           );
           const newStatus = newReserved === 0 ? "available" : "on_hold";
 
@@ -1013,7 +1013,7 @@ class StocksRepository {
           const { error: updateResError } = await supabase
             .from("stock_reservations")
             .update({
-              quantity: reservationQuantity - releaseQuantity,
+              quantity: roundAmount(reservationQuantity - releaseQuantity),
               updated_at: new Date().toISOString(),
             })
             .eq("id", reservation.id);
@@ -1050,7 +1050,7 @@ class StocksRepository {
         if (stockData) {
           const currentQuantity = parseFloat(stockData.quantity) || 0;
           const currentReserved = parseFloat(stockData.reserved) || 0;
-          const newReserved = Math.max(0, currentReserved - releaseQuantity);
+          const newReserved = roundAmount(Math.max(0, currentReserved - releaseQuantity));
           const newStatus = newReserved === 0 ? "available" : "on_hold";
 
           await supabase
@@ -1193,7 +1193,7 @@ class StocksRepository {
     newQuantity: number,
   ) {
     try {
-      const quantityDiff = newQuantity - oldQuantity;
+      const quantityDiff = roundAmount(newQuantity - oldQuantity);
 
       if (quantityDiff === 0) {
         return {
@@ -1221,8 +1221,8 @@ class StocksRepository {
       const currentStatus = stockData.status || "available";
 
       // Calculate new reserved amount
-      const newReserved = currentReserved + quantityDiff;
-      const finalReserved = Math.max(0, newReserved);
+      const newReserved = roundAmount(currentReserved + quantityDiff);
+      const finalReserved = roundAmount(Math.max(0, newReserved));
       const newStatus = finalReserved === 0 ? "available" : "on_hold";
 
       // Update stock reserved quantity
@@ -1296,7 +1296,7 @@ class StocksRepository {
             await supabase
               .from("stock_reservations")
               .update({
-                quantity: reservationQuantity - releaseAmount,
+                quantity: roundAmount(reservationQuantity - releaseAmount),
                 updated_at: new Date().toISOString(),
               })
               .eq("id", reservation.id);
@@ -1372,7 +1372,7 @@ class StocksRepository {
       }
 
       // 2. Handle reservation updates atomically
-      const quantityDiff = newQuantity - oldQuantity;
+      const quantityDiff = roundAmount(newQuantity - oldQuantity);
       
       // Release from old warehouse (update reservations directly)
       const { data: fromReservations } = await supabase
@@ -1453,7 +1453,7 @@ class StocksRepository {
       // Update target stock reserved quantity
       if (toStockData) {
         const toCurrentReserved = parseFloat(toStockData.reserved) || 0;
-        const toNewReserved = toCurrentReserved + newQuantity;
+        const toNewReserved = roundAmount(toCurrentReserved + newQuantity);
         const toNewStatus = "on_hold";
 
         await supabase
@@ -1606,7 +1606,7 @@ class StocksRepository {
         totalStock: quantity,
         quantity,
         reserved,
-        available: quantity - reserved,
+        available: roundAmount(quantity - reserved),
       };
     } catch (error: any) {
       console.error("Error checking total stock:", error);
@@ -1705,7 +1705,7 @@ class StocksRepository {
       }
 
       const currentQuantity = parseFloat(stockData[0].quantity) || 0;
-      const newQuantity = currentQuantity - quantity;
+      const newQuantity = roundAmount(currentQuantity - quantity);
 
       const { error: updateError } = await supabase
         .from(this.className)
@@ -1869,7 +1869,7 @@ class StocksRepository {
         success: true,
         quantity: quantity,
         reserved: reserved,
-        available: quantity - reserved,
+        available: roundAmount(quantity - reserved),
       };
     } catch (error: any) {
       return { success: false, error: error.message };

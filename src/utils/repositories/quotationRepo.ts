@@ -1,5 +1,5 @@
 import { ValuesFilterQuotations } from "types";
-import { getDateFormattedForField } from "utils/helpers";
+import { getDateFormattedForField, roundAmount } from "utils/helpers";
 import supabase from "utils/supabase";
 import StocksRepository from "./stocksRepository";
 
@@ -650,7 +650,7 @@ class QuotationsRepository {
       const discountAmount = discountType === "fixed"
         ? Math.min(discount, totalWithGST)
         : (totalWithGST * discount) / 100;
-      const finalTotal = totalWithGST - discountAmount;
+      const finalTotal = roundAmount(totalWithGST - discountAmount);
 
       // Update quotation total with discount applied
       const { error: updateError } = await supabase

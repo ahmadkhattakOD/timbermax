@@ -9,6 +9,7 @@ import {
   initialRowsPerPage,
   stripEmail,
   useDebouncedSearch,
+  formatAmount,
 } from "utils/helpers";
 import ProfilesRepository from "utils/repositories/profilesRepository";
 
@@ -230,7 +231,7 @@ export function useUsers() {
               commissions = `Sales: ${user?.commissions[0]}% Closer ${user?.commissions[1]}%`;
             }
           }
-          csvString += `${user?.full_name ?? ""},${stripEmail(user?.email) ?? ""},${user?.role ?? ""},${user?.daily_wage ?? ""},${commissions},${user?.created_at ?? ""}\n`;
+          csvString += `${user?.full_name ?? ""},${stripEmail(user?.email) ?? ""},${user?.role ?? ""},${formatAmount(user?.daily_wage)},${commissions},${user?.created_at ?? ""}\n`;
         }
 
         setCsvData(csvString);

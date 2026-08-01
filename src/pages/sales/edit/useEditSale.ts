@@ -7,6 +7,7 @@ import {
   isNumeric,
   normalizeString,
   parseAddress,
+  roundAmount,
   useDebouncedSearch,
 } from "utils/helpers";
 import CustomersRepository from "utils/repositories/customersRepository";
@@ -175,8 +176,8 @@ export function useEditSale() {
           contact_name: "REPORT IF YOU SEE THIS",
           customer: selectedCustomer,
           opportunity_descriptions: selectedOpportunities,
-          deposit: parseFloat(values.deposit) ?? 0,
-          total: parseFloat(values.total) ?? 0,
+          deposit: roundAmount(values.deposit),
+          total: roundAmount(values.total),
           payment_method: values.paymentMethod,
           phone: selectedPhone,
           mobile: selectedMobile,
@@ -307,16 +308,18 @@ export function useEditSale() {
 
                   const newSalesPersonInvoice: any = {
                     sale: editedSale.id,
-                    commission:
+                    commission: roundAmount(
                       (parseFloat(values.total) - 300) *
-                      salesPersonCommissionPercentage,
+                        salesPersonCommissionPercentage
+                    ),
                     beneficiary: values.salesPerson,
                   };
                   const newCloserInvoice: any = {
                     sale: editedSale.id,
-                    commission:
+                    commission: roundAmount(
                       (parseFloat(values.total) - 300) *
-                      closerCommissionPercentage,
+                        closerCommissionPercentage
+                    ),
                     beneficiary: values.closer,
                   };
 
@@ -418,16 +421,18 @@ export function useEditSale() {
 
                   const newSalesPersonInvoice: any = {
                     sale: editedSale.id,
-                    commission:
+                    commission: roundAmount(
                       (parseFloat(values.total) - 300) *
-                      salesPersonCommissionPercentage,
+                        salesPersonCommissionPercentage
+                    ),
                     beneficiary: values.salesPerson,
                   };
                   const newCloserInvoice: any = {
                     sale: editedSale.id,
-                    commission:
+                    commission: roundAmount(
                       (parseFloat(values.total) - 300) *
-                      closerCommissionPercentage,
+                        closerCommissionPercentage
+                    ),
                     beneficiary: values.closer,
                   };
 

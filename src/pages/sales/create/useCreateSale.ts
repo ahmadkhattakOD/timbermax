@@ -7,6 +7,7 @@ import {
   normalizeString,
   opportunityDescriptions,
   parseAddress,
+  roundAmount,
   useDebouncedSearch,
 } from "utils/helpers";
 import CustomersRepository, {
@@ -222,8 +223,8 @@ export function useCreateSale() {
         customer: customerToAdd,
         opportunity_descriptions:
           selectedOpportunities.length > 0 ? selectedOpportunities : [],
-        deposit: parseFloat(values.deposit) || 0,
-        total: parseFloat(values.total) ?? 0,
+        deposit: roundAmount(values.deposit),
+        total: roundAmount(values.total),
         payment_method: values.paymentMethod,
         phone: selectedPhone,
         mobile: selectedMobile,
@@ -308,8 +309,8 @@ export function useCreateSale() {
 
           // Calculate commission base amount (excluding CPAP)
           const cpapAmount = parseFloat(values.cpapAmount || "0") || 0;
-          const nonCpapTotal = parseFloat(values.total) - cpapAmount;
-          const remainingDeposit = parseFloat(values.deposit) - cpapAmount;
+          const nonCpapTotal = roundAmount(parseFloat(values.total) - cpapAmount);
+          const remainingDeposit = roundAmount(parseFloat(values.deposit) - cpapAmount);
 
           if (remainingDeposit / nonCpapTotal >= 0.2) {
             const profilesRepository = new ProfilesRepository();
@@ -358,17 +359,17 @@ export function useCreateSale() {
                 }
 
                 // Use remainingDeposit for commission calculations
-                const commissionBase = nonCpapTotal - 300;
+                const commissionBase = roundAmount(nonCpapTotal - 300);
 
                 const newSalesPersonInvoice: any = {
                   sale: createdSale.id,
-                  commission: commissionBase * salesPersonCommissionPercentage,
+                  commission: roundAmount(commissionBase * salesPersonCommissionPercentage),
                   beneficiary: values.salesPerson,
                 };
 
                 const newCloserInvoice: any = {
                   sale: createdSale.id,
-                  commission: commissionBase * closerCommissionPercentage,
+                  commission: roundAmount(commissionBase * closerCommissionPercentage),
                   beneficiary: values.closer,
                 };
 

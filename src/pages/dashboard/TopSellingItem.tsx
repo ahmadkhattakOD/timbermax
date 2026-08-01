@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatAmount } from 'utils/helpers';
 import {
   Paper,
   Typography,
@@ -66,12 +67,12 @@ const TopSellingItems: React.FC<TopSellingItemsProps> = ({ items }) => {
                 </TableCell>
                 <TableCell align="right">
                   <Typography variant="body2" fontWeight="medium">
-                    {item.quantitySold}
+                    {formatAmount(item.quantitySold)}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
                   <Typography variant="body2" color="success.main" fontWeight="medium">
-                    ${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${formatAmount(item.revenue)}
                   </Typography>
                 </TableCell>
               </TableRow>

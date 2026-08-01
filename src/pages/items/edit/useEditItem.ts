@@ -2,7 +2,7 @@ import { openSnackbar } from "api/snackbar";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { SnackbarProps } from "types/snackbar";
-import { isNumeric, useDebouncedSearch } from "utils/helpers";
+import { isNumeric, roundAmount, useDebouncedSearch } from "utils/helpers";
 import ItemsRepository, {
   ItemSupabase,
 } from "utils/repositories/itemsRepository";
@@ -129,8 +129,8 @@ export function useEditItem() {
         }
 
         // Convert to numbers, handling any string representation
-        const sellPriceNum = values.sellPrice ? parseFloat(values.sellPrice.toString()) : 0;
-        const purchasePriceNum = values.purchasePrice ? parseFloat(values.purchasePrice.toString()) : 0;
+        const sellPriceNum = roundAmount(values.sellPrice);
+        const purchasePriceNum = roundAmount(values.purchasePrice);
 
         const updatedItem: ItemSupabase = {
           name: values.name,

@@ -88,7 +88,22 @@ export function getDateTimeFormatted(date?: string | Date, addSpace?: boolean) {
   }
 }
 
-export const initialRowsPerPage = 50;
+export const initialRowsPerPage = 10;
+
+// ==============================|| MONEY ||============================== //
+// Floating point math leaks values like 19649.100000000002, so every amount is
+// rounded to 2 decimals before it is stored, summed or displayed.
+
+export function roundAmount(value: number | string | null | undefined): number {
+  const parsed = typeof value === "string" ? parseFloat(value) : value;
+  if (parsed === null || parsed === undefined || Number.isNaN(parsed)) return 0;
+  return Math.round((parsed + Number.EPSILON) * 100) / 100;
+}
+
+// Display form of an amount: always exactly 2 decimals, no currency symbol.
+export function formatAmount(value: number | string | null | undefined): string {
+  return roundAmount(value).toFixed(2);
+}
 
 export const australianStates = [
   "New South Wales",
@@ -189,7 +204,7 @@ export const calculateItemTotal = (item: any) => {
 
   const baseTotal = qty * price;
 
-  return baseTotal;
+  return roundAmount(baseTotal);
 };
 
 export const calculateSubTotal = (item: any) => {
@@ -199,7 +214,7 @@ export const calculateSubTotal = (item: any) => {
   const baseTotal = qty * price;
   const gstAmount = item.gst ? baseTotal * 0.1 : 0;
 
-  return baseTotal + gstAmount;
+  return roundAmount(baseTotal + gstAmount);
 };
 
 export const opportunityDescriptions = [

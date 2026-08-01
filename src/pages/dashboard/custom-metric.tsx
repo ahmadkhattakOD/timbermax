@@ -103,7 +103,7 @@ const CustomerMetrics: React.FC<CustomerMetricsProps> = ({ metrics }) => {
                     >
                       $
                       {customer.totalSpent.toLocaleString(undefined, {
-                        minimumFractionDigits: 0,
+                        minimumFractionDigits: isMobile ? 0 : 2,
                         maximumFractionDigits: isMobile ? 0 : 2,
                       })}
                       {isMobile && customer.totalSpent >= 1000 && "k"}
@@ -250,7 +250,7 @@ const CustomerMetrics: React.FC<CustomerMetricsProps> = ({ metrics }) => {
               sx={{ fontWeight: 600 }}
             >
               {avgSpend.toLocaleString(undefined, {
-                minimumFractionDigits: 0,
+                minimumFractionDigits: isMobile ? 0 : 2,
                 maximumFractionDigits: isMobile ? 0 : 2,
               })}
               {isMobile && avgSpend >= 1000 && "k"}

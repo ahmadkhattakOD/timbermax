@@ -2,7 +2,7 @@ import { Form, Formik } from "formik";
 import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { useCreateInvoice } from "./useCreateInvoice";
-import { getDateFormattedForField } from "utils/helpers";
+import { formatAmount, getDateFormattedForField } from "utils/helpers";
 import CircularLoader from "components/CircularLoader";
 import {
   Box,
@@ -381,14 +381,14 @@ export default function CreateInvoice() {
                                 {selectedQuotation.customers?.name}
                               </Typography>
                               <Typography variant="body2">
-                                <strong>Total:</strong> ${selectedQuotation.total?.toFixed(2)}
+                                <strong>Total:</strong> ${formatAmount(selectedQuotation.total)}
                               </Typography>
                               {selectedQuotation.discount > 0 && (
                                 <Typography variant="body2">
                                   <strong>Discount:</strong>{" "}
                                   {selectedQuotation.discount_type === "fixed"
-                                    ? `$${selectedQuotation.discount.toFixed(2)}`
-                                    : `${selectedQuotation.discount}%`}
+                                    ? `$${formatAmount(selectedQuotation.discount)}`
+                                    : `${formatAmount(selectedQuotation.discount)}%`}
                                 </Typography>
                               )}
                               <Typography variant="body2">
@@ -409,13 +409,13 @@ export default function CreateInvoice() {
                             label="Load from Quotation (Optional)"
                             options={quotations.map((q) => ({
                               id: q.id,
-                              name: `#${q.quotation_number} - ${q.customer?.name || "Unknown"} - $${q.total?.toFixed(2)}`,
+                              name: `#${q.quotation_number} - ${q.customer?.name || "Unknown"} - $${formatAmount(q.total)}`,
                             }))}
                             value={
                               selectedQuotation
                                 ? {
                                     id: selectedQuotation.id,
-                                    name: `#${selectedQuotation.quotation_number} - ${selectedQuotation.customers?.name || "Unknown"} - $${selectedQuotation.total?.toFixed(2)}`,
+                                    name: `#${selectedQuotation.quotation_number} - ${selectedQuotation.customers?.name || "Unknown"} - $${formatAmount(selectedQuotation.total)}`,
                                   }
                                 : null
                             }

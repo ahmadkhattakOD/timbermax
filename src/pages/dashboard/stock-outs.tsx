@@ -1,4 +1,5 @@
 import React from "react";
+import { formatAmount } from "utils/helpers";
 import {
   Paper,
   Typography,
@@ -107,7 +108,7 @@ const StockMovementTable: React.FC<StockMovementTableProps> = ({
           color={color}
           fontWeight="medium"
         >
-          {sign}{quantityChange}
+          {sign}{formatAmount(quantityChange)}
         </Typography>
       </Stack>
     );

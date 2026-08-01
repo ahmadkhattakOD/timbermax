@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import supabase from "utils/supabase";
+import { roundAmount } from "utils/helpers";
 
 export interface DashboardFilters {
   timeRange: "" | "today" | "week" | "month" | "quarter" | "year" | "custom";
@@ -279,8 +280,9 @@ const useDashboard = () => {
       throw error;
     }
 
-    const total =
-      data?.reduce((sum, invoice) => sum + (invoice.total || 0), 0) || 0;
+    const total = roundAmount(
+      data?.reduce((sum, invoice) => sum + (invoice.total || 0), 0) || 0
+    );
     console.log("Total sales result:", total, "from", data?.length, "invoices");
     return total;
   };
@@ -426,7 +428,8 @@ const useDashboard = () => {
 
     const result = Array.from(itemMap.values())
       .sort((a, b) => b.quantitySold - a.quantitySold)
-      .slice(0, 10);
+      .slice(0, 10)
+      .map((item) => ({ ...item, revenue: roundAmount(item.revenue) }));
 
     console.log("Top selling items result:", result.length, "items");
     return result;
@@ -569,9 +572,9 @@ const useDashboard = () => {
       monthData.quotations += 1;
     });
 
-    const result = Array.from(monthMap.values()).sort((a, b) =>
-      a.month.localeCompare(b.month)
-    );
+    const result = Array.from(monthMap.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map((month) => ({ ...month, sales: roundAmount(month.sales) }));
 
     console.log("Monthly sales result:", result.length, "months");
     return result;
@@ -632,9 +635,9 @@ const useDashboard = () => {
       weekData.invoices += 1;
     });
 
-    const result = Array.from(weekMap.values()).sort((a, b) =>
-      a.week.localeCompare(b.week)
-    );
+    const result = Array.from(weekMap.values())
+      .sort((a, b) => a.week.localeCompare(b.week))
+      .map((week) => ({ ...week, sales: roundAmount(week.sales) }));
 
     console.log("Weekly trends result:", result.length, "weeks");
     return result;
@@ -713,7 +716,11 @@ const useDashboard = () => {
 
     const topCustomers = Array.from(customerMap.values())
       .sort((a, b) => b.totalSpent - a.totalSpent)
-      .slice(0, 5);
+      .slice(0, 5)
+      .map((customer) => ({
+        ...customer,
+        totalSpent: roundAmount(customer.totalSpent),
+      }));
 
     // Get new customers count
     let newCustomersQuery = supabase
@@ -790,8 +797,8 @@ const useDashboard = () => {
     });
 
     const result = {
-      totalItems,
-      totalValue,
+      totalItems: roundAmount(totalItems),
+      totalValue: roundAmount(totalValue),
       totalItemCount,
       outOfStock,
       lowStock,
@@ -879,9 +886,9 @@ const useDashboard = () => {
     });
 
     // Convert to array and sort
-    const result = Array.from(dateMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    const result = Array.from(dateMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((day) => ({ ...day, sales: roundAmount(day.sales) }));
 
     console.log("Time series data result:", result.length, "days");
     return result;

@@ -10,6 +10,7 @@ import {
   australianStates,
   getDateFormattedForField,
   getDateTimeFormattedForField,
+  formatAmount,
 } from "utils/helpers";
 import { Trash } from "iconsax-react";
 import { IconButton } from "@mui/material";
@@ -92,8 +93,8 @@ export default function DeliverSale() {
         enableReinitialize
         initialValues={{
           contactName: sale.customer?.name ?? "",
-          deposit: sale.deposit ?? "",
-          total: sale.total ?? "",
+          deposit: sale.deposit != null ? formatAmount(sale.deposit) : "",
+          total: sale.total != null ? formatAmount(sale.total) : "",
           paymentMethod: sale.payment_method ?? "",
           phone: sale.phone ?? "",
           mobile: sale.mobile ?? "",
@@ -177,7 +178,7 @@ export default function DeliverSale() {
                   label={"total"}
                   secondaryLabel={
                     values.deposit && values.total
-                      ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                      ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                       : null
                   }
                   optional={false}

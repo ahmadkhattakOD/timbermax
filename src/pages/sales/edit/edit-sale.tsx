@@ -11,6 +11,7 @@ import {
   getDateFormatted,
   getDateFormattedForField,
   normalizeString,
+  formatAmount,
 } from "utils/helpers";
 import { IconButton } from "@mui/material";
 import { Add, Trash } from "iconsax-react";
@@ -161,7 +162,7 @@ export default function EditSale() {
   //                   label={"total"}
   //                   secondaryLabel={
   //                     values.deposit && values.total
-  //                       ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+  //                       ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
   //                       : null
   //                   }
   //                   optional={false}
@@ -463,7 +464,7 @@ export default function EditSale() {
                   label={"total"}
                   secondaryLabel={
                     values.deposit && values.total
-                      ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                      ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                       : null
                   }
                   optional={false}

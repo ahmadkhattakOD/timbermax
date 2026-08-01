@@ -20,6 +20,7 @@ import { ArrowLeft, Download, Printer, FileText } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { getDateFormatted } from "utils/helpers";
+import ScrollNav from "components/ScrollNav";
 import { formatCurrency } from "utils/calculateTotals";
 import { generateCustomerQuotationReportPDF } from "utils/quotation-pdf-generator";
 import {
@@ -463,6 +464,10 @@ export default function CustomerQuotationReport() {
           </Box>
         )}
       </Paper>
+      <ScrollNav
+        enabled={data.length > 10}
+        sx={{ position: "fixed", bottom: 32, right: 32 }}
+      />
     </Box>
   );
 }

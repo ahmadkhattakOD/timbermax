@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import QuotationsRepository from "utils/repositories/quotationRepo";
 import CustomersRepository from "utils/repositories/customersRepository";
-import { getDateFormatted } from "utils/helpers";
+import { formatAmount, getDateFormatted, roundAmount } from "utils/helpers";
 
 export type ReportPreset =
   | "this_month"
@@ -198,7 +198,7 @@ export function useCustomerQuotationReport(customerId: number) {
     if (!data.length) return emptySummary;
     const pendingStatuses = ["draft", "sent"];
     const approvedStatuses = ["approved", "accepted"];
-    return data.reduce<QuotationReportSummary>(
+    const totals = data.reduce<QuotationReportSummary>(
       (acc, q) => {
         const total = Number(q.total) || 0;
         const status = q.status || "unknown";
@@ -237,6 +237,24 @@ export function useCustomerQuotationReport(customerId: number) {
       },
       { ...emptySummary, byStatus: {} },
     );
+
+    // Round every accumulated money figure so no float noise reaches the UI/PDF.
+    return {
+      ...totals,
+      grandTotal: roundAmount(totals.grandTotal),
+      subtotalTotal: roundAmount(totals.subtotalTotal),
+      gstTotal: roundAmount(totals.gstTotal),
+      approvedTotal: roundAmount(totals.approvedTotal),
+      pendingTotal: roundAmount(totals.pendingTotal),
+      convertedTotal: roundAmount(totals.convertedTotal),
+      cancelledTotal: roundAmount(totals.cancelledTotal),
+      byStatus: Object.fromEntries(
+        Object.entries(totals.byStatus).map(([status, info]) => [
+          status,
+          { ...info, total: roundAmount(info.total) },
+        ]),
+      ),
+    };
   }, [data]);
 
   const setPreset = (preset: ReportPreset) => {
@@ -272,7 +290,7 @@ export function useCustomerQuotationReport(customerId: number) {
           Number(q.total) || 0
         }\n`;
       });
-      csv += `\nTotal,,,,${summary.grandTotal.toFixed(2)}\n`;
+      csv += `\nTotal,,,,${formatAmount(summary.grandTotal)}\n`;
 
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);

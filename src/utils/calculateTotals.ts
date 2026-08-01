@@ -2,6 +2,8 @@
  * Utility functions for calculating invoice/quotation totals with GST and discounts
  */
 
+import { roundAmount } from "./helpers";
+
 export interface ItemForCalculation {
   quantity: number | string;
   unit_price: number | string;
@@ -27,7 +29,7 @@ export interface TotalBreakdown {
 export function calculateItemSubtotal(item: ItemForCalculation): number {
   const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
   const unitPrice = typeof item.unit_price === 'string' ? parseFloat(item.unit_price) : item.unit_price;
-  return (quantity || 0) * (unitPrice || 0);
+  return roundAmount((quantity || 0) * (unitPrice || 0));
 }
 
 /**
@@ -38,7 +40,7 @@ export function calculateItemSubtotal(item: ItemForCalculation): number {
 export function calculateItemGst(item: ItemForCalculation): number {
   if (!item.gst) return 0;
   const subtotal = calculateItemSubtotal(item);
-  return subtotal * 0.1; // 10% GST
+  return roundAmount(subtotal * 0.1); // 10% GST
 }
 
 /**
@@ -49,7 +51,7 @@ export function calculateItemGst(item: ItemForCalculation): number {
 export function calculateItemTotal(item: ItemForCalculation): number {
   const subtotal = calculateItemSubtotal(item);
   const gst = calculateItemGst(item);
-  return subtotal + gst;
+  return roundAmount(subtotal + gst);
 }
 
 /**
@@ -65,33 +67,42 @@ export function calculateTotalBreakdown(
   discountType: "percentage" | "fixed" = "percentage"
 ): TotalBreakdown {
   // Calculate subtotal (sum of qty × price for all items, no GST yet)
-  const subtotal = items.reduce((sum, item) => {
-    return sum + calculateItemSubtotal(item);
-  }, 0);
+  const subtotal = roundAmount(
+    items.reduce((sum, item) => {
+      return sum + calculateItemSubtotal(item);
+    }, 0)
+  );
 
   // Calculate total GST amount
-  const gstAmount = items.reduce((sum, item) => {
-    return sum + calculateItemGst(item);
-  }, 0);
+  const gstAmount = roundAmount(
+    items.reduce((sum, item) => {
+      return sum + calculateItemGst(item);
+    }, 0)
+  );
 
   // Subtotal + GST
-  const subtotalWithGst = subtotal + gstAmount;
+  const subtotalWithGst = roundAmount(subtotal + gstAmount);
 
   // Calculate discount based on type
   let discountAmount: number;
   let discountPercentage: number;
 
   if (discountType === "fixed") {
-    discountAmount = Math.min(Math.max(0, discountValue || 0), subtotalWithGst);
-    discountPercentage = subtotalWithGst > 0 ? (discountAmount / subtotalWithGst) * 100 : 0;
+    discountAmount = roundAmount(
+      Math.min(Math.max(0, discountValue || 0), subtotalWithGst)
+    );
+    discountPercentage =
+      subtotalWithGst > 0
+        ? roundAmount((discountAmount / subtotalWithGst) * 100)
+        : 0;
   } else {
     const validPercent = Math.max(0, Math.min(100, discountValue || 0));
-    discountAmount = (subtotalWithGst * validPercent) / 100;
+    discountAmount = roundAmount((subtotalWithGst * validPercent) / 100);
     discountPercentage = validPercent;
   }
 
   // Final total after discount
-  const finalTotal = subtotalWithGst - discountAmount;
+  const finalTotal = roundAmount(subtotalWithGst - discountAmount);
 
   return {
     subtotal,

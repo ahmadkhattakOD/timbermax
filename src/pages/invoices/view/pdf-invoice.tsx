@@ -9,6 +9,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import { FormattedMessage, IntlProvider } from "react-intl";
+import { formatAmount } from "utils/helpers";
 import Locales from "components/Locales";
 import logo from "../../../assets/images/icons/ultramatic.png";
 import { getDateFormatted } from "utils/helpers";
@@ -185,10 +186,10 @@ const Table: React.FC<TableProps> = ({ data }) => (
           <Text style={styles.tableCell}>{row.opportunity}</Text>
         </View>
         <View style={styles.tableCol}>
-          <Text style={styles.tableCell}>{row.deposit}</Text>
+          <Text style={styles.tableCell}>{formatAmount(row.deposit)}</Text>
         </View>
         <View style={styles.tableCol}>
-          <Text style={styles.tableCell}>{row.total}</Text>
+          <Text style={styles.tableCell}>{formatAmount(row.total)}</Text>
         </View>
         <View style={styles.tableCol}>
           <Text style={styles.tableCell}>

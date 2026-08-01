@@ -21,7 +21,7 @@ import {
 } from "@mui/material";
 import { CloseCircle, Eye, Calendar } from "iconsax-react";
 import ActionButton from "components/ActionButton";
-import { getDateFormatted } from "utils/helpers";
+import { formatAmount, getDateFormatted } from "utils/helpers";
 import StocksRepository from "utils/repositories/stocksRepository";
 import { useNavigate } from "react-router-dom";
 
@@ -169,7 +169,7 @@ const StockReservationsModal: React.FC<StockReservationsModalProps> = ({
                   Total Reserved Quantity
                 </Typography>
                 <Typography variant="h4" color="primary">
-                  {totalReserved.toFixed(2)}
+                  {formatAmount(totalReserved)}
                 </Typography>
               </Box>
               <Chip 
@@ -214,7 +214,7 @@ const StockReservationsModal: React.FC<StockReservationsModalProps> = ({
                         </TableCell>
                         <TableCell align="center">
                           <Chip 
-                            label={reservation.quantity.toFixed(2)}
+                            label={formatAmount(reservation.quantity)}
                             size="small"
                             color="warning"
                             variant="filled"

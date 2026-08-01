@@ -3,6 +3,7 @@ import {
   extendedDataLimit,
   getDateFormattedForField,
   getMonthName,
+  roundAmount,
 } from "utils/helpers";
 import supabase from "utils/supabase";
 
@@ -325,7 +326,7 @@ class GeneratedInvoicesRepository {
 
       return Object.keys(totalCommissionCount).map((month) => ({
         month,
-        sales: totalCommissionCount[month],
+        sales: roundAmount(totalCommissionCount[month]),
       }));
     } catch (error) {
       console.error("Error fetching invoices:", error);
@@ -358,7 +359,7 @@ class GeneratedInvoicesRepository {
         }
       }
 
-      return pendingCommission;
+      return roundAmount(pendingCommission);
     } catch (error) {
       console.error("Error fetching invoices:", error);
       return 0;

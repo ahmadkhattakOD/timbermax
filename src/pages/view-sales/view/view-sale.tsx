@@ -10,6 +10,7 @@ import {
   australianStates,
   getDateFormattedForField,
   getDateTimeFormattedForField,
+  formatAmount,
 } from "utils/helpers";
 import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import { FormattedMessage } from "react-intl";
@@ -83,8 +84,8 @@ export default function ViewSale() {
         initialValues={{
           contactName: sale.customer?.name ?? "",
           opportunityDescription: sale.opportunity_description ?? "",
-          deposit: sale.deposit ?? "",
-          total: sale.total ?? "",
+          deposit: sale.deposit != null ? formatAmount(sale.deposit) : "",
+          total: sale.total != null ? formatAmount(sale.total) : "",
           paymentMethod: sale.payment_method ?? "",
           phone: sale.phone ?? "",
           address: sale.address ?? "",
@@ -164,7 +165,7 @@ export default function ViewSale() {
                         label={"total"}
                         secondaryLabel={
                           values.deposit && values.total
-                            ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                            ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                             : null
                         }
                         optional={false}
@@ -387,7 +388,7 @@ export default function ViewSale() {
                         label={"total"}
                         secondaryLabel={
                           values.deposit && values.total
-                            ? `Balance: $${parseFloat(values.total) - parseFloat(values.deposit)}`
+                            ? `Balance: $${formatAmount(parseFloat(values.total) - parseFloat(values.deposit))}`
                             : null
                         }
                         optional={false}

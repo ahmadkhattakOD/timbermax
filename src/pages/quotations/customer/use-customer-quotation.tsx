@@ -34,6 +34,8 @@ import {
   getDateFormatted,
   initialRowsPerPage,
   useDebouncedSearch,
+  formatAmount,
+  roundAmount,
 } from "utils/helpers";
 import QuotationsRepository from "utils/repositories/quotationRepo";
 import { ValuesFilterQuotations } from "types";
@@ -201,9 +203,9 @@ export function useCustomerQuotations(customerId: number) {
         id: index + 1,
         name: (item.item_name ?? item.items?.name) || "Unknown",
         code: (item.item_code ?? item.items?.itemCode) || "N/A",
-        quantity: parseFloat(item.quantity) || 0,
+        quantity: roundAmount(item.quantity),
         unitPrice: parseFloat(item.unit_price) || 0,
-        total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
+        total: roundAmount(parseFloat(item.quantity) * parseFloat(item.unit_price) || 0),
       }));
 
       setCurrentQuotationItems(formattedItems);
@@ -295,14 +297,14 @@ export function useCustomerQuotations(customerId: number) {
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.code}</TableCell>
                   <TableCell align="right">
-                    {item.quantity.toFixed(2)}
+                    {formatAmount(item.quantity)}
                   </TableCell>
                   <TableCell align="right">
-                    ${item.unitPrice.toFixed(2)}
+                    ${formatAmount(item.unitPrice)}
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
-                      ${item.total.toFixed(2)}
+                      ${formatAmount(item.total)}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -315,7 +317,7 @@ export function useCustomerQuotations(customerId: number) {
                 </TableCell>
                 <TableCell align="right">
                   <Typography variant="subtitle1" fontWeight={600}>
-                    ${currentQuotationInfo?.total?.toFixed(2) || "0.00"}
+                    ${formatAmount(currentQuotationInfo?.total)}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -376,7 +378,7 @@ export function useCustomerQuotations(customerId: number) {
           {row.quotation_number}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 150 }}>
-          ${row.total?.toFixed(2)}
+          ${formatAmount(row.total)}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           <Typography
@@ -870,7 +872,7 @@ export function useCustomerQuotations(customerId: number) {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let quotation = data[i] as any;
-          csvString += `"${quotation.quotation_number ?? ""}",${quotation.total ?? ""},"${quotation.status ?? ""}",${quotation.quotation_items?.length || 0},"${getDateFormatted(quotation.created_at)}","${quotation.note ?? ""}"\n`;
+          csvString += `"${quotation.quotation_number ?? ""}",${formatAmount(quotation.total)},"${quotation.status ?? ""}",${quotation.quotation_items?.length || 0},"${getDateFormatted(quotation.created_at)}","${quotation.note ?? ""}"\n`;
         }
 
         setCsvData(csvString);
@@ -1141,9 +1143,9 @@ export function useCustomerQuotations(customerId: number) {
       let itemsMessage = "Items in this quotation:\n\n";
       items.forEach((item: any, index: number) => {
         itemsMessage += `${index + 1}. ${(item.item_name ?? item.items?.name) || "Unknown"} (${(item.item_code ?? item.items?.itemCode) || "N/A"})\n`;
-        itemsMessage += `   Quantity: ${item.quantity}\n`;
-        itemsMessage += `   Unit Price: $${item.unit_price?.toFixed(2) || "0.00"}\n`;
-        itemsMessage += `   Total: $${item.total_price?.toFixed(2) || "0.00"}\n\n`;
+        itemsMessage += `   Quantity: ${formatAmount(item.quantity)}\n`;
+        itemsMessage += `   Unit Price: $${formatAmount(item.unit_price)}\n`;
+        itemsMessage += `   Total: $${formatAmount(item.total_price)}\n\n`;
       });
 
       // Show items in an alert (you can replace this with a custom modal)

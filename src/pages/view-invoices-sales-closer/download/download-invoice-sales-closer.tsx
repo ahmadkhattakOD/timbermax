@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import { useDownloadInvoiceSalesCloser } from "./useDownloadInvoiceSalesCloser";
-import { getDateFormatted, getInitials, hasNonEmptyValue } from "utils/helpers";
+import { formatAmount, getDateFormatted, getInitials, hasNonEmptyValue } from "utils/helpers";
 import { Form, Formik } from "formik";
 import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
@@ -105,29 +105,29 @@ export default function DownloadInvoiceSalesCloser() {
                 <PDFDownload
                   createdAt={getDateFormatted(invoice.created_at)}
                   fullName={fullName}
-                  wages={invoice.wages ? invoice.wages.toFixed(2) : "-"}
+                  wages={invoice.wages ? formatAmount(invoice.wages) : "-"}
                   travelBonus={
-                    invoice.travel_bonus ? invoice.travel_bonus.toFixed(2) : "-"
+                    invoice.travel_bonus ? formatAmount(invoice.travel_bonus) : "-"
                   }
                   otherBonuses={
                     invoice.other_bonuses
-                      ? invoice.other_bonuses.toFixed(2)
+                      ? formatAmount(invoice.other_bonuses)
                       : "-"
                   }
                   deductions={
-                    invoice.deductions ? invoice.deductions.toFixed(2) : "-"
+                    invoice.deductions ? formatAmount(invoice.deductions) : "-"
                   }
                   cancelledSales={
                     invoice.cancelled_sales
-                      ? invoice.cancelled_sales.toFixed(2)
+                      ? formatAmount(invoice.cancelled_sales)
                       : "-"
                   }
                   totalCommission={
                     invoice.total_commission
-                      ? invoice.total_commission.toFixed(2)
+                      ? formatAmount(invoice.total_commission)
                       : "-"
                   }
-                  total={grandTotal.toFixed(2)}
+                  total={formatAmount(grandTotal)}
                   role={role}
                   startDate={getDateFormatted(invoice.start_date)}
                   endDate={getDateFormatted(invoice.end_date)}
@@ -168,7 +168,7 @@ export default function DownloadInvoiceSalesCloser() {
           </Typography>
           <Typography variant="h5" sx={{ fontWeight: 400 }}>
             Total:{" "}
-            <span style={{ fontWeight: 700 }}>{grandTotal.toFixed(2)}</span>
+            <span style={{ fontWeight: 700 }}>{formatAmount(grandTotal)}</span>
           </Typography>
         </Box>
       </Box>

@@ -11,6 +11,7 @@ import {
   Legend,
   ReferenceLine,
 } from "recharts";
+import { roundAmount } from "utils/helpers";
 
 interface MonthlySalesData {
   month: string;
@@ -79,7 +80,10 @@ const MonthlySalesChart: React.FC<MonthlySalesChartProps> = ({ data }) => {
               <span style={{ marginRight: "10px" }}>{entry.name}:</span>
               <span style={{ fontWeight: "600" }}>
                 {entry.name === "Sales"
-                  ? `$${entry.value.toLocaleString()}`
+                  ? `$${roundAmount(entry.value).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
                   : entry.value}
               </span>
             </p>
@@ -116,10 +120,10 @@ const MonthlySalesChart: React.FC<MonthlySalesChartProps> = ({ data }) => {
   // Custom tick formatter for Y-axis on mobile
   const formatYAxisTick = (value: number) => {
     if (isMobile) {
-      if (value >= 1000) return `${value / 1000}k`;
-      return value.toString();
+      if (value >= 1000) return `${roundAmount(value / 1000)}k`;
+      return roundAmount(value).toString();
     }
-    return value.toLocaleString();
+    return roundAmount(value).toLocaleString();
   };
 
   return (

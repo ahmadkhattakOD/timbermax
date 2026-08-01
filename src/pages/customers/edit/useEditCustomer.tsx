@@ -15,6 +15,7 @@ import {
   isNumeric,
   parseAddress,
   useDebouncedSearch,
+  formatAmount,
 } from "utils/helpers";
 import CommunicationRepository from "utils/repositories/communicationRepository";
 import CustomersRepository, {
@@ -558,13 +559,13 @@ export function useEditCustomer() {
           )}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.deposit}
+          {formatAmount(row.deposit)}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.total}
+          {formatAmount(row.total)}
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 200 }}>
-          {row.total - row.deposit}
+          {formatAmount(row.total - row.deposit)}
         </TableCell>
 
         <TableCell sx={{ minWidth: 200 }}>
@@ -695,7 +696,7 @@ export function useEditCustomer() {
               opportunityDescriptions += opportunity + " ";
             });
           }
-          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.milestone ?? ""},${sale?.deposit ?? ""},${sale?.total ?? ""},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
+          csvString += `${sale?.customer?.name ?? ""},${opportunityDescriptions},${sale?.milestone ?? ""},${formatAmount(sale?.deposit)},${formatAmount(sale?.total)},${sale?.payment_method ?? ""},${sale?.phone ?? ""},${sale?.mobile ?? ""},${sale?.address ?? ""},${sale?.state ?? ""},${sale?.post_code ?? ""},${sale?.email_address ?? ""},${sale?.sales_person?.full_name ?? ""},${sale?.closer?.full_name ?? ""},${sale?.show?.name ?? ""},${sale?.note ?? ""},${sale?.status ?? ""},${sale?.status_changed_at ?? ""},${sale?.expected_close_date},${sale?.follow_up_notes ?? ""},${sale?.sale_date ?? ""}\n`;
         }
 
         setCsvDataSales(csvString);

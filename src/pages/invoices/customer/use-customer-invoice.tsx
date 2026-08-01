@@ -19,6 +19,8 @@ import {
   getDateFormatted,
   initialRowsPerPage,
   useDebouncedSearch,
+  formatAmount,
+  roundAmount,
 } from "utils/helpers";
 import InvoicesRepository from "utils/repositories/invoicesRepository";
 import {
@@ -210,10 +212,10 @@ export function useCustomerInvoices(customerId: number) {
         id: index + 1,
         name: item.item_name ?? item.items?.name ?? "Unknown",
         code: item.item_code ?? item.items?.itemCode ?? "N/A",
-        quantity: parseFloat(item.quantity) || 0,
+        quantity: roundAmount(item.quantity),
         unitPrice: parseFloat(item.unit_price) || 0,
         gst: item.item_gst ?? item?.items?.gst ?? false,
-        total: parseFloat(item.quantity) * parseFloat(item.unit_price) || 0,
+        total: roundAmount(parseFloat(item.quantity) * parseFloat(item.unit_price) || 0),
       }));
 
       setCurrentInvoiceItems(formattedItems);
@@ -347,7 +349,7 @@ export function useCustomerInvoices(customerId: number) {
     const statusColors: any = {
       draft: "warning",
       sent: "info",
-      paid: "success",
+      paid: "primary",
       cancelled: "error",
     };
 
@@ -391,7 +393,7 @@ export function useCustomerInvoices(customerId: number) {
           <Typography fontWeight={600}>{row.invoice_number}</Typography>
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 120 }}>
-          <Typography fontWeight={600}>${row.total?.toFixed(2)}</Typography>
+          <Typography fontWeight={600}>${formatAmount(row.total)}</Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Chip
@@ -594,10 +596,10 @@ export function useCustomerInvoices(customerId: number) {
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.code}</TableCell>
                   <TableCell align="right">
-                    {item.quantity.toFixed(2)}
+                    {formatAmount(item.quantity)}
                   </TableCell>
                   <TableCell align="right">
-                    ${item.unitPrice.toFixed(2)}
+                    ${formatAmount(item.unitPrice)}
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
@@ -606,7 +608,7 @@ export function useCustomerInvoices(customerId: number) {
                   </TableCell>
                   <TableCell align="right">
                     <Typography fontWeight={600}>
-                      ${item.total.toFixed(2)}
+                      ${formatAmount(item.total)}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -619,7 +621,7 @@ export function useCustomerInvoices(customerId: number) {
                 </TableCell>
                 <TableCell align="right">
                   <Typography variant="subtitle1" fontWeight={600}>
-                    ${currentInvoiceInfo?.total?.toFixed(2) || "0.00"}
+                    ${formatAmount(currentInvoiceInfo?.total)}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -881,7 +883,7 @@ export function useCustomerInvoices(customerId: number) {
       if (data.length > 0) {
         for (let i = 0; i < data.length; i++) {
           let invoice = data[i] as any;
-          csvString += `"${invoice.invoice_number ?? ""}",${invoice.total ?? ""},"${invoice.status ?? ""}","${invoice.delivery_status ?? "pending"}","${invoice.invoice_items?.length || 0}","${getDateFormatted(invoice.invoice_date)}","${getDateFormatted(invoice.created_at)}","${invoice.note ?? ""}"\n`;
+          csvString += `"${invoice.invoice_number ?? ""}",${formatAmount(invoice.total)},"${invoice.status ?? ""}","${invoice.delivery_status ?? "pending"}","${invoice.invoice_items?.length || 0}","${getDateFormatted(invoice.invoice_date)}","${getDateFormatted(invoice.created_at)}","${invoice.note ?? ""}"\n`;
         }
 
         setCsvData(csvString);
