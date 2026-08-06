@@ -16,7 +16,6 @@ import {
 } from "@mui/material";
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
-import RowActionsMenu, { RowAction } from "components/RowActionsMenu";
 import {
   AddCircle,
   CloseCircle,
@@ -97,23 +96,16 @@ const headCells: HeadCell[] = [
     label: "Status",
   },
   {
-    id: "note",
-    numeric: false,
-    disablePadding: true,
-    label: "Note",
-  },
-  // Actions sit ahead of the low-priority columns so they stay in view.
-  {
     id: "actions",
     numeric: false,
     disablePadding: true,
     label: "Actions",
   },
   {
-    id: "items_count",
-    numeric: true,
+    id: "note",
+    numeric: false,
     disablePadding: true,
-    label: "Items",
+    label: "Note",
   },
   {
     id: "created_at",
@@ -558,104 +550,6 @@ export function useQuotations() {
       row.status || ""
     );
 
-    // Every row action, in menu order. Same conditions the icon buttons used.
-    const rowActions: RowAction[] = [
-      {
-        label: "Download Quotation PDF",
-        icon: <DocumentDownload size={18} />,
-        color: "primary.main",
-        onClick: () => downloadQuotationPDF(row.id),
-      },
-      ...(canDownloadDelivery && itemsCount > 0
-        ? [
-            {
-              label: "Download Delivery Document",
-              icon: <Truck size={18} />,
-              color: "warning.main",
-              onClick: () => downloadDeliveryDocument(row.id),
-            },
-          ]
-        : []),
-      ...(itemsCount > 0
-        ? [
-            {
-              label: "View Items",
-              icon: <Eye size={18} />,
-              color: "info.main",
-              onClick: () => viewItemsModal(row.id),
-            },
-          ]
-        : []),
-      ...(canMarkSent
-        ? [
-            {
-              label: "Mark as Sent",
-              icon: <Send size={18} />,
-              color: "info.main",
-              divider: true,
-              onClick: () => markAsSent(row.id),
-            },
-          ]
-        : []),
-      ...(canMarkApproved
-        ? [
-            {
-              label: "Mark as Approved",
-              icon: <AddCircle size={18} />,
-              color: "success.main",
-              divider: true,
-              onClick: () => markAsApproved(row.id),
-            },
-          ]
-        : []),
-      ...(row.status === "sent" || row.status === "approved"
-        ? [
-            {
-              label: "Resend Email",
-              icon: <RotateCcw size={18} />,
-              color: "primary.main",
-              onClick: () => resendQuotationEmail(row.id),
-            },
-          ]
-        : []),
-      ...(isConvertable
-        ? [
-            {
-              label: "Convert to Invoice",
-              icon: <Receipt size={18} />,
-              color: "success.main",
-              onClick: () => convertToInvoice(row.id),
-            },
-          ]
-        : []),
-      {
-        label: "Duplicate Quotation",
-        icon: <Copy size={18} />,
-        divider: true,
-        onClick: () => duplicateQuotation(row.id),
-      },
-      {
-        label: "Print",
-        icon: <Printer size={18} />,
-        // Anchors the print submenu to the trigger button, which stays mounted.
-        onClick: (anchor: HTMLElement) => {
-          setSelectedQuotationForPrint(row.id);
-          setPrintMenuAnchor(anchor);
-        },
-      },
-      ...(isCancellable
-        ? [
-            {
-              label: "Cancel Quotation",
-              icon: <CloseCircle size={18} />,
-              color: "error.main",
-              divider: true,
-              onClick: () => cancelQuotation(row.id),
-            },
-          ]
-        : []),
-    ];
-
     return (
       <>
         <TableCell padding="checkbox">
@@ -709,14 +603,164 @@ export function useQuotations() {
           />
         </TableCell>
 
+        <TableCell sx={{ minWidth: 350 }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            {/* Mark as Sent Button (only for draft) */}
+            {canMarkSent && (
+              <Tooltip title="Mark as Sent">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsSent(row.id);
+                  }}
+                  color="info"
+                >
+                  <Send size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Mark as Approved Button (only for sent) */}
+            {canMarkApproved && (
+              <Tooltip title="Mark as Approved">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsApproved(row.id);
+                  }}
+                  color="success"
+                >
+                  <AddCircle size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* View Items Button - Always show if there are items */}
+            {itemsCount > 0 && (
+              <Tooltip title="View Items">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    viewItemsModal(row.id);
+                  }}
+                  color="info"
+                >
+                  <Eye size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Download PDF Button */}
+            <Tooltip title="Download Quotation PDF">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadQuotationPDF(row.id);
+                }}
+                color="primary"
+              >
+                <DocumentDownload size={18} />
+              </IconButton>
+            </Tooltip>
+
+            {/* Download Delivery Document Button */}
+            {canDownloadDelivery && itemsCount > 0 && (
+              <Tooltip title="Download Delivery Document">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadDeliveryDocument(row.id);
+                  }}
+                  color="warning"
+                >
+                  <Truck size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Convert to Invoice Button (only for approved quotations) */}
+            {isConvertable && (
+              <Tooltip title="Convert to Invoice">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    convertToInvoice(row.id);
+                  }}
+                  color="success"
+                >
+                  <Receipt size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Cancel Button (only for non-cancelled quotations) */}
+            {isCancellable && (
+              <Tooltip title="Cancel Quotation">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelQuotation(row.id);
+                  }}
+                  color="error"
+                >
+                  <CloseCircle size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Resend Email (for sent and approved quotations) */}
+            {(row.status === "sent" || row.status === "approved") && (
+              <Tooltip title="Resend Email">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resendQuotationEmail(row.id);
+                  }}
+                  color="primary"
+                >
+                  <RotateCcw size={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Duplicate Quotation */}
+            <Tooltip title="Duplicate Quotation">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  duplicateQuotation(row.id);
+                }}
+              >
+                <Copy size={18} />
+              </IconButton>
+            </Tooltip>
+
+            {/* Print */}
+            <Tooltip title="Print">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedQuotationForPrint(row.id);
+                  setPrintMenuAnchor(e.currentTarget);
+                }}
+              >
+                <Printer size={18} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           {row.note || "-"}
-        </TableCell>
-        <TableCell sx={{ minWidth: 80 }}>
-          <RowActionsMenu actions={rowActions} />
-        </TableCell>
-        <TableCell align="center" sx={{ minWidth: 80 }}>
-          {itemsCount}
         </TableCell>
         <TableCell sx={{ minWidth: 150 }}>
           <Typography variant="body2">

@@ -30,7 +30,9 @@
       "Bash(perl -0pi -e 's/import \\\\{ getDateFormatted, getInitials, hasNonEmptyValue \\\\} from \"utils\\\\/helpers\";/import { formatAmount, getDateFormatted, getInitials, hasNonEmptyValue } from \"utils\\\\/helpers\";/' src/pages/view-invoices-sales-closer/download/download-invoice-sales-closer.tsx)",
       "Bash(perl -0pi -e 's/import \\\\{ getDateFormatted \\\\} from \"utils\\\\/helpers\";/import { formatAmount, getDateFormatted } from \"utils\\\\/helpers\";/' src/components/stock-reservation-modal.tsx src/pages/quotations/report/use-customer-quotation-report.tsx)",
       "Bash(perl -0pi -e 's/  roundAmount,\\\\n\\\\} from \"utils\\\\/helpers\";/  roundAmount,\\\\n  formatAmount,\\\\n} from \"utils\\\\/helpers\";/' src/pages/invoices/create/useCreateInvoice.tsx src/pages/invoices/edit/use-edit-invoice.tsx src/pages/quotations/create/use-create-quotation.tsx)",
-      "Bash(perl -0pi -e 's/paid: \"success\",/paid: \"primary\",/' src/pages/invoices/report/customer-report.tsx src/pages/invoices/main/useInvoices.tsx src/pages/invoices/customer/use-customer-invoice.tsx)"
+      "Bash(perl -0pi -e 's/paid: \"success\",/paid: \"primary\",/' src/pages/invoices/report/customer-report.tsx src/pages/invoices/main/useInvoices.tsx src/pages/invoices/customer/use-customer-invoice.tsx)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(awk 'NR<40')"
     ]
   }
 }
