@@ -52,6 +52,9 @@ export interface InvoiceItem {
   gst: boolean;
   total: string;
   warehouse_id?: number;
+  // Free-text note for this line, specific to this invoice — not stored on
+  // the item master record.
+  note?: string;
   available_warehouses: Array<{
     id: number;
     name: string;
@@ -603,6 +606,8 @@ export function useCreateInvoice() {
       updatedItems[index].unit_price = value;
     } else if (field === "warehouse_id") {
       updatedItems[index].warehouse_id = value;
+    } else if (field === "note") {
+      updatedItems[index].note = value;
     }
 
     // Recalculate total for the item including GST
@@ -952,6 +957,7 @@ export function useCreateInvoice() {
             item_code: item.itemCode,
             item_sell_price: Number(item.unit_price),
             item_gst: item.gst,
+            note: item.note,
           });
         }
 
@@ -1009,6 +1015,7 @@ export function useCreateInvoice() {
           item_code: item.itemCode,
           item_sell_price: Number(item.unit_price),
           item_gst: item.gst,
+          note: item.note,
         }));
 
         // Check for low/negative stock items to show warning

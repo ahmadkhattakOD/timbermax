@@ -725,6 +725,7 @@ export default function CreateInvoice() {
                       deposit={deposit}
                       setDeposit={setDeposit}
                       onCreateNewItemClick={() => setCreateItemModalOpen(true)}
+                      showItemNotes
                     />
 
                     {/* Navigation Buttons */}

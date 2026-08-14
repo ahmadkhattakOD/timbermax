@@ -55,6 +55,7 @@ interface Item {
   unit_price: number;
   gst: boolean;
   warehouse_id?: number;
+  note?: string;
   available_warehouses: Warehouse[];
 }
 
@@ -83,6 +84,8 @@ interface ItemsSelectionTableProps {
   setDeposit?: (value: number) => void;
   // When provided, renders a "Create New Item" button beside the item selector
   onCreateNewItemClick?: () => void;
+  // Shows a per-line note/description input under each item's name. Invoice-only.
+  showItemNotes?: boolean;
 }
 
 // ── Sortable row ──────────────────────────────────────────────────────────────
@@ -93,9 +96,10 @@ interface SortableRowProps {
   index: number;
   removeItem: (index: number) => void;
   updateItem: (index: number, field: string, value: any) => void;
+  showItemNotes?: boolean;
 }
 
-function SortableRow({ id, item, index, removeItem, updateItem }: SortableRowProps) {
+function SortableRow({ id, item, index, removeItem, updateItem, showItemNotes }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
 
@@ -123,7 +127,26 @@ function SortableRow({ id, item, index, removeItem, updateItem }: SortableRowPro
       <TableCell sx={{ width: 32, px: 0.5, cursor: "grab" }} {...attributes} {...listeners}>
         <GripVertical size={18} style={{ color: "#aaa", display: "block" }} />
       </TableCell>
-      <TableCell>{item.name}</TableCell>
+      <TableCell>
+        <Typography variant="body2">{item.name}</Typography>
+        {showItemNotes && (
+          <input
+            type="text"
+            placeholder="Add note (optional)"
+            value={item.note || ""}
+            onChange={(e) => updateItem(index, "note", e.target.value)}
+            style={{
+              width: "100%",
+              marginTop: 4,
+              padding: "4px 6px",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              fontSize: "0.75rem",
+              boxSizing: "border-box",
+            }}
+          />
+        )}
+      </TableCell>
       <TableCell>{item.itemCode}</TableCell>
       <TableCell>
         <FormControl size="small" sx={{ minWidth: 120 }} error={!item.warehouse_id}>
@@ -236,6 +259,7 @@ export default function ItemsSelectionTable({
   deposit = 0,
   setDeposit,
   onCreateNewItemClick,
+  showItemNotes = false,
 }: ItemsSelectionTableProps) {
   const { role } = useAuth();
   const [inputKey, setInputKey] = React.useState(0);
@@ -354,6 +378,7 @@ export default function ItemsSelectionTable({
                       index={index}
                       removeItem={removeItem}
                       updateItem={updateItem}
+                      showItemNotes={showItemNotes}
                     />
                   ))}
 

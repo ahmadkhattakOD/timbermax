@@ -111,6 +111,9 @@ export interface InvoiceItem {
   total_price?: number;
   warehouse_id?: number;
   gst?: boolean;
+  // Free-text note for this line, specific to this invoice — not stored on
+  // the item master record.
+  note?: string;
 }
 
 export interface Invoice {

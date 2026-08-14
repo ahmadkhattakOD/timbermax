@@ -820,6 +820,7 @@ export default function EditInvoice() {
                       onCreateNewItemClick={
                         isReadOnly ? undefined : () => setCreateItemModalOpen(true)
                       }
+                      showItemNotes
                     />
                     </Box>
 

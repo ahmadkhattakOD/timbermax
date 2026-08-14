@@ -1913,6 +1913,7 @@ export function useInvoices() {
         quantity: roundAmount(item.quantity),
         unit_price: roundAmount(item.unit_price),
         warehouse_id: item.warehouse_id || 1,
+        note: item.note,
       }));
 
       const result = await invoicesRepo.createWithStockReduction(newInvoice, items);

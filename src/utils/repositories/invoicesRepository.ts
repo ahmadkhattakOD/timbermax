@@ -41,6 +41,9 @@ export interface InvoiceItemSupabase {
   item_code?: string;
   item_sell_price?: number;
   item_gst?: boolean;
+  // Free-text note for this line, specific to this invoice — not stored on
+  // the item master record.
+  note?: string;
 }
 
 class InvoicesRepository {
@@ -139,6 +142,7 @@ ${this.itemsClassName} (
   item_code,
   item_sell_price,
   item_gst,
+  note,
   items (
     id, name, itemCode, sellPrice,gst
   )
@@ -318,7 +322,7 @@ ${this.itemsClassName} (
          total, discount, discount_type, deposit, status, invoice_date, due_date, note, payment_method, payment_date, created_at, updated_at,
          ${this.itemsClassName} (
            id, item_id, quantity, unit_price, total_price, warehouse_id, sort_order,
-           item_name, item_code, item_sell_price, item_gst,
+           item_name, item_code, item_sell_price, item_gst, note,
            items ( id, name, itemCode, sellPrice, gst )
          )`,
         )
@@ -375,6 +379,7 @@ ${this.itemsClassName} (
           item_code: item.item_code ?? null,
           item_sell_price: item.item_sell_price ?? null,
           item_gst: item.item_gst ?? null,
+          note: item.note ?? null,
         })
         .select();
 
@@ -562,6 +567,7 @@ ${this.itemsClassName} (
           item_code,
           item_sell_price,
           item_gst,
+          note,
           items (
             id, name, itemCode, sellPrice, gst
           )
@@ -786,6 +792,7 @@ ${this.itemsClassName} (
       item_code?: string;
       item_sell_price?: number;
       item_gst?: boolean;
+      note?: string;
     }>,
   ) {
     try {
@@ -825,6 +832,7 @@ ${this.itemsClassName} (
           item_code: item.item_code,
           item_sell_price: item.item_sell_price,
           item_gst: item.item_gst,
+          note: item.note,
         });
 
         // Reduce stock

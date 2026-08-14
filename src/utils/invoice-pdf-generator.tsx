@@ -217,10 +217,13 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
     const itemName = (item.item_name ?? item.items?.name) || "N/A";
     const itemNameWithGst = gst ? `${itemName} *` : itemName;
+    const itemCell = item.note
+      ? `${itemNameWithGst}\nNote: ${item.note}`
+      : itemNameWithGst;
 
     return [
       index + 1,
-      itemNameWithGst,
+      itemCell,
       quantity.toFixed(2),
       `$${unitPrice.toFixed(2)}`,
       `$${subtotal.toFixed(2)}`,
@@ -459,9 +462,11 @@ export const generateInvoicePDFBase64 = async (
       const price = parseFloat(item.unit_price) || 0;
       const gst = (item.item_gst ?? item.items?.gst) || false;
       const name = (item.item_name ?? item.items?.name) || "N/A";
+      const nameWithGst = gst ? `${name} *` : name;
+      const itemCell = item.note ? `${nameWithGst}\nNote: ${item.note}` : nameWithGst;
       return [
         index + 1,
-        gst ? `${name} *` : name,
+        itemCell,
         qty.toFixed(2),
         `$${price.toFixed(2)}`,
         `$${(qty * price).toFixed(2)}`,

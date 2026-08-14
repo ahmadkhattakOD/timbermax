@@ -54,6 +54,9 @@ export interface InvoiceItem {
   gst: boolean;
   total: string;
   warehouse_id?: number;
+  // Free-text note for this line, specific to this invoice — not stored on
+  // the item master record.
+  note?: string;
   available_warehouses: Array<{
     id: number;
     name: string;
@@ -528,6 +531,8 @@ export function useEditInvoice(invoiceId: number) {
       updatedItems[index].unit_price = value;
     } else if (field === "warehouse_id") {
       updatedItems[index].warehouse_id = value;
+    } else if (field === "note") {
+      updatedItems[index].note = value;
     }
 
     // Recalculate total for the item including GST
@@ -870,6 +875,7 @@ export function useEditInvoice(invoiceId: number) {
                 item_code: selectedItem.itemCode,
                 item_sell_price: itemUnitPrice,
                 item_gst: selectedItem.gst,
+                note: selectedItem.note,
               });
             } else {
               await invoicesRepo.updateItem(invoiceId, itemId, {
@@ -881,6 +887,7 @@ export function useEditInvoice(invoiceId: number) {
                 item_code: selectedItem.itemCode,
                 item_sell_price: itemUnitPrice,
                 item_gst: selectedItem.gst,
+                note: selectedItem.note,
               });
             }
 
@@ -943,6 +950,7 @@ export function useEditInvoice(invoiceId: number) {
               item_code: selectedItem.itemCode,
               item_sell_price: itemUnitPrice,
               item_gst: selectedItem.gst,
+              note: selectedItem.note,
             });
 
             // Reduce stock for new item in specified warehouse
@@ -1122,6 +1130,7 @@ export function useEditInvoice(invoiceId: number) {
                   gst: snapGst,
                 }).toString(),
                 warehouse_id: item.warehouse_id || 1,
+                note: item.note || "",
                 available_warehouses: sortedWarehouses,
               };
             }),

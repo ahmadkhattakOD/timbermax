@@ -36,7 +36,8 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5183/)",
       "Bash(curl -s http://localhost:5183/)",
       "Bash(pkill -f \"vite --port 5183\")",
-      "Bash(awk '/^commit /{c=$2} /^-.*id: \"deposit\"/{print c\": \"$0} /^-.*row\\\\.deposit \\\\?/{print c\": \"$0}')"
+      "Bash(awk '/^commit /{c=$2} /^-.*id: \"deposit\"/{print c\": \"$0} /^-.*row\\\\.deposit \\\\?/{print c\": \"$0}')",
+      "Bash(pkill -f \"vite --port 5184\")"
     ]
   }
 }
