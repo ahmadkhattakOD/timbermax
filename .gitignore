@@ -112,3 +112,4 @@ dist
 deploy.sh
 
 changes.md
+.env.local

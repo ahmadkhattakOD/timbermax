@@ -253,6 +253,7 @@ export function useDeliveries() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFilters((prev) => ({ ...prev, contactName: e.target.value }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -478,6 +479,7 @@ export function useDeliveries() {
   async function handleFiltersSubmit(values: ValuesFilterDeliveries) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering deliveries:", error);
@@ -487,6 +489,7 @@ export function useDeliveries() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   async function getFilterData() {

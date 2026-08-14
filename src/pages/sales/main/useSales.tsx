@@ -241,6 +241,7 @@ export function useSales() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFilters((prev) => ({ ...prev, contactName: e.target.value }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -457,6 +458,7 @@ export function useSales() {
   async function handleFiltersSubmit(values: ValuesFilterSales) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering sales:", error);
@@ -466,6 +468,7 @@ export function useSales() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   async function getFilterData() {

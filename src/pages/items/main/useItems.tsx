@@ -101,6 +101,7 @@ export function useItems() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFilters((prev) => ({ ...prev, name: e.target.value }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -335,6 +336,7 @@ export function useItems() {
   async function handleFiltersSubmit(values: ValuesFilterItems) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering items:", error);
@@ -344,6 +346,7 @@ export function useItems() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   return {

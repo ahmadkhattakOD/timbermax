@@ -130,6 +130,7 @@ export function useCustomers() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFilters((prev) => ({ ...prev, name: e.target.value }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -366,6 +367,7 @@ export function useCustomers() {
   async function handleFiltersSubmit(values: ValuesFilterCustomers) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering customers:", error);
@@ -375,6 +377,7 @@ export function useCustomers() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   // Address Modal Component

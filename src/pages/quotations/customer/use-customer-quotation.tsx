@@ -150,6 +150,7 @@ export function useCustomerQuotations(customerId: number) {
       ...prev,
       quotation_number: value,
     }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -896,6 +897,7 @@ export function useCustomerQuotations(customerId: number) {
   async function handleFiltersSubmit(values: ValuesFilterQuotations) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering quotations:", error);
@@ -905,6 +907,7 @@ export function useCustomerQuotations(customerId: number) {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   // PDF Download function - EXACTLY LIKE ORIGINAL

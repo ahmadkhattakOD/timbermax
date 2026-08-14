@@ -72,6 +72,7 @@ export function useWarehouses() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFilters((prev) => ({ ...prev, name: e.target.value }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -215,6 +216,7 @@ export function useWarehouses() {
   async function handleFiltersSubmit(values: ValuesFilterWarehouses) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering warehouses:", error);
@@ -224,6 +226,7 @@ export function useWarehouses() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   return {

@@ -105,6 +105,7 @@ export function useShows() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFilters((prev) => ({ ...prev, name: e.target.value }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -246,6 +247,7 @@ export function useShows() {
   async function handleFiltersSubmit(values: ValuesFilterShows) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering shows:", error);
@@ -255,6 +257,7 @@ export function useShows() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   return {

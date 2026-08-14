@@ -58,6 +58,7 @@ export function useOpportunityDescriptions() {
     let temp = { ...filters };
     temp.name = e.target.value;
     setFilters(temp);
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -205,6 +206,7 @@ export function useOpportunityDescriptions() {
   ) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering opportunity descriptions:", error);
@@ -214,6 +216,7 @@ export function useOpportunityDescriptions() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   return {

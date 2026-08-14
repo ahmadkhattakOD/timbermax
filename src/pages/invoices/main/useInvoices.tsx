@@ -203,6 +203,7 @@ export function useInvoices() {
       ...prev,
       search: e.target.value || undefined,
     }));
+    setPage(0);
   };
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -2078,6 +2079,7 @@ export function useInvoices() {
       ...prev,
       ...values,
     }));
+    setPage(0);
     setFilterModalOpen(false);
   };
 
@@ -2092,6 +2094,7 @@ export function useInvoices() {
       min_total: undefined,
       max_total: undefined,
     });
+    setPage(0);
   };
 
   const updateDeliveryStatus = async (invoiceId: number, status: string) => {

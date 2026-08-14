@@ -233,6 +233,7 @@ export function useSelectSale() {
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFilters((prev) => ({ ...prev, contactName: e.target.value }));
+    setPage(0);
   }
   const getDateColor = (saleDate: string | number | Date): "green" | "orange" | "red" => {
     const today = new Date();
@@ -394,6 +395,7 @@ export function useSelectSale() {
   async function handleFiltersSubmit(values: ValuesFilterSelectSales) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering sales:", error);
@@ -403,6 +405,7 @@ export function useSelectSale() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   async function getFilterData() {

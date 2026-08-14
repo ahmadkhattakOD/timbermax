@@ -176,6 +176,7 @@ export function useCustomerInvoices(customerId: number) {
       ...prev,
       invoice_number: value,
     }));
+    setPage(0);
   };
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -906,12 +907,14 @@ export function useCustomerInvoices(customerId: number) {
 
   const handleFiltersSubmit = (values: ValuesFilterCustomerInvoices) => {
     setFilters(values);
+    setPage(0);
     setFilterModalOpen(false);
   };
 
   const resetFilters = () => {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   };
 
   return {

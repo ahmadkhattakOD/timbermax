@@ -555,6 +555,7 @@ export function useStock() {
     // Functional update avoids stale closure — always merges into latest filters state
     // regardless of how many re-renders happened between keystroke and debounce firing.
     setFilters((prev) => ({ ...prev, item: value.trim() ? value : "" }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -701,6 +702,7 @@ export function useStock() {
       setFilters(values);
       // Keep search box in sync with the item filter applied from the modal
       setSearchValue(values.item || "");
+      setPage(0);
       setFilterModalOpen(false);
 
       const params = new URLSearchParams();
@@ -717,6 +719,7 @@ export function useStock() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
     navigate("/stock");
   }
 

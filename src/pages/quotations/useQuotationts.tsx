@@ -263,6 +263,7 @@ export function useQuotations() {
       ...prev,
       quotation_number: value,
     }));
+    setPage(0);
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -1673,6 +1674,7 @@ export function useQuotations() {
   async function handleFiltersSubmit(values: ValuesFilterQuotations) {
     try {
       setFilters(values);
+      setPage(0);
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering quotations:", error);
@@ -1682,6 +1684,7 @@ export function useQuotations() {
   function resetFilters() {
     setSearchValue("");
     setFilters(initialFilters);
+    setPage(0);
   }
 
   // PDF Download function - FIXED SNACKBAR TYPES
