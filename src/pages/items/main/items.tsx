@@ -11,8 +11,11 @@ import FormLayout from "components/FormLayout";
 import FormInput from "components/FormInput";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
+import useAuth from "hooks/useAuth";
+import { UserRoles } from "utils/helpers";
 
 export default function Items() {
+  const { role } = useAuth();
   const {
     data,
     dataCount,
@@ -53,7 +56,9 @@ export default function Items() {
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         actionButton={
-          <ActionButton text={"add-new-item"} onClick={goToCreate} />
+          role !== UserRoles.Admin ? (
+            <ActionButton text={"add-new-item"} onClick={goToCreate} />
+          ) : undefined
         }
         filters={
           <Box

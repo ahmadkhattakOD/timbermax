@@ -146,7 +146,7 @@ export function isRouteAllowed(
   if (role === UserRoles.SuperAdmin) {
     return true;
   } else if (role === UserRoles.Admin) {
-    let blackListedURLs = ["/user"];
+    let blackListedURLs = ["/user", "/items/new"];
 
     for (let i = 0; i < blackListedURLs.length; i++) {
       if (window.location.href.includes(blackListedURLs[i])) {
