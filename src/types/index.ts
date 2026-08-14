@@ -1,4 +1,5 @@
 export interface ValuesFilterQuotations {
+  search?: string;
   quotation_number?: string;
   customer_name?: string;
   minimumTotal?: string;

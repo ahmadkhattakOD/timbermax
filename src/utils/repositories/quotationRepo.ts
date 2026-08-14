@@ -137,6 +137,25 @@ class QuotationsRepository {
         .limit(limit);
 
       if (filters) {
+        if (filters.search) {
+          // PostgREST can't OR a root-table column against a joined-table
+          // column in one filter, so resolve matching customers first and
+          // OR by customer_id (a plain column on quotations) instead.
+          const { data: matchingCustomers } = await supabase
+            .from("customers")
+            .select("id")
+            .ilike("name", `%${filters.search}%`);
+          const matchingCustomerIds = (matchingCustomers || []).map(
+            (c: any) => c.id,
+          );
+          const searchOrParts = [`quotation_number.ilike.%${filters.search}%`];
+          if (matchingCustomerIds.length > 0) {
+            searchOrParts.push(
+              `customer_id.in.(${matchingCustomerIds.join(",")})`,
+            );
+          }
+          query.or(searchOrParts.join(","));
+        }
         if (filters.quotation_number) {
           query.ilike("quotation_number", `%${filters.quotation_number}%`);
         }
