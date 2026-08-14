@@ -13,6 +13,7 @@ export interface ValuesFilterQuotations {
 }
 
 export interface ValuesFilterInvoices {
+  search?: string;
   invoice_number?: string;
   customer_name?: string;
   quotation_number?: string;

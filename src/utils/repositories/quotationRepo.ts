@@ -159,6 +159,12 @@ class QuotationsRepository {
         if (filters.created_at_to) {
           query.lte("created_at", filters.created_at_to);
         }
+        if (filters.valid_until_from) {
+          query.gte("valid_until", filters.valid_until_from);
+        }
+        if (filters.valid_until_to) {
+          query.lte("valid_until", filters.valid_until_to);
+        }
         if (filters.item_name) {
           query.ilike(`quotation_items.items.name`, `%${filters.item_name}%`);
         }
@@ -755,6 +761,12 @@ class QuotationsRepository {
         }
         if (filters.created_at_to) {
           query.lte("created_at", filters.created_at_to);
+        }
+        if (filters.valid_until_from) {
+          query.gte("valid_until", filters.valid_until_from);
+        }
+        if (filters.valid_until_to) {
+          query.lte("valid_until", filters.valid_until_to);
         }
         if (filters.item_name) {
           query.ilike(`quotation_items.items.name`, `%${filters.item_name}%`);

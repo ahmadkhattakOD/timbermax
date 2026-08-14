@@ -157,6 +157,26 @@ ${this.itemsClassName} (
 
       if (filters) {
         console.log("FILTEDS COMING", filters);
+        if (filters.search) {
+          // PostgREST can't OR a root-table column against a joined-table
+          // column in one filter, so resolve matching customers first and
+          // OR by customer_id (a plain column on invoices) instead.
+          const { data: matchingCustomers } = await supabase
+            .from("customers")
+            .select("id")
+            .ilike("name", `%${filters.search}%`);
+          const matchingCustomerIds = (matchingCustomers || []).map(
+            (c: any) => c.id,
+          );
+          const searchOrParts = [`invoice_number.ilike.%${filters.search}%`];
+          if (matchingCustomerIds.length > 0) {
+            searchOrParts.push(
+              `customer_id.in.(${matchingCustomerIds.join(",")})`,
+            );
+          }
+          query.or(searchOrParts.join(","));
+        }
+
         if (filters.invoice_number) {
           query.ilike("invoice_number", `%${filters.invoice_number}%`);
         }

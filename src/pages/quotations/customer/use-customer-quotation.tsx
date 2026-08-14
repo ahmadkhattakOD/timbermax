@@ -103,6 +103,8 @@ export const initialFilters: ValuesFilterQuotations = {
 
   created_at_from: "",
   created_at_to: "",
+  valid_until_from: "",
+  valid_until_to: "",
   item_name: "",
   item_code: "",
 };

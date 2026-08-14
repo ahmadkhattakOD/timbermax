@@ -2087,12 +2087,19 @@ export function useInvoices() {
     setSearchValue("");
     setFilters({
       search: undefined,
+      invoice_number: undefined,
+      customer_name: undefined,
+      quotation_number: undefined,
+      minimumTotal: undefined,
+      maximumTotal: undefined,
       status: undefined,
       delivery_status: undefined,
-      date_from: undefined,
-      date_to: undefined,
-      min_total: undefined,
-      max_total: undefined,
+      invoice_date_from: undefined,
+      invoice_date_to: undefined,
+      created_at_from: undefined,
+      created_at_to: undefined,
+      item_name: undefined,
+      item_code: undefined,
     });
     setPage(0);
   };
