@@ -251,6 +251,8 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
       ? Math.min(discountRaw, subtotalWithGST)
       : (subtotalWithGST * discountRaw) / 100;
   const grandTotal = subtotalWithGST - discountAmount;
+  const depositPaid = Number((invoice as any).deposit) || 0;
+  const totalDue = Math.max(0, grandTotal - depositPaid);
 
   autoTable(doc, {
     startY: addrEndY + 10,
@@ -317,8 +319,8 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
 
   currentY += 10;
   doc.setFont("helvetica", "bold");
-  doc.text(`Grand Total:`, 120, currentY);
-  doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
+  doc.text(`Total:`, 120, currentY);
+  doc.text(`$${totalDue.toFixed(2)}`, 180, currentY, { align: "right" });
 
   // Bank Details — only add page if the 5 bank lines won't fit (~42mm)
   let bankY = checkAndAddPage(doc, currentY + 12, 42);
@@ -486,6 +488,8 @@ export const generateInvoicePDFBase64 = async (
         ? Math.min(discountRaw, subtotalWithGST)
         : (subtotalWithGST * discountRaw) / 100;
     const grandTotal = subtotalWithGST - discountAmount;
+    const depositPaid = Number((invoice as any).deposit) || 0;
+    const totalDue = Math.max(0, grandTotal - depositPaid);
 
     autoTable(doc, {
       startY: addrY + 4,
@@ -537,8 +541,8 @@ export const generateInvoicePDFBase64 = async (
     }
     finalY += 6;
     doc.setFont("helvetica", "bold");
-    doc.text("Grand Total:", 140, finalY);
-    doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
+    doc.text("Total:", 140, finalY);
+    doc.text(`$${totalDue.toFixed(2)}`, 196, finalY, { align: "right" });
 
     // Bank Details — only add page if the 5 bank lines won't fit (~30mm)
     finalY = checkAndAddPage(doc, finalY + 12, 30);

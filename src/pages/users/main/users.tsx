@@ -3,7 +3,7 @@ import CreateAndFiltersLayout from "components/CreateAndFiltersLayout";
 import ActionButton from "components/ActionButton";
 import { useUsers } from "./useUsers";
 import DataTable from "components/data-table/DataTable";
-import ModalDeleteConfirm from "components/ModalConfirmDelete";
+import ModalConfirmAction from "components/ModalConfirmAction";
 import {
   getDateTimeFormatted,
   hasNonEmptyValue,
@@ -16,8 +16,15 @@ import FormInput from "components/FormInput";
 import FormDropdown from "components/FormDropdown";
 import { CSVLink } from "react-csv";
 import SearchInput from "components/SearchInput";
+import { useNavigate } from "react-router-dom";
+import { Lock, Unlock } from "iconsax-react";
 
-export default function Users() {
+interface UsersProps {
+  status?: "active" | "inactive";
+}
+
+export default function Users({ status = "active" }: UsersProps) {
+  const navigate = useNavigate();
   const {
     data,
     dataCount,
@@ -35,10 +42,11 @@ export default function Users() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete,
-    deleteConfirmModalOpen,
-    openDeleteConfirmModal,
-    closeDeleteConfirmModal,
+    isDisabledView,
+    onConfirmAction,
+    actionConfirmModalOpen,
+    openActionConfirmModal,
+    closeActionConfirmModal,
     filterModalOpen,
     openFilterModal,
     closeFilterModal,
@@ -52,13 +60,28 @@ export default function Users() {
     handleSearchDebounced,
     searchValue,
     setSearchValue,
-  } = useUsers();
+  } = useUsers(status);
 
   return (
     <Box sx={{ width: "100%" }}>
       <CreateAndFiltersLayout
         actionButton={
-          <ActionButton text={"add-new-user"} onClick={goToCreate} />
+          isDisabledView ? (
+            <ActionButton
+              text={"back-to-users"}
+              color="secondary"
+              onClick={() => navigate("/users")}
+            />
+          ) : (
+            <Box sx={{ display: "flex", gap: "1rem" }}>
+              <ActionButton text={"add-new-user"} onClick={goToCreate} />
+              <ActionButton
+                text={"view-disabled-users"}
+                color="secondary"
+                onClick={() => navigate("/users/disabled")}
+              />
+            </Box>
+          )
         }
         filters={
           <Box
@@ -94,7 +117,7 @@ export default function Users() {
         data={data}
         dataCount={dataCount}
         loading={loading}
-        tableTitle="users"
+        tableTitle={isDisabledView ? "disabled-users" : "users"}
         selected={selected}
         setSelected={setSelected}
         rowsPerPage={rowsPerPage}
@@ -107,14 +130,20 @@ export default function Users() {
         setOrder={setOrder}
         headCells={headCells}
         generateTableCells={generateTableCells}
-        openDeleteConfirmModal={openDeleteConfirmModal}
+        openDeleteConfirmModal={openActionConfirmModal}
         openFilterModal={openFilterModal}
         onDownload={getDataCsv}
+        actionTooltip={isDisabledView ? "Enable" : "Disable"}
+        actionIcon={isDisabledView ? <Unlock /> : <Lock />}
       />
-      <ModalDeleteConfirm
-        open={deleteConfirmModalOpen}
-        onClose={closeDeleteConfirmModal}
-        onDelete={onDelete}
+      <ModalConfirmAction
+        open={actionConfirmModalOpen}
+        onClose={closeActionConfirmModal}
+        onConfirm={onConfirmAction}
+        titleId={isDisabledView ? "enable-confirmation" : "disable-confirmation"}
+        detailId={isDisabledView ? "enable-confirmation-detail" : "disable-confirmation-detail"}
+        confirmTextId={isDisabledView ? "enable" : "disable"}
+        confirmColor={isDisabledView ? "success" : "error"}
       />
       <ModalFilters
         title="filter-users"

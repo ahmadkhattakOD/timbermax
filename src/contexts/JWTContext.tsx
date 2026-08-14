@@ -47,11 +47,15 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
                 },
               });
             } else {
+              // Profile is missing/inactive (e.g. disabled since the last
+              // session) — tear down the stale Supabase session too.
+              await profilesRepository.logoutUser();
               dispatch({
                 type: LOGOUT,
               });
             }
           } else {
+            await profilesRepository.logoutUser();
             dispatch({
               type: LOGOUT,
             });
@@ -73,39 +77,46 @@ export const JWTProvider = ({ children }: { children: ReactElement }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    const profilesRepository = new ProfilesRepository();
+    let response;
     try {
-      const profilesRepository = new ProfilesRepository();
-      const response = await profilesRepository.loginUser(
-        email.trim(),
-        password.trim()
-      );
-      if (response) {
-        const currentProfile = await profilesRepository.getSingle(response.id);
-        if (currentProfile) {
-          const { profileData, profileError } = currentProfile;
-          if (profileData && !profileError) {
-            dispatch({
-              type: LOGIN,
-              payload: {
-                role: profileData.role,
-                fullName: profileData.full_name,
-                isLoggedIn: true,
-                isInitialized: true,
-              },
-            });
-            return true;
-          } else {
-            return false;
-          }
-        } else {
-          return false;
-        }
-      }
-      return false;
+      response = await profilesRepository.loginUser(email.trim(), password.trim());
     } catch (error) {
       console.error("Error logging user in:", error);
       return false;
     }
+
+    if (!response) {
+      return false;
+    }
+
+    // Look up the profile regardless of status so a disabled account can be
+    // distinguished from "no such user" and given its own error message.
+    const currentProfile = await profilesRepository.getSingle(response.id, false);
+    const profileData = currentProfile?.profileData;
+    const profileError = currentProfile?.profileError;
+
+    if (!profileData || profileError) {
+      return false;
+    }
+
+    if (profileData.status === "inactive") {
+      // signInWithPassword already created a live session for this user —
+      // tear it down so a disabled account can't stay signed in.
+      await profilesRepository.logoutUser();
+      throw new Error("Your account has been disabled. Please contact an administrator.");
+    }
+
+    dispatch({
+      type: LOGIN,
+      payload: {
+        role: profileData.role,
+        fullName: profileData.full_name,
+        isLoggedIn: true,
+        isInitialized: true,
+      },
+    });
+    return true;
   };
 
   const logout = async () => {

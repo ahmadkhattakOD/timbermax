@@ -219,5 +219,15 @@
   "view-all-communication": "View All Communication",
   "mark-as-delivered": "Mark As Delivered",
   "close-and-mark-as-delivered": "Close & Mark as Delivered",
-  "committed": "Committed"
+  "committed": "Committed",
+  "disable": "Disable",
+  "enable": "Enable",
+  "disable-confirmation": "Disable this user?",
+  "disable-confirmation-detail": "They will no longer be able to log in, but their data (invoices, sales, etc.) is kept intact. You can re-enable them at any time.",
+  "enable-confirmation": "Enable this user?",
+  "enable-confirmation-detail": "They will be able to log in again and will reappear in the active users list.",
+  "view-disabled-users": "View Disabled Users",
+  "back-to-users": "Back to Users",
+  "disabled-users": "Disabled Users",
+  "disabled": "Disabled"
 }

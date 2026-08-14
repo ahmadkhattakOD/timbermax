@@ -26,33 +26,41 @@ class ProfilesRepository {
   private className = "profiles";
 
   public async create(user: UserSupabase, profile: ProfileSupabase) {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: user.email,
-        password: user.password,
-      });
-
-      if (authError || !authData.user) return null;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .insert({
-          id: authData.user.id,
-          email: authData.user.email,
-          full_name: profile.full_name,
-          role: profile.role,
-          profile_picture: profile.profile_picture ?? null,
-          status: "active",
-        })
-        .select()
-        .single();
-
-      if (error) return null;
-
-      return data;
-    } catch {
-      return null;
+    if (!supabaseAdmin) {
+      throw new Error("Supabase admin client not initialized");
     }
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: user.email,
+      password: user.password,
+      email_confirm: true,
+    });
+
+    if (authError || !authData.user) {
+      throw new Error(authError?.message || "Could not create the user's login.");
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .insert({
+        id: authData.user.id,
+        email: authData.user.email,
+        full_name: profile.full_name,
+        role: profile.role,
+        profile_picture: profile.profile_picture ?? null,
+        status: "active",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      // Login was created but the profile insert failed — remove the orphaned auth user
+      // so the email isn't stuck as "already registered" with no matching profile.
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch(() => {});
+      throw new Error(error.message || "Could not save the user's profile.");
+    }
+
+    return data;
   }
 
   public async setPassword(userId: string, newPassword: string) {
@@ -155,7 +163,8 @@ class ProfilesRepository {
     rangeStart: number,
     rangeEnd: number,
     limit: number,
-    filters?: ValuesFilterUsers
+    filters?: ValuesFilterUsers,
+    status: "active" | "inactive" = "active"
   ) {
     try {
       const query = supabase
@@ -164,7 +173,7 @@ class ProfilesRepository {
         .order(orderBy, { ascending: ascending })
         .range(rangeStart, rangeEnd)
         .limit(limit)
-        .eq("status", "active")
+        .eq("status", status)
         // .neq("role", UserRoles.Admin)
         .neq("role", UserRoles.SuperAdmin);
 
@@ -228,13 +237,18 @@ class ProfilesRepository {
     }
   }
 
-  public async getSingle(id: string) {
+  public async getSingle(id: string, filterActive: boolean = true) {
     try {
-      const { data: profileData, error: profileError } = await supabase
+      const query = supabase
         .from(this.className)
         .select("*")
-        .eq("id", id)
-        .eq("status", "active")
+        .eq("id", id);
+
+      if (filterActive) {
+        query.eq("status", "active");
+      }
+
+      const { data: profileData, error: profileError } = await query
         .limit(1)
         .maybeSingle();
 
@@ -302,7 +316,7 @@ class ProfilesRepository {
     }
   }
 
-  public async delete(ids: readonly string[]) {
+  public async disable(ids: readonly string[]) {
     try {
       const { data, error } = await supabase
         .from(this.className)
@@ -311,13 +325,29 @@ class ProfilesRepository {
         .select();
 
       if (data && data.length > 0 && error === null) {
-        // Optionally, also delete auth users if needed
-        // await Promise.all(ids.map(id => supabase.auth.admin.deleteUser(id)));
         return data.length;
       }
       return 0;
     } catch (error) {
-      console.error("Error deleting users:", error);
+      console.error("Error disabling users:", error);
+      return 0;
+    }
+  }
+
+  public async enable(ids: readonly string[]) {
+    try {
+      const { data, error } = await supabase
+        .from(this.className)
+        .update({ status: "active" })
+        .in("id", ids)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data.length;
+      }
+      return 0;
+    } catch (error) {
+      console.error("Error enabling users:", error);
       return 0;
     }
   }

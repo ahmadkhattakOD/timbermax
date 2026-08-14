@@ -51,6 +51,8 @@ interface EnhancedTableToolbarProps {
   showFilter?: boolean;
   onDownload?: () => void;
   canDelete?: boolean;
+  actionTooltip?: string;
+  actionIcon?: React.ReactNode;
 }
 
 interface DataTableProps {
@@ -83,6 +85,8 @@ interface DataTableProps {
   showFilter?: boolean;
   onDownload?: () => void;
   maxHeight?: number | string;
+  actionTooltip?: string;
+  actionIcon?: React.ReactNode;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
@@ -151,6 +155,8 @@ function EnhancedTableToolbar({
   showFilter = true,
   onDownload,
   canDelete = true,
+  actionTooltip = "Delete",
+  actionIcon = <Trash />,
 }: EnhancedTableToolbarProps) {
   return (
     <Toolbar
@@ -194,10 +200,10 @@ function EnhancedTableToolbar({
       )}
       {numSelected > 0 ? (
         <Tooltip
-          title={canDelete ? "Delete" : "You don't have permission to delete"}
+          title={canDelete ? actionTooltip : `You don't have permission to ${actionTooltip.toLowerCase()}`}
         >
           <IconButton onClick={openDeleteConfirmModal} disabled={!canDelete}>
-            <Trash />
+            {actionIcon}
           </IconButton>
         </Tooltip>
       ) : (
@@ -239,6 +245,8 @@ export default function DataTable({
   showFilter = true,
   onDownload,
   maxHeight = "calc(100vh - 320px)",
+  actionTooltip,
+  actionIcon,
 }: DataTableProps) {
   const {
     handleRequestSort,
@@ -283,6 +291,8 @@ export default function DataTable({
           showFilter={showFilter}
           onDownload={onDownload}
           canDelete={canDelete}
+          actionTooltip={actionTooltip}
+          actionIcon={actionIcon}
         />
         <TableContainer
           ref={tableContainerRef}

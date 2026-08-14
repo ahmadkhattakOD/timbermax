@@ -97,7 +97,6 @@ export function useCreateUser() {
             color: "error",
           },
         } as SnackbarProps);
-        navigate("/users");
       }
     } catch (e: any) {
       const errorMessage =
@@ -111,7 +110,6 @@ export function useCreateUser() {
           color: "error",
         },
       } as SnackbarProps);
-      navigate("/users");
     }
   }
   return {

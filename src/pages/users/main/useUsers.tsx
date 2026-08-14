@@ -76,7 +76,7 @@ const initialFilters: ValuesFilterUsers = {
   joinedAtTo: "",
 };
 
-export function useUsers() {
+export function useUsers(status: "active" | "inactive" = "active") {
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
   const [order, setOrder] = useState<Order>("desc");
@@ -85,13 +85,15 @@ export function useUsers() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
-  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [actionConfirmModalOpen, setActionConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filters, setFilters] = useState<ValuesFilterUsers>(initialFilters);
   const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
+
+  const isDisabledView = status === "inactive";
 
   function goToCreate() {
     navigate("/users/new");
@@ -143,17 +145,20 @@ export function useUsers() {
     );
   }
 
-  function openDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(true);
+  function openActionConfirmModal() {
+    setActionConfirmModalOpen(true);
   }
 
-  async function onDelete() {
+  async function onConfirmAction() {
     const profilesRepository = new ProfilesRepository();
-    const deletedProfiles = await profilesRepository.delete(selected);
-    if (deletedProfiles > 0) {
+    const verb = isDisabledView ? "enabled" : "disabled";
+    const affectedCount = isDisabledView
+      ? await profilesRepository.enable(selected)
+      : await profilesRepository.disable(selected);
+    if (affectedCount > 0) {
       openSnackbar({
         open: true,
-        message: `${deletedProfiles} user(s) deleted successfully.`,
+        message: `${affectedCount} user(s) ${verb} successfully.`,
         variant: "alert",
         alert: {
           color: "success",
@@ -164,7 +169,7 @@ export function useUsers() {
     } else {
       openSnackbar({
         open: true,
-        message: "User(s) could not be deleted successfully. Please try again.",
+        message: `User(s) could not be ${verb}. Please try again.`,
         variant: "alert",
         alert: {
           color: "error",
@@ -173,8 +178,8 @@ export function useUsers() {
     }
   }
 
-  function closeDeleteConfirmModal() {
-    setDeleteConfirmModalOpen(false);
+  function closeActionConfirmModal() {
+    setActionConfirmModalOpen(false);
   }
 
   function openFilterModal() {
@@ -197,7 +202,8 @@ export function useUsers() {
         rangeStart,
         rangeEnd,
         rowsPerPage,
-        filters
+        filters,
+        status
       );
       if (profiles) {
         const { profilesData, profilesCount, profilesError } = profiles;
@@ -215,7 +221,7 @@ export function useUsers() {
 
   useEffect(() => {
     getData();
-  }, [order, orderBy, page, rowsPerPage, filters]);
+  }, [order, orderBy, page, rowsPerPage, filters, status]);
 
   function getDataCsv() {
     try {
@@ -286,10 +292,11 @@ export function useUsers() {
     setRowsPerPage,
     headCells,
     generateTableCells,
-    onDelete,
-    deleteConfirmModalOpen,
-    openDeleteConfirmModal,
-    closeDeleteConfirmModal,
+    isDisabledView,
+    onConfirmAction,
+    actionConfirmModalOpen,
+    openActionConfirmModal,
+    closeActionConfirmModal,
     filterModalOpen,
     openFilterModal,
     closeFilterModal,

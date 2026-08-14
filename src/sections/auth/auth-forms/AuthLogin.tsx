@@ -96,6 +96,7 @@ export default function AuthLogin({ forgot }: { forgot?: string }) {
             openSnackbar({
               open: true,
               message:
+                err?.message ||
                 "An error occured while logging you in. Please recheck the credentials or try again later.",
               variant: "alert",
               alert: {

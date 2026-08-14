@@ -17,7 +17,48 @@ export function useEditUser() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [actionConfirmModalOpen, setActionConfirmModalOpen] = useState(false);
   const { id } = useParams();
+
+  const isDisabled = profile?.status === "inactive";
+
+  function openActionConfirmModal() {
+    setActionConfirmModalOpen(true);
+  }
+
+  function closeActionConfirmModal() {
+    setActionConfirmModalOpen(false);
+  }
+
+  async function onConfirmToggleStatus() {
+    if (!id) return;
+
+    const profilesRepository = new ProfilesRepository();
+    const wasDisabled = isDisabled;
+    const affectedCount = wasDisabled
+      ? await profilesRepository.enable([id])
+      : await profilesRepository.disable([id]);
+
+    if (affectedCount > 0) {
+      setProfile((prev: any) => ({
+        ...prev,
+        status: wasDisabled ? "active" : "inactive",
+      }));
+      openSnackbar({
+        open: true,
+        message: `User ${wasDisabled ? "enabled" : "disabled"} successfully.`,
+        variant: "alert",
+        alert: { color: "success" },
+      } as SnackbarProps);
+    } else {
+      openSnackbar({
+        open: true,
+        message: `User could not be ${wasDisabled ? "enabled" : "disabled"}. Please try again.`,
+        variant: "alert",
+        alert: { color: "error" },
+      } as SnackbarProps);
+    }
+  }
 
   async function onSubmit(values: ValuesEditProfile) {
     try {
@@ -61,7 +102,7 @@ export function useEditUser() {
     setLoading(true);
     if (id) {
       const profilesRepository = new ProfilesRepository();
-      const existingProfile = await profilesRepository.getSingle(id);
+      const existingProfile = await profilesRepository.getSingle(id, false);
 
       if (existingProfile?.profileData && !existingProfile.profileError) {
         setProfile(existingProfile.profileData);
@@ -96,5 +137,15 @@ export function useEditUser() {
     getProfile();
   }, []);
 
-  return { validate, onSubmit, profile, loading };
+  return {
+    validate,
+    onSubmit,
+    profile,
+    loading,
+    isDisabled,
+    actionConfirmModalOpen,
+    openActionConfirmModal,
+    closeActionConfirmModal,
+    onConfirmToggleStatus,
+  };
 }

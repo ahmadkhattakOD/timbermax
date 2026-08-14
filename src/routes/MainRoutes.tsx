@@ -339,6 +339,16 @@ const MainRoutes = {
       element: <DashboardLayout />,
       children: [
         {
+          path: "users/disabled",
+          element: <Users status="inactive" />,
+        },
+      ],
+    },
+    {
+      path: "/",
+      element: <DashboardLayout />,
+      children: [
+        {
           path: "users/new",
           element: <CreateUser />,
         },

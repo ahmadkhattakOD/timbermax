@@ -32,7 +32,11 @@
       "Bash(perl -0pi -e 's/  roundAmount,\\\\n\\\\} from \"utils\\\\/helpers\";/  roundAmount,\\\\n  formatAmount,\\\\n} from \"utils\\\\/helpers\";/' src/pages/invoices/create/useCreateInvoice.tsx src/pages/invoices/edit/use-edit-invoice.tsx src/pages/quotations/create/use-create-quotation.tsx)",
       "Bash(perl -0pi -e 's/paid: \"success\",/paid: \"primary\",/' src/pages/invoices/report/customer-report.tsx src/pages/invoices/main/useInvoices.tsx src/pages/invoices/customer/use-customer-invoice.tsx)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(awk 'NR<40')"
+      "Bash(awk 'NR<40')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5183/)",
+      "Bash(curl -s http://localhost:5183/)",
+      "Bash(pkill -f \"vite --port 5183\")",
+      "Bash(awk '/^commit /{c=$2} /^-.*id: \"deposit\"/{print c\": \"$0} /^-.*row\\\\.deposit \\\\?/{print c\": \"$0}')"
     ]
   }
 }

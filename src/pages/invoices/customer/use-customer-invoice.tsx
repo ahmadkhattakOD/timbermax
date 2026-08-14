@@ -394,7 +394,9 @@ export function useCustomerInvoices(customerId: number) {
           <Typography fontWeight={600}>{row.invoice_number}</Typography>
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 120 }}>
-          <Typography fontWeight={600}>${formatAmount(row.total)}</Typography>
+          <Typography fontWeight={600}>
+            ${formatAmount(Math.max(0, (Number(row.total) || 0) - (Number(row.deposit) || 0)))}
+          </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
           <Chip

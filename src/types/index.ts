@@ -125,6 +125,7 @@ export interface Invoice {
   total: number;
   discount?: number;
   discount_type?: "percentage" | "fixed";
+  deposit?: number;
   invoice_date: string | Date;
   due_date?: string | Date;
   note?: string;

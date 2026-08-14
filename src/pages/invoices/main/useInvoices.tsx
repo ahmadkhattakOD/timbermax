@@ -461,9 +461,9 @@ export function useInvoices() {
           <Typography>{row.customers?.name || "N/A"}</Typography>
         </TableCell>
         <TableCell align="right" sx={{ minWidth: 120 }}>
-          {/* Show total from invoice record (includes GST and discount) */}
+          {/* Total (includes GST and discount), net of any deposit already paid */}
           <Typography fontWeight={600}>
-            ${(Number(row.total) || 0).toFixed(2)}
+            ${Math.max(0, (Number(row.total) || 0) - (Number(row.deposit) || 0)).toFixed(2)}
           </Typography>
         </TableCell>
         <TableCell sx={{ minWidth: 120 }}>
@@ -1168,7 +1168,7 @@ export function useInvoices() {
     triggerType = effectiveType;
     const name = invoice.customers?.name || "Customer";
     const invNum = invoice.invoice_number || "";
-    const total = `$${(Number(invoice.total) || 0).toFixed(2)}`;
+    const total = `$${Math.max(0, (Number(invoice.total) || 0) - (Number(invoice.deposit) || 0)).toFixed(2)}`;
     const daysOverdue = invoice.due_date
       ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24)))
       : 0;
@@ -1205,7 +1205,7 @@ export function useInvoices() {
   ): string => {
     triggerType = getEffectiveTriggerType(triggerType, invoice);
     const invNum = invoice.invoice_number || "";
-    const total = `$${(Number(invoice.total) || 0).toFixed(2)}`;
+    const total = `$${Math.max(0, (Number(invoice.total) || 0) - (Number(invoice.deposit) || 0)).toFixed(2)}`;
     const dueDate = invoice.due_date ? getDateFormatted(invoice.due_date) : "";
     const daysOverdue = invoice.due_date
       ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24)))
