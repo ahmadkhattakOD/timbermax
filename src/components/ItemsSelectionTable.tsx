@@ -23,7 +23,8 @@ import { Trash } from "iconsax-react";
 import { GripVertical, Plus } from "lucide-react";
 import InputDropdown from "components/InputDropdown";
 import { calculateItemTotal, formatCurrency, calculateItemSubtotal, calculateItemGst } from "utils/calculateTotals";
-import { formatAmount, roundAmount } from "utils/helpers";
+import { formatAmount, roundAmount, UserRoles } from "utils/helpers";
+import useAuth from "hooks/useAuth";
 import {
   DndContext,
   closestCenter,
@@ -236,6 +237,7 @@ export default function ItemsSelectionTable({
   setDeposit,
   onCreateNewItemClick,
 }: ItemsSelectionTableProps) {
+  const { role } = useAuth();
   const [inputKey, setInputKey] = React.useState(0);
 
   const sensors = useSensors(
@@ -296,7 +298,7 @@ export default function ItemsSelectionTable({
             }}
           />
         </Box>
-        {onCreateNewItemClick && (
+        {onCreateNewItemClick && role !== UserRoles.Admin && (
           <Button
             variant="outlined"
             startIcon={<Plus size={18} />}
