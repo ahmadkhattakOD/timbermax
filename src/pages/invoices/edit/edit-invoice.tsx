@@ -22,9 +22,12 @@ import AddressFields from "components/AddressFields";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
 import CreateItemModal from "components/CreateItemModal";
+import CustomerFormSync from "components/CustomerFormSync";
 import { useParams, useNavigate } from "react-router-dom";
 import ActionButton from "components/ActionButton";
 import { useEffect, useMemo, useCallback, useState } from "react";
+import { openSnackbar } from "api/snackbar";
+import { SnackbarProps } from "types/snackbar";
 
 // ==============================|| EDIT INVOICE PAGE ||============================== //
 
@@ -33,7 +36,10 @@ export default function EditInvoice() {
   const navigate = useNavigate();
   const theme = useTheme();
   const [activeStep, setActiveStep] = useState(0);
-  const [step1Errors, setStep1Errors] = useState<any>({});
+  // Step 1 errors are shown once "Next" has been pressed. The messages themselves
+  // always come from Formik's live `errors`, so they disappear as soon as the
+  // field is filled in instead of sticking around from an older validation run.
+  const [showStep1Errors, setShowStep1Errors] = useState(false);
   // One-time delivery address typed on the invoice (not saved to the customer)
   const [customAddress, setCustomAddress] = useState(false);
   // Inline "Create New Item" modal (step 2)
@@ -70,7 +76,8 @@ export default function EditInvoice() {
     currentStatus,
     invoiceData,
     selectedCustomer,
-    setSelectedCustomer,
+    selectCustomer,
+    selectedCustomerRecord,
     createInlineCustomer,
     setCreateInlineCustomer,
     inlineCustomerName,
@@ -101,6 +108,16 @@ export default function EditInvoice() {
     deposit,
     setDeposit,
   } = useEditInvoice(id ? parseInt(id) : 0);
+
+  const leaveCustomAddressMode = useCallback(() => setCustomAddress(false), []);
+
+  const warn = (message: string) =>
+    openSnackbar({
+      open: true,
+      message,
+      variant: "alert",
+      alert: { color: "warning" },
+    } as SnackbarProps);
 
   // When the loaded invoice uses a one-time address not saved on the customer,
   // open the custom-address UI so the snapshot fields show instead of the dropdown.
@@ -154,9 +171,14 @@ export default function EditInvoice() {
 
   return (
     <Formik
-      enableReinitialize={true}
+      // initialValues are set once, before the form is mounted; nothing patches
+      // them afterwards, so reinitialising can only throw away edits.
+      enableReinitialize={false}
       validateOnMount={false}
-      validateOnChange={false}
+      // Errors have to refresh as the form is filled in, otherwise a message
+      // raised earlier (e.g. "Customer Name required") stays on screen after the
+      // field is populated.
+      validateOnChange={true}
       validateOnBlur={true}
       initialValues={initialValues}
       validate={validate}
@@ -189,12 +211,10 @@ export default function EditInvoice() {
             const hasPaymentMethodError = needsPaymentMethod && (!values.payment_method || (selectedPaymentMethod === 'other' && !customPaymentMethod));
 
             const step1HasErrors = step1Fields.some(field => validationErrors[field]) || hasPaymentMethodError;
+            setShowStep1Errors(step1HasErrors);
 
             if (!step1HasErrors) {
-              setStep1Errors({});
               setActiveStep(1);
-            } else {
-              setStep1Errors(validationErrors);
             }
           });
         };
@@ -202,64 +222,26 @@ export default function EditInvoice() {
         const handleSubmitStep2 = () => {
           // Validate that at least one item is selected
           if (selectedItems.length === 0) {
-            alert('Please add at least one item before updating.');
+            warn('Please add at least one item before updating.');
             return;
           }
 
           // Check that all items have warehouses selected
           const hasInvalidItems = selectedItems.some(item => !item.warehouse_id);
           if (hasInvalidItems) {
-            alert('Please select a warehouse for all items.');
+            warn('Please select a warehouse for all items.');
             return;
           }
 
           handleSubmit();
         };
 
-        // Auto-populate customer details when selected
-        useEffect(() => {
-          // Leave one-time-address mode whenever the customer changes
-          setCustomAddress(false);
-          if (selectedCustomer && customers.length > 0) {
-            const customer = customers.find((c) => c.id === selectedCustomer);
-            if (customer) {
-              // Update Formik values
-              setFieldValue("contactName", customer.name || "");
-              setCustomerName(customer.name || "");
-              setFieldValue("phone", customer.phone || "");
-              setFieldValue("mobile", customer.mobile || "");
-              setFieldValue("emailAddress", customer.email || "");
-            }
-          } else if (!createInlineCustomer) {
-            // Reset Formik values when no customer selected
-            setFieldValue("contactName", "");
-            setCustomerName("");
-            setFieldValue("phone", "");
-            setFieldValue("mobile", "");
-            setFieldValue("address", "");
-            setFieldValue("suburb", "");
-            setFieldValue("state", "");
-            setFieldValue("postCode", "");
-            setFieldValue("emailAddress", "");
-          }
-        }, [
-          selectedCustomer,
-          customers,
-          createInlineCustomer,
-          setFieldValue,
-          setCustomerName,
-        ]);
-
-        // When an address is selected from dropdown, populate all address fields
-        useEffect(() => {
-          if (selectedAddressIndex !== -1 && customerAddresses.length > 0) {
-            const selectedAddr = customerAddresses[selectedAddressIndex];
-            setFieldValue("address", selectedAddr.address || "");
-            setFieldValue("suburb", selectedAddr.suburb || "");
-            setFieldValue("state", selectedAddr.state || "");
-            setFieldValue("postCode", selectedAddr.post_code || "");
-          }
-        }, [selectedAddressIndex, customerAddresses, setFieldValue]);
+        // Error text for a step 1 field: only after the field was touched or
+        // "Next" was pressed, and only while it is actually still invalid.
+        const fieldError = (field: string): string =>
+          showStep1Errors || (touched as any)[field]
+            ? ((errors as any)[field] ?? "")
+            : "";
 
         // Memoized callback for payment method dropdown change
         const handlePaymentMethodChange = useCallback(
@@ -346,6 +328,16 @@ export default function EditInvoice() {
 
         return (
           <Form onSubmit={handleSubmit}>
+            <CustomerFormSync
+              selectedCustomer={selectedCustomer}
+              selectedCustomerRecord={selectedCustomerRecord}
+              createInlineCustomer={createInlineCustomer}
+              customerAddresses={customerAddresses}
+              selectedAddressIndex={selectedAddressIndex}
+              customAddress={customAddress}
+              setCustomerName={setCustomerName}
+              onCustomerChange={leaveCustomAddressMode}
+            />
             <Container maxWidth={activeStep === 1 ? "xl" : "lg"}>
               <Paper elevation={3} sx={{ p: 4, mt: 3 }}>
                 {/* Stepper */}
@@ -386,7 +378,7 @@ export default function EditInvoice() {
                           label="Invoice Number"
                           type={"text"}
                           optional={false}
-                          error={touched.invoice_number || step1Errors.invoice_number ? errors.invoice_number || step1Errors.invoice_number : ""}
+                          error={fieldError("invoice_number")}
                           disabled
                         />
                       </Grid>
@@ -405,7 +397,7 @@ export default function EditInvoice() {
                             { label: "Cancelled", value: "cancelled" },
                           ]}
                           optional={false}
-                          error={touched.status || step1Errors.status ? errors.status || step1Errors.status : ""}
+                          error={fieldError("status")}
                           onChange={(e) => {
                             setFieldValue("status", e.target.value);
                             // Clear payment method when status changes from paid
@@ -435,7 +427,7 @@ export default function EditInvoice() {
                                 { label: "Other", value: "other" },
                               ]}
                               optional={false}
-                              error={touched.payment_method || step1Errors.payment_method ? errors.payment_method || step1Errors.payment_method : ""}
+                              error={fieldError("payment_method")}
                               onChange={handlePaymentMethodChange}
                               value={selectedPaymentMethod}
                             />
@@ -473,7 +465,10 @@ export default function EditInvoice() {
                             name="contactName"
                             label="Customer Name"
                             options={customers}
-                            value={customers.find((c) => c.id === selectedCustomer) || null}
+                            // Bound to the stored record, not to a lookup in the
+                            // search results — those change while typing and the
+                            // field would blank out mid-search.
+                            value={selectedCustomerRecord || null}
                             secondaryLabel={
                               <Box
                                 sx={{
@@ -492,10 +487,11 @@ export default function EditInvoice() {
                             loading={loadingCustomers}
                             optional={false}
                             onChange={handleSearchDebounced}
-                            onSelect={(e) => {
-                              setSelectedCustomer(e.target.value);
-                            }}
-                            error={errors.contactName || step1Errors.contactName}
+                            // Use the option the dropdown hands over: reading
+                            // event.target.value only works for mouse clicks, and
+                            // gave a stray value on keyboard select / clear.
+                            onSelect={(_e, option) => selectCustomer(option)}
+                            error={fieldError("contactName")}
                           />
                         </Grid>
                       ) : (
@@ -524,11 +520,7 @@ export default function EditInvoice() {
                                 Use Existing Customer
                               </Box>
                             }
-                            error={
-                              (touched.inlineCustomerName || step1Errors.inlineCustomerName)
-                                ? (errors.inlineCustomerName || step1Errors.inlineCustomerName)
-                                : ""
-                            }
+                            error={fieldError("inlineCustomerName")}
                             onChange={(e) => {
                               setFieldValue("inlineCustomerName", e.target.value);
                               setInlineCustomerName(e.target.value);
@@ -599,7 +591,7 @@ export default function EditInvoice() {
                             { label: "Returned", value: "returned" },
                           ]}
                           optional={false}
-                          error={touched.delivery_status || step1Errors.delivery_status ? errors.delivery_status || step1Errors.delivery_status : ""}
+                          error={fieldError("delivery_status")}
                         />
                       </Grid>
 
@@ -613,7 +605,7 @@ export default function EditInvoice() {
                           label="Invoice Date"
                           type={"date"}
                           optional={false}
-                          error={touched.invoice_date || step1Errors.invoice_date ? errors.invoice_date || step1Errors.invoice_date : ""}
+                          error={fieldError("invoice_date")}
                           value={values.invoice_date}
                           onChange={(e) => {
                             setFieldValue("invoice_date", e.target.value);

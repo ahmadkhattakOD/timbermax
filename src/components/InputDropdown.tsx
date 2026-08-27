@@ -24,7 +24,10 @@ interface FieldInputProps {
   useFormattedStrings?: boolean;
   disabledValues?: any[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onSelect: (e: any) => void;
+  // Autocomplete's onChange signature: the event plus the option that was picked
+  // (null when the selection is cleared). Prefer the option — the event target
+  // only carries the option id when it was selected with the mouse.
+  onSelect: (e: any, option?: any) => void;
   loading: boolean;
   onClickCreateNew?: () => void;
 }
@@ -97,7 +100,9 @@ const InputDropdown = ({
           }}
           onChange={onSelect}
           value={value}
-          isOptionEqualToValue={(option, value) => option.id == value}
+          isOptionEqualToValue={(option, value) =>
+            option?.id == (value?.id ?? value)
+          }
           filterOptions={(x) => x}
           getOptionLabel={(option) => option.name}
           getOptionKey={(option) => option.id}

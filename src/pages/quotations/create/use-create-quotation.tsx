@@ -76,6 +76,17 @@ export function useCreateQuotation() {
   const [selectedMobile, setSelectedMobile] = useState<string>("");
   const [selectedPostCode, setSelectedPostCode] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
+  // Full record of the selected customer. Kept separately from `customers` so the
+  // selection survives the dropdown refetching its options while the user types.
+  const [selectedCustomerRecord, setSelectedCustomerRecordState] =
+    useState<any>(null);
+  // Mirrored in a ref so in-flight fetches (which captured an older render) can
+  // still see the current selection.
+  const selectedCustomerRecordRef = useRef<any>(null);
+  const setSelectedCustomerRecord = (record: any) => {
+    selectedCustomerRecordRef.current = record;
+    setSelectedCustomerRecordState(record);
+  };
   const [customerSearch, setCustomerSearch] = useState<string>("");
   const [itemSearch, setItemSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -364,6 +375,28 @@ export function useCreateQuotation() {
   }
 
   const handleItemSearchDebounced = useDebouncedSearch(handleItemSearchChange);
+
+  // Keeps a customer available as a dropdown option even when the current search
+  // results don't contain it, so the selection never blanks out on screen.
+  const mergeCustomerIntoOptions = (customer: any) => {
+    if (!customer?.id) return;
+    setCustomers((prev) =>
+      prev.some((c) => c.id === customer.id) ? prev : [...prev, customer],
+    );
+  };
+
+  // Single entry point for picking a customer from the dropdown. `option` is the
+  // customer record (or null when the selection is cleared).
+  const selectCustomer = (option: any) => {
+    if (!option) {
+      setSelectedCustomer(undefined);
+      setSelectedCustomerRecord(null);
+      return;
+    }
+    setSelectedCustomer(option.id);
+    setSelectedCustomerRecord(option);
+    mergeCustomerIntoOptions(option);
+  };
 
   function resetCustomerData() {
     setSelectedEmail("");
@@ -834,7 +867,14 @@ export function useCreateQuotation() {
     if (allCustomers) {
       const { customersData, customersError } = allCustomers;
       if (customersData && !customersError) {
-        setCustomers(customersData);
+        // Always keep the selected customer among the options — otherwise the
+        // dropdown value has nothing to match and the field appears empty.
+        const selected = selectedCustomerRecordRef.current;
+        setCustomers(
+          selected && !customersData.some((c: any) => c.id === selected.id)
+            ? [...customersData, selected]
+            : customersData,
+        );
       }
     }
     setLoadingCustomers(false);
@@ -881,22 +921,46 @@ export function useCreateQuotation() {
     getItems();
   }, [itemSearch]);
 
+  // Reacts to the customer actually changing. It deliberately does not depend on
+  // `customers`: that list is replaced on every keystroke in the search box, and
+  // re-running this would re-fetch the addresses and overwrite what was typed.
+  const loadedCustomerRef = useRef<any>(undefined);
   useEffect(() => {
     if (selectedCustomer) {
-      const customer = customers.find((c) => c.id === selectedCustomer);
-      if (customer) {
-        setSelectedEmail(customer.email || "");
-        setCustomerName(customer.name || "");
-        setSelectedPhone(customer.phone || "");
-        setSelectedMobile(customer.mobile || "");
-        
-        // Fetch addresses for the selected customer
-        fetchCustomerAddresses(selectedCustomer);
+      const customer =
+        selectedCustomerRecord?.id === selectedCustomer
+          ? selectedCustomerRecord
+          : customers.find((c) => c.id === selectedCustomer);
+      if (!customer) return;
+
+      if (selectedCustomerRecord?.id !== selectedCustomer) {
+        setSelectedCustomerRecord(customer);
       }
-    } else if (!createInlineCustomer) {
-      resetCustomerData();
+
+      if (loadedCustomerRef.current === selectedCustomer) return;
+      loadedCustomerRef.current = selectedCustomer;
+
+      setSelectedEmail(customer.email || "");
+      setCustomerName(customer.name || "");
+      setSelectedPhone(customer.phone || "");
+      setSelectedMobile(customer.mobile || "");
+
+      // Fetch addresses for the selected customer
+      fetchCustomerAddresses(selectedCustomer);
+    } else {
+      if (loadedCustomerRef.current === undefined) return;
+      loadedCustomerRef.current = undefined;
+      if (!createInlineCustomer) {
+        resetCustomerData();
+      }
     }
-  }, [selectedCustomer, customers, createInlineCustomer, fetchCustomerAddresses]);
+  }, [
+    selectedCustomer,
+    selectedCustomerRecord,
+    customers,
+    createInlineCustomer,
+    fetchCustomerAddresses,
+  ]);
 
   // Update Formik values when address details change
   useEffect(() => {
@@ -933,6 +997,8 @@ export function useCreateQuotation() {
     selectedMobile,
     selectedPostCode,
     setSelectedCustomer,
+    selectCustomer,
+    selectedCustomerRecord,
     changeAddress,
     selectedCustomer,
     handleItemSearchDebounced,

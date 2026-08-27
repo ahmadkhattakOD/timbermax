@@ -16,13 +16,17 @@ import {
   StepLabel,
   Container,
   Paper,
+  Backdrop,
 } from "@mui/material";
 import AddressFields from "components/AddressFields";
 import InputDropdown from "components/InputDropdown";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
 import CreateItemModal from "components/CreateItemModal";
-import { useState, useEffect } from "react";
+import CustomerFormSync from "components/CustomerFormSync";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { openSnackbar } from "api/snackbar";
+import { SnackbarProps } from "types/snackbar";
 
 // ==============================|| CREATE INVOICE PAGE ||============================== //
 
@@ -30,7 +34,10 @@ export default function CreateInvoice() {
   const [searchParams] = useSearchParams();
   const quotationIdFromUrl = searchParams.get("quotation_id");
   const [activeStep, setActiveStep] = useState(0);
-  const [step1Errors, setStep1Errors] = useState<any>({});
+  // Step 1 errors are shown once "Next" has been pressed. The messages themselves
+  // always come from Formik's live `errors`, so they disappear as soon as the
+  // field is filled in instead of sticking around from an older validation run.
+  const [showStep1Errors, setShowStep1Errors] = useState(false);
   // One-time delivery address typed on the invoice (not saved to the customer)
   const [customAddress, setCustomAddress] = useState(false);
   // Inline "Create New Item" modal (step 2)
@@ -44,6 +51,7 @@ export default function CreateInvoice() {
     warehouses,
     quotations,
     loading,
+    actionLoading,
     selectedItems,
     addItem,
     addCreatedItemToInvoice,
@@ -64,10 +72,9 @@ export default function CreateInvoice() {
     selectedPostCode,
     selectedCustomer,
     loadFromQuotation,
+    clearQuotation,
     selectedQuotation,
     isQuotationLoaded,
-    setSelectedItems,
-    setIsQuotationLoaded,
     handleItemSearchDebounced,
     loadingItems,
     selectedItemId,
@@ -75,7 +82,8 @@ export default function CreateInvoice() {
     inlineCustomerName,
     setInlineCustomerName,
     changeAddress,
-    setSelectedCustomer,
+    selectCustomer,
+    selectedCustomerRecord,
     customerName,
     setCustomerName,
     customerAddresses,
@@ -97,6 +105,8 @@ export default function CreateInvoice() {
   } = useCreateInvoice();
 
   const theme = useTheme();
+
+  const leaveCustomAddressMode = useCallback(() => setCustomAddress(false), []);
 
   useEffect(() => {
     if (quotationIdFromUrl && !isQuotationLoaded) {
@@ -135,11 +145,9 @@ export default function CreateInvoice() {
         "due_date",
       ];
       const step1HasErrors = step1Fields.some((field) => errors[field]);
+      setShowStep1Errors(step1HasErrors);
       if (!step1HasErrors) {
-        setStep1Errors({});
         setActiveStep(1);
-      } else {
-        setStep1Errors(errors);
       }
     });
   };
@@ -148,14 +156,22 @@ export default function CreateInvoice() {
     setActiveStep(0);
   };
 
+  const warn = (message: string) =>
+    openSnackbar({
+      open: true,
+      message,
+      variant: "alert",
+      alert: { color: "warning" },
+    } as SnackbarProps);
+
   const handleSubmitStep2 = (handleSubmit: any) => {
     if (selectedItems.length === 0) {
-      alert("Please add at least one item before submitting.");
+      warn("Please add at least one item before submitting.");
       return;
     }
     const hasInvalidItems = selectedItems.some((item) => !item.warehouse_id);
     if (hasInvalidItems) {
-      alert("Please select a warehouse for all items.");
+      warn("Please select a warehouse for all items.");
       return;
     }
     handleSubmit();
@@ -165,7 +181,10 @@ export default function CreateInvoice() {
     <Formik
       enableReinitialize={false}
       validateOnMount={false}
-      validateOnChange={false}
+      // Errors have to refresh as the form is filled in, otherwise a message
+      // raised earlier (e.g. "Customer Name required") stays on screen after the
+      // field is populated.
+      validateOnChange={true}
       validateOnBlur={true}
       initialValues={{
         invoice_number: nextInvoiceNumber || "INV-0400",
@@ -195,52 +214,12 @@ export default function CreateInvoice() {
         setFieldValue,
         validateForm,
       }) => {
-        // Auto-populate customer details when selected
-        useEffect(() => {
-          // Leave one-time-address mode whenever the customer changes
-          setCustomAddress(false);
-          if (selectedCustomer) {
-            const customer = customers.find((c) => c.id === selectedCustomer);
-            if (customer) {
-              setFieldValue("contactName", customer.name || "");
-              setCustomerName(customer.name || "");
-              setFieldValue("phone", customer.phone || "");
-              setFieldValue("mobile", customer.mobile || "");
-              setFieldValue("address", customer.address || "");
-              setFieldValue("suburb", customer.suburb || "");
-              setFieldValue("state", customer.state || "");
-              setFieldValue("postCode", customer.post_code || "");
-              setFieldValue("emailAddress", customer.email || "");
-            }
-          } else if (!createInlineCustomer) {
-            setFieldValue("contactName", "");
-            setCustomerName("");
-            setFieldValue("phone", "");
-            setFieldValue("mobile", "");
-            setFieldValue("address", "");
-            setFieldValue("suburb", "");
-            setFieldValue("state", "");
-            setFieldValue("postCode", "");
-            setFieldValue("emailAddress", "");
-          }
-        }, [
-          selectedCustomer,
-          customers,
-          createInlineCustomer,
-          setFieldValue,
-          setCustomerName,
-        ]);
-
-        // When an address is selected from dropdown, populate all address fields
-        useEffect(() => {
-          if (selectedAddressIndex !== -1 && customerAddresses.length > 0) {
-            const selectedAddr = customerAddresses[selectedAddressIndex];
-            setFieldValue("address", selectedAddr.address || "");
-            setFieldValue("suburb", selectedAddr.suburb || "");
-            setFieldValue("state", selectedAddr.state || "");
-            setFieldValue("postCode", selectedAddr.post_code || "");
-          }
-        }, [selectedAddressIndex, customerAddresses, setFieldValue]);
+        // Error text for a step 1 field: only after the field was touched or
+        // "Next" was pressed, and only while it is actually still invalid.
+        const fieldError = (field: string): string =>
+          showStep1Errors || (touched as any)[field]
+            ? ((errors as any)[field] ?? "")
+            : "";
 
         // Shared address fields – used in both address-select and manual modes.
         // Kept as a JSX element (stable type) so PlacesInput is not remounted on
@@ -259,6 +238,17 @@ export default function CreateInvoice() {
 
         return (
           <Form onSubmit={handleSubmit}>
+            <CustomerFormSync
+              selectedCustomer={selectedCustomer}
+              selectedCustomerRecord={selectedCustomerRecord}
+              createInlineCustomer={createInlineCustomer}
+              customerAddresses={customerAddresses}
+              selectedAddressIndex={selectedAddressIndex}
+              customAddress={customAddress}
+              setCustomerName={setCustomerName}
+              onCustomerChange={leaveCustomAddressMode}
+              applyCustomerAddress
+            />
             <Container maxWidth={activeStep === 1 ? "xl" : "lg"} sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
               <Paper
                 elevation={3}
@@ -304,11 +294,7 @@ export default function CreateInvoice() {
                           type="text"
                           optional={false}
                           disabled={true}
-                          error={
-                            touched.invoice_number || step1Errors.invoice_number
-                              ? errors.invoice_number || step1Errors.invoice_number
-                              : ""
-                          }
+                          error={fieldError("invoice_number")}
                         />
                       </Grid>
 
@@ -321,11 +307,7 @@ export default function CreateInvoice() {
                           label="Invoice Date"
                           type="date"
                           optional={false}
-                          error={
-                            touched.invoice_date || step1Errors.invoice_date
-                              ? errors.invoice_date || step1Errors.invoice_date
-                              : ""
-                          }
+                          error={fieldError("invoice_date")}
                         />
                       </Grid>
 
@@ -338,11 +320,7 @@ export default function CreateInvoice() {
                           label="Due Date"
                           type="date"
                           optional={false}
-                          error={
-                            touched.due_date || step1Errors.due_date
-                              ? errors.due_date || step1Errors.due_date
-                              : ""
-                          }
+                          error={fieldError("due_date")}
                         />
                       </Grid>
 
@@ -422,10 +400,11 @@ export default function CreateInvoice() {
                             loading={loadingQuotations}
                             optional={true}
                             onChange={handleQuotationSearchDebounced}
-                            onSelect={(e) => {
-                              const quotationId = parseInt(e.target.value);
-                              if (quotationId) {
-                                loadFromQuotation(quotationId);
+                            onSelect={(_e, option) => {
+                              if (option?.id) {
+                                loadFromQuotation(option.id);
+                              } else {
+                                clearQuotation();
                               }
                             }}
                             secondaryLabel={
@@ -438,14 +417,10 @@ export default function CreateInvoice() {
                                     fontWeight: 600,
                                   }}
                                   onClick={() => {
-                                    setSelectedItems([]);
-                                    setIsQuotationLoaded(false);
-                                    setSelectedCustomer(undefined);
-                                    setCustomerName("");
-                                    setFieldValue("contactName", "");
-                                    setDiscount(0);
-                                    setDiscountType("percentage");
-                                    setShowDiscountInput(false);
+                                    // Also drops the quotation itself — it used to
+                                    // stay linked (and shown) after being cleared.
+                                    clearQuotation();
+                                    setFieldValue("quotation_id", "");
                                   }}
                                 >
                                   Clear Quotation
@@ -465,7 +440,10 @@ export default function CreateInvoice() {
                             name="contactName"
                             label="Customer Name"
                             options={customers}
-                            value={customers.find((c) => c.id === selectedCustomer) || null}
+                            // Bound to the stored record, not to a lookup in the
+                            // search results — those change while typing and the
+                            // field would blank out mid-search.
+                            value={selectedCustomerRecord || null}
                             secondaryLabel={
                               !selectedQuotation ? (
                                 <Box
@@ -484,8 +462,11 @@ export default function CreateInvoice() {
                             loading={loadingCustomers}
                             optional={false}
                             onChange={handleSearchDebounced}
-                            onSelect={(e) => setSelectedCustomer(e.target.value)}
-                            error={errors.contactName || step1Errors.contactName}
+                            // Use the option the dropdown hands over: reading
+                            // event.target.value only works for mouse clicks, and
+                            // gave a stray value on keyboard select / clear.
+                            onSelect={(_e, option) => selectCustomer(option)}
+                            error={fieldError("contactName")}
                           />
                         </Grid>
                       ) : (
@@ -514,11 +495,7 @@ export default function CreateInvoice() {
                                 Use Existing Customer
                               </Box>
                             }
-                            error={
-                              touched.inlineCustomerName || step1Errors.inlineCustomerName
-                                ? errors.inlineCustomerName || step1Errors.inlineCustomerName
-                                : ""
-                            }
+                            error={fieldError("inlineCustomerName")}
                             onChange={(e) => {
                               setFieldValue("inlineCustomerName", e.target.value);
                               setInlineCustomerName(e.target.value);
@@ -762,6 +739,15 @@ export default function CreateInvoice() {
                 )}
               </Paper>
             </Container>
+
+            {/* Loading a quotation/customer keeps the form mounted — unmounting it
+                would throw away everything already filled in. */}
+            <Backdrop
+              open={actionLoading}
+              sx={{ zIndex: (t) => t.zIndex.drawer + 1, color: "#fff" }}
+            >
+              <CircularLoader />
+            </Backdrop>
 
             {/* Inline item creation (step 2) — creates the item and adds it to the invoice */}
             <CreateItemModal

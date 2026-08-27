@@ -1,5 +1,5 @@
 import { openSnackbar } from "api/snackbar";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { SnackbarProps } from "types/snackbar";
 import {
@@ -86,6 +86,17 @@ export function useEditInvoice(invoiceId: number) {
   const [selectedMobile, setSelectedMobile] = useState<string>("");
   const [selectedPostCode, setSelectedPostCode] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<number | undefined>(undefined);
+  // Full record of the selected customer. Kept separately from `customers` so the
+  // selection survives the dropdown refetching its options while the user types.
+  const [selectedCustomerRecord, setSelectedCustomerRecordState] =
+    useState<any>(null);
+  // Mirrored in a ref so in-flight fetches (which captured an older render) can
+  // still see the current selection.
+  const selectedCustomerRecordRef = useRef<any>(null);
+  const setSelectedCustomerRecord = (record: any) => {
+    selectedCustomerRecordRef.current = record;
+    setSelectedCustomerRecordState(record);
+  };
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [customerSearch, setCustomerSearch] = useState<string>("");
   const [itemSearch, setItemSearch] = useState<string>("");
@@ -304,6 +315,28 @@ export function useEditInvoice(invoiceId: number) {
     }
   }, []);
 
+  // Keeps a customer available as a dropdown option even when the current search
+  // results don't contain it, so the selection never blanks out on screen.
+  const mergeCustomerIntoOptions = (customer: any) => {
+    if (!customer?.id) return;
+    setCustomers((prev) =>
+      prev.some((c) => c.id === customer.id) ? prev : [...prev, customer],
+    );
+  };
+
+  // Single entry point for picking a customer from the dropdown. `option` is the
+  // customer record (or null when the selection is cleared).
+  const selectCustomer = (option: any) => {
+    if (!option) {
+      setSelectedCustomer(undefined);
+      setSelectedCustomerRecord(null);
+      return;
+    }
+    setSelectedCustomer(option.id);
+    setSelectedCustomerRecord(option);
+    mergeCustomerIntoOptions(option);
+  };
+
   // Handle address selection
   const handleAddressSelect = (index: number) => {
     if (index >= 0 && index < customerAddresses.length) {
@@ -314,15 +347,8 @@ export function useEditInvoice(invoiceId: number) {
       setSelectedSuburb(selectedAddr.suburb);
       setSelectedState(selectedAddr.state);
       setSelectedPostCode(selectedAddr.post_code);
-
-      // Update initial values
-      setInitialValues(prev => ({
-        ...prev,
-        address: selectedAddr.address,
-        suburb: selectedAddr.suburb,
-        state: selectedAddr.state,
-        postCode: selectedAddr.post_code,
-      }));
+      // The form fields are filled by <CustomerFormSync>. Patching initialValues
+      // here would make Formik reinitialise and throw away every other edit.
     } else {
       // Custom one-time address mode (not saved to customer). Index -1 makes the
       // address-populate effect skip, so typed fields are preserved.
@@ -377,13 +403,7 @@ export function useEditInvoice(invoiceId: number) {
     setSelectedState(state);
     setSelectedPostCode(postCode);
 
-    setInitialValues(prev => ({
-      ...prev,
-      address: description,
-      suburb,
-      state,
-      postCode,
-    }));
+    // Deliberately not patching initialValues — see handleAddressSelect.
 
     if (setFieldValue) {
       setFieldValue("suburb", suburb);
@@ -990,7 +1010,14 @@ export function useEditInvoice(invoiceId: number) {
     if (allCustomers) {
       const { customersData, customersError } = allCustomers;
       if (customersData && !customersError) {
-        setCustomers(customersData);
+        // Always keep the selected customer among the options — otherwise the
+        // dropdown value has nothing to match and the field appears empty.
+        const selected = selectedCustomerRecordRef.current;
+        setCustomers(
+          selected && !customersData.some((c: any) => c.id === selected.id)
+            ? [...customersData, selected]
+            : customersData,
+        );
       }
     }
     setLoadingCustomers(false);
@@ -1031,6 +1058,9 @@ export function useEditInvoice(invoiceId: number) {
         const customerId = invoice.customer_id;
         setSelectedCustomer(customerId);
         setCustomerId(customerId);
+        // The form fills itself from this record, so it has to be set even when
+        // the customer isn't part of the current dropdown search results.
+        setSelectedCustomerRecord(invoice.customers ?? null);
         setCustomerName(invoice.customers?.name || "");
         setSelectedPhone(invoice.customers?.phone || "");
         setSelectedMobile(invoice.customers?.mobile || "");
@@ -1161,33 +1191,63 @@ export function useEditInvoice(invoiceId: number) {
     getItems();
   }, [itemSearch]);
 
-  // Auto-populate customer details when selected
+  // Auto-populate customer details when selected.
+  // Deliberately not keyed on `customers`: that list is replaced on every
+  // keystroke in the search box, and re-running this would overwrite the contact
+  // details after they had been edited.
+  const loadedCustomerRef = useRef<any>(undefined);
   useEffect(() => {
-    if (selectedCustomer && customers.length > 0) {
-      const customer = customers.find((c) => c.id === selectedCustomer);
-      if (customer) {
-        setSelectedEmail(customer.email || "");
-        setCustomerName(customer.name || "");
-        setSelectedPhone(customer.phone || "");
-        setSelectedMobile(customer.mobile || "");
+    if (selectedCustomer) {
+      const customer =
+        selectedCustomerRecord?.id === selectedCustomer
+          ? selectedCustomerRecord
+          : customers.find((c) => c.id === selectedCustomer);
+      if (!customer) return;
 
-        // Don't fetch addresses here - they are already loaded during loadInvoiceData()
-        // with the correct invoice address match
+      if (selectedCustomerRecord?.id !== selectedCustomer) {
+        setSelectedCustomerRecord(customer);
       }
-    } else if (!createInlineCustomer) {
-      // Reset customer data
-      setSelectedEmail("");
-      setCustomerName("");
-      setSelectedPhone("");
-      setSelectedMobile("");
-      setSelectedAddress("");
-      setSelectedSuburb("");
-      setSelectedState("");
-      setSelectedPostCode("");
-      setCustomerAddresses([]);
-      setSelectedAddressIndex(-1);
+
+      if (loadedCustomerRef.current === selectedCustomer) return;
+      loadedCustomerRef.current = selectedCustomer;
+
+      setSelectedEmail(customer.email || "");
+      setCustomerName(customer.name || "");
+      setSelectedPhone(customer.phone || "");
+      setSelectedMobile(customer.mobile || "");
+
+      // Addresses are loaded in loadInvoiceData() for the invoice's own customer,
+      // with the saved snapshot matched. Fetch them when a different customer is
+      // picked here.
+      if (customer.id !== customerId) {
+        fetchCustomerAddresses(customer.id);
+      }
+      return;
     }
-  }, [selectedCustomer, customers, createInlineCustomer]);
+
+    if (loadedCustomerRef.current === undefined) return;
+    loadedCustomerRef.current = undefined;
+    if (createInlineCustomer) return;
+
+    // Reset customer data
+    setSelectedEmail("");
+    setCustomerName("");
+    setSelectedPhone("");
+    setSelectedMobile("");
+    setSelectedAddress("");
+    setSelectedSuburb("");
+    setSelectedState("");
+    setSelectedPostCode("");
+    setCustomerAddresses([]);
+    setSelectedAddressIndex(-1);
+  }, [
+    selectedCustomer,
+    selectedCustomerRecord,
+    customers,
+    createInlineCustomer,
+    customerId,
+    fetchCustomerAddresses,
+  ]);
 
   return {
     validate,
@@ -1221,6 +1281,8 @@ export function useEditInvoice(invoiceId: number) {
     invoiceData,
     selectedCustomer,
     setSelectedCustomer,
+    selectCustomer,
+    selectedCustomerRecord,
     createInlineCustomer,
     setCreateInlineCustomer: setCreateInlineCustomerWithReset,
     inlineCustomerName,

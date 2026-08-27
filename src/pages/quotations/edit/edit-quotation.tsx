@@ -19,9 +19,12 @@ import {
 import AddressFields from "components/AddressFields";
 import ItemsSelectionTable from "components/ItemsSelectionTable";
 import CreateItemModal from "components/CreateItemModal";
+import CustomerFormSync from "components/CustomerFormSync";
 import { useParams, useNavigate } from "react-router-dom";
 import ActionButton from "components/ActionButton";
 import { useEffect, useState } from "react";
+import { openSnackbar } from "api/snackbar";
+import { SnackbarProps } from "types/snackbar";
 
 // ==============================|| EDIT QUOTATION PAGE ||============================== //
 
@@ -30,7 +33,10 @@ export default function EditQuotation() {
   const navigate = useNavigate();
   const theme = useTheme();
   const [activeStep, setActiveStep] = useState(0);
-  const [step1Errors, setStep1Errors] = useState<any>({});
+  // Step 1 errors are shown once "Next" has been pressed. The messages themselves
+  // always come from Formik's live `errors`, so they disappear as soon as the
+  // field is filled in instead of sticking around from an older validation run.
+  const [showStep1Errors, setShowStep1Errors] = useState(false);
   // One-time delivery address typed on the quotation (not saved to the customer)
   const [customAddress, setCustomAddress] = useState(false);
   // Inline "Create New Item" modal (step 2)
@@ -133,11 +139,24 @@ export default function EditQuotation() {
     setActiveStep(0);
   };
 
+  const warn = (message: string) =>
+    openSnackbar({
+      open: true,
+      message,
+      variant: "alert",
+      alert: { color: "warning" },
+    } as SnackbarProps);
+
   return (
     <Formik
-      enableReinitialize={true}
+      // initialValues are set once, before the form is mounted; nothing patches
+      // them afterwards, so reinitialising can only throw away edits.
+      enableReinitialize={false}
       validateOnMount={false}
-      validateOnChange={false}
+      // Errors have to refresh as the form is filled in, otherwise a message
+      // raised earlier (e.g. "Customer Name required") stays on screen after the
+      // field is populated.
+      validateOnChange={true}
       validateOnBlur={true}
       initialValues={initialValues}
       validate={validate}
@@ -163,12 +182,10 @@ export default function EditQuotation() {
             ];
 
             const step1HasErrors = step1Fields.some(field => validationErrors[field]);
+            setShowStep1Errors(step1HasErrors);
 
             if (!step1HasErrors) {
-              setStep1Errors({});
               setActiveStep(1);
-            } else {
-              setStep1Errors(validationErrors);
             }
           });
         };
@@ -176,32 +193,33 @@ export default function EditQuotation() {
         const handleSubmitStep2 = () => {
           // Validate that at least one item is selected
           if (selectedItems.length === 0) {
-            alert('Please add at least one item before updating.');
+            warn('Please add at least one item before updating.');
             return;
           }
 
           // Check that all items have warehouses selected
           const hasInvalidItems = selectedItems.some(item => !item.warehouse_id);
           if (hasInvalidItems) {
-            alert('Please select a warehouse for all items.');
+            warn('Please select a warehouse for all items.');
             return;
           }
 
           handleSubmit();
         };
-        // When an address is selected from dropdown, populate all address fields
-        useEffect(() => {
-          if (selectedAddressIndex !== -1 && customerAddresses.length > 0) {
-            const selectedAddr = customerAddresses[selectedAddressIndex];
-            setFieldValue("address", selectedAddr.address || "");
-            setFieldValue("suburb", selectedAddr.suburb || "");
-            setFieldValue("state", selectedAddr.state || "");
-            setFieldValue("postCode", selectedAddr.post_code || "");
-          }
-        }, [selectedAddressIndex, customerAddresses, setFieldValue]);
+        // Error text for a step 1 field: only after the field was touched or
+        // "Next" was pressed, and only while it is actually still invalid.
+        const fieldError = (field: string): string =>
+          showStep1Errors || (touched as any)[field]
+            ? ((errors as any)[field] ?? "")
+            : "";
 
         return (
           <Form onSubmit={handleSubmit}>
+            <CustomerFormSync
+              customerAddresses={customerAddresses}
+              selectedAddressIndex={selectedAddressIndex}
+              customAddress={customAddress}
+            />
             <Container maxWidth={activeStep === 1 ? "xl" : "lg"}>
               <Paper elevation={3} sx={{ p: 4, mt: 3 }}>
                 {/* Stepper */}
@@ -230,7 +248,7 @@ export default function EditQuotation() {
                           label="Quote Number"
                           type={"text"}
                           optional={false}
-                          error={touched.quotation_number || step1Errors.quotation_number ? errors.quotation_number || step1Errors.quotation_number : ""}
+                          error={fieldError("quotation_number")}
                           disabled
                         />
                       </Grid>
@@ -248,7 +266,7 @@ export default function EditQuotation() {
                             { label: "Cancelled", value: "cancelled" },
                           ]}
                           optional={false}
-                          error={touched.status || step1Errors.status ? errors.status || step1Errors.status : ""}
+                          error={fieldError("status")}
                         />
                       </Grid>
 
@@ -261,7 +279,7 @@ export default function EditQuotation() {
                           label="Customer Name"
                           type={"text"}
                           optional={false}
-                          error={touched.customerName || step1Errors.customerName ? errors.customerName || step1Errors.customerName : ""}
+                          error={fieldError("customerName")}
                           value={values.customerName}
                           onChange={(e) => {
                             setFieldValue("customerName", e.target.value);

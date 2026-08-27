@@ -86,11 +86,26 @@ export function useCreateInvoice() {
   const [selectedMobile, setSelectedMobile] = useState<string>("");
   const [selectedPostCode, setSelectedPostCode] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(undefined);
+  // Full record of the selected customer. Kept separately from `customers` so the
+  // selection survives the dropdown refetching its options while the user types.
+  const [selectedCustomerRecord, setSelectedCustomerRecordState] =
+    useState<any>(null);
+  // Mirrored in a ref so in-flight fetches (which captured an older render) can
+  // still see the current selection.
+  const selectedCustomerRecordRef = useRef<any>(null);
+  const setSelectedCustomerRecord = (record: any) => {
+    selectedCustomerRecordRef.current = record;
+    setSelectedCustomerRecordState(record);
+  };
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState<string>("");
   const [itemSearch, setItemSearch] = useState<string>("");
   const [quotationSearch, setQuotationSearch] = useState<string>("");
+  // `loading` covers the first data load only (nothing is on screen yet).
+  // Loading a quotation/customer afterwards uses `actionLoading`, which must NOT
+  // unmount the form — doing so wipes everything already typed (notes, dates…).
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loadingItems, setLoadingItems] = useState(false);
   const [loadingQuotations, setLoadingQuotations] = useState(false);
@@ -311,16 +326,39 @@ export function useCreateInvoice() {
     }
   };
 
+  // Keeps a customer available as a dropdown option even when the current search
+  // results don't contain it, so the selection never blanks out on screen.
+  const mergeCustomerIntoOptions = (customer: any) => {
+    if (!customer?.id) return;
+    setCustomers((prev) =>
+      prev.some((c) => c.id === customer.id) ? prev : [...prev, customer],
+    );
+  };
+
+  // Single entry point for picking a customer from the dropdown. `option` is the
+  // customer record (or null when the selection is cleared).
+  const selectCustomer = (option: any) => {
+    if (!option) {
+      setSelectedCustomer(undefined);
+      setSelectedCustomerRecord(null);
+      return;
+    }
+    setSelectedCustomer(option.id);
+    setSelectedCustomerRecord(option);
+    mergeCustomerIntoOptions(option);
+  };
+
   // Function to load customer data by ID
   const loadCustomerById = async (customerId: number) => {
     try {
-      setLoading(true);
+      setActionLoading(true);
       const customersRepository = new CustomersRepository();
       const customerData = await customersRepository.getSingle(customerId);
       if (customerData) {
         const customer = customerData.customerData;
         // Set customer details
         setSelectedCustomer(customerId);
+        setSelectedCustomerRecord(customer);
         setCustomerName(customer.name || "");
         setSelectedEmail(customer.email || "");
         setSelectedPhone(customer.phone || "");
@@ -331,9 +369,7 @@ export function useCreateInvoice() {
         setSelectedPostCode(customer.post_code || "");
 
         // Add customer to the list if not already there
-        if (!customers.find((c) => c.id === customerId)) {
-          setCustomers((prev) => [...prev, customer]);
-        }
+        mergeCustomerIntoOptions(customer);
 
         openSnackbar({
           open: true,
@@ -358,7 +394,7 @@ export function useCreateInvoice() {
         alert: { color: "error" },
       } as SnackbarProps);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -620,9 +656,24 @@ export function useCreateInvoice() {
     setSelectedItems(updatedItems);
   };
 
+  // Undo "load from quotation" — drops the quotation link, its items and the
+  // customer it pulled in, so the form is back to a blank manual invoice.
+  function clearQuotation() {
+    setSelectedQuotation(null);
+    setIsQuotationLoaded(false);
+    setSelectedItems([]);
+    setSelectedCustomer(undefined);
+    setSelectedCustomerRecord(null);
+    setCustomerName("");
+    setDiscount(0);
+    setDiscountType("percentage");
+    setShowDiscountInput(false);
+    setDeposit(0);
+  }
+
   async function loadFromQuotation(quotationId: number) {
     try {
-      setLoading(true);
+      setActionLoading(true);
       const quotationsRepo = new QuotationsRepository();
       const quotation = await quotationsRepo.getSingle(quotationId);
       if (quotation?.quotationData) {
@@ -643,6 +694,10 @@ export function useCreateInvoice() {
         // Load customer details
         if (quotation.quotationData.customers) {
           setSelectedCustomer(quotation.quotationData.customers.id);
+          // The form fills itself from this record, so it has to be set even when
+          // the customer isn't part of the current dropdown search results.
+          setSelectedCustomerRecord(quotation.quotationData.customers);
+          mergeCustomerIntoOptions(quotation.quotationData.customers);
           setSelectedEmail(quotation.quotationData.customers.email || "");
           setSelectedPhone(quotation.quotationData.customers.phone || "");
           setCustomerName(quotation.quotationData.customers.name || "");
@@ -741,7 +796,7 @@ export function useCreateInvoice() {
         iconVariant: "usedefault",
       });
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   }
 
@@ -1128,7 +1183,14 @@ export function useCreateInvoice() {
     if (allCustomers) {
       const { customersData, customersError } = allCustomers;
       if (customersData && !customersError) {
-        setCustomers(customersData);
+        // Always keep the selected customer among the options — otherwise the
+        // dropdown value has nothing to match and the field appears empty.
+        const selected = selectedCustomerRecordRef.current;
+        setCustomers(
+          selected && !customersData.some((c: any) => c.id === selected.id)
+            ? [...customersData, selected]
+            : customersData,
+        );
       }
     }
     setLoadingCustomers(false);
@@ -1252,22 +1314,46 @@ export function useCreateInvoice() {
     getQuotations();
   }, [quotationSearch]);
 
+  // Reacts to the customer actually changing. It deliberately does not depend on
+  // `customers`: that list is replaced on every keystroke in the search box, and
+  // re-running this would re-fetch the addresses and overwrite what was typed.
+  const loadedCustomerRef = useRef<any>(undefined);
   useEffect(() => {
     if (selectedCustomer) {
-      const customer = customers.find((c) => c.id === selectedCustomer);
-      if (customer) {
-        setSelectedEmail(customer.email || "");
-        setCustomerName(customer.name || "");
-        setSelectedPhone(customer.phone || "");
-        setSelectedMobile(customer.mobile || "");
+      const customer =
+        selectedCustomerRecord?.id === selectedCustomer
+          ? selectedCustomerRecord
+          : customers.find((c) => c.id === selectedCustomer);
+      if (!customer) return;
 
-        // Fetch addresses for the selected customer
-        fetchCustomerAddresses(selectedCustomer);
+      if (selectedCustomerRecord?.id !== selectedCustomer) {
+        setSelectedCustomerRecord(customer);
       }
-    } else if (!createInlineCustomer) {
-      resetCustomerData();
+
+      if (loadedCustomerRef.current === selectedCustomer) return;
+      loadedCustomerRef.current = selectedCustomer;
+
+      setSelectedEmail(customer.email || "");
+      setCustomerName(customer.name || "");
+      setSelectedPhone(customer.phone || "");
+      setSelectedMobile(customer.mobile || "");
+
+      // Fetch addresses for the selected customer
+      fetchCustomerAddresses(selectedCustomer);
+    } else {
+      if (loadedCustomerRef.current === undefined) return;
+      loadedCustomerRef.current = undefined;
+      if (!createInlineCustomer) {
+        resetCustomerData();
+      }
     }
-  }, [selectedCustomer, customers, createInlineCustomer, fetchCustomerAddresses]);
+  }, [
+    selectedCustomer,
+    selectedCustomerRecord,
+    customers,
+    createInlineCustomer,
+    fetchCustomerAddresses,
+  ]);
 
   // Update selected address fields when address details change
   useEffect(() => {
@@ -1288,6 +1374,7 @@ export function useCreateInvoice() {
     warehouses,
     quotations,
     loading,
+    actionLoading,
     selectedItems,
     addItem,
     addCreatedItemToInvoice,
@@ -1306,9 +1393,12 @@ export function useCreateInvoice() {
     selectedMobile,
     selectedPostCode,
     setSelectedCustomer,
+    selectCustomer,
+    selectedCustomerRecord,
     changeAddress,
     selectedCustomer,
     loadFromQuotation,
+    clearQuotation,
     selectedQuotation,
     isQuotationLoaded,
     setIsQuotationLoaded,

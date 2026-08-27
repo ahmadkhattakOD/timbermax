@@ -284,15 +284,8 @@ export function useEditQuotation(quotationId: number) {
       setSelectedSuburb(selectedAddr.suburb);
       setSelectedState(selectedAddr.state);
       setSelectedPostCode(selectedAddr.post_code);
-      
-      // Update initial values
-      setInitialValues(prev => ({
-        ...prev,
-        address: selectedAddr.address,
-        suburb: selectedAddr.suburb,
-        state: selectedAddr.state,
-        postCode: selectedAddr.post_code,
-      }));
+      // The form fields are filled by <CustomerFormSync>. Patching initialValues
+      // here would make Formik reinitialise and throw away every other edit.
     } else {
       // Custom one-time address mode (not saved to customer). Index -1 makes the
       // address-populate effect skip, so typed fields are preserved.
@@ -347,13 +340,7 @@ export function useEditQuotation(quotationId: number) {
     setSelectedState(state);
     setSelectedPostCode(postCode);
 
-    setInitialValues(prev => ({
-      ...prev,
-      address: description,
-      suburb,
-      state,
-      postCode,
-    }));
+    // Deliberately not patching initialValues — see handleAddressSelect.
 
     if (setFieldValue) {
       setFieldValue("suburb", suburb);
