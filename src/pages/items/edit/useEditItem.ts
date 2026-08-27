@@ -168,7 +168,7 @@ export function useEditItem() {
           } as SnackbarProps);
         }
 
-        navigate("/items");
+        navigate(-1);
       } else {
         openSnackbar({
           open: true,
@@ -179,7 +179,7 @@ export function useEditItem() {
           },
         } as SnackbarProps);
 
-        navigate("/items");
+        navigate(-1);
       }
     } catch (e) {
       console.error("Error editing item:", e);
@@ -192,7 +192,7 @@ export function useEditItem() {
         },
       } as SnackbarProps);
 
-      navigate("/items");
+      navigate(-1);
     }
   }
 

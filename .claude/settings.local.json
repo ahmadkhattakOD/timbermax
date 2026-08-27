@@ -37,7 +37,12 @@
       "Bash(curl -s http://localhost:5183/)",
       "Bash(pkill -f \"vite --port 5183\")",
       "Bash(awk '/^commit /{c=$2} /^-.*id: \"deposit\"/{print c\": \"$0} /^-.*row\\\\.deposit \\\\?/{print c\": \"$0}')",
-      "Bash(pkill -f \"vite --port 5184\")"
+      "Bash(pkill -f \"vite --port 5184\")",
+      "Bash(lsof *)",
+      "Bash(ps *)",
+      "Bash(kill 14807 *)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(perl -pi -e 's/navigate\\\\\\(\"\\\\/items\"\\\\\\);/navigate\\(-1\\);/g' src/pages/items/edit/useEditItem.ts src/pages/items/create/useCreateItem.ts)"
     ]
   }
 }

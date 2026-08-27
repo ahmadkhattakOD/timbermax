@@ -2,8 +2,9 @@ import { Checkbox, CircularProgress, IconButton, TableCell, Tooltip } from "@mui
 import { openSnackbar } from "api/snackbar";
 import { HeadCell, Order } from "components/data-table/DataTable";
 import { Copy } from "iconsax-react";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { useSearchParams } from "react-router-dom";
 import { SnackbarProps } from "types/snackbar";
 import {
   formatAmount,
@@ -77,31 +78,90 @@ const initialFilters: ValuesFilterItems = {
   vendor_name: "",
 };
 
+const defaultOrder: Order = "desc";
+const defaultOrderBy = "created_at";
+
 export function useItems() {
+  // Filters, sorting and pagination live in the URL so the list can be restored
+  // exactly as it was when coming back from an item page.
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [data, setData] = useState<any[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
-  const [order, setOrder] = useState<Order>("desc");
-  const [orderBy, setOrderBy] = useState<string>("created_at");
   const [selected, setSelected] = useState<readonly number[]>([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
-  const [filters, setFilters] = useState<ValuesFilterItems>(initialFilters);
-  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
+
+  const filters: ValuesFilterItems = useMemo(
+    () => ({
+      name: searchParams.get("name") ?? initialFilters.name,
+      description: searchParams.get("description") ?? initialFilters.description,
+      itemCode: searchParams.get("itemCode") ?? initialFilters.itemCode,
+      vendor_name: searchParams.get("vendor_name") ?? initialFilters.vendor_name,
+    }),
+    [searchParams]
+  );
+
+  const order = (searchParams.get("order") as Order) || defaultOrder;
+  const orderBy = searchParams.get("orderBy") || defaultOrderBy;
+  const page = Number(searchParams.get("page")) || 0;
+  const rowsPerPage =
+    Number(searchParams.get("rowsPerPage")) || initialRowsPerPage;
+
+  // Seeded from the URL so the search box still shows the active term on return.
+  const [searchValue, setSearchValue] = useState(
+    () => searchParams.get("name") ?? ""
+  );
+
+  // setSearchParams builds from the params of the current render, so two calls
+  // in the same handler (sorting sets order + orderBy) would drop the first one.
+  // The ref keeps them composing.
+  const paramsRef = useRef(searchParams);
+  useEffect(() => {
+    paramsRef.current = searchParams;
+  }, [searchParams]);
+
+  function updateParams(updates: Record<string, string | number | undefined>) {
+    const next = new URLSearchParams(paramsRef.current);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === undefined || value === "") {
+        next.delete(key);
+      } else {
+        next.set(key, String(value));
+      }
+    });
+    paramsRef.current = next;
+    // replace so typing in the search box doesn't fill up the history stack.
+    setSearchParams(next, { replace: true });
+  }
+
+  function setOrder(value: Order) {
+    updateParams({ order: value });
+  }
+
+  function setOrderBy(value: string) {
+    updateParams({ orderBy: value });
+  }
+
+  function setPage(value: number) {
+    updateParams({ page: value || undefined });
+  }
+
+  function setRowsPerPage(value: number) {
+    updateParams({ rowsPerPage: value });
+  }
 
   function goToCreate() {
     navigate("/items/new");
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setFilters((prev) => ({ ...prev, name: e.target.value }));
-    setPage(0);
+    updateParams({ name: e.target.value, page: undefined });
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -335,8 +395,8 @@ export function useItems() {
 
   async function handleFiltersSubmit(values: ValuesFilterItems) {
     try {
-      setFilters(values);
-      setPage(0);
+      setSearchValue(values.name);
+      updateParams({ ...values, page: undefined });
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering items:", error);
@@ -345,8 +405,7 @@ export function useItems() {
 
   function resetFilters() {
     setSearchValue("");
-    setFilters(initialFilters);
-    setPage(0);
+    updateParams({ ...initialFilters, page: undefined });
   }
 
   return {
