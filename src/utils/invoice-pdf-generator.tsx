@@ -292,7 +292,7 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
   doc.text(disclaimerLines, 14, postTableY);
 
   // Summary Section — only add page if summary block won't fit (header + 4 rows = ~50mm)
-  const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30);
+  const summaryNeeded = 10 + (discountRaw > 0 ? 40 : 30) + (depositPaid > 0 ? 20 : 0);
   let summaryY = checkAndAddPage(doc, postTableY + disclaimerLines.length * 5 + 8, summaryNeeded);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -320,9 +320,21 @@ const buildInvoicePDF = async (doc: jsPDF, invoice: Invoice) => {
     });
   }
 
+  if (depositPaid > 0) {
+    currentY += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total:`, 120, currentY);
+    doc.text(`$${grandTotal.toFixed(2)}`, 180, currentY, { align: "right" });
+
+    currentY += 10;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Deposit Paid:`, 120, currentY);
+    doc.text(`$${depositPaid.toFixed(2)}`, 180, currentY, { align: "right" });
+  }
+
   currentY += 10;
   doc.setFont("helvetica", "bold");
-  doc.text(`Total:`, 120, currentY);
+  doc.text(depositPaid > 0 ? `Balance Due:` : `Total:`, 120, currentY);
   doc.text(`$${totalDue.toFixed(2)}`, 180, currentY, { align: "right" });
 
   // Bank Details — only add page if the 5 bank lines won't fit (~42mm)
@@ -525,7 +537,11 @@ export const generateInvoicePDFBase64 = async (
     doc.text(gstDisclaimerLines, 14, finalY);
 
     // Totals — only add page if totals block won't fit
-    finalY = checkAndAddPage(doc, finalY + gstDisclaimerLines.length * 4.5 + 4, discountRaw > 0 ? 36 : 26);
+    finalY = checkAndAddPage(
+      doc,
+      finalY + gstDisclaimerLines.length * 4.5 + 4,
+      (discountRaw > 0 ? 36 : 26) + (depositPaid > 0 ? 11 : 0),
+    );
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("Subtotal:", 140, finalY);
@@ -544,9 +560,21 @@ export const generateInvoicePDFBase64 = async (
         align: "right",
       });
     }
+    if (depositPaid > 0) {
+      finalY += 6;
+      doc.setFont("helvetica", "bold");
+      doc.text("Total:", 140, finalY);
+      doc.text(`$${grandTotal.toFixed(2)}`, 196, finalY, { align: "right" });
+
+      finalY += 5;
+      doc.setFont("helvetica", "normal");
+      doc.text("Deposit Paid:", 140, finalY);
+      doc.text(`$${depositPaid.toFixed(2)}`, 196, finalY, { align: "right" });
+    }
+
     finalY += 6;
     doc.setFont("helvetica", "bold");
-    doc.text("Total:", 140, finalY);
+    doc.text(depositPaid > 0 ? "Balance Due:" : "Total:", 140, finalY);
     doc.text(`$${totalDue.toFixed(2)}`, 196, finalY, { align: "right" });
 
     // Bank Details — only add page if the 5 bank lines won't fit (~30mm)
