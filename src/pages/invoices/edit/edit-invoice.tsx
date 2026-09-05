@@ -157,7 +157,7 @@ export default function EditInvoice() {
         <Typography variant="h6">Invoice not found</Typography>
         <ActionButton
           text="Back to Invoices"
-          onClick={() => navigate("/invoices")}
+          onClick={() => navigate(-1)}
         />
       </Box>
     );
@@ -757,7 +757,7 @@ export default function EditInvoice() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
                       <Button
                         variant="outlined"
-                        onClick={() => navigate("/invoices")}
+                        onClick={() => navigate(-1)}
                         size="large"
                       >
                         {isReadOnly ? "Back to Invoices" : "Cancel"}
@@ -828,7 +828,7 @@ export default function EditInvoice() {
                         </Button>
                         <Button
                           variant="outlined"
-                          onClick={() => navigate("/invoices")}
+                          onClick={() => navigate(-1)}
                           size="large"
                         >
                           {isReadOnly ? "Back to Invoices" : "Cancel"}

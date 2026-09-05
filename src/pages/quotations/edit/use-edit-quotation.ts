@@ -796,7 +796,7 @@ export function useEditQuotation(quotationId: number) {
         } as SnackbarProps);
       }
 
-      navigate("/quotations");
+      navigate(-1);
     } catch (e: any) {
       console.error("Error updating quotation:", e);
       openSnackbar({

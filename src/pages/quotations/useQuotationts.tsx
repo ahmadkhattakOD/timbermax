@@ -1,6 +1,6 @@
 // hooks/useQuotations.ts (UPDATED - Corrected snackbar typings)
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Checkbox,
   TableCell,
@@ -200,27 +200,99 @@ export const initialFilters: ValuesFilterQuotations = {
 
 const MANDATORY_QUOTATION_CC = "info@timbermax.com.au";
 
+const defaultOrder: Order = "desc";
+const defaultOrderBy = "created_at";
+
+const quotationFilterKeys = [
+  "search",
+  "quotation_number",
+  "customer_name",
+  "minimumTotal",
+  "maximumTotal",
+  "status",
+  "valid_until_from",
+  "valid_until_to",
+  "created_at_from",
+  "created_at_to",
+  "item_name",
+  "item_code",
+] as const;
+
 export function useQuotations() {
+  // Filters, sorting and pagination live in the URL so the list can be restored
+  // exactly as it was when coming back from a quotation page.
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [data, setData] = useState<Quotation[]>([]);
   const [dataCount, setDataCount] = useState<number>(0);
-  const [order, setOrder] = useState<Order>("desc");
-  const [orderBy, setOrderBy] = useState<string>("created_at");
   const [selected, setSelected] = useState<readonly number[]>([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
   const [currentQuotationItems, setCurrentQuotationItems] = useState<any[]>([]);
   const [currentQuotationInfo, setCurrentQuotationInfo] = useState<any>(null);
-  const [filters, setFilters] =
-    useState<ValuesFilterQuotations>(initialFilters);
-  const [searchValue, setSearchValue] = useState("");
   const [csvData, setCsvData] = useState<string>("");
   const csvLink = useRef<any>();
   const navigate = useNavigate();
   const theme = useTheme();
+
+  const filters: ValuesFilterQuotations = useMemo(() => {
+    const result: any = { ...initialFilters };
+    quotationFilterKeys.forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) result[key] = value;
+    });
+    return result;
+  }, [searchParams]);
+
+  const order = (searchParams.get("order") as Order) || defaultOrder;
+  const orderBy = searchParams.get("orderBy") || defaultOrderBy;
+  const page = Number(searchParams.get("page")) || 0;
+  const rowsPerPage =
+    Number(searchParams.get("rowsPerPage")) || initialRowsPerPage;
+
+  // Seeded from the URL so the search box still shows the active term on return.
+  const [searchValue, setSearchValue] = useState(
+    () => searchParams.get("search") ?? ""
+  );
+
+  // setSearchParams builds from the params of the current render, so two calls
+  // in the same handler would drop the first one. The ref keeps them composing.
+  const paramsRef = useRef(searchParams);
+  useEffect(() => {
+    paramsRef.current = searchParams;
+  }, [searchParams]);
+
+  function updateParams(updates: Record<string, string | number | undefined>) {
+    const next = new URLSearchParams(paramsRef.current);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === undefined || value === "") {
+        next.delete(key);
+      } else {
+        next.set(key, String(value));
+      }
+    });
+    paramsRef.current = next;
+    // replace so typing in the search box doesn't fill up the history stack.
+    setSearchParams(next, { replace: true });
+  }
+
+  function setOrder(value: Order) {
+    updateParams({ order: value });
+  }
+
+  function setOrderBy(value: string) {
+    updateParams({ orderBy: value });
+  }
+
+  function setPage(value: number) {
+    updateParams({ page: value || undefined });
+  }
+
+  function setRowsPerPage(value: number) {
+    updateParams({ rowsPerPage: value });
+  }
 
   // Quotation status menu state
   const [statusMenuAnchor, setStatusMenuAnchor] =
@@ -254,13 +326,7 @@ export function useQuotations() {
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-
-    setFilters((prev) => ({
-      ...prev,
-      search: value || undefined,
-    }));
-    setPage(0);
+    updateParams({ search: e.target.value || undefined, page: undefined });
   }
 
   const handleSearchDebounced = useDebouncedSearch(handleSearchChange);
@@ -1670,8 +1736,7 @@ export function useQuotations() {
 
   async function handleFiltersSubmit(values: ValuesFilterQuotations) {
     try {
-      setFilters(values);
-      setPage(0);
+      updateParams({ ...values, page: undefined });
       setFilterModalOpen(false);
     } catch (error) {
       console.error("Error filtering quotations:", error);
@@ -1680,8 +1745,11 @@ export function useQuotations() {
 
   function resetFilters() {
     setSearchValue("");
-    setFilters(initialFilters);
-    setPage(0);
+    const clears: Record<string, undefined> = {};
+    quotationFilterKeys.forEach((key) => {
+      clears[key] = undefined;
+    });
+    updateParams({ ...clears, page: undefined });
   }
 
   // PDF Download function - FIXED SNACKBAR TYPES

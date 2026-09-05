@@ -42,7 +42,13 @@
       "Bash(ps *)",
       "Bash(kill 14807 *)",
       "Bash(git commit -q -m ' *)",
-      "Bash(perl -pi -e 's/navigate\\\\\\(\"\\\\/items\"\\\\\\);/navigate\\(-1\\);/g' src/pages/items/edit/useEditItem.ts src/pages/items/create/useCreateItem.ts)"
+      "Bash(perl -pi -e 's/navigate\\\\\\(\"\\\\/items\"\\\\\\);/navigate\\(-1\\);/g' src/pages/items/edit/useEditItem.ts src/pages/items/create/useCreateItem.ts)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(nohup npm run start)",
+      "Bash(echo \"PID $!\")",
+      "Read(//tmp/**)",
+      "Bash(git stash *)",
+      "Bash(pkill -f \"vite\")"
     ]
   }
 }

@@ -126,7 +126,7 @@ export default function EditQuotation() {
         <Typography variant="h6">Quotation not found</Typography>
         <ActionButton
           text="Back to Quotations"
-          onClick={() => navigate("/quotations")}
+          onClick={() => navigate(-1)}
         />
       </Box>
     );
@@ -475,7 +475,7 @@ export default function EditQuotation() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
                       <Button
                         variant="outlined"
-                        onClick={() => navigate("/quotations")}
+                        onClick={() => navigate(-1)}
                         size="large"
                       >
                         Cancel
@@ -535,7 +535,7 @@ export default function EditQuotation() {
                         </Button>
                         <Button
                           variant="outlined"
-                          onClick={() => navigate("/quotations")}
+                          onClick={() => navigate(-1)}
                           size="large"
                         >
                           Cancel

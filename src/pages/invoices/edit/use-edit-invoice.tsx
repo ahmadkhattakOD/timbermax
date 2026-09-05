@@ -991,7 +991,7 @@ export function useEditInvoice(invoiceId: number) {
         alert: { color: "success" },
       } as SnackbarProps);
 
-      navigate("/invoices");
+      navigate(-1);
     } catch (e: any) {
       console.error("Error updating invoice:", e);
       openSnackbar({
