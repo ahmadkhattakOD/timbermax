@@ -844,27 +844,35 @@ export function useEditInvoice(invoiceId: number) {
 
       // Only update items if status is not cancelled
       if (values.status !== "cancelled") {
-        // Identify items to remove
-        const currentItemIds = currentItems.map((item: any) => item.item_id);
-        const newItemIds = selectedItems.map((item) => item.item_id);
+        // Identify items to remove — matched by invoice_items primary key
+        // (`invoice_item_id`), not `item_id`. item_id is nulled out once the
+        // underlying item is deleted (see add_item_snapshot.sql), so multiple
+        // lines can share item_id === null and would be indistinguishable —
+        // and matching-by-null against Supabase never matches any row anyway.
+        const newRowIds = selectedItems
+          .map((item) => item.invoice_item_id)
+          .filter((id): id is number => id != null);
 
         // Items to remove (in current but not in new)
         const itemsToRemove = currentItems.filter(
-          (item: any) => !newItemIds.includes(item.item_id),
+          (item: any) => !newRowIds.includes(item.id),
         );
 
         // Remove items that are no longer in the invoice
         for (const item of itemsToRemove) {
           // Delete item from invoice_items
-          await invoicesRepo.deleteItem(invoiceId, item.item_id);
+          await invoicesRepo.deleteItemById(item.id);
 
-          // Restore stock for removed items in the correct warehouse
-          const warehouseId = item.warehouse_id || 1;
-          await stocksRepo.restoreStockFromInvoice(
-            item.item_id,
-            warehouseId,
-            item.quantity,
-          );
+          // Restore stock for removed items in the correct warehouse — skipped
+          // when the item itself was deleted, since its stock rows are gone too.
+          if (item.item_id) {
+            const warehouseId = item.warehouse_id || 1;
+            await stocksRepo.restoreStockFromInvoice(
+              item.item_id,
+              warehouseId,
+              item.quantity,
+            );
+          }
         }
 
         // Update or add items — sort_order rewritten to match the table order
@@ -875,9 +883,9 @@ export function useEditInvoice(invoiceId: number) {
           const itemUnitPrice = Number(selectedItem.unit_price);
           const warehouseId = selectedItem.warehouse_id || 1;
 
-          const currentItem = currentItems.find(
-            (item: any) => item.item_id === itemId,
-          );
+          const currentItem = selectedItem.invoice_item_id != null
+            ? currentItems.find((item: any) => item.id === selectedItem.invoice_item_id)
+            : currentItems.find((item: any) => item.item_id === itemId);
 
           if (currentItem) {
             const currentQuantity = parseFloat(currentItem.quantity);

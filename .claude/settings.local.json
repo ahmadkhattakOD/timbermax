@@ -48,7 +48,8 @@
       "Bash(echo \"PID $!\")",
       "Read(//tmp/**)",
       "Bash(git stash *)",
-      "Bash(pkill -f \"vite\")"
+      "Bash(pkill -f \"vite\")",
+      "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')"
     ]
   }
 }

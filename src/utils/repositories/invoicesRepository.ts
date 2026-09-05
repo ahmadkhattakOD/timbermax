@@ -489,6 +489,27 @@ ${this.itemsClassName} (
     }
   }
 
+  // Deletes by the invoice_items primary key rather than item_id, since item_id
+  // is set NULL when the underlying item is deleted (see add_item_snapshot.sql) —
+  // matching on it would silently delete nothing.
+  public async deleteItemById(rowId: number) {
+    try {
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .delete()
+        .eq("id", rowId)
+        .select();
+
+      if (data && data.length > 0 && error === null) {
+        return data.length;
+      }
+      return 0;
+    } catch (error) {
+      console.error("Error deleting invoice item by id:", error);
+      return 0;
+    }
+  }
+
   public async updateItemById(rowId: number, updates: any) {
     try {
       const { data, error } = await supabase

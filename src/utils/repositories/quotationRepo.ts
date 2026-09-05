@@ -514,6 +514,44 @@ class QuotationsRepository {
     }
   }
 
+  // Deletes by the quotation_items primary key rather than item_id, since item_id
+  // is set NULL when the underlying item is deleted (see add_item_snapshot.sql) —
+  // matching on it would silently delete nothing.
+  public async deleteItemById(rowId: number) {
+    try {
+      const { data: itemData } = await supabase
+        .from(this.itemsClassName)
+        .select("quotation_id, item_id, quantity, warehouse_id")
+        .eq("id", rowId)
+        .single();
+
+      if (itemData?.item_id) {
+        const stocksRepo = new StocksRepository();
+        await stocksRepo.releaseFromQuotation(
+          itemData.quotation_id,
+          itemData.item_id,
+          itemData.warehouse_id || 1,
+          itemData.quantity,
+        );
+      }
+
+      const { data, error } = await supabase
+        .from(this.itemsClassName)
+        .delete()
+        .eq("id", rowId)
+        .select();
+
+      if (error) {
+        console.error("Error deleting quotation item by id:", error);
+        return 0;
+      }
+      return data?.length || 0;
+    } catch (error) {
+      console.error("Error deleting quotation item by id:", error);
+      return 0;
+    }
+  }
+
   public async updateItemById(rowId: number, updates: Partial<QuotationItemSupabase>) {
     try {
       const { data, error } = await supabase
