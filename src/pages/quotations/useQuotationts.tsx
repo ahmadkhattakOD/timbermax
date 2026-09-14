@@ -1600,12 +1600,30 @@ export function useQuotations() {
         }
       }
 
-      openSnackbar({
-        open: true,
-        message: `Quotation duplicated as ${nextNumber}`,
-        variant: "alert",
-        alert: { color: "success" },
-      } as SnackbarProps);
+      const unreservedItems = (result.reservations || [])
+        .filter((r: any) => !r.success)
+        .map((r: any) => {
+          const match = (existing.quotation_items || []).find(
+            (i: any) => i.item_id === r.itemId,
+          );
+          return match?.item_name ?? match?.items?.name ?? `item #${r.itemId}`;
+        });
+
+      if (unreservedItems.length > 0) {
+        openSnackbar({
+          open: true,
+          message: `Quotation duplicated as ${nextNumber}, but stock could NOT be reserved for: ${unreservedItems.join(", ")}.`,
+          variant: "alert",
+          alert: { color: "warning" },
+        } as SnackbarProps);
+      } else {
+        openSnackbar({
+          open: true,
+          message: `Quotation duplicated as ${nextNumber}`,
+          variant: "alert",
+          alert: { color: "success" },
+        } as SnackbarProps);
+      }
       await getData();
     } catch (error: any) {
       console.error("Error duplicating quotation:", error);
@@ -2102,12 +2120,21 @@ export function useQuotations() {
       );
 
       if (result.success) {
-        openSnackbar({
-          open: true,
-          message: `Quotation status updated to ${status}`,
-          variant: "alert",
-          alert: { color: "success" },
-        } as SnackbarProps);
+        if (result.unreservedItems && result.unreservedItems.length > 0) {
+          openSnackbar({
+            open: true,
+            message: `Quotation status updated to ${status}, but stock could NOT be re-reserved for ${result.unreservedItems.length} item(s). Please check stock manually.`,
+            variant: "alert",
+            alert: { color: "warning" },
+          } as SnackbarProps);
+        } else {
+          openSnackbar({
+            open: true,
+            message: `Quotation status updated to ${status}`,
+            variant: "alert",
+            alert: { color: "success" },
+          } as SnackbarProps);
+        }
         await getData();
       } else {
         throw new Error(result.error || "Failed to update status");

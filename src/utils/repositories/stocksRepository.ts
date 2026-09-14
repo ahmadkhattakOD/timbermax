@@ -66,9 +66,13 @@ class StocksRepository {
     notes?: string,
   ): Promise<void> {
     try {
-      // Check for duplicate movement within last 30 seconds
-      const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
-      
+      // Check for accidental duplicate submissions (e.g. double-click, double-fired
+      // handler) within a short window. Scoped tightly on quantity_before too, since
+      // legitimate sequential movements on the same item (e.g. multiple reservations
+      // being converted to invoice lines one after another) change the on-hand
+      // quantity each time and must never be collapsed into one another.
+      const dedupeWindowAgo = new Date(Date.now() - 5 * 1000).toISOString();
+
       const { data: existingMovement } = await supabase
         .from("stock_movements")
         .select("id")
@@ -76,7 +80,8 @@ class StocksRepository {
         .eq("warehouse_id", warehouseId)
         .eq("movement_type", movementType)
         .eq("quantity_change", quantityChange)
-        .gte("created_at", thirtySecondsAgo)
+        .eq("quantity_before", quantityBefore)
+        .gte("created_at", dedupeWindowAgo)
         .limit(1);
 
       if (existingMovement && existingMovement.length > 0) {
@@ -303,6 +308,102 @@ class StocksRepository {
     }
   }
 
+  /**
+   * Release one specific reservation row by id (not a FIFO search across the
+   * item's other reservations). Used where the caller already knows exactly
+   * which reservation it is settling, e.g. converting a quotation to an
+   * invoice — releasing "some quantity of this item" via releaseFromQuotation
+   * would silently re-release whichever reservation row it finds first, which
+   * breaks the 1:1 mapping when an item has more than one active reservation
+   * (e.g. after the quotation was edited).
+   */
+  public async releaseReservationById(
+    reservationId: number,
+    itemId: number,
+    warehouseId: number,
+    quantity: number,
+    userId: string,
+    notes?: string,
+  ) {
+    try {
+      const { data: updatedReservation, error: updateResError } =
+        await supabase
+          .from("stock_reservations")
+          .update({
+            status: "released",
+            released_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", reservationId)
+          .eq("status", "on_hold")
+          .select("id")
+          .maybeSingle();
+
+      if (updateResError) {
+        return {
+          success: false,
+          error: `Failed to release reservation: ${updateResError.message}`,
+        };
+      }
+
+      if (!updatedReservation) {
+        return {
+          success: false,
+          error: `Reservation #${reservationId} is not on hold (already released or missing)`,
+        };
+      }
+
+      const { data: stockData } = await supabase
+        .from(this.className)
+        .select("id, quantity, reserved")
+        .eq("item", itemId)
+        .eq("warehouse", warehouseId)
+        .limit(1)
+        .maybeSingle();
+
+      if (!stockData) {
+        return { success: false, error: "Stock not found" };
+      }
+
+      const currentQuantity = parseFloat(stockData.quantity) || 0;
+      const currentReserved = parseFloat(stockData.reserved) || 0;
+      const newReserved = roundAmount(Math.max(0, currentReserved - quantity));
+      const newStatus = newReserved === 0 ? "available" : "on_hold";
+
+      const { error: updateStockError } = await supabase
+        .from(this.className)
+        .update({
+          reserved: newReserved,
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", stockData.id);
+
+      if (updateStockError) {
+        return {
+          success: false,
+          error: `Failed to update stock: ${updateStockError.message}`,
+        };
+      }
+
+      await this.recordMovement(
+        stockData.id,
+        itemId,
+        warehouseId,
+        userId,
+        "release",
+        0,
+        currentQuantity,
+        currentQuantity,
+        notes || `Stock released from reservation #${reservationId}`,
+      );
+
+      return { success: true, released: quantity };
+    } catch (error: any) {
+      return { success: false, error: `System error: ${error.message}` };
+    }
+  }
+
   public async transferReservedStockToInvoice(
     quotationId: number,
     invoiceId: number,
@@ -334,15 +435,23 @@ class StocksRepository {
       }
 
       let totalTransferred = 0;
+      const failedItems: Array<{
+        reservationId: number;
+        itemId: number;
+        reason: string;
+      }> = [];
 
-      // 2. Process each reservation
+      // 2. Process each reservation individually, by its own id, so an item
+      // with multiple reservation rows (e.g. from an edited quotation) can't
+      // have one row's release silently consume another row's quantity.
       for (const reservation of reservations) {
-        // Release from reservation
-        const releaseResult = await this.releaseFromQuotation(
-          quotationId,
+        const releaseResult = await this.releaseReservationById(
+          reservation.id,
           reservation.item_id,
           reservation.warehouse_id,
           reservation.quantity,
+          userId,
+          `Stock released from quotation #${quotationId} (reservation #${reservation.id}, ${reservation.quantity} units) for conversion to invoice #${invoiceId}`,
         );
 
         if (!releaseResult.success) {
@@ -350,6 +459,11 @@ class StocksRepository {
             `Failed to release reservation ${reservation.id}:`,
             releaseResult.error,
           );
+          failedItems.push({
+            reservationId: reservation.id,
+            itemId: reservation.item_id,
+            reason: releaseResult.error || "release failed",
+          });
           continue;
         }
 
@@ -360,6 +474,7 @@ class StocksRepository {
           reservation.quantity,
           invoiceId,
           userId,
+          `Stock reduced for invoice #${invoiceId} (reservation #${reservation.id}, ${reservation.quantity} units)`,
         );
 
         if (!reduceResult.success) {
@@ -367,6 +482,11 @@ class StocksRepository {
             `Failed to reduce stock for item ${reservation.item_id}:`,
             reduceResult.error,
           );
+          failedItems.push({
+            reservationId: reservation.id,
+            itemId: reservation.item_id,
+            reason: reduceResult.error || "stock reduction failed",
+          });
           continue;
         }
 
@@ -374,9 +494,16 @@ class StocksRepository {
       }
 
       return {
-        success: true,
+        success: failedItems.length === 0,
+        error:
+          failedItems.length > 0
+            ? `${failedItems.length} of ${reservations.length} reserved item(s) could not be moved to the invoice: ${failedItems
+                .map((f) => `item #${f.itemId} (${f.reason})`)
+                .join("; ")}`
+            : undefined,
         transferred: totalTransferred,
         reservationsProcessed: reservations.length,
+        failedItems,
       };
     } catch (error: any) {
       return { success: false, error: error.message };

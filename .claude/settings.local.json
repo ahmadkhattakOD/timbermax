@@ -49,7 +49,9 @@
       "Read(//tmp/**)",
       "Bash(git stash *)",
       "Bash(pkill -f \"vite\")",
-      "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')"
+      "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')",
+      "Bash(sed -n '680,800px' /Users/mac/Developer/client/timbermax/src/utils/repositories/quotationRepo.ts)",
+      "Bash(awk 'NR>=680 && NR<=800' /Users/mac/Developer/client/timbermax/src/utils/repositories/quotationRepo.ts)"
     ]
   }
 }

@@ -335,6 +335,7 @@ class QuotationsRepository {
       }
 
       // If changing from cancelled back to active, re-reserve stock
+      let unreservedItems: Array<{ itemId: number; error?: string }> = [];
       if (
         currentStatus === "cancelled" &&
         (status === "draft" || status === "sent" || status === "approved")
@@ -344,12 +345,22 @@ class QuotationsRepository {
         if (items) {
           const stocksRepo = new StocksRepository();
           for (const item of items) {
-            await stocksRepo.reserveForQuotation(
+            const reserveResult = await stocksRepo.reserveForQuotation(
               item.item_id,
               item.warehouse_id || 1,
               item.quantity,
               id,
             );
+            if (!reserveResult.success) {
+              console.error(
+                `Failed to re-reserve stock for item ${item.item_id}:`,
+                reserveResult.error,
+              );
+              unreservedItems.push({
+                itemId: item.item_id,
+                error: reserveResult.error,
+              });
+            }
           }
         }
       }
@@ -369,7 +380,7 @@ class QuotationsRepository {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data };
+      return { success: true, data, unreservedItems };
     } catch (error: any) {
       console.error("Error updating quotation status:", error);
       return { success: false, error: error.message };

@@ -831,8 +831,25 @@ export function useCreateQuotation() {
         });
       }
 
-      // Show success message with warning if low stock
-      if (lowStockItems.length > 0) {
+      // Items whose stock reservation failed (e.g. no stock record exists yet
+      // for that item/warehouse) are not tracked in inventory at all for this
+      // quotation — surface that clearly instead of letting it pass silently.
+      const unreservedItems = (result.reservations || [])
+        .filter((r: any) => !r.success)
+        .map((r: any) => {
+          const match = selectedItems.find((i) => i.item_id === r.itemId);
+          return match?.name || `item #${r.itemId}`;
+        });
+
+      // Show success message with warning if low stock or unreserved items
+      if (unreservedItems.length > 0) {
+        openSnackbar({
+          open: true,
+          message: `Quotation created, but stock could NOT be reserved for: ${unreservedItems.join(", ")}. These items will not be tracked in inventory unless a stock record exists for them.`,
+          variant: "alert",
+          alert: { color: "warning" },
+        } as SnackbarProps);
+      } else if (lowStockItems.length > 0) {
         openSnackbar({
           open: true,
           message: `Quotation created successfully! ⚠️ ${lowStockItems.length} item(s) have insufficient stock but were still reserved.`,

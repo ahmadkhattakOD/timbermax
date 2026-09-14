@@ -99,7 +99,7 @@ const StockReservationsModal: React.FC<StockReservationsModalProps> = ({
   };
 
   const handleViewQuotation = (quotationId: number) => {
-    navigate(`/quotations/view/${quotationId}`);
+    navigate(`/quotations/${quotationId}/edit`);
     onClose();
   };
 
